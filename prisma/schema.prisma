@@ -1,0 +1,446 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String
+  firstName     String      @default("")
+  lastName      String      @default("")
+  title         String      @default("")
+  passwordHash  String
+  role           UserRole     @default(MEMBER)
+  institutionId  String
+  institution    Institution  @relation("UserPrimaryInstitution", fields: [institutionId], references: [id])
+  institutionId2 String?
+  institution2   Institution? @relation("UserSecondInstitution", fields: [institutionId2], references: [id])
+  institutionId3 String?
+  institution3   Institution? @relation("UserThirdInstitution", fields: [institutionId3], references: [id])
+  cases              Case[]
+  roleRequests       RoleRequest[]
+  transfersSent      CaseTransfer[] @relation("TransfersSent")
+  transfersReceived  CaseTransfer[] @relation("TransfersReceived")
+  createdAt     DateTime    @default(now())
+}
+
+enum UserRole {
+  MEMBER
+  HEAD_OF_DEPT
+  ADMIN
+  CLINICIAN     // legacy
+  RESEARCHER    // legacy
+}
+
+model Institution {
+  id      String  @id @default(cuid())
+  name    String
+  city    String
+  country String  @default("Bulgaria")
+  users   User[]  @relation("UserPrimaryInstitution")
+  users2  User[]  @relation("UserSecondInstitution")
+  users3  User[]  @relation("UserThirdInstitution")
+  cases   Case[]
+}
+
+// ─── Case ────────────────────────────────────────────────────────────────────
+
+model Case {
+  id            String      @id @default(cuid())
+  caseCode      String?     @unique
+  notes         String?
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  status        CaseStatus  @default(DRAFT)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  preop         PreoperativeAssessment?
+  intraop       IntraoperativeRecord?
+  postop        PostoperativeRecord?
+  transfers     CaseTransfer[]
+}
+
+model CaseTransfer {
+  id          String         @id @default(cuid())
+  caseId      String
+  case        Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User           @relation("TransfersSent",     fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User           @relation("TransfersReceived", fields: [toUserId],   references: [id])
+  initiatedBy String
+  status      TransferStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  resolvedAt  DateTime?
+}
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum CaseStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETE
+}
+
+// ─── Custom terms (free-text entries added by clinicians) ─────────────────────
+
+model RoleRequest {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      RequestStatus @default(PENDING)
+  requestedAt DateTime      @default(now())
+  resolvedAt  DateTime?
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Icd10BgCode {
+  code  String @id
+  label String
+}
+
+model Icd11Code {
+  code    String  @id   // e.g. "BA41.Z"
+  labelEn String        // English from WHO API
+  labelBg String?       // Bulgarian (null until first BG search for this code)
+}
+
+model CustomTerm {
+  id        String   @id @default(cuid())
+  code      String   @unique  // "0000000", "0000001", …
+  term      String
+  termType  String   // "procedure" | "diagnosis" | "medication" | "allergy"
+  createdAt DateTime @default(now())
+}
+
+// ─── Preoperative ────────────────────────────────────────────────────────────
+
+model PreoperativeAssessment {
+  id     String @id @default(cuid())
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  ageYears   Int
+  sex        Sex
+  heightCm   Float
+  weightKg   Float
+  bmi        Float
+  bloodType  BloodType?
+  rhFactor   RhFactor?
+
+  diagnosis              String
+  plannedProcedure       String
+  icdCode                String?
+  surgeonName            String?
+  anesthesiologistName   String?
+  anesthesiaNurseName    String?
+
+  // Comorbidities as ICD-10 tagged list: [{label, sub, system}]
+  comorbidities          Json     @default("[]")
+
+  // Safety-critical fields kept explicit
+  allergies              Boolean  @default(false)
+  allergyDetails         String?
+  latexAllergy           Boolean  @default(false)
+  currentMedications     String?
+  familyAnesthesiaProblems Boolean @default(false)
+  familyAnesthesiaDetails  String?
+  dentalProsthetics      Boolean  @default(false)
+  looseTeeth             Boolean  @default(false)
+  smoking                Boolean  @default(false)
+  substanceAbuse         Boolean  @default(false)
+
+  bpSystolic      Int?
+  bpDiastolic     Int?
+  heartRate        Int?
+  heartArrhythmia  Boolean @default(false)
+  spO2             Float?
+  temperature     Float?
+  respiratoryRate Int?
+
+  mallampati             MallampatiClass?
+  mouthOpeningCm         Float?
+  thyromental            Float?
+  neckMobility           NeckMobility?
+  upperLipBiteTest       UpperLipBiteTest?
+  retrognathia           Boolean @default(false)
+  prominentIncisors      Boolean @default(false)
+  facialHair             Boolean @default(false)
+  difficultAirwayHistory Boolean @default(false)
+  difficultAirwayNotes   String?
+  cormackLehane          CormackLehane?
+
+  asaScore         ASAScore?
+  emergencySurgery Boolean @default(false)
+  rcriScore   Int?
+  gutaScore   Float?
+  apfelScore  Int?
+  stopBangScore Int?
+
+  labResults Json @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Intraoperative ──────────────────────────────────────────────────────────
+
+model IntraoperativeRecord {
+  id     String @id @default(cuid())
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime?
+
+  positions Json @default("[]")
+
+  techniques     Json @default("[]")
+  airwayDevice   AirwayDevice?
+  tubeSize       Float?
+  cuffed         Boolean?
+  peepCmH2O      Float?
+  ippv           Boolean @default(false)
+  jetVentilation Boolean @default(false)
+  fob            Boolean @default(false)
+  airwayTools    Json    @default("[]")
+  airwayNotes    String?
+  cormackLehane  CormackLehane?
+  airwayDevices    Json    @default("[]")
+  ventilationModes Json    @default("[]")
+  dltType          String?
+  dltSide          String?
+  dltSize          Float?
+  endobronchialSize Float?
+
+  volatileAgent     VolatileAgent?
+  n2oPercent        Float?
+  o2Percent         Float?
+  n2oLitersPerMin   Float?
+  o2LitersPerMin    Float?
+
+  plexusBlock      PlexusBlock?
+  cvkSite          CVKSite?
+  arterialLineSite ArterialLineSite?
+
+  ecg             Boolean @default(false)
+  urinaryCatheter Boolean @default(false)
+  stomachTube     Boolean @default(false)
+  spO2Monitor     Boolean @default(true)
+  invasiveBP      Boolean @default(false)
+  cvpMonitor      Boolean @default(false)
+  bglMonitor      Boolean @default(false)
+  bloodGasMonitor Boolean @default(false)
+  neuroMonitor    Boolean @default(false)
+  nbpMonitor      Boolean @default(true)
+  etco2Monitor    Boolean @default(false)
+  tempMonitor     Boolean @default(false)
+  paCatheter      Boolean @default(false)
+  tee             Boolean @default(false)
+  bis             Boolean @default(false)
+  entropyMonitor  Boolean @default(false)
+  nirsMonitor     Boolean @default(false)
+  evokedPotentials Boolean @default(false)
+  tofMonitor      Boolean @default(false)
+
+  vascularAccesses Json @default("[]")
+
+  premedicationEvening String?
+  premedicationMorning String?
+
+  drugsAdministered Json @default("[]")
+
+  crystalloidsMl    Int?
+  colloidsMl        Int?
+  bloodMl           Int?
+  bloodProductsNote String?
+  urineMl           Int?
+
+  timeSeriesData Json @default("[]")
+  keyEvents      Json @default("[]")
+
+  complications String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Postoperative ───────────────────────────────────────────────────────────
+
+model PostoperativeRecord {
+  id     String @id @default(cuid())
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  aldreteActivity       Int?
+  aldreteRespiration    Int?
+  aldreteCirculation    Int?
+  aldreteConsciousness  Int?
+  aldreteSpO2           Int?
+  aldreteTotal          Int?
+
+  painScoreNRS       Int?
+  ponv               Boolean @default(false)
+  temperatureCelsius Float?
+  timeInRecoveryMin  Int?
+
+  complications    String?
+  disposition      Disposition?
+  dispositionNotes String?
+  handoverItems    Json    @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BloodType {
+  A
+  B
+  AB
+  O
+}
+
+enum RhFactor {
+  POSITIVE
+  NEGATIVE
+}
+
+enum MallampatiClass {
+  I
+  II
+  III
+  IV
+}
+
+enum NeckMobility {
+  FULL
+  LIMITED
+  FIXED
+}
+
+enum UpperLipBiteTest {
+  CLASS_I
+  CLASS_II
+  CLASS_III
+}
+
+enum CormackLehane {
+  I
+  IIa
+  IIb
+  III
+  IV
+}
+
+enum ASAScore {
+  I
+  II
+  III
+  IV
+  V
+  VI
+}
+
+enum PatientPosition {
+  SUPINE
+  PRONE
+  LEFT_LATERAL
+  RIGHT_LATERAL
+  LITHOTOMY
+  GYNECOLOGICAL
+  TRENDELENBURG
+  REVERSE_TRENDELENBURG
+  FOWLER
+  SITTING
+  BEACH_CHAIR
+  JACKKNIFE
+  LLOYD_DAVIES
+  KNEE_CHEST
+  LATERAL_DECUBITUS
+}
+
+enum AnesthesiaTechnique {
+  GENERAL_INHALATION
+  GENERAL_TIVA
+  GENERAL_COMBINED
+  SPINAL
+  EPIDURAL
+  COMBINED_SPINAL_EPIDURAL
+  PERIPHERAL_NERVE_BLOCK
+  LOCAL
+  SEDATION
+}
+
+enum AirwayDevice {
+  FACE_MASK
+  LMA
+  ORAL_ETT
+  NASAL_ETT
+  SURGICAL_AIRWAY
+}
+
+enum VolatileAgent {
+  SEVOFLURANE
+  DESFLURANE
+  ISOFLURANE
+}
+
+enum CVKSite {
+  INTERNAL_JUGULAR
+  EXTERNAL_JUGULAR
+  SUBCLAVIAN
+  FEMORAL
+}
+
+enum ArterialLineSite {
+  RADIAL
+  DORSALIS_PEDIS
+  FEMORAL
+  BRACHIAL
+}
+
+enum PlexusBlock {
+  AXILLARY
+  INTERSCALENE
+  SUPRACLAVICULAR
+  INFRACLAVICULAR
+  FEMORAL
+  SCIATIC
+  POPLITEAL
+  TAP
+  ERECTOR_SPINAE
+}
+
+enum Disposition {
+  WARD
+  PACU
+  ICU
+}

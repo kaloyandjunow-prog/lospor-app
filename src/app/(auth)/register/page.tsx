@@ -1,0 +1,385 @@
+"use client"
+
+import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { toast } from "sonner"
+import { useTranslations, useLocale } from "next-intl"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { Sun, Moon, Check, Search, ChevronDown, X } from "lucide-react"
+
+
+const COUNTRIES = [
+  "Bulgaria", "Romania", "Greece", "Turkey", "Serbia",
+  "North Macedonia", "Germany", "United Kingdom", "France",
+  "Italy", "Spain", "Portugal", "Netherlands", "Belgium",
+  "Austria", "Switzerland", "Poland", "Czech Republic",
+  "Hungary", "Croatia", "Slovenia", "Slovakia", "Other",
+]
+
+const passwordSchema = z.string()
+  .min(8).regex(/[A-Z]/).regex(/[0-9]/).regex(/[^A-Za-z0-9]/)
+
+const schema = z.object({
+  title:           z.string().optional(),
+  firstName:       z.string().min(1),
+  lastName:        z.string().min(1),
+  email:           z.string().email(),
+  password:        passwordSchema,
+  confirmPassword: z.string(),
+  institutionId:   z.string().min(1),
+  institutionId2:  z.string().optional(),
+  institutionId3:  z.string().optional(),
+}).refine(d => d.password === d.confirmPassword, { message: "mismatch", path: ["confirmPassword"] })
+
+type FormData     = z.infer<typeof schema>
+type Institution  = { id: string; name: string; city: string }
+
+// ── Searchable institution picker ─────────────────────────────────────────────
+function InstitutionPicker({
+  institutions, value, onChange, placeholder, disabled,
+}: {
+  institutions: Institution[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+  disabled?: boolean
+}) {
+  const [open,   setOpen]   = useState(false)
+  const [query,  setQuery]  = useState("")
+  const wrapRef             = useRef<HTMLDivElement>(null)
+  const inputRef            = useRef<HTMLInputElement>(null)
+
+  const selected = institutions.find(i => i.id === value)
+
+  const filtered = query.trim()
+    ? institutions.filter(i =>
+        i.name.toLowerCase().includes(query.toLowerCase()) ||
+        i.city.toLowerCase().includes(query.toLowerCase()))
+    : institutions
+
+  useEffect(() => {
+    if (!open) return
+    setTimeout(() => inputRef.current?.focus(), 50)
+    function onDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [open])
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button type="button" disabled={disabled}
+        onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-start justify-between gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors
+          ${disabled ? "opacity-40 cursor-not-allowed bg-slate-50 dark:bg-[#1a1a1a] border-slate-200 dark:border-[#2a2a2a]"
+                     : "bg-white dark:bg-[#1c1c1c] border-slate-200 dark:border-[#3a3a3a] hover:border-slate-300 dark:hover:border-[#555] cursor-pointer"}
+          ${open ? "ring-2 ring-blue-500 border-blue-400 dark:border-blue-500" : ""}`}>
+        <span className={`break-words min-w-0 flex-1 leading-snug ${selected ? "text-slate-800 dark:text-slate-100" : "text-slate-400 dark:text-slate-500"}`}>
+          {selected ? `${selected.name} — ${selected.city}` : placeholder}
+        </span>
+        {selected
+          ? <X className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" onClick={e => { e.stopPropagation(); onChange(""); setQuery("") }} />
+          : <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-1 rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] shadow-xl overflow-hidden"
+          style={{ minWidth: "min(640px, 90vw)", maxWidth: "640px" }}>
+          {/* Search bar */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 dark:border-[#2a2a2a]">
+            <Search className="h-4 w-4 text-slate-400 shrink-0" />
+            <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Search by name or city…"
+              className="flex-1 text-sm bg-transparent outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400" />
+            {query && <X className="h-3.5 w-3.5 text-slate-400 cursor-pointer" onClick={() => setQuery("")} />}
+          </div>
+
+          {/* List */}
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-slate-400 dark:text-slate-500 text-center">No institutions found</p>
+            ) : (
+              filtered.map(inst => (
+                <button key={inst.id} type="button"
+                  onClick={() => { onChange(inst.id); setOpen(false); setQuery("") }}
+                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-[#242424] transition-colors
+                    ${inst.id === value ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium" : "text-slate-800 dark:text-slate-200"}`}>
+                  <span className="truncate">{inst.name}</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{inst.city}</span>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="px-3 py-1.5 border-t border-slate-100 dark:border-[#2a2a2a] text-[10px] text-slate-400 dark:text-slate-500">
+            {filtered.length} of {institutions.length} institutions
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Password strength checklist ───────────────────────────────────────────────
+function PasswordStrength({ value }: { value: string }) {
+  const t = useTranslations()
+  const checks = [
+    { label: t("auth.pwLength"),   ok: value.length >= 8 },
+    { label: t("auth.pwUppercase"), ok: /[A-Z]/.test(value) },
+    { label: t("auth.pwNumber"),   ok: /[0-9]/.test(value) },
+    { label: t("auth.pwSpecial"),  ok: /[^A-Za-z0-9]/.test(value) },
+  ]
+  return (
+    <div className="space-y-1 pt-1">
+      {checks.map(c => (
+        <div key={c.label} className={`flex items-center gap-1.5 text-xs ${c.ok ? "text-green-600 dark:text-green-400" : "text-slate-400"}`}>
+          <Check className={`h-3 w-3 ${c.ok ? "opacity-100" : "opacity-30"}`} />
+          {c.label}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function RegisterPage() {
+  const router  = useRouter()
+  const t       = useTranslations()
+  const locale  = useLocale()
+  const [loading, setLoading]           = useState(false)
+  const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [dark, setDark]                 = useState(false)
+  const [pwValue, setPwValue]           = useState("")
+  const [country,  setCountry]  = useState("")
+  const [instId,   setInstId]   = useState("")
+  const [instId2,  setInstId2]  = useState("")
+  const [instId3,  setInstId3]  = useState("")
+  const [showInst2, setShowInst2] = useState(false)
+  const [showInst3, setShowInst3] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/institutions").then(r => r.json()).then(setInstitutions)
+    const stored = localStorage.getItem("theme")
+    const isDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    setDark(isDark)
+    document.documentElement.classList.toggle("dark", isDark)
+  }, [])
+
+  function toggleTheme() {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle("dark", next)
+    localStorage.setItem("theme", next ? "dark" : "light")
+  }
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema) as any,
+  })
+
+  // When country changes, auto-select "Друго" for non-Bulgaria countries
+  function handleCountryChange(c: string) {
+    setCountry(c)
+    setInstId(""); setInstId2(""); setInstId3("")
+    setValue("institutionId", ""); setValue("institutionId2", ""); setValue("institutionId3", "")
+    setShowInst2(false); setShowInst3(false)
+    if (c && c !== "Bulgaria") {
+      const other = institutions.find(i => i.name === "Друго" || i.name === "Other / Private")
+      if (other) { setInstId(other.id); setValue("institutionId", other.id) }
+    }
+  }
+
+  function handleInstChange(id: string)  { setInstId(id);  setValue("institutionId",  id) }
+  function handleInst2Change(id: string) { setInstId2(id); setValue("institutionId2", id) }
+  function handleInst3Change(id: string) { setInstId3(id); setValue("institutionId3", id) }
+
+  async function onSubmit(data: FormData) {
+    setLoading(true)
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    setLoading(false)
+    if (!res.ok) { const b = await res.json(); toast.error(b.error ?? t("auth.registrationFailed")); return }
+    toast.success(t("auth.registrationSuccess"))
+    router.push("/login")
+  }
+
+  const bgInstitutions = institutions.filter(i => i.name !== "Друго" && i.name !== "Other / Private")
+  const isBulgaria     = country === "Bulgaria"
+  const otherInst      = institutions.find(i => i.name === "Друго" || i.name === "Other / Private")
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4">
+      <div className="w-full max-w-lg space-y-6">
+        <div className="flex flex-col items-center text-center">
+          <Link href="/login">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="LOSPOR" className="h-20 w-auto hover:opacity-80 transition-opacity" />
+          </Link>
+          <p className="text-sm text-slate-500 mt-1">{t("common.appFullName")}</p>
+          <div className="mt-3 flex items-center gap-2">
+            <LanguageSwitcher currentLocale={locale} />
+            <button type="button" onClick={toggleTheme}
+              className="p-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("auth.register")}</CardTitle>
+            <CardDescription>{t("auth.registerDesc")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+              {/* Title */}
+              <div className="space-y-1">
+                <Label>{t("auth.title")}</Label>
+                <Select onValueChange={v => setValue("title", v as string)}>
+                  <SelectTrigger><SelectValue placeholder={t("auth.selectTitle")} /></SelectTrigger>
+                  <SelectContent>
+                    {(t.raw("auth.titles") as string[]).map(tt => <SelectItem key={tt} value={tt}>{tt}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Name */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>{t("auth.firstName")} <span className="text-red-500">*</span></Label>
+                  <Input placeholder="Ivan" {...register("firstName")} />
+                  {errors.firstName && <p className="text-xs text-red-500">{t("common.required")}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>{t("auth.lastName")} <span className="text-red-500">*</span></Label>
+                  <Input placeholder="Ivanov" {...register("lastName")} />
+                  {errors.lastName && <p className="text-xs text-red-500">{t("common.required")}</p>}
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-1">
+                <Label>{t("auth.email")} <span className="text-red-500">*</span></Label>
+                <Input type="email" placeholder="you@hospital.bg" {...register("email")} />
+                {errors.email && <p className="text-xs text-red-500">{t("common.required")}</p>}
+              </div>
+
+              {/* Country */}
+              <div className="space-y-1">
+                <Label>{t("auth.country")} <span className="text-red-500">*</span></Label>
+                <Select onValueChange={v => handleCountryChange(v as string)}>
+                  <SelectTrigger><SelectValue placeholder={t("auth.selectCountry")} /></SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Institution — only shown after country is selected */}
+              {country && (
+                <div className="space-y-1">
+                  <Label>{t("auth.institution")} <span className="text-red-500">*</span></Label>
+                  {isBulgaria ? (
+                    <InstitutionPicker
+                      institutions={bgInstitutions}
+                      value={instId}
+                      onChange={handleInstChange}
+                      placeholder={t("auth.selectInstitution")} />
+                  ) : (
+                    <div className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-slate-50 dark:bg-[#1a1a1a] px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+                      {t("common.other") ?? "Other"}
+                    </div>
+                  )}
+                  {errors.institutionId && <p className="text-xs text-red-500">{t("common.required")}</p>}
+
+                  {/* 2nd institution */}
+                  {isBulgaria && instId && (
+                    <>
+                      {!showInst2 ? (
+                        <button type="button" onClick={() => setShowInst2(true)}
+                          className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                          {t("auth.addSecondInstitution")}
+                        </button>
+                      ) : (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-slate-500">{t("auth.secondInstitution")}</Label>
+                            <button type="button" onClick={() => { setShowInst2(false); setShowInst3(false); handleInst2Change(""); handleInst3Change("") }}
+                              className="text-xs text-slate-400 hover:text-slate-600">{t("auth.removeInstitution")}</button>
+                          </div>
+                          <InstitutionPicker institutions={bgInstitutions} value={instId2}
+                            onChange={handleInst2Change} placeholder={t("auth.selectInstitution")} />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 3rd institution */}
+                  {isBulgaria && showInst2 && instId2 && (
+                    <>
+                      {!showInst3 ? (
+                        <button type="button" onClick={() => setShowInst3(true)}
+                          className="mt-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                          {t("auth.addThirdInstitution")}
+                        </button>
+                      ) : (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-slate-500">{t("auth.thirdInstitution")}</Label>
+                            <button type="button" onClick={() => { setShowInst3(false); handleInst3Change("") }}
+                              className="text-xs text-slate-400 hover:text-slate-600">{t("auth.removeInstitution")}</button>
+                          </div>
+                          <InstitutionPicker institutions={bgInstitutions} value={instId3}
+                            onChange={handleInst3Change} placeholder={t("auth.selectInstitution")} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Password */}
+              <div className="space-y-1">
+                <Label>{t("auth.password")} <span className="text-red-500">*</span></Label>
+                <Input type="password" {...register("password")}
+                  onChange={e => { register("password").onChange(e); setPwValue(e.target.value) }} />
+                {pwValue && <PasswordStrength value={pwValue} />}
+                {errors.password && !pwValue && <p className="text-xs text-red-500">Password required</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label>{t("auth.confirmPassword")} <span className="text-red-500">*</span></Label>
+                <Input type="password" {...register("confirmPassword")} />
+                {errors.confirmPassword && <p className="text-xs text-red-500">{t("auth.passwordsNoMatch")}</p>}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? t("auth.creatingAccount") : t("auth.register")}
+              </Button>
+            </form>
+            <p className="text-center text-sm text-slate-500 mt-4">
+              {t("auth.haveAccount")}{" "}
+              <Link href="/login" className="text-blue-600 hover:underline font-medium">
+                {t("auth.signIn")}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
