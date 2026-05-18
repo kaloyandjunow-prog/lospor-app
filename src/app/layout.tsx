@@ -19,7 +19,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale    = await getLocale()
   const messages  = await getMessages()
   const jar       = await cookies()
-  const isDark    = jar.get("theme")?.value === "dark"
+  const themeCookie = jar.get("theme")?.value
+  const isDark      = themeCookie !== "light" // default to dark when no cookie set
 
   return (
     <html lang={locale} className={`${roboto.variable} ${geistMono.variable} h-full antialiased${isDark ? " dark" : ""}`} suppressHydrationWarning>

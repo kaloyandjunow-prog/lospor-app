@@ -32,7 +32,7 @@ export default function NewCasePage() {
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
-  const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("tabs")
+  const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("scroll")
 
   useEffect(() => {
     const stored = localStorage.getItem("layoutMode")

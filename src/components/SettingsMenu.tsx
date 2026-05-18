@@ -71,8 +71,8 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role }:
   const [modalOpen, setModalOpen]   = useState(false)
   const [category, setCategory]     = useState<Category>("ui")
   const [dark, setDark]             = useState(false)
-  const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("tabs")
-  const [ttLayout, setTtLayout]     = useState<"expand" | "scroll">("expand")
+  const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("scroll")
+  const [ttLayout, setTtLayout]     = useState<"expand" | "scroll">("scroll")
   const [defMon, setDefMon]         = useState<"standard" | "advanced">("standard")
   const [vitalsExp, setVitalsExp]   = useState(true)
   const [autoFill, setAutoFill]     = useState(false)
@@ -85,10 +85,10 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role }:
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const isDark = storedTheme === "dark" || (!storedTheme && prefersDark)
+    const isDark = storedTheme !== "light" // default to dark when nothing stored
     setDark(isDark)
     document.documentElement.classList.toggle("dark", isDark)
+    if (!storedTheme) document.cookie = "theme=dark; path=/; max-age=31536000; SameSite=Lax"
 
     const lm = localStorage.getItem("layoutMode")
     if (lm === "tabs" || lm === "scroll") setLayoutMode(lm)
