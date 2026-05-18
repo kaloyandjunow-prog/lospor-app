@@ -68,6 +68,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <footer className="no-print border-t border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] py-4 text-center text-xs text-slate-400 dark:text-slate-500">
         {t("common.gdprFooter")}
+        {" · "}
+        <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
+          className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
+          Documentation
+        </a>
       </footer>
     </div>
     </TourManager>
