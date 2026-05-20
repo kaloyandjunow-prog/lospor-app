@@ -53,6 +53,11 @@ export type Icd10BgCode = Prisma.Icd10BgCodeModel
  */
 export type Icd11Code = Prisma.Icd11CodeModel
 /**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel
+/**
  * Model CustomTerm
  * 
  */

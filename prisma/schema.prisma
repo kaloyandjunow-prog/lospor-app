@@ -28,6 +28,7 @@ model User {
   roleRequests       RoleRequest[]
   transfersSent      CaseTransfer[] @relation("TransfersSent")
   transfersReceived  CaseTransfer[] @relation("TransfersReceived")
+  approvedAt    DateTime?              // null = pending admin approval
   createdAt     DateTime    @default(now())
 }
 
@@ -124,12 +125,22 @@ model Icd11Code {
   labelBg String?       // Bulgarian (null until first BG search for this code)
 }
 
-model CustomTerm {
+model AuditLog {
   id        String   @id @default(cuid())
-  code      String   @unique  // "0000000", "0000001", …
-  term      String
-  termType  String   // "procedure" | "diagnosis" | "medication" | "allergy"
+  userId    String
+  action    String
+  entityId  String
+  detail    Json?
   createdAt DateTime @default(now())
+}
+
+model CustomTerm {
+  id            String   @id @default(cuid())
+  code          String   @unique  // "0000000", "0000001", …
+  term          String
+  termType      String   // "procedure" | "diagnosis" | "medication" | "allergy"
+  institutionId String?  // null = legacy global; set = institution-scoped
+  createdAt     DateTime @default(now())
 }
 
 // ─── Preoperative ────────────────────────────────────────────────────────────

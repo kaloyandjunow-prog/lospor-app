@@ -29,6 +29,7 @@ export type CustomTermMinAggregateOutputType = {
   code: string | null
   term: string | null
   termType: string | null
+  institutionId: string | null
   createdAt: Date | null
 }
 
@@ -37,6 +38,7 @@ export type CustomTermMaxAggregateOutputType = {
   code: string | null
   term: string | null
   termType: string | null
+  institutionId: string | null
   createdAt: Date | null
 }
 
@@ -45,6 +47,7 @@ export type CustomTermCountAggregateOutputType = {
   code: number
   term: number
   termType: number
+  institutionId: number
   createdAt: number
   _all: number
 }
@@ -55,6 +58,7 @@ export type CustomTermMinAggregateInputType = {
   code?: true
   term?: true
   termType?: true
+  institutionId?: true
   createdAt?: true
 }
 
@@ -63,6 +67,7 @@ export type CustomTermMaxAggregateInputType = {
   code?: true
   term?: true
   termType?: true
+  institutionId?: true
   createdAt?: true
 }
 
@@ -71,6 +76,7 @@ export type CustomTermCountAggregateInputType = {
   code?: true
   term?: true
   termType?: true
+  institutionId?: true
   createdAt?: true
   _all?: true
 }
@@ -152,6 +158,7 @@ export type CustomTermGroupByOutputType = {
   code: string
   term: string
   termType: string
+  institutionId: string | null
   createdAt: Date
   _count: CustomTermCountAggregateOutputType | null
   _min: CustomTermMinAggregateOutputType | null
@@ -181,6 +188,7 @@ export type CustomTermWhereInput = {
   code?: Prisma.StringFilter<"CustomTerm"> | string
   term?: Prisma.StringFilter<"CustomTerm"> | string
   termType?: Prisma.StringFilter<"CustomTerm"> | string
+  institutionId?: Prisma.StringNullableFilter<"CustomTerm"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CustomTerm"> | Date | string
 }
 
@@ -189,6 +197,7 @@ export type CustomTermOrderByWithRelationInput = {
   code?: Prisma.SortOrder
   term?: Prisma.SortOrder
   termType?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -200,6 +209,7 @@ export type CustomTermWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.CustomTermWhereInput | Prisma.CustomTermWhereInput[]
   term?: Prisma.StringFilter<"CustomTerm"> | string
   termType?: Prisma.StringFilter<"CustomTerm"> | string
+  institutionId?: Prisma.StringNullableFilter<"CustomTerm"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CustomTerm"> | Date | string
 }, "id" | "code">
 
@@ -208,6 +218,7 @@ export type CustomTermOrderByWithAggregationInput = {
   code?: Prisma.SortOrder
   term?: Prisma.SortOrder
   termType?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.CustomTermCountOrderByAggregateInput
   _max?: Prisma.CustomTermMaxOrderByAggregateInput
@@ -222,6 +233,7 @@ export type CustomTermScalarWhereWithAggregatesInput = {
   code?: Prisma.StringWithAggregatesFilter<"CustomTerm"> | string
   term?: Prisma.StringWithAggregatesFilter<"CustomTerm"> | string
   termType?: Prisma.StringWithAggregatesFilter<"CustomTerm"> | string
+  institutionId?: Prisma.StringNullableWithAggregatesFilter<"CustomTerm"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CustomTerm"> | Date | string
 }
 
@@ -230,6 +242,7 @@ export type CustomTermCreateInput = {
   code: string
   term: string
   termType: string
+  institutionId?: string | null
   createdAt?: Date | string
 }
 
@@ -238,6 +251,7 @@ export type CustomTermUncheckedCreateInput = {
   code: string
   term: string
   termType: string
+  institutionId?: string | null
   createdAt?: Date | string
 }
 
@@ -246,6 +260,7 @@ export type CustomTermUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   term?: Prisma.StringFieldUpdateOperationsInput | string
   termType?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -254,6 +269,7 @@ export type CustomTermUncheckedUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   term?: Prisma.StringFieldUpdateOperationsInput | string
   termType?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -262,6 +278,7 @@ export type CustomTermCreateManyInput = {
   code: string
   term: string
   termType: string
+  institutionId?: string | null
   createdAt?: Date | string
 }
 
@@ -270,6 +287,7 @@ export type CustomTermUpdateManyMutationInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   term?: Prisma.StringFieldUpdateOperationsInput | string
   termType?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -278,6 +296,7 @@ export type CustomTermUncheckedUpdateManyInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   term?: Prisma.StringFieldUpdateOperationsInput | string
   termType?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -286,6 +305,7 @@ export type CustomTermCountOrderByAggregateInput = {
   code?: Prisma.SortOrder
   term?: Prisma.SortOrder
   termType?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -294,6 +314,7 @@ export type CustomTermMaxOrderByAggregateInput = {
   code?: Prisma.SortOrder
   term?: Prisma.SortOrder
   termType?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -302,6 +323,7 @@ export type CustomTermMinOrderByAggregateInput = {
   code?: Prisma.SortOrder
   term?: Prisma.SortOrder
   termType?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -312,6 +334,7 @@ export type CustomTermSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   code?: boolean
   term?: boolean
   termType?: boolean
+  institutionId?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["customTerm"]>
 
@@ -320,6 +343,7 @@ export type CustomTermSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   code?: boolean
   term?: boolean
   termType?: boolean
+  institutionId?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["customTerm"]>
 
@@ -328,6 +352,7 @@ export type CustomTermSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   code?: boolean
   term?: boolean
   termType?: boolean
+  institutionId?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["customTerm"]>
 
@@ -336,10 +361,11 @@ export type CustomTermSelectScalar = {
   code?: boolean
   term?: boolean
   termType?: boolean
+  institutionId?: boolean
   createdAt?: boolean
 }
 
-export type CustomTermOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "term" | "termType" | "createdAt", ExtArgs["result"]["customTerm"]>
+export type CustomTermOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "term" | "termType" | "institutionId" | "createdAt", ExtArgs["result"]["customTerm"]>
 
 export type $CustomTermPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "CustomTerm"
@@ -349,6 +375,7 @@ export type $CustomTermPayload<ExtArgs extends runtime.Types.Extensions.Internal
     code: string
     term: string
     termType: string
+    institutionId: string | null
     createdAt: Date
   }, ExtArgs["result"]["customTerm"]>
   composites: {}
@@ -777,6 +804,7 @@ export interface CustomTermFieldRefs {
   readonly code: Prisma.FieldRef<"CustomTerm", 'String'>
   readonly term: Prisma.FieldRef<"CustomTerm", 'String'>
   readonly termType: Prisma.FieldRef<"CustomTerm", 'String'>
+  readonly institutionId: Prisma.FieldRef<"CustomTerm", 'String'>
   readonly createdAt: Prisma.FieldRef<"CustomTerm", 'DateTime'>
 }
     

@@ -1,6 +1,11 @@
-import { NextRequest } from "next/server"
+﻿import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 import Groq from "groq-sdk"
+import { z } from "zod"
+import { rateLimit } from "@/lib/rate-limit"
+import { logAudit } from "@/lib/audit"
+
+const dataSchema = z.record(z.string(), z.unknown())
 
 const SYSTEM_PROMPT = `You are a board-certified anesthesiologist providing pre-operative clinical decision support. You receive structured patient data and produce a concise, actionable clinical analysis. You write for fellow anesthesiologists — use correct medical terminology, be direct, and do not over-explain basics.
 
@@ -32,13 +37,34 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
   }
 
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured" }), { status: 500 })
+  const contentLength = Number(req.headers.get("content-length") ?? 0)
+  if (contentLength > 16_384) {
+    return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413 })
   }
 
-  const data = await req.json()
-  const patientSummary = buildPatientSummary(data)
+  const rl = rateLimit(`ai:${session.user.id}`, 20, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429, headers: { "Retry-After": String(rl.retryAfter) },
+    })
+  }
+
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+  }
+
+  let parsed: z.infer<typeof dataSchema>
+  try {
+    const body = await req.json()
+    parsed = dataSchema.parse(body)
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 })
+  }
+
+  // buildPatientSummary receives preop fields directly — no name, ID, or caseCode is forwarded to Groq
+  const patientSummary = buildPatientSummary(parsed)
+  logAudit(session.user.id, "AI_ADVISE", session.user.id)
 
   const groq = new Groq({ apiKey })
 
@@ -56,7 +82,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: any) {
     console.error("[ai/advise]", err)
-    return new Response(JSON.stringify({ error: err?.message ?? String(err) }), { status: 500 })
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
   }
 
   const readable = new ReadableStream<Uint8Array>({
@@ -94,7 +120,7 @@ function buildPatientSummary(data: any): string {
     demo.push(`BMI: ${bmi.toFixed(1)}`)
     if (bmi >= 35) demo.push(`(Class ${bmi >= 40 ? "III" : "II"} obesity)`)
   }
-  if (data.bloodType) demo.push(`Blood type: ${data.bloodType}${data.rhFactor === "NEGATIVE" ? "−" : data.rhFactor === "POSITIVE" ? "+" : ""}`)
+  if (data.bloodType) demo.push(`Blood type: ${data.bloodType}${data.rhFactor === "NEGATIVE" ? "в€’" : data.rhFactor === "POSITIVE" ? "+" : ""}`)
   if (demo.length) lines.push("**Demographics:** " + demo.join(", "))
 
   const surgery: string[] = []
@@ -145,3 +171,4 @@ function buildPatientSummary(data: any): string {
 
   return lines.join("\n")
 }
+

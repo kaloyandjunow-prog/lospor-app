@@ -42,6 +42,8 @@
     "signingIn": "Влизане…",
     "creatingAccount": "Създаване на акаунт…",
     "invalidCredentials": "Невалиден имейл или парола",
+    "pendingApproval": "Вашият акаунт очаква одобрение от администратор",
+    "registrationPending": "Акаунтът е създаден — ще бъдете уведомени когато администратор го одобри",
     "emailRegistered": "Имейлът вече е регистриран",
     "registrationSuccess": "Акаунтът е създаден — влезте в системата",
     "registrationFailed": "Регистрацията неуспешна",

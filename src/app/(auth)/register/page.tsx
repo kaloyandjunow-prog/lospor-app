@@ -43,7 +43,7 @@ const schema = z.object({
 type FormData     = z.infer<typeof schema>
 type Institution  = { id: string; name: string; city: string }
 
-// ── Searchable institution picker ─────────────────────────────────────────────
+// в"Ђв"Ђ Searchable institution picker в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 function InstitutionPicker({
   institutions, value, onChange, placeholder, disabled,
 }: {
@@ -131,7 +131,7 @@ function InstitutionPicker({
   )
 }
 
-// ── Password strength checklist ───────────────────────────────────────────────
+// в"Ђв"Ђ Password strength checklist в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 function PasswordStrength({ value }: { value: string }) {
   const t = useTranslations()
   const checks = [
@@ -152,7 +152,7 @@ function PasswordStrength({ value }: { value: string }) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// в"Ђв"Ђ Page в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 export default function RegisterPage() {
   const router  = useRouter()
   const t       = useTranslations()
@@ -212,7 +212,7 @@ export default function RegisterPage() {
     })
     setLoading(false)
     if (!res.ok) { const b = await res.json(); toast.error(b.error ?? t("auth.registrationFailed")); return }
-    toast.success(t("auth.registrationSuccess"))
+    toast.success(t("auth.registrationPending"))
     router.push("/login")
   }
 
@@ -226,7 +226,7 @@ export default function RegisterPage() {
         <div className="flex flex-col items-center text-center">
           <Link href="/login">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="LOSPOR" className="h-20 w-auto hover:opacity-80 transition-opacity" />
+            <img src="/logo.webp" alt="LOSPOR" className="h-20 w-auto hover:opacity-80 transition-opacity" />
           </Link>
           <p className="text-sm text-slate-500 mt-1">{t("common.appFullName")}</p>
           <div className="mt-3 flex items-center gap-2">
@@ -395,3 +395,4 @@ export default function RegisterPage() {
     </div>
   )
 }
+

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { authConfig } from "@/lib/auth.config"
+import { rateLimit } from "@/lib/rate-limit"
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -19,6 +20,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
+        const rl = rateLimit(`login:${parsed.data.email}`, 10, 15 * 60 * 1000)
+        if (!rl.allowed) return null
+
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
           include: { institution: true },
@@ -28,8 +32,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await bcrypt.compare(parsed.data.password, user.passwordHash)
         if (!valid) return null
 
+        if (!user.approvedAt) return null   // pending admin approval — login page detects via check-pending endpoint
+
         return {
-          id: user.id,
+          id:    user.id,
+          jti:   crypto.randomUUID(),
           email: user.email,
           name: user.name,
           firstName: user.firstName,

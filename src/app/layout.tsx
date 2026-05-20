@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "LOSPOR — Large Open Source Perioperative Register",
   description: "Perioperative data collection and research platform",
-  icons: { icon: "/logo.png", apple: "/logo.png" },
+  icons: { icon: "/logo.webp", apple: "/logo.webp" },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,3 +33,4 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   )
 }
+

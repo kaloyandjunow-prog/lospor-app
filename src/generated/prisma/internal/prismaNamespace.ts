@@ -391,6 +391,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
   IntraoperativeRecord: 'IntraoperativeRecord',
@@ -410,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
+    modelProps: "user" | "institution" | "case" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -932,6 +933,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AuditLog: {
+      payload: Prisma.$AuditLogPayload<ExtArgs>
+      fields: Prisma.AuditLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AuditLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AuditLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        findFirst: {
+          args: Prisma.AuditLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AuditLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        findMany: {
+          args: Prisma.AuditLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[]
+        }
+        create: {
+          args: Prisma.AuditLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        createMany: {
+          args: Prisma.AuditLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AuditLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[]
+        }
+        delete: {
+          args: Prisma.AuditLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        update: {
+          args: Prisma.AuditLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.AuditLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AuditLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AuditLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.AuditLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>
+        }
+        aggregate: {
+          args: Prisma.AuditLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuditLog>
+        }
+        groupBy: {
+          args: Prisma.AuditLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuditLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AuditLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuditLogCountAggregateOutputType> | number
+        }
+      }
+    }
     CustomTerm: {
       payload: Prisma.$CustomTermPayload<ExtArgs>
       fields: Prisma.CustomTermFieldRefs
@@ -1279,6 +1354,7 @@ export const UserScalarFieldEnum = {
   institutionId: 'institutionId',
   institutionId2: 'institutionId2',
   institutionId3: 'institutionId3',
+  approvedAt: 'approvedAt',
   createdAt: 'createdAt'
 } as const
 
@@ -1351,11 +1427,24 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  action: 'action',
+  entityId: 'entityId',
+  detail: 'detail',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
 export const CustomTermScalarFieldEnum = {
   id: 'id',
   code: 'code',
   term: 'term',
   termType: 'termType',
+  institutionId: 'institutionId',
   createdAt: 'createdAt'
 } as const
 
@@ -1523,6 +1612,14 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const JsonNullValueInput = {
   JsonNull: JsonNull
 } as const
@@ -1646,6 +1743,20 @@ export type ListEnumRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1712,20 +1823,6 @@ export type EnumRhFactorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
  * Reference to a field of type 'RhFactor[]'
  */
 export type ListEnumRhFactorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RhFactor[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2006,6 +2103,7 @@ export type GlobalOmitConfig = {
   roleRequest?: Prisma.RoleRequestOmit
   icd10BgCode?: Prisma.Icd10BgCodeOmit
   icd11Code?: Prisma.Icd11CodeOmit
+  auditLog?: Prisma.AuditLogOmit
   customTerm?: Prisma.CustomTermOmit
   preoperativeAssessment?: Prisma.PreoperativeAssessmentOmit
   intraoperativeRecord?: Prisma.IntraoperativeRecordOmit

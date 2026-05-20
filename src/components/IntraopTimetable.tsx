@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Minus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 
 // в"Ђв"Ђ Constants в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
@@ -34,7 +34,7 @@ const QUICK_DRUGS: { cat: string; color: string; drugs: { name: string; unit: st
   { cat: "Local anaesthetics", color: "bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-700", drugs: [{ name:"Lidocaine",unit:"mg"},{name:"Bupivacaine",unit:"mg"},{name:"Ropivacaine",unit:"mg"},{name:"Levobupivacaine",unit:"mg"},{name:"Prilocaine",unit:"mg"},{name:"Mepivacaine",unit:"mg"},{name:"Articaine",unit:"mg"}] },
 ]
 const QUICK_FLUIDS: { cat: string; color: string; fluids: { name: string }[] }[] = [
-  { cat: "Crystalloids",  color: "bg-cyan-100   dark:bg-cyan-900/40   text-cyan-800   dark:text-cyan-300   border-cyan-200   dark:border-cyan-700",   fluids: [{name:"NaCl 0.9%"},{name:"Hartmann's"},{name:"Ringer's Acetate"},{name:"Plasma-Lyte"},{name:"D5W"},{name:"D10W"}] },
+  { cat: "Crystalloids",  color: "bg-cyan-100   dark:bg-cyan-900/40   text-cyan-800   dark:text-cyan-300   border-cyan-200   dark:border-cyan-700",   fluids: [{name:"NaCl 0.9%"},{name:"Ringer's Lactate"},{name:"Hartmann's"},{name:"Ringer's Acetate"},{name:"Plasma-Lyte"},{name:"D5W"},{name:"D10W"}] },
   { cat: "Colloids",      color: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700", fluids: [{name:"Gelofusine"},{name:"HES 130/0.4"},{name:"Albumin 4%"},{name:"Albumin 20%"}] },
   { cat: "Blood products",color: "bg-rose-100   dark:bg-rose-900/40   text-rose-800   dark:text-rose-300   border-rose-200   dark:border-rose-700",   fluids: [{name:"PRBC"},{name:"FFP"},{name:"Platelets"},{name:"Cryoprecipitate"}] },
   { cat: "Other",         color: "bg-slate-100  dark:bg-slate-800/60  text-slate-700  dark:text-slate-300  border-slate-200  dark:border-slate-600",  fluids: [{name:"Mannitol 20%"},{name:"NaHCO3 8.4%"},{name:"Gelatin 4%"},{name:"Dextran 40"}] },
@@ -2223,8 +2223,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                             const { ci, rect } = fluidPicker!
                             setFluidPicker(null)
                             const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => {} }) } as HTMLElement
+                            const isCrystColloid = ["Crystalloids","Colloids"].includes(cat.cat)
                             setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
-                              dose: "", doseHint: "", fluidScale: "L",
+                              dose: isCrystColloid ? "500" : "", doseHint: "", fluidScale: "L",
                               rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
                               color: "#06b6d4",
                               anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
@@ -2662,10 +2663,20 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                     onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
                     className="w-full h-1.5 accent-cyan-500" />
                   <div className="flex items-center gap-1.5">
+                    <button type="button"
+                      onClick={() => setFp(f => f ? {...f, dose: String(Math.max(0, (parseInt(f.dose)||0) - 50))} : f)}
+                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input autoFocus type="number" placeholder="0" value={fp.dose}
                       onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
                       onKeyDown={e => e.key==="Enter" && fpCommitFluid()}
-                      className="w-20 text-xs bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-cyan-400 [appearance:textfield]" />
+                      className="flex-1 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-cyan-400 [appearance:textfield]" />
+                    <button type="button"
+                      onClick={() => setFp(f => f ? {...f, dose: String((parseInt(f.dose)||0) + 50)} : f)}
+                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
+                      <Plus className="h-3 w-3" />
+                    </button>
                     <span className="text-xs text-slate-400 dark:text-slate-500">ml</span>
                   </div>
                   <button type="button" onClick={fpCommitFluid}
@@ -2678,19 +2689,74 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   {fp.doseHint && (
                     <p className="text-[9px] text-violet-500 dark:text-violet-400 font-medium">{fp.doseHint}</p>
                   )}
-                  <input type="range" min={br.min} max={br.max} step={br.step}
-                    value={nd}
-                    onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
-                    className="w-full h-1.5 accent-violet-500" />
-                  <div className="flex gap-1.5">
+
+                  {/* LA bolus: concentration pills + mL slider */}
+                  {LA_CONCENTRATIONS[fp.name] && (
+                    <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Concentration</p>
+                      <div className="flex flex-wrap gap-1">
+                        {LA_CONCENTRATIONS[fp.name].map(c => (
+                          <button key={c} type="button"
+                            onClick={() => setFp(f => f ? {...f, concentration: f.concentration===c ? undefined : c, customConc:"", unit:"ml"} : f)}
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
+                              fp.concentration===c
+                                ? "bg-sky-500 border-sky-500 text-white"
+                                : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
+                            }`}>{c}</button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] text-slate-400 shrink-0">Custom:</span>
+                        <input type="number" min="0.01" max="20" step="0.001" placeholder="e.g. 0.75"
+                          value={fp.customConc ?? ""}
+                          onChange={e => {
+                            const v = e.target.value
+                            setFp(f => f ? {...f, customConc:v, concentration: v ? v+"%" : undefined, unit:"ml"} : f)
+                          }}
+                          className="w-14 text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-1.5 py-0.5 outline-none focus:border-sky-400 [appearance:textfield]" />
+                        <span className="text-[9px] text-slate-400">%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Slider: mL when LA with concentration, otherwise mg/unit range */}
+                  {LA_CONCENTRATIONS[fp.name] && fp.concentration ? (
+                    <input type="range" min={0} max={30} step={1}
+                      value={nd}
+                      onChange={e => setFp(f => f ? {...f, dose:e.target.value, unit:"ml"} : f)}
+                      className="w-full h-1.5 accent-sky-500" />
+                  ) : (
+                    <input type="range" min={br.min} max={br.max} step={br.step}
+                      value={nd}
+                      onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
+                      className="w-full h-1.5 accent-violet-500" />
+                  )}
+
+                  {/* Dose input row with +/- */}
+                  <div className="flex items-center gap-1.5">
+                    <button type="button"
+                      onClick={() => setFp(f => f ? {...f, dose: String(Math.max(0, (parseFloat(f.dose)||0) - br.step))} : f)}
+                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input autoFocus type="number" placeholder="Dose" value={fp.dose}
                       onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
                       onKeyDown={e => e.key==="Enter" && fpCommitBolus()}
-                      className="w-16 text-xs bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-violet-400 [appearance:textfield]" />
-                    <select value={fp.unit} onChange={e => setFp(f => f ? {...f, unit:e.target.value} : f)}
-                      className="flex-1 text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-1 py-1 outline-none">
-                      {["mg","mcg","ml","g","IU"].map(u => <option key={u}>{u}</option>)}
-                    </select>
+                      className="flex-1 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-violet-400 [appearance:textfield]" />
+                    <button type="button"
+                      onClick={() => setFp(f => f ? {...f, dose: String((parseFloat(f.dose)||0) + br.step)} : f)}
+                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    {!(LA_CONCENTRATIONS[fp.name] && fp.concentration) && (
+                      <select value={fp.unit} onChange={e => setFp(f => f ? {...f, unit:e.target.value} : f)}
+                        className="text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-1 py-1 outline-none">
+                        {["mg","mcg","ml","g","IU"].map(u => <option key={u}>{u}</option>)}
+                      </select>
+                    )}
+                    {LA_CONCENTRATIONS[fp.name] && fp.concentration && (
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">ml</span>
+                    )}
                   </div>
                   <button type="button" onClick={fpCommitBolus}
                     className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">Administer</button>

@@ -1,8 +1,9 @@
 import type { NextAuthConfig } from "next-auth"
+import { tokenBlocklist } from "@/lib/token-blocklist"
 
 export const authConfig: NextAuthConfig = {
   pages: { signIn: "/login" },
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   trustHost: true,
   providers: [],
   callbacks: {
@@ -17,7 +18,11 @@ export const authConfig: NextAuthConfig = {
       return true
     },
     jwt({ token, user }) {
+      if (token.jti && tokenBlocklist.has(token.jti)) {
+        return { ...token, id: undefined, role: undefined }
+      }
       if (user) {
+        token.jti           = (user as any).jti ?? token.jti
         token.id            = user.id
         token.role          = (user as any).role
         token.institutionId = (user as any).institutionId
@@ -37,6 +42,7 @@ export const authConfig: NextAuthConfig = {
         session.user.firstName       = token.firstName as string
         session.user.lastName        = token.lastName as string
         session.user.title           = token.title as string
+        ;(session.user as any).jti   = token.jti as string
       }
       return session
     },

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
+import { logAudit } from "@/lib/audit"
+import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
+import { z } from "zod"
 
 async function generateCaseCode(): Promise<string> {
   const now = new Date()
@@ -20,8 +23,12 @@ export async function POST(req: NextRequest) {
   if (!userId || !institutionId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   try {
-    const { preop, intraop, postop } = await req.json()
-    if (!preop) return NextResponse.json({ error: "preop required" }, { status: 400 })
+    const body = await req.json()
+    if (!body.preop) return NextResponse.json({ error: "preop required" }, { status: 400 })
+
+    const preop   = preopSchema.parse(body.preop)
+    const intraop = body.intraop ? intraopSchema.parse(body.intraop) : undefined
+    const postop  = body.postop  ? postopSchema.parse(body.postop)   : undefined
 
     const status = postop ? "COMPLETE" : intraop ? "IN_PROGRESS" : "DRAFT"
 
@@ -37,8 +44,10 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    logAudit(userId, "CASE_CREATE", caseRecord.id)
     return NextResponse.json({ id: caseRecord.id, caseCode: caseRecord.caseCode }, { status: 201 })
   } catch (err) {
+    if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400 })
     console.error(err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

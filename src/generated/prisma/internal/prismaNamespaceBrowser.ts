@@ -58,6 +58,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
   IntraoperativeRecord: 'IntraoperativeRecord',
@@ -92,6 +93,7 @@ export const UserScalarFieldEnum = {
   institutionId: 'institutionId',
   institutionId2: 'institutionId2',
   institutionId3: 'institutionId3',
+  approvedAt: 'approvedAt',
   createdAt: 'createdAt'
 } as const
 
@@ -164,11 +166,24 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  action: 'action',
+  entityId: 'entityId',
+  detail: 'detail',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
 export const CustomTermScalarFieldEnum = {
   id: 'id',
   code: 'code',
   term: 'term',
   termType: 'termType',
+  institutionId: 'institutionId',
   createdAt: 'createdAt'
 } as const
 
@@ -334,6 +349,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const JsonNullValueInput = {

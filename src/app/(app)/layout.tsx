@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+﻿import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { LayoutDashboard, FilePlus, LogOut, Shield } from "lucide-react"
@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="max-w-7xl mx-auto px-4 h-40 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="LOSPOR" className="h-36 w-auto" />
+            <img src="/logo.webp" alt="LOSPOR" className="h-36 w-auto" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -73,8 +73,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
           Documentation
         </a>
+        {" · "}
+        <a href="https://github.com/kaloyandjunow-prog/lospor-app/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"
+          className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
+          AGPL-3.0
+        </a>
       </footer>
     </div>
     </TourManager>
   )
 }
+

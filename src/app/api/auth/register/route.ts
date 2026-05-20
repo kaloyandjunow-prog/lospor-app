@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
+import { rateLimit } from "@/lib/rate-limit"
 
 const schema = z.object({
   title:          z.string().optional(),
@@ -19,6 +20,14 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown"
+  const rl = rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, {
+      status: 429, headers: { "Retry-After": String(rl.retryAfter) },
+    })
+  }
+
   try {
     const body = await req.json()
     const data = schema.parse(body)
@@ -48,16 +57,18 @@ export async function POST(req: NextRequest) {
         institutionId2: data.institutionId2 || null,
         institutionId3: data.institutionId3 || null,
         role:           "MEMBER",
+        approvedAt:     null,
       },
     })
 
-    return NextResponse.json({ id: user.id, email: user.email }, { status: 201 })
+    return NextResponse.json({ id: user.id, email: user.email, pending: true }, { status: 201 })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0]?.message ?? "Validation error" }, { status: 400 })
     }
     console.error("[register]", err)
-    const msg = err instanceof Error ? err.message : "Internal server error"
+    const msg = "Internal server error"
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
+

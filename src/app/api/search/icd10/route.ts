@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { searchIcd11En } from "@/lib/who-icd"
 import { translateQueryToEnglish, translateToBulgarian } from "@/lib/groq-translate"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function GET(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const rl = rateLimit(`icd:${session.user.id}`, 120, 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, {
+      status: 429, headers: { "Retry-After": String(rl.retryAfter) },
+    })
+  }
+
   const q      = req.nextUrl.searchParams.get("q") ?? ""
   const locale = req.nextUrl.searchParams.get("locale") ?? "en"
 

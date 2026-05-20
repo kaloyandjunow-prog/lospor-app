@@ -42,6 +42,8 @@
     "signingIn": "Signing in…",
     "creatingAccount": "Creating account…",
     "invalidCredentials": "Invalid email or password",
+    "pendingApproval": "Your account is awaiting admin approval",
+    "registrationPending": "Account created — you will be notified when an admin approves your account",
     "emailRegistered": "Email already registered",
     "registrationSuccess": "Account created — please sign in",
     "registrationFailed": "Registration failed",
