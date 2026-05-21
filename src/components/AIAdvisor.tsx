@@ -98,7 +98,7 @@ export function AIAdvisor({ getFormData }: Props) {
           <div className="flex items-center justify-between px-4 py-3 bg-violet-100 dark:bg-violet-900 border-b border-violet-200 dark:border-violet-800">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-              <span className="text-sm font-semibold text-violet-800 dark:text-violet-200">AI Clinical Analysis — Llama 3.3 70B</span>
+              <span className="text-sm font-semibold text-violet-800 dark:text-violet-200">AI Clinical Analysis — Mistral (EU)</span>
             </div>
             <button type="button" onClick={dismiss} className="text-violet-400 hover:text-violet-700 dark:text-violet-500 dark:hover:text-violet-300">
               <X className="h-4 w-4" />

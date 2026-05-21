@@ -34,9 +34,12 @@ export type UserMinAggregateOutputType = {
   passwordHash: string | null
   role: $Enums.UserRole | null
   institutionId: string | null
-  institutionId2: string | null
-  institutionId3: string | null
   approvedAt: Date | null
+  acceptedTermsAt: Date | null
+  acceptedPrivacyAt: Date | null
+  termsVersion: string | null
+  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date | null
 }
 
@@ -50,9 +53,12 @@ export type UserMaxAggregateOutputType = {
   passwordHash: string | null
   role: $Enums.UserRole | null
   institutionId: string | null
-  institutionId2: string | null
-  institutionId3: string | null
   approvedAt: Date | null
+  acceptedTermsAt: Date | null
+  acceptedPrivacyAt: Date | null
+  termsVersion: string | null
+  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date | null
 }
 
@@ -66,9 +72,12 @@ export type UserCountAggregateOutputType = {
   passwordHash: number
   role: number
   institutionId: number
-  institutionId2: number
-  institutionId3: number
   approvedAt: number
+  acceptedTermsAt: number
+  acceptedPrivacyAt: number
+  termsVersion: number
+  lastLoginAt: number
+  deletedAt: number
   createdAt: number
   _all: number
 }
@@ -84,9 +93,12 @@ export type UserMinAggregateInputType = {
   passwordHash?: true
   role?: true
   institutionId?: true
-  institutionId2?: true
-  institutionId3?: true
   approvedAt?: true
+  acceptedTermsAt?: true
+  acceptedPrivacyAt?: true
+  termsVersion?: true
+  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
 }
 
@@ -100,9 +112,12 @@ export type UserMaxAggregateInputType = {
   passwordHash?: true
   role?: true
   institutionId?: true
-  institutionId2?: true
-  institutionId3?: true
   approvedAt?: true
+  acceptedTermsAt?: true
+  acceptedPrivacyAt?: true
+  termsVersion?: true
+  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
 }
 
@@ -116,9 +131,12 @@ export type UserCountAggregateInputType = {
   passwordHash?: true
   role?: true
   institutionId?: true
-  institutionId2?: true
-  institutionId3?: true
   approvedAt?: true
+  acceptedTermsAt?: true
+  acceptedPrivacyAt?: true
+  termsVersion?: true
+  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
   _all?: true
 }
@@ -204,10 +222,13 @@ export type UserGroupByOutputType = {
   title: string
   passwordHash: string
   role: $Enums.UserRole
-  institutionId: string
-  institutionId2: string | null
-  institutionId3: string | null
+  institutionId: string | null
   approvedAt: Date | null
+  acceptedTermsAt: Date | null
+  acceptedPrivacyAt: Date | null
+  termsVersion: string | null
+  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
@@ -241,14 +262,15 @@ export type UserWhereInput = {
   title?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
-  institutionId?: Prisma.StringFilter<"User"> | string
-  institutionId2?: Prisma.StringNullableFilter<"User"> | string | null
-  institutionId3?: Prisma.StringNullableFilter<"User"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"User"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedTermsAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedPrivacyAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
+  lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  institution?: Prisma.XOR<Prisma.InstitutionScalarRelationFilter, Prisma.InstitutionWhereInput>
-  institution2?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
-  institution3?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
+  institution?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
   cases?: Prisma.CaseListRelationFilter
   roleRequests?: Prisma.RoleRequestListRelationFilter
   transfersSent?: Prisma.CaseTransferListRelationFilter
@@ -264,14 +286,15 @@ export type UserOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
-  institutionId?: Prisma.SortOrder
-  institutionId2?: Prisma.SortOrderInput | Prisma.SortOrder
-  institutionId3?: Prisma.SortOrderInput | Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  acceptedTermsAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  acceptedPrivacyAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  termsVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   institution?: Prisma.InstitutionOrderByWithRelationInput
-  institution2?: Prisma.InstitutionOrderByWithRelationInput
-  institution3?: Prisma.InstitutionOrderByWithRelationInput
   cases?: Prisma.CaseOrderByRelationAggregateInput
   roleRequests?: Prisma.RoleRequestOrderByRelationAggregateInput
   transfersSent?: Prisma.CaseTransferOrderByRelationAggregateInput
@@ -290,14 +313,15 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
-  institutionId?: Prisma.StringFilter<"User"> | string
-  institutionId2?: Prisma.StringNullableFilter<"User"> | string | null
-  institutionId3?: Prisma.StringNullableFilter<"User"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"User"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedTermsAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedPrivacyAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
+  lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  institution?: Prisma.XOR<Prisma.InstitutionScalarRelationFilter, Prisma.InstitutionWhereInput>
-  institution2?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
-  institution3?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
+  institution?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
   cases?: Prisma.CaseListRelationFilter
   roleRequests?: Prisma.RoleRequestListRelationFilter
   transfersSent?: Prisma.CaseTransferListRelationFilter
@@ -313,10 +337,13 @@ export type UserOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
-  institutionId?: Prisma.SortOrder
-  institutionId2?: Prisma.SortOrderInput | Prisma.SortOrder
-  institutionId3?: Prisma.SortOrderInput | Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  acceptedTermsAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  acceptedPrivacyAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  termsVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -335,10 +362,13 @@ export type UserScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"User"> | string
   passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
   role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole
-  institutionId?: Prisma.StringWithAggregatesFilter<"User"> | string
-  institutionId2?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  institutionId3?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  institutionId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   approvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  acceptedTermsAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  acceptedPrivacyAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  termsVersion?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
@@ -352,10 +382,13 @@ export type UserCreateInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
@@ -371,10 +404,13 @@ export type UserUncheckedCreateInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
@@ -392,10 +428,13 @@ export type UserUpdateInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
@@ -411,10 +450,13 @@ export type UserUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
@@ -431,10 +473,13 @@ export type UserCreateManyInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -448,6 +493,11 @@ export type UserUpdateManyMutationInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -460,10 +510,13 @@ export type UserUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -477,9 +530,12 @@ export type UserCountOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
-  institutionId2?: Prisma.SortOrder
-  institutionId3?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
+  acceptedTermsAt?: Prisma.SortOrder
+  acceptedPrivacyAt?: Prisma.SortOrder
+  termsVersion?: Prisma.SortOrder
+  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -493,9 +549,12 @@ export type UserMaxOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
-  institutionId2?: Prisma.SortOrder
-  institutionId3?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
+  acceptedTermsAt?: Prisma.SortOrder
+  acceptedPrivacyAt?: Prisma.SortOrder
+  termsVersion?: Prisma.SortOrder
+  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -509,9 +568,12 @@ export type UserMinOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
-  institutionId2?: Prisma.SortOrder
-  institutionId3?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
+  acceptedTermsAt?: Prisma.SortOrder
+  acceptedPrivacyAt?: Prisma.SortOrder
+  termsVersion?: Prisma.SortOrder
+  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -542,12 +604,12 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type DateTimeFieldUpdateOperationsInput = {
+  set?: Date | string
 }
 
 export type UserCreateNestedManyWithoutInstitutionInput = {
@@ -557,38 +619,10 @@ export type UserCreateNestedManyWithoutInstitutionInput = {
   connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
 }
 
-export type UserCreateNestedManyWithoutInstitution2Input = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input> | Prisma.UserCreateWithoutInstitution2Input[] | Prisma.UserUncheckedCreateWithoutInstitution2Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution2Input | Prisma.UserCreateOrConnectWithoutInstitution2Input[]
-  createMany?: Prisma.UserCreateManyInstitution2InputEnvelope
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-}
-
-export type UserCreateNestedManyWithoutInstitution3Input = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input> | Prisma.UserCreateWithoutInstitution3Input[] | Prisma.UserUncheckedCreateWithoutInstitution3Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution3Input | Prisma.UserCreateOrConnectWithoutInstitution3Input[]
-  createMany?: Prisma.UserCreateManyInstitution3InputEnvelope
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-}
-
 export type UserUncheckedCreateNestedManyWithoutInstitutionInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutInstitutionInput, Prisma.UserUncheckedCreateWithoutInstitutionInput> | Prisma.UserCreateWithoutInstitutionInput[] | Prisma.UserUncheckedCreateWithoutInstitutionInput[]
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitutionInput | Prisma.UserCreateOrConnectWithoutInstitutionInput[]
   createMany?: Prisma.UserCreateManyInstitutionInputEnvelope
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-}
-
-export type UserUncheckedCreateNestedManyWithoutInstitution2Input = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input> | Prisma.UserCreateWithoutInstitution2Input[] | Prisma.UserUncheckedCreateWithoutInstitution2Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution2Input | Prisma.UserCreateOrConnectWithoutInstitution2Input[]
-  createMany?: Prisma.UserCreateManyInstitution2InputEnvelope
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-}
-
-export type UserUncheckedCreateNestedManyWithoutInstitution3Input = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input> | Prisma.UserCreateWithoutInstitution3Input[] | Prisma.UserUncheckedCreateWithoutInstitution3Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution3Input | Prisma.UserCreateOrConnectWithoutInstitution3Input[]
-  createMany?: Prisma.UserCreateManyInstitution3InputEnvelope
   connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
 }
 
@@ -606,34 +640,6 @@ export type UserUpdateManyWithoutInstitutionNestedInput = {
   deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
-export type UserUpdateManyWithoutInstitution2NestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input> | Prisma.UserCreateWithoutInstitution2Input[] | Prisma.UserUncheckedCreateWithoutInstitution2Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution2Input | Prisma.UserCreateOrConnectWithoutInstitution2Input[]
-  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutInstitution2Input | Prisma.UserUpsertWithWhereUniqueWithoutInstitution2Input[]
-  createMany?: Prisma.UserCreateManyInstitution2InputEnvelope
-  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  update?: Prisma.UserUpdateWithWhereUniqueWithoutInstitution2Input | Prisma.UserUpdateWithWhereUniqueWithoutInstitution2Input[]
-  updateMany?: Prisma.UserUpdateManyWithWhereWithoutInstitution2Input | Prisma.UserUpdateManyWithWhereWithoutInstitution2Input[]
-  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
-}
-
-export type UserUpdateManyWithoutInstitution3NestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input> | Prisma.UserCreateWithoutInstitution3Input[] | Prisma.UserUncheckedCreateWithoutInstitution3Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution3Input | Prisma.UserCreateOrConnectWithoutInstitution3Input[]
-  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutInstitution3Input | Prisma.UserUpsertWithWhereUniqueWithoutInstitution3Input[]
-  createMany?: Prisma.UserCreateManyInstitution3InputEnvelope
-  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  update?: Prisma.UserUpdateWithWhereUniqueWithoutInstitution3Input | Prisma.UserUpdateWithWhereUniqueWithoutInstitution3Input[]
-  updateMany?: Prisma.UserUpdateManyWithWhereWithoutInstitution3Input | Prisma.UserUpdateManyWithWhereWithoutInstitution3Input[]
-  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
-}
-
 export type UserUncheckedUpdateManyWithoutInstitutionNestedInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutInstitutionInput, Prisma.UserUncheckedCreateWithoutInstitutionInput> | Prisma.UserCreateWithoutInstitutionInput[] | Prisma.UserUncheckedCreateWithoutInstitutionInput[]
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitutionInput | Prisma.UserCreateOrConnectWithoutInstitutionInput[]
@@ -645,34 +651,6 @@ export type UserUncheckedUpdateManyWithoutInstitutionNestedInput = {
   connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
   update?: Prisma.UserUpdateWithWhereUniqueWithoutInstitutionInput | Prisma.UserUpdateWithWhereUniqueWithoutInstitutionInput[]
   updateMany?: Prisma.UserUpdateManyWithWhereWithoutInstitutionInput | Prisma.UserUpdateManyWithWhereWithoutInstitutionInput[]
-  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
-}
-
-export type UserUncheckedUpdateManyWithoutInstitution2NestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input> | Prisma.UserCreateWithoutInstitution2Input[] | Prisma.UserUncheckedCreateWithoutInstitution2Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution2Input | Prisma.UserCreateOrConnectWithoutInstitution2Input[]
-  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutInstitution2Input | Prisma.UserUpsertWithWhereUniqueWithoutInstitution2Input[]
-  createMany?: Prisma.UserCreateManyInstitution2InputEnvelope
-  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  update?: Prisma.UserUpdateWithWhereUniqueWithoutInstitution2Input | Prisma.UserUpdateWithWhereUniqueWithoutInstitution2Input[]
-  updateMany?: Prisma.UserUpdateManyWithWhereWithoutInstitution2Input | Prisma.UserUpdateManyWithWhereWithoutInstitution2Input[]
-  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
-}
-
-export type UserUncheckedUpdateManyWithoutInstitution3NestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input> | Prisma.UserCreateWithoutInstitution3Input[] | Prisma.UserUncheckedCreateWithoutInstitution3Input[]
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInstitution3Input | Prisma.UserCreateOrConnectWithoutInstitution3Input[]
-  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutInstitution3Input | Prisma.UserUpsertWithWhereUniqueWithoutInstitution3Input[]
-  createMany?: Prisma.UserCreateManyInstitution3InputEnvelope
-  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
-  update?: Prisma.UserUpdateWithWhereUniqueWithoutInstitution3Input | Prisma.UserUpdateWithWhereUniqueWithoutInstitution3Input[]
-  updateMany?: Prisma.UserUpdateManyWithWhereWithoutInstitution3Input | Prisma.UserUpdateManyWithWhereWithoutInstitution3Input[]
   deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
@@ -742,9 +720,12 @@ export type UserCreateWithoutInstitutionInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
@@ -760,9 +741,12 @@ export type UserUncheckedCreateWithoutInstitutionInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId2?: string | null
-  institutionId3?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
@@ -777,102 +761,6 @@ export type UserCreateOrConnectWithoutInstitutionInput = {
 
 export type UserCreateManyInstitutionInputEnvelope = {
   data: Prisma.UserCreateManyInstitutionInput | Prisma.UserCreateManyInstitutionInput[]
-  skipDuplicates?: boolean
-}
-
-export type UserCreateWithoutInstitution2Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  approvedAt?: Date | string | null
-  createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
-  cases?: Prisma.CaseCreateNestedManyWithoutUserInput
-  roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
-  transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
-  transfersReceived?: Prisma.CaseTransferCreateNestedManyWithoutToUserInput
-}
-
-export type UserUncheckedCreateWithoutInstitution2Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  institutionId: string
-  institutionId3?: string | null
-  approvedAt?: Date | string | null
-  createdAt?: Date | string
-  cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
-  roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
-  transfersSent?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutFromUserInput
-  transfersReceived?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutToUserInput
-}
-
-export type UserCreateOrConnectWithoutInstitution2Input = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input>
-}
-
-export type UserCreateManyInstitution2InputEnvelope = {
-  data: Prisma.UserCreateManyInstitution2Input | Prisma.UserCreateManyInstitution2Input[]
-  skipDuplicates?: boolean
-}
-
-export type UserCreateWithoutInstitution3Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  approvedAt?: Date | string | null
-  createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  cases?: Prisma.CaseCreateNestedManyWithoutUserInput
-  roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
-  transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
-  transfersReceived?: Prisma.CaseTransferCreateNestedManyWithoutToUserInput
-}
-
-export type UserUncheckedCreateWithoutInstitution3Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  approvedAt?: Date | string | null
-  createdAt?: Date | string
-  cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
-  roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
-  transfersSent?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutFromUserInput
-  transfersReceived?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutToUserInput
-}
-
-export type UserCreateOrConnectWithoutInstitution3Input = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input>
-}
-
-export type UserCreateManyInstitution3InputEnvelope = {
-  data: Prisma.UserCreateManyInstitution3Input | Prisma.UserCreateManyInstitution3Input[]
   skipDuplicates?: boolean
 }
 
@@ -904,43 +792,14 @@ export type UserScalarWhereInput = {
   title?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
-  institutionId?: Prisma.StringFilter<"User"> | string
-  institutionId2?: Prisma.StringNullableFilter<"User"> | string | null
-  institutionId3?: Prisma.StringNullableFilter<"User"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"User"> | string | null
   approvedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedTermsAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  acceptedPrivacyAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
+  lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
-}
-
-export type UserUpsertWithWhereUniqueWithoutInstitution2Input = {
-  where: Prisma.UserWhereUniqueInput
-  update: Prisma.XOR<Prisma.UserUpdateWithoutInstitution2Input, Prisma.UserUncheckedUpdateWithoutInstitution2Input>
-  create: Prisma.XOR<Prisma.UserCreateWithoutInstitution2Input, Prisma.UserUncheckedCreateWithoutInstitution2Input>
-}
-
-export type UserUpdateWithWhereUniqueWithoutInstitution2Input = {
-  where: Prisma.UserWhereUniqueInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutInstitution2Input, Prisma.UserUncheckedUpdateWithoutInstitution2Input>
-}
-
-export type UserUpdateManyWithWhereWithoutInstitution2Input = {
-  where: Prisma.UserScalarWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutInstitution2Input>
-}
-
-export type UserUpsertWithWhereUniqueWithoutInstitution3Input = {
-  where: Prisma.UserWhereUniqueInput
-  update: Prisma.XOR<Prisma.UserUpdateWithoutInstitution3Input, Prisma.UserUncheckedUpdateWithoutInstitution3Input>
-  create: Prisma.XOR<Prisma.UserCreateWithoutInstitution3Input, Prisma.UserUncheckedCreateWithoutInstitution3Input>
-}
-
-export type UserUpdateWithWhereUniqueWithoutInstitution3Input = {
-  where: Prisma.UserWhereUniqueInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutInstitution3Input, Prisma.UserUncheckedUpdateWithoutInstitution3Input>
-}
-
-export type UserUpdateManyWithWhereWithoutInstitution3Input = {
-  where: Prisma.UserScalarWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutInstitution3Input>
 }
 
 export type UserCreateWithoutCasesInput = {
@@ -953,10 +812,13 @@ export type UserCreateWithoutCasesInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
   roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
   transfersReceived?: Prisma.CaseTransferCreateNestedManyWithoutToUserInput
@@ -971,10 +833,13 @@ export type UserUncheckedCreateWithoutCasesInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutFromUserInput
@@ -1007,10 +872,13 @@ export type UserUpdateWithoutCasesInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
   roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
   transfersReceived?: Prisma.CaseTransferUpdateManyWithoutToUserNestedInput
@@ -1025,10 +893,13 @@ export type UserUncheckedUpdateWithoutCasesInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUncheckedUpdateManyWithoutFromUserNestedInput
@@ -1045,10 +916,13 @@ export type UserCreateWithoutTransfersSentInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
   transfersReceived?: Prisma.CaseTransferCreateNestedManyWithoutToUserInput
@@ -1063,10 +937,13 @@ export type UserUncheckedCreateWithoutTransfersSentInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
@@ -1088,10 +965,13 @@ export type UserCreateWithoutTransfersReceivedInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
@@ -1106,10 +986,13 @@ export type UserUncheckedCreateWithoutTransfersReceivedInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
@@ -1142,10 +1025,13 @@ export type UserUpdateWithoutTransfersSentInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
   transfersReceived?: Prisma.CaseTransferUpdateManyWithoutToUserNestedInput
@@ -1160,10 +1046,13 @@ export type UserUncheckedUpdateWithoutTransfersSentInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
@@ -1191,10 +1080,13 @@ export type UserUpdateWithoutTransfersReceivedInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
@@ -1209,10 +1101,13 @@ export type UserUncheckedUpdateWithoutTransfersReceivedInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
@@ -1229,10 +1124,13 @@ export type UserCreateWithoutRoleRequestsInput = {
   passwordHash: string
   role?: $Enums.UserRole
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
-  institution: Prisma.InstitutionCreateNestedOneWithoutUsersInput
-  institution2?: Prisma.InstitutionCreateNestedOneWithoutUsers2Input
-  institution3?: Prisma.InstitutionCreateNestedOneWithoutUsers3Input
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferCreateNestedManyWithoutFromUserInput
   transfersReceived?: Prisma.CaseTransferCreateNestedManyWithoutToUserInput
@@ -1247,10 +1145,13 @@ export type UserUncheckedCreateWithoutRoleRequestsInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  institutionId3?: string | null
+  institutionId?: string | null
   approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
   transfersSent?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutFromUserInput
@@ -1283,10 +1184,13 @@ export type UserUpdateWithoutRoleRequestsInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
   transfersReceived?: Prisma.CaseTransferUpdateManyWithoutToUserNestedInput
@@ -1301,10 +1205,13 @@ export type UserUncheckedUpdateWithoutRoleRequestsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUncheckedUpdateManyWithoutFromUserNestedInput
@@ -1320,39 +1227,12 @@ export type UserCreateManyInstitutionInput = {
   title?: string
   passwordHash: string
   role?: $Enums.UserRole
-  institutionId2?: string | null
-  institutionId3?: string | null
   approvedAt?: Date | string | null
-  createdAt?: Date | string
-}
-
-export type UserCreateManyInstitution2Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  institutionId: string
-  institutionId3?: string | null
-  approvedAt?: Date | string | null
-  createdAt?: Date | string
-}
-
-export type UserCreateManyInstitution3Input = {
-  id?: string
-  email: string
-  name: string
-  firstName?: string
-  lastName?: string
-  title?: string
-  passwordHash: string
-  role?: $Enums.UserRole
-  institutionId: string
-  institutionId2?: string | null
-  approvedAt?: Date | string | null
+  acceptedTermsAt?: Date | string | null
+  acceptedPrivacyAt?: Date | string | null
+  termsVersion?: string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -1366,9 +1246,12 @@ export type UserUpdateWithoutInstitutionInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
   transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
@@ -1384,9 +1267,12 @@ export type UserUncheckedUpdateWithoutInstitutionInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
@@ -1403,115 +1289,12 @@ export type UserUncheckedUpdateManyWithoutInstitutionInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type UserUpdateWithoutInstitution2Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution3?: Prisma.InstitutionUpdateOneWithoutUsers3NestedInput
-  cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
-  roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
-  transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
-  transfersReceived?: Prisma.CaseTransferUpdateManyWithoutToUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutInstitution2Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
-  roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
-  transfersSent?: Prisma.CaseTransferUncheckedUpdateManyWithoutFromUserNestedInput
-  transfersReceived?: Prisma.CaseTransferUncheckedUpdateManyWithoutToUserNestedInput
-}
-
-export type UserUncheckedUpdateManyWithoutInstitution2Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type UserUpdateWithoutInstitution3Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  institution?: Prisma.InstitutionUpdateOneRequiredWithoutUsersNestedInput
-  institution2?: Prisma.InstitutionUpdateOneWithoutUsers2NestedInput
-  cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
-  roleRequests?: Prisma.RoleRequestUpdateManyWithoutUserNestedInput
-  transfersSent?: Prisma.CaseTransferUpdateManyWithoutFromUserNestedInput
-  transfersReceived?: Prisma.CaseTransferUpdateManyWithoutToUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutInstitution3Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
-  roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
-  transfersSent?: Prisma.CaseTransferUncheckedUpdateManyWithoutFromUserNestedInput
-  transfersReceived?: Prisma.CaseTransferUncheckedUpdateManyWithoutToUserNestedInput
-}
-
-export type UserUncheckedUpdateManyWithoutInstitution3Input = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
-  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
-  institutionId2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedTermsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acceptedPrivacyAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1583,13 +1366,14 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   passwordHash?: boolean
   role?: boolean
   institutionId?: boolean
-  institutionId2?: boolean
-  institutionId3?: boolean
   approvedAt?: boolean
+  acceptedTermsAt?: boolean
+  acceptedPrivacyAt?: boolean
+  termsVersion?: boolean
+  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
   cases?: boolean | Prisma.User$casesArgs<ExtArgs>
   roleRequests?: boolean | Prisma.User$roleRequestsArgs<ExtArgs>
   transfersSent?: boolean | Prisma.User$transfersSentArgs<ExtArgs>
@@ -1607,13 +1391,14 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   role?: boolean
   institutionId?: boolean
-  institutionId2?: boolean
-  institutionId3?: boolean
   approvedAt?: boolean
+  acceptedTermsAt?: boolean
+  acceptedPrivacyAt?: boolean
+  termsVersion?: boolean
+  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1626,13 +1411,14 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   role?: boolean
   institutionId?: boolean
-  institutionId2?: boolean
-  institutionId3?: boolean
   approvedAt?: boolean
+  acceptedTermsAt?: boolean
+  acceptedPrivacyAt?: boolean
+  termsVersion?: boolean
+  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1645,17 +1431,18 @@ export type UserSelectScalar = {
   passwordHash?: boolean
   role?: boolean
   institutionId?: boolean
-  institutionId2?: boolean
-  institutionId3?: boolean
   approvedAt?: boolean
+  acceptedTermsAt?: boolean
+  acceptedPrivacyAt?: boolean
+  termsVersion?: boolean
+  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "firstName" | "lastName" | "title" | "passwordHash" | "role" | "institutionId" | "institutionId2" | "institutionId3" | "approvedAt" | "createdAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "firstName" | "lastName" | "title" | "passwordHash" | "role" | "institutionId" | "approvedAt" | "acceptedTermsAt" | "acceptedPrivacyAt" | "termsVersion" | "lastLoginAt" | "deletedAt" | "createdAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
   cases?: boolean | Prisma.User$casesArgs<ExtArgs>
   roleRequests?: boolean | Prisma.User$roleRequestsArgs<ExtArgs>
   transfersSent?: boolean | Prisma.User$transfersSentArgs<ExtArgs>
@@ -1663,22 +1450,16 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
 }
 export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  institution?: boolean | Prisma.InstitutionDefaultArgs<ExtArgs>
-  institution2?: boolean | Prisma.User$institution2Args<ExtArgs>
-  institution3?: boolean | Prisma.User$institution3Args<ExtArgs>
+  institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
 }
 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
-    institution: Prisma.$InstitutionPayload<ExtArgs>
-    institution2: Prisma.$InstitutionPayload<ExtArgs> | null
-    institution3: Prisma.$InstitutionPayload<ExtArgs> | null
+    institution: Prisma.$InstitutionPayload<ExtArgs> | null
     cases: Prisma.$CasePayload<ExtArgs>[]
     roleRequests: Prisma.$RoleRequestPayload<ExtArgs>[]
     transfersSent: Prisma.$CaseTransferPayload<ExtArgs>[]
@@ -1693,10 +1474,13 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     title: string
     passwordHash: string
     role: $Enums.UserRole
-    institutionId: string
-    institutionId2: string | null
-    institutionId3: string | null
+    institutionId: string | null
     approvedAt: Date | null
+    acceptedTermsAt: Date | null
+    acceptedPrivacyAt: Date | null
+    termsVersion: string | null
+    lastLoginAt: Date | null
+    deletedAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["user"]>
   composites: {}
@@ -2092,9 +1876,7 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  institution<T extends Prisma.InstitutionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InstitutionDefaultArgs<ExtArgs>>): Prisma.Prisma__InstitutionClient<runtime.Types.Result.GetResult<Prisma.$InstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  institution2<T extends Prisma.User$institution2Args<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$institution2Args<ExtArgs>>): Prisma.Prisma__InstitutionClient<runtime.Types.Result.GetResult<Prisma.$InstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  institution3<T extends Prisma.User$institution3Args<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$institution3Args<ExtArgs>>): Prisma.Prisma__InstitutionClient<runtime.Types.Result.GetResult<Prisma.$InstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  institution<T extends Prisma.User$institutionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$institutionArgs<ExtArgs>>): Prisma.Prisma__InstitutionClient<runtime.Types.Result.GetResult<Prisma.$InstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   cases<T extends Prisma.User$casesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$casesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   roleRequests<T extends Prisma.User$roleRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$roleRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RoleRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   transfersSent<T extends Prisma.User$transfersSentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$transfersSentArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2137,9 +1919,12 @@ export interface UserFieldRefs {
   readonly passwordHash: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'UserRole'>
   readonly institutionId: Prisma.FieldRef<"User", 'String'>
-  readonly institutionId2: Prisma.FieldRef<"User", 'String'>
-  readonly institutionId3: Prisma.FieldRef<"User", 'String'>
   readonly approvedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly acceptedTermsAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly acceptedPrivacyAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly termsVersion: Prisma.FieldRef<"User", 'String'>
+  readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
@@ -2542,28 +2327,9 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * User.institution2
+ * User.institution
  */
-export type User$institution2Args<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Institution
-   */
-  select?: Prisma.InstitutionSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Institution
-   */
-  omit?: Prisma.InstitutionOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.InstitutionInclude<ExtArgs> | null
-  where?: Prisma.InstitutionWhereInput
-}
-
-/**
- * User.institution3
- */
-export type User$institution3Args<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$institutionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the Institution
    */

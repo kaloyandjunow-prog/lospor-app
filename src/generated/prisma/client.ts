@@ -77,6 +77,11 @@ export type Icd10BgCode = Prisma.Icd10BgCodeModel
  */
 export type Icd11Code = Prisma.Icd11CodeModel
 /**
+ * Model RevokedToken
+ * 
+ */
+export type RevokedToken = Prisma.RevokedTokenModel
+/**
  * Model AuditLog
  * 
  */

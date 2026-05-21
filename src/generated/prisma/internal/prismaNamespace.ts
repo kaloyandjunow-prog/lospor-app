@@ -391,6 +391,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  RevokedToken: 'RevokedToken',
   AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
+    modelProps: "user" | "institution" | "case" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "revokedToken" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -933,6 +934,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RevokedToken: {
+      payload: Prisma.$RevokedTokenPayload<ExtArgs>
+      fields: Prisma.RevokedTokenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RevokedTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RevokedTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        findFirst: {
+          args: Prisma.RevokedTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RevokedTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        findMany: {
+          args: Prisma.RevokedTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>[]
+        }
+        create: {
+          args: Prisma.RevokedTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        createMany: {
+          args: Prisma.RevokedTokenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RevokedTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>[]
+        }
+        delete: {
+          args: Prisma.RevokedTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        update: {
+          args: Prisma.RevokedTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        deleteMany: {
+          args: Prisma.RevokedTokenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RevokedTokenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RevokedTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>[]
+        }
+        upsert: {
+          args: Prisma.RevokedTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RevokedTokenPayload>
+        }
+        aggregate: {
+          args: Prisma.RevokedTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRevokedToken>
+        }
+        groupBy: {
+          args: Prisma.RevokedTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RevokedTokenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RevokedTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RevokedTokenCountAggregateOutputType> | number
+        }
+      }
+    }
     AuditLog: {
       payload: Prisma.$AuditLogPayload<ExtArgs>
       fields: Prisma.AuditLogFieldRefs
@@ -1352,9 +1427,12 @@ export const UserScalarFieldEnum = {
   passwordHash: 'passwordHash',
   role: 'role',
   institutionId: 'institutionId',
-  institutionId2: 'institutionId2',
-  institutionId3: 'institutionId3',
   approvedAt: 'approvedAt',
+  acceptedTermsAt: 'acceptedTermsAt',
+  acceptedPrivacyAt: 'acceptedPrivacyAt',
+  termsVersion: 'termsVersion',
+  lastLoginAt: 'lastLoginAt',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt'
 } as const
 
@@ -1376,7 +1454,6 @@ export const CaseScalarFieldEnum = {
   caseCode: 'caseCode',
   notes: 'notes',
   userId: 'userId',
-  institutionId: 'institutionId',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1427,6 +1504,15 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const RevokedTokenScalarFieldEnum = {
+  jti: 'jti',
+  revokedAt: 'revokedAt',
+  expiresAt: 'expiresAt'
+} as const
+
+export type RevokedTokenScalarFieldEnum = (typeof RevokedTokenScalarFieldEnum)[keyof typeof RevokedTokenScalarFieldEnum]
+
+
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1464,9 +1550,7 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   diagnosis: 'diagnosis',
   plannedProcedure: 'plannedProcedure',
   icdCode: 'icdCode',
-  surgeonName: 'surgeonName',
-  anesthesiologistName: 'anesthesiologistName',
-  anesthesiaNurseName: 'anesthesiaNurseName',
+  teamNotes: 'teamNotes',
   comorbidities: 'comorbidities',
   allergies: 'allergies',
   allergyDetails: 'allergyDetails',
@@ -1503,6 +1587,7 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   apfelScore: 'apfelScore',
   stopBangScore: 'stopBangScore',
   labResults: 'labResults',
+  aiOptIn: 'aiOptIn',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1513,7 +1598,8 @@ export type PreoperativeAssessmentScalarFieldEnum = (typeof PreoperativeAssessme
 export const IntraoperativeRecordScalarFieldEnum = {
   id: 'id',
   caseId: 'caseId',
-  date: 'date',
+  monthYear: 'monthYear',
+  durationMinutes: 'durationMinutes',
   startTime: 'startTime',
   endTime: 'endTime',
   positions: 'positions',
@@ -2103,6 +2189,7 @@ export type GlobalOmitConfig = {
   roleRequest?: Prisma.RoleRequestOmit
   icd10BgCode?: Prisma.Icd10BgCodeOmit
   icd11Code?: Prisma.Icd11CodeOmit
+  revokedToken?: Prisma.RevokedTokenOmit
   auditLog?: Prisma.AuditLogOmit
   customTerm?: Prisma.CustomTermOmit
   preoperativeAssessment?: Prisma.PreoperativeAssessmentOmit

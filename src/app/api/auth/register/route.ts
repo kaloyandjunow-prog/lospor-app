@@ -9,9 +9,8 @@ const schema = z.object({
   firstName:      z.string().min(1, "First name required"),
   lastName:       z.string().min(1, "Last name required"),
   email:          z.string().email(),
-  institutionId:  z.string().cuid(),
-  institutionId2: z.union([z.string().cuid(), z.literal(""), z.undefined()]).optional(),
-  institutionId3: z.union([z.string().cuid(), z.literal(""), z.undefined()]).optional(),
+  institutionId:  z.union([z.string().cuid(), z.literal(""), z.undefined()]).optional(),
+  acceptedTerms:  z.boolean().refine(v => v === true, "You must accept the terms"),
   password: z.string()
     .min(8, "At least 8 characters")
     .regex(/[A-Z]/, "At least one uppercase letter")
@@ -37,9 +36,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 })
     }
 
-    const institution = await prisma.institution.findUnique({ where: { id: data.institutionId } })
-    if (!institution) {
-      return NextResponse.json({ error: "Institution not found" }, { status: 404 })
+    if (data.institutionId) {
+      const institution = await prisma.institution.findUnique({ where: { id: data.institutionId } })
+      if (!institution) {
+        return NextResponse.json({ error: "Institution not found" }, { status: 404 })
+      }
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12)
@@ -48,16 +49,16 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name,
-        firstName:      data.firstName,
-        lastName:       data.lastName,
-        title:          data.title ?? "",
-        email:          data.email,
+        firstName:       data.firstName,
+        lastName:        data.lastName,
+        title:           data.title ?? "",
+        email:           data.email,
         passwordHash,
-        institutionId:  data.institutionId,
-        institutionId2: data.institutionId2 || null,
-        institutionId3: data.institutionId3 || null,
-        role:           "MEMBER",
-        approvedAt:     null,
+        institutionId:   data.institutionId || null,
+        role:            "MEMBER",
+        approvedAt:      null,
+        acceptedTermsAt: new Date(),
+        termsVersion:    "1.0",
       },
     })
 

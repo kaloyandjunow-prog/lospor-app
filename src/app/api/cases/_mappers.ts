@@ -13,9 +13,8 @@ export function mapPreop(preop: any) {
     diagnosis:        (preop.diagnoses  as any[])?.map((t: any) => t.label).join("; ") || "",
     plannedProcedure: (preop.procedures as any[])?.map((t: any) => t.label).join("; ") || "",
     icdCode:          (preop.diagnoses  as any[])?.[0]?.sub ?? null,
-    surgeonName:          preop.surgeonName          ?? null,
-    anesthesiologistName: preop.anesthesiologistName ?? null,
-    anesthesiaNurseName:  preop.anesthesiaNurseName  ?? null,
+    teamNotes:        preop.teamNotes ?? null,
+    aiOptIn:          preop.aiOptIn   ?? false,
 
     comorbidities: preop.comorbidities ?? [],
 
@@ -101,24 +100,29 @@ function toFloatOrNull(v: any): number | null {
 }
 
 export function mapIntraop(intraop: any) {
-  const dateStr = toDateOnly(intraop.date)
+  // Use a stable reference date (2000-01-01) for startTime/endTime — only the HH:MM matters for the timetable.
+  const REF_DATE = "2000-01-01"
   const isHHMM  = (s: any) => typeof s === "string" && HHMMRE.test(s)
-  // Detect midnight crossing: if endTime is earlier than startTime, end is the next calendar day.
-  // Also honours the explicit endTimeNextDay flag as a fallback.
   const toMins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m }
-  const endDateStr = (() => {
+  const endRefDate = (() => {
     const crossedMidnight = isHHMM(intraop.startTime) && isHHMM(intraop.endTime)
       && toMins(intraop.endTime) < toMins(intraop.startTime)
-    if (!crossedMidnight && !intraop.endTimeNextDay) return dateStr
-    // Add 1 day using UTC arithmetic to avoid timezone issues
-    const d = new Date(dateStr + "T12:00:00Z")
+    if (!crossedMidnight && !intraop.endTimeNextDay) return REF_DATE
+    const d = new Date(REF_DATE + "T12:00:00Z")
     d.setUTCDate(d.getUTCDate() + 1)
     return d.toISOString().split("T")[0]
   })()
+  const durationMinutes = (() => {
+    if (!isHHMM(intraop.startTime) || !isHHMM(intraop.endTime)) return intraop.durationMinutes ?? null
+    let diff = toMins(intraop.endTime) - toMins(intraop.startTime)
+    if (diff < 0) diff += 24 * 60
+    return diff
+  })()
   return {
-    date:      safeDate(dateStr),
-    startTime: isHHMM(intraop.startTime) ? safeDate(`${dateStr}T${intraop.startTime}`)    : safeDate(dateStr),
-    endTime:   isHHMM(intraop.endTime)   ? safeDate(`${endDateStr}T${intraop.endTime}`)   : null,
+    monthYear:       intraop.monthYear ?? null,
+    durationMinutes: durationMinutes,
+    startTime: isHHMM(intraop.startTime) ? safeDate(`${REF_DATE}T${intraop.startTime}`)    : safeDate(REF_DATE),
+    endTime:   isHHMM(intraop.endTime)   ? safeDate(`${endRefDate}T${intraop.endTime}`)   : null,
     positions:       intraop.positions        ?? [],
     techniques:      intraop.techniques       ?? [],
     tubeSize:        intraop.tubeSize        ?? null,

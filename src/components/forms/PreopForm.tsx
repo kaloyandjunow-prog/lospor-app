@@ -21,6 +21,7 @@ import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
 import { AIAdvisor } from "@/components/AIAdvisor"
 import { LabResults, type LabResult } from "@/components/LabResults"
+import GuardedTextarea from "@/components/GuardedTextarea"
 
 // ── Numeric range select (kept for any remaining uses) ────────────────────────
 function RangeSelect({ name, control, min, max, step = 1, placeholder = "—" }: {
@@ -64,11 +65,10 @@ const schema = z.object({
   // Case
   diagnoses:    z.array(tagSchema).default([]),
   procedures:   z.array(tagSchema).default([]),
-  surgeonName:          z.string().optional(),
-  anesthesiologistName: z.string().optional(),
-  anesthesiaNurseName:  z.string().optional(),
+  teamNotes:            z.string().max(500).optional(),
   highRiskSurgery:      z.boolean().default(false),
   emergencySurgery:     z.boolean().default(false),
+  aiOptIn:              z.boolean().default(false),
 
   // Medical history — ICD-10 tags
   comorbidities: z.array(tagSchema).default([]),
@@ -437,9 +437,15 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             )} />
             {fieldErrors.has("procedures") && <p className="text-red-500 text-xs">At least one procedure is required.</p>}
           </div>
-          <div className="space-y-1"><Label>{t("preop.surgeon")}</Label><Input {...register("surgeonName")} /></div>
-          <div className="space-y-1"><Label>{t("preop.anesthesiologist")}</Label><Input {...register("anesthesiologistName")} /></div>
-          <div className="space-y-1"><Label>{t("preop.anesthesiaNurse")}</Label><Input {...register("anesthesiaNurseName")} /></div>
+          <div className="space-y-1 col-span-full">
+            <Label>Team notes <span className="font-normal text-slate-400">(optional)</span></Label>
+            <GuardedTextarea
+              {...register("teamNotes")}
+              maxLength={500}
+              rows={2}
+              placeholder="Roles, theatre number, any reminders — do not include names"
+            />
+          </div>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
           <div className="flex items-center gap-2">
@@ -859,7 +865,23 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       </SectionCard>
       </div>
 
-      <AIAdvisor getFormData={getValues} />
+      {/* AI advisor opt-in */}
+      <div className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] px-4 py-3">
+        <Controller name="aiOptIn" control={control} render={({ field }) => (
+          <input type="checkbox" id="aiOptIn" checked={!!field.value} onChange={e => field.onChange(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+        )} />
+        <div>
+          <label htmlFor="aiOptIn" className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
+            Enable AI pre-operative advisor for this case
+          </label>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+            Optional. The AI receives only structured clinical fields — no names, notes, or free-text. EU-hosted (Mistral).
+          </p>
+        </div>
+      </div>
+
+      {watch("aiOptIn") && <AIAdvisor getFormData={getValues} />}
 
       {fieldErrors.size > 0 && (
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-300">

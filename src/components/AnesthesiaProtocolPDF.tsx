@@ -97,8 +97,11 @@ function Tag({ children, style }: { children: string; style?: any }) {
 function colToTime(col: number, startISO?: string | null): string {
   if (!startISO) return String(col * 5) + "m"
   const d = new Date(startISO)
-  d.setMinutes(d.getMinutes() + col * 5)
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  // DB times are stored in UTC; use UTC methods to recover the original entered time.
+  const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + col * 5
+  const hh = Math.floor(totalMins / 60) % 24
+  const mm = totalMins % 60
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`
 }
 
 function deviceStr(i: any): string {
@@ -377,9 +380,9 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 type CaseData = any
 
 export function AnesthesiaProtocolPDF({
-  caseId, patientFirstName, patientLastName, patientId, height = "600px",
+  caseId, height = "600px",
 }: {
-  caseId: string; patientFirstName: string; patientLastName: string; patientId: string
+  caseId: string
   height?: string
 }) {
   const [data,    setData]    = useState<CaseData | null>(null)
@@ -416,7 +419,8 @@ export function AnesthesiaProtocolPDF({
     if (!i?.startTime || !i?.endTime) return null
     const s = new Date(i.startTime), e = new Date(i.endTime)
     const mins = Math.round((e.getTime() - s.getTime()) / 60000)
-    return `${format(s, "HH:mm")} → ${format(e, "HH:mm")} (${Math.floor(mins / 60)}h ${mins % 60}m)`
+    const fmt = (d: Date) => `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`
+    return `${fmt(s)} → ${fmt(e)} (${Math.floor(mins / 60)}h ${mins % 60}m)`
   }
 
   // Vascular access summary
@@ -431,7 +435,12 @@ export function AnesthesiaProtocolPDF({
   const patientLine = `${p?.ageYears ?? ""}y · ${p?.sex === "MALE" ? "M" : p?.sex === "FEMALE" ? "F" : p?.sex ?? "—"}`
     + (p?.bloodType ? ` · ${p.bloodType}${p.rhFactor === "POSITIVE" ? "+" : p.rhFactor === "NEGATIVE" ? "−" : ""}` : "")
 
-  const dateStr = i?.date ? format(new Date(i.date), "dd MMMM yyyy") : ""
+  const dateStr = (() => {
+    if (!i?.monthYear) return ""
+    const [y, m] = i.monthYear.split("-")
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    return `${months[parseInt(m, 10) - 1] ?? ""} ${y}`
+  })()
 
   function PageHeader({ page }: { page: number }) {
     return (
@@ -443,10 +452,7 @@ export function AnesthesiaProtocolPDF({
           {p?.plannedProcedure && <Text style={[S.subtitle, { color: "#475569" }]}>{p.plannedProcedure}</Text>}
         </View>
         <View style={{ alignItems: "flex-end" }}>
-          {(patientLastName || patientFirstName) && (
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{patientLastName} {patientFirstName}</Text>
-          )}
-          {patientId && <Text style={S.subtitle}>ID: {patientId}</Text>}
+          <View style={{ borderBottom: "0.5pt solid #cbd5e1", width: 120, marginBottom: 2 }} />
           <Text style={S.subtitle}>{patientLine}</Text>
           <Text style={[S.subtitle, { marginTop: 2, color: "#94a3b8" }]}>Page {page} of 2</Text>
         </View>
@@ -457,7 +463,7 @@ export function AnesthesiaProtocolPDF({
   return (
     <div style={{ height }}>
       <PDFViewer width="100%" height="100%" style={{ borderRadius: 8 }}>
-        <Document title={`LOSPOR Protocol — ${patientLastName} ${patientFirstName}`}>
+        <Document title={`LOSPOR Protocol — ${data?.caseCode ?? "draft"}`}>
 
           {/* ══════════════════════════════════════════════════════
               PAGE 1 — LANDSCAPE — INTRAOPERATIVE
@@ -468,7 +474,7 @@ export function AnesthesiaProtocolPDF({
             {/* GDPR */}
             <View style={S.disclaimer}>
               <Text style={{ color: "#92400e", fontSize: 5.5 }}>
-                GDPR: This document contains identifiable patient data. Store securely in the patient file. The anonymised clinical record is stored separately in LOSPOR.
+                Personal anaesthetic case log — not a clinical record. Patient identity fields are blank; fill in by hand after printing.
               </Text>
             </View>
 
@@ -519,9 +525,18 @@ export function AnesthesiaProtocolPDF({
               <View style={[S.card, S.col]}>
                 <Text style={S.sec}>Timeline</Text>
                 {duration() && <F label="Duration" value={duration()} />}
-                {p?.anesthesiologistName && <F label="Anaesthesiologist" value={p.anesthesiologistName} />}
-                {p?.anesthesiaNurseName  && <F label="Nurse" value={p.anesthesiaNurseName} />}
-                {p?.surgeonName          && <F label="Surgeon" value={p.surgeonName} />}
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                  <Text style={[S.lbl, { width: 60 }]}>Anaesthesiologist</Text>
+                  <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                  <Text style={[S.lbl, { width: 60 }]}>Nurse</Text>
+                  <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                  <Text style={[S.lbl, { width: 60 }]}>Surgeon</Text>
+                  <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
+                </View>
                 {positions.length > 0 && (
                   <F label="Position" value={positions.map((pos: string) => pos.replace(/_/g, " ")).join(", ")} />
                 )}
@@ -565,8 +580,8 @@ export function AnesthesiaProtocolPDF({
             </View>
 
             <View style={S.footer} fixed>
-              <Text>LOSPOR — Large Open Source Perioperative Register</Text>
-              <Text>Generated {format(new Date(), "dd MMM yyyy HH:mm")} · Confidential</Text>
+              <Text style={{ flexShrink: 1 }}>LOSPOR personal case log · Not a clinical record · No patient IDs</Text>
+              <Text style={{ flexShrink: 0, marginLeft: 8 }}>Generated {format(new Date(), "dd MMM yyyy HH:mm")}</Text>
             </View>
           </Page>
 
@@ -741,8 +756,8 @@ export function AnesthesiaProtocolPDF({
             </View>
 
             <View style={S.footer} fixed>
-              <Text>LOSPOR — Large Open Source Perioperative Register</Text>
-              <Text>Generated {format(new Date(), "dd MMM yyyy HH:mm")} · Confidential</Text>
+              <Text style={{ flexShrink: 1 }}>LOSPOR personal case log · Not a clinical record · No patient IDs</Text>
+              <Text style={{ flexShrink: 0, marginLeft: 8 }}>Generated {format(new Date(), "dd MMM yyyy HH:mm")}</Text>
             </View>
           </Page>
         </Document>

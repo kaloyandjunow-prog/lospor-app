@@ -216,11 +216,12 @@ function timeToMins(hhmm: string): number {
 }
 
 function toHHMM(t: string): string {
-  // Accept "HH:MM", ISO timestamps, or Date strings -- always return "HH:MM"
+  // Accept "HH:MM", ISO timestamps, or Date strings -- always return "HH:MM".
+  // DB-stored times use a UTC reference date, so read UTC to recover the original entered time.
   if (/^\d{2}:\d{2}$/.test(t)) return t
   try {
     const d = new Date(t)
-    if (!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
+    if (!isNaN(d.getTime())) return `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`
   } catch {}
   return t
 }

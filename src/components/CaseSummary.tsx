@@ -81,8 +81,11 @@ const MON = [
 function colToHHMM(col: number, startISO?: string | null) {
   if (!startISO) return `+${col * 5}m`
   const d = new Date(startISO)
-  d.setMinutes(d.getMinutes() + col * 5)
-  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
+  // DB times are stored as UTC; use UTC methods to recover the original entered time.
+  const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + col * 5
+  const hh = Math.floor(totalMins / 60) % 24
+  const mm = totalMins % 60
+  return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`
 }
 
 const DEVICE_DISPLAY: Record<string, { en: string; bg: string; prefix_en?: string; prefix_bg?: string }> = {
@@ -669,13 +672,8 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   })()
 
   const [data,    setData]    = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  // Print dialog state
+  const [loading, setLoading]     = useState(true)
   const [showWarning, setShowWarning] = useState(false)
-  const [showDialog,  setShowDialog]  = useState(false)
-  const [pFirst, setPFirst] = useState("")
-  const [pLast,  setPLast]  = useState("")
-  const [pNum,   setPNum]   = useState("")
 
   useEffect(() => {
     fetch(`/api/cases/${caseId}`).then(r => r.json()).then(d => { setData(d); setLoading(false) })
@@ -700,7 +698,12 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   const timetable = (i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}
 
   const activeMonitors = MON.filter(m => i?.[m.f]).map(m => m.l)
-  const dateStr        = i?.date ? format(new Date(i.date), "dd MMMM yyyy") : ""
+  const dateStr = (() => {
+    if (!i?.monthYear) return ""
+    const [y, m] = i.monthYear.split("-")
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    return `${months[parseInt(m, 10) - 1] ?? ""} ${y}`
+  })()
   const drugTotals     = calcDrugTotals(timetable)
   const infTotals      = calcInfTotals(timetable)
   const ageSuffix  = locale === "bg" ? "г." : "y"
@@ -768,7 +771,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                 className="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
                 {L.goBack}
               </button>
-              <button type="button" onClick={() => { setShowWarning(false); setShowDialog(true) }}
+              <button type="button" onClick={() => { setShowWarning(false); setTimeout(() => window.print(), 100) }}
                 className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                 {L.continuePrint}
               </button>
@@ -777,38 +780,6 @@ export function CaseSummary({ caseId }: { caseId: string }) {
         </div>
       )}
 
-      {/* ── Print dialog (screen only) ───────────────────────────────────────── */}
-      {showDialog && (
-        <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowDialog(false)}>
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
-            onClick={e => e.stopPropagation()}>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">{L.patientDialogTitle}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{L.patientDialogNote}</p>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <input className="flex-1 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={L.lastNamePlaceholder} value={pLast}  onChange={e => setPLast(e.target.value)} />
-                <input className="flex-1 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={L.firstNamePlaceholder} value={pFirst} onChange={e => setPFirst(e.target.value)} />
-              </div>
-              <input className="w-full rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={L.idPlaceholder} value={pNum} onChange={e => setPNum(e.target.value)} />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={() => setShowDialog(false)}
-                className="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                {L.cancel}
-              </button>
-              <button type="button"
-                onClick={() => { setShowDialog(false); setTimeout(() => window.print(), 100) }}
-                className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                {L.printBtn}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="protocol-root space-y-3">
 
@@ -838,11 +809,10 @@ export function CaseSummary({ caseId }: { caseId: string }) {
               <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2">· {inst?.name}{inst?.city ? ", " + inst.city : ""} · {dateStr}</span>
               {p?.diagnosis && <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-100 ml-2">· {p.diagnosis}</span>}
             </div>
-            <div className="text-right text-[10px]">
-              {(pLast || pFirst) && <span className="font-bold text-slate-800 dark:text-slate-100">{pLast} {pFirst}</span>}
-              {pNum && <span className="text-slate-500 dark:text-slate-400 ml-1">· {pNum}</span>}
-              {patientLine && <span className="text-slate-500 dark:text-slate-400 ml-1">· {patientLine}</span>}
-              {p?.asaScore && <span className="ml-2 font-bold text-amber-700 dark:text-amber-400">ASA {p.asaScore}{p.emergencySurgery ? "E" : ""}</span>}
+            <div className="text-right text-[10px] flex items-center gap-2">
+              <span className="text-slate-400 border-b border-dashed border-slate-300 w-36 inline-block" />
+              {patientLine && <span className="text-slate-500 dark:text-slate-400">· {patientLine}</span>}
+              {p?.asaScore && <span className="font-bold text-amber-700 dark:text-amber-400">ASA {p.asaScore}{p.emergencySurgery ? "E" : ""}</span>}
             </div>
           </div>
 
@@ -867,9 +837,9 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                 <div className="grid grid-cols-2 gap-x-3">
                   <div>
                     <Sec title={L.staff} />
-                    <F label={L.anaesthesiologist} value={p?.anesthesiologistName} />
-                    <F label={L.surgeon}           value={p?.surgeonName} />
-                    <F label={L.nurse}             value={p?.anesthesiaNurseName} />
+                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.anaesthesiologist}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
+                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.surgeon}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
+                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.nurse}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
                     {duration() && <F label={L.duration} value={duration()} />}
 
                     <Sec title={L.patient} />
@@ -985,8 +955,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
               <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2">· {L.preoppost} · {dateStr}</span>
             </div>
             <div className="text-right text-[10px]">
-              {(pLast || pFirst) && <span className="font-bold text-slate-800 dark:text-slate-100">{pLast} {pFirst}</span>}
-              {pNum && <span className="text-slate-500 dark:text-slate-400 ml-1">· {pNum}</span>}
+              <span className="text-slate-400 border-b border-dashed border-slate-300 w-40 inline-block" />
             </div>
           </div>
 
@@ -1134,6 +1103,14 @@ export function CaseSummary({ caseId }: { caseId: string }) {
             <span>LOSPOR — Large Open Source Perioperative Register</span>
             <span>{L.page2} · {format(new Date(), "dd MMM yyyy HH:mm")} · {L.confidential}</span>
           </div>
+        </div>
+
+        {/* Print-only disclaimer footer */}
+        <div className="print-only hidden" style={{ display: "none" }}>
+          <style>{`@media print { .lospor-print-disclaimer { display: block !important; } }`}</style>
+          <p className="lospor-print-disclaimer text-[7px] text-center text-slate-400 mt-2 border-t border-slate-200 pt-1">
+            LOSPOR — Personal anaesthetic case log. Not a clinical record. Patient identifiers must not be added. © 2026 Kaloyan Dzhunov · AGPL-3.0
+          </p>
         </div>
       </div>
     </>

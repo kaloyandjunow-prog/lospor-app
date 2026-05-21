@@ -1,18 +1,36 @@
-﻿# LOSPOR — Large Open Source Perioperative Register
+# LOSPOR — Large Open Source Perioperative Register
 
 [![Licence: AGPL-3.0](https://img.shields.io/badge/Licence-AGPL--3.0-blue.svg)](LICENSE)
 [![Live app](https://img.shields.io/badge/Live-app.lospor.org-green)](https://app.lospor.org)
 [![Docs](https://img.shields.io/badge/Docs-docs.lospor.org-blue)](https://docs.lospor.org)
 
-LOSPOR is a free, open-source web application for anaesthesiologists to record perioperative data and generate standardised anaesthesia protocols. Built with Next.js 16, Prisma, Supabase, and NextAuth. Available in English and Bulgarian.
+Copyright (C) 2026 Kaloyan Dzhunov. Licensed under AGPL-3.0.
+
+LOSPOR is a free, open-source **personal anaesthetic case log** for learning, portfolio, and reflection. Built with Next.js 16, Prisma, Supabase, and NextAuth. Available in English and Bulgarian.
+
+## What LOSPOR is and isn't
+
+**Is:** A personal log for anaesthesiologists to record anonymised cases, track learning, and generate a printable case summary.
+
+**Is not:** A clinical record system, a patient management tool, or a certified medical device.
+
+Patient identity is never stored. Each case uses an anonymised case code only. The printable protocol has blank fields for patient identity — filled in by hand after printing.
+
+## Medical Disclaimer
+
+LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is not intended to replace clinical judgment, provide autonomous clinical decision-making, or serve as a certified medical device unless explicitly stated otherwise.
 
 ## Features
 
 - Preoperative assessment — demographics, ICD-11 diagnosis, airway evaluation, risk scores (ASA/RCRI/Apfel/STOP-BANG), vitals, labs
 - Intraoperative timetable — live vital signs graph, drug boluses, infusions, volatile agents, IV fluids on a shared timeline
 - Postoperative recovery — Aldrete score, disposition, handover instructions
-- Printable protocol — auto-generated two-page A4 landscape PDF; patient identity entered at print time only, never stored
+- Printable protocol — auto-generated two-page A4 landscape PDF; patient identity left blank for hand-writing, never stored
 - Case handover — transfer cases between colleagues; HOD can assign instantly
+- AI pre-operative advisor — opt-in per case; EU-hosted (Mistral La Plateforme), structured fields only, no free-text forwarded
+- GDPR rights — data export (Article 15) and account deletion (Article 17) from Settings → Privacy & Data
+- Server-side PII detection — EGN, ID sequences, date patterns, email addresses, and name patterns blocked at the API level
+- Privacy & Terms pages — accessible without login; sub-processors, legal basis, retention, user rights
 - Guided tour & example case — interactive walkthrough for new users
 - EN/BG bilingual interface
 
@@ -44,15 +62,15 @@ See [.env.example](.env.example) for all required variables.
 |----------|----------|-------------|
 | DATABASE_URL | Yes | Supabase pooler connection string (port 6543) |
 | DIRECT_URL | Yes | Supabase direct connection string (port 5432) |
-| NEXTAUTH_SECRET | Yes | Random secret: openssl rand -base64 32 |
+| NEXTAUTH_SECRET | Yes | Random secret: `openssl rand -base64 32` |
 | NEXTAUTH_URL | Yes | Full public URL of your deployment |
+| MISTRAL_API_KEY | Optional | AI advisor — Mistral La Plateforme (EU), free tier available |
 | WHO_ICD_CLIENT_ID | Optional | WHO ICD-11 API (free at icd.who.int/icdapi) |
 | WHO_ICD_CLIENT_SECRET | Optional | WHO ICD-11 API secret |
-| ANTHROPIC_API_KEY | Optional | For ICD-11 Bulgarian translation seeding |
 
 ## Tech stack
 
-Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl
+Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI (EU)
 
 ## Licence
 

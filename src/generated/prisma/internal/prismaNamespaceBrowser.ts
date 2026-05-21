@@ -58,6 +58,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  RevokedToken: 'RevokedToken',
   AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
@@ -91,9 +92,12 @@ export const UserScalarFieldEnum = {
   passwordHash: 'passwordHash',
   role: 'role',
   institutionId: 'institutionId',
-  institutionId2: 'institutionId2',
-  institutionId3: 'institutionId3',
   approvedAt: 'approvedAt',
+  acceptedTermsAt: 'acceptedTermsAt',
+  acceptedPrivacyAt: 'acceptedPrivacyAt',
+  termsVersion: 'termsVersion',
+  lastLoginAt: 'lastLoginAt',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt'
 } as const
 
@@ -115,7 +119,6 @@ export const CaseScalarFieldEnum = {
   caseCode: 'caseCode',
   notes: 'notes',
   userId: 'userId',
-  institutionId: 'institutionId',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -166,6 +169,15 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const RevokedTokenScalarFieldEnum = {
+  jti: 'jti',
+  revokedAt: 'revokedAt',
+  expiresAt: 'expiresAt'
+} as const
+
+export type RevokedTokenScalarFieldEnum = (typeof RevokedTokenScalarFieldEnum)[keyof typeof RevokedTokenScalarFieldEnum]
+
+
 export const AuditLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -203,9 +215,7 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   diagnosis: 'diagnosis',
   plannedProcedure: 'plannedProcedure',
   icdCode: 'icdCode',
-  surgeonName: 'surgeonName',
-  anesthesiologistName: 'anesthesiologistName',
-  anesthesiaNurseName: 'anesthesiaNurseName',
+  teamNotes: 'teamNotes',
   comorbidities: 'comorbidities',
   allergies: 'allergies',
   allergyDetails: 'allergyDetails',
@@ -242,6 +252,7 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   apfelScore: 'apfelScore',
   stopBangScore: 'stopBangScore',
   labResults: 'labResults',
+  aiOptIn: 'aiOptIn',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -252,7 +263,8 @@ export type PreoperativeAssessmentScalarFieldEnum = (typeof PreoperativeAssessme
 export const IntraoperativeRecordScalarFieldEnum = {
   id: 'id',
   caseId: 'caseId',
-  date: 'date',
+  monthYear: 'monthYear',
+  durationMinutes: 'durationMinutes',
   startTime: 'startTime',
   endTime: 'endTime',
   positions: 'positions',

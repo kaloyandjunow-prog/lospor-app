@@ -15,7 +15,18 @@ export function ShareCaseButton({
   async function handleClick(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    await navigator.clipboard.writeText(`${window.location.origin}/cases/${caseId}`)
+    const url = `${window.location.origin}/cases/${caseId}`
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url)
+    } else {
+      // Fallback for non-HTTPS / LAN access where clipboard API is unavailable
+      const el = document.createElement("textarea")
+      el.value = url
+      el.style.position = "fixed"; el.style.opacity = "0"
+      document.body.appendChild(el); el.select()
+      document.execCommand("copy")
+      document.body.removeChild(el)
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

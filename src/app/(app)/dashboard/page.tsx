@@ -25,21 +25,19 @@ function asaBadge(asa: string | null) {
 
 type CaseRow = Awaited<ReturnType<typeof fetchCases>>[number]
 
-async function fetchCases(userId: string, role: string, institutionId: string) {
+async function fetchCases(userId: string, role: string, institutionId: string | null) {
   const where =
-    role === "ADMIN"        ? {}
-    : role === "HEAD_OF_DEPT" ? { institutionId }
+    role === "ADMIN" || role === "HEAD_OF_DEPT" ? {}
     : { userId }
 
   return prisma.case.findMany({
     where,
     include: {
-      preop:       { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
-      intraop:     { select: { date: true, endTime: true } },
-      postop:      { select: { disposition: true, aldreteTotal: true } },
-      user:        { select: { name: true } },
-      institution: { select: { name: true } },
-      transfers:   { where: { status: "PENDING" }, select: { id: true }, take: 1 },
+      preop:     { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
+      intraop:   { select: { monthYear: true, durationMinutes: true, endTime: true } },
+      postop:    { select: { disposition: true, aldreteTotal: true } },
+      user:      { select: { name: true } },
+      transfers: { where: { status: "PENDING" }, select: { id: true }, take: 1 },
     },
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -89,9 +87,13 @@ export default async function DashboardPage() {
 
   const totalCases = cases.length
   const thisMonth = cases.filter((c: CaseRow) => {
-    const d = c.intraop?.date ?? c.createdAt
+    const my = c.intraop?.monthYear
     const now = new Date()
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    if (my) {
+      const [y, m] = my.split("-").map(Number)
+      return y === now.getFullYear() && m === now.getMonth() + 1
+    }
+    return c.createdAt.getMonth() === now.getMonth() && c.createdAt.getFullYear() === now.getFullYear()
   }).length
 
   const icuCount = cases.filter((c: CaseRow) => c.postop?.disposition === "ICU").length
@@ -205,7 +207,9 @@ export default async function DashboardPage() {
                         hasPendingTransfer={c.transfers.length > 0}
                       />
                       <span className="text-xs text-slate-400">
-                        {c.intraop?.date ? format(new Date(c.intraop.date), "dd MMM yyyy") : format(c.createdAt, "dd MMM yyyy")}
+                        {c.intraop?.monthYear
+                          ? (() => { const [y, m] = c.intraop!.monthYear!.split("-"); const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m,10)-1]} ${y}` })()
+                          : format(c.createdAt, "dd MMM yyyy")}
                       </span>
                       <FileText className="h-4 w-4 text-slate-300" />
                     </div>

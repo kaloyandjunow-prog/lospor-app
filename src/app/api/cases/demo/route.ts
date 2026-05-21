@@ -11,8 +11,7 @@ export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const userId        = (session.user as any).id
-  const institutionId = (session.user as any).institutionId
+  const userId = (session.user as any).id
 
   // Re-use existing IN_PROGRESS demo case; delete stale COMPLETE ones
   const existing = await prisma.case.findFirst({
@@ -29,7 +28,6 @@ export async function GET() {
   const caseRecord = await prisma.case.create({
     data: {
       userId,
-      institutionId,
       notes:  "__DEMO__",
       status: "IN_PROGRESS",
       preop: {
@@ -42,9 +40,7 @@ export async function GET() {
           diagnosis: "C18.9 — Malignant neoplasm of colon, unspecified",
           plannedProcedure: "Colectomy; Robotic-assisted procedures",
           icdCode: "2B90.Z",
-          surgeonName:          "Dr. Zashev",
-          anesthesiologistName: "Dr. Dzhunov",
-          anesthesiaNurseName:  "Mehmed",
+          teamNotes: "Robotic theatre — see attached equipment checklist",
           comorbidities: [
             { label: "Essential hypertension",       sub: "BA00" },
             { label: "Type 2 diabetes mellitus",     sub: "5A11" },
@@ -85,9 +81,9 @@ export async function GET() {
         create: {
           premedicationEvening: "Midazolam 7.5mg PO",
           premedicationMorning: "Omeprazole 40mg PO",
-          date:      new Date("2026-05-17T00:00:00Z"),
-          startTime: new Date("2026-05-17T07:30:00Z"),
-          endTime:   new Date("2026-05-17T10:45:00Z"),
+          monthYear: "2026-05",
+          startTime: new Date("2000-01-01T07:30:00Z"),
+          endTime:   new Date("2000-01-01T10:45:00Z"),
           positions:       ["SUPINE"],
           techniques:      ["GENERAL_INHALATION", "EPIDURAL"],
           airwayDevices:   ["ORAL_ETT"],

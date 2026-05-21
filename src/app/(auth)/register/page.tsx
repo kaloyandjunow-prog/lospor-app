@@ -35,9 +35,8 @@ const schema = z.object({
   email:           z.string().email(),
   password:        passwordSchema,
   confirmPassword: z.string(),
-  institutionId:   z.string().min(1),
-  institutionId2:  z.string().optional(),
-  institutionId3:  z.string().optional(),
+  institutionId:   z.string().optional(),
+  acceptedTerms:   z.boolean().refine(v => v === true, "You must accept the terms"),
 }).refine(d => d.password === d.confirmPassword, { message: "mismatch", path: ["confirmPassword"] })
 
 type FormData     = z.infer<typeof schema>
@@ -163,10 +162,6 @@ export default function RegisterPage() {
   const [pwValue, setPwValue]           = useState("")
   const [country,  setCountry]  = useState("")
   const [instId,   setInstId]   = useState("")
-  const [instId2,  setInstId2]  = useState("")
-  const [instId3,  setInstId3]  = useState("")
-  const [showInst2, setShowInst2] = useState(false)
-  const [showInst3, setShowInst3] = useState(false)
 
   useEffect(() => {
     fetch("/api/institutions").then(r => r.json()).then(setInstitutions)
@@ -187,21 +182,17 @@ export default function RegisterPage() {
     resolver: zodResolver(schema) as any,
   })
 
-  // When country changes, auto-select "Друго" for non-Bulgaria countries
   function handleCountryChange(c: string) {
     setCountry(c)
-    setInstId(""); setInstId2(""); setInstId3("")
-    setValue("institutionId", ""); setValue("institutionId2", ""); setValue("institutionId3", "")
-    setShowInst2(false); setShowInst3(false)
+    setInstId("")
+    setValue("institutionId", "")
     if (c && c !== "Bulgaria") {
       const other = institutions.find(i => i.name === "Друго" || i.name === "Other / Private")
       if (other) { setInstId(other.id); setValue("institutionId", other.id) }
     }
   }
 
-  function handleInstChange(id: string)  { setInstId(id);  setValue("institutionId",  id) }
-  function handleInst2Change(id: string) { setInstId2(id); setValue("institutionId2", id) }
-  function handleInst3Change(id: string) { setInstId3(id); setValue("institutionId3", id) }
+  function handleInstChange(id: string) { setInstId(id); setValue("institutionId", id) }
 
   async function onSubmit(data: FormData) {
     setLoading(true)
@@ -218,7 +209,6 @@ export default function RegisterPage() {
 
   const bgInstitutions = institutions.filter(i => i.name !== "Друго" && i.name !== "Other / Private")
   const isBulgaria     = country === "Bulgaria"
-  const otherInst      = institutions.find(i => i.name === "Друго" || i.name === "Other / Private")
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4">
@@ -289,10 +279,10 @@ export default function RegisterPage() {
                 </Select>
               </div>
 
-              {/* Institution — only shown after country is selected */}
+              {/* Institution — optional, shown after country is selected */}
               {country && (
                 <div className="space-y-1">
-                  <Label>{t("auth.institution")} <span className="text-red-500">*</span></Label>
+                  <Label>{t("auth.institution")} <span className="text-slate-400 text-xs font-normal">(optional)</span></Label>
                   {isBulgaria ? (
                     <InstitutionPicker
                       institutions={bgInstitutions}
@@ -303,51 +293,6 @@ export default function RegisterPage() {
                     <div className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-slate-50 dark:bg-[#1a1a1a] px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
                       {t("common.other") ?? "Other"}
                     </div>
-                  )}
-                  {errors.institutionId && <p className="text-xs text-red-500">{t("common.required")}</p>}
-
-                  {/* 2nd institution */}
-                  {isBulgaria && instId && (
-                    <>
-                      {!showInst2 ? (
-                        <button type="button" onClick={() => setShowInst2(true)}
-                          className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                          {t("auth.addSecondInstitution")}
-                        </button>
-                      ) : (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs text-slate-500">{t("auth.secondInstitution")}</Label>
-                            <button type="button" onClick={() => { setShowInst2(false); setShowInst3(false); handleInst2Change(""); handleInst3Change("") }}
-                              className="text-xs text-slate-400 hover:text-slate-600">{t("auth.removeInstitution")}</button>
-                          </div>
-                          <InstitutionPicker institutions={bgInstitutions} value={instId2}
-                            onChange={handleInst2Change} placeholder={t("auth.selectInstitution")} />
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* 3rd institution */}
-                  {isBulgaria && showInst2 && instId2 && (
-                    <>
-                      {!showInst3 ? (
-                        <button type="button" onClick={() => setShowInst3(true)}
-                          className="mt-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                          {t("auth.addThirdInstitution")}
-                        </button>
-                      ) : (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs text-slate-500">{t("auth.thirdInstitution")}</Label>
-                            <button type="button" onClick={() => { setShowInst3(false); handleInst3Change("") }}
-                              className="text-xs text-slate-400 hover:text-slate-600">{t("auth.removeInstitution")}</button>
-                          </div>
-                          <InstitutionPicker institutions={bgInstitutions} value={instId3}
-                            onChange={handleInst3Change} placeholder={t("auth.selectInstitution")} />
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               )}
@@ -367,6 +312,18 @@ export default function RegisterPage() {
                 {errors.confirmPassword && <p className="text-xs text-red-500">{t("auth.passwordsNoMatch")}</p>}
               </div>
 
+              {/* Terms acceptance */}
+              <div className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-slate-50 dark:bg-[#1c1c1c] p-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <p className="font-medium text-slate-700 dark:text-slate-300">Medical Disclaimer</p>
+                <p>LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is not intended to replace clinical judgment or serve as a certified medical device.</p>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" {...register("acceptedTerms")}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  <span>I have read and accept the Terms of Use, Privacy Policy, and the above Medical Disclaimer. <span className="text-red-500">*</span></span>
+                </label>
+                {errors.acceptedTerms && <p className="text-red-500">{String(errors.acceptedTerms.message)}</p>}
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? t("auth.creatingAccount") : t("auth.register")}
               </Button>
@@ -381,14 +338,17 @@ export default function RegisterPage() {
         </Card>
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-600">
+          <Link href="/terms" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
+            Terms
+          </Link>
+          {" · "}
+          <Link href="/privacy" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
+            Privacy
+          </Link>
+          {" · "}
           <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
             className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
             Documentation
-          </a>
-          {" · "}
-          <a href="https://lospor.org" target="_blank" rel="noopener noreferrer"
-            className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
-            lospor.org
           </a>
         </p>
       </div>

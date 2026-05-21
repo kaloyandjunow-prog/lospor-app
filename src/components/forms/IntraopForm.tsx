@@ -110,7 +110,7 @@ const drugSchema = z.object({
 })
 
 const schema = z.object({
-  date:           z.string().min(1, "Required"),
+  monthYear:      z.string().optional(),
   startTime:      z.string().optional(),
   endTime:        z.string().optional(),
   endTimeNextDay: z.boolean().default(false),
@@ -770,7 +770,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const { register, handleSubmit, control, watch, setValue, getValues, formState } = useForm<IntraopData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      date: new Date().toISOString().split("T")[0],
+      monthYear: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` })(),
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
       nbpMonitor: true, spO2Monitor: true, ecg: true,
@@ -1257,8 +1257,29 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
-            <Label>{t("intraop.date")} *</Label>
-            <Input type="date" {...register("date")} />
+            <Label>{t("intraop.date")}</Label>
+            <Controller name="monthYear" control={control} render={({ field }) => {
+              const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+              const currentYear = new Date().getFullYear()
+              const years = Array.from({ length: 11 }, (_, i) => currentYear - i)
+              const [selYear, selMonth] = field.value?.split("-") ?? ["", ""]
+              return (
+                <div className="flex gap-2">
+                  <select value={selMonth ?? ""}
+                    onChange={e => field.onChange(selYear ? `${selYear}-${e.target.value}` : "")}
+                    className="flex-1 h-9 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-[#1c1c1c] dark:border-[#3a3a3a] dark:text-slate-100">
+                    <option value="">Month</option>
+                    {MONTHS.map((m, i) => <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>)}
+                  </select>
+                  <select value={selYear ?? ""}
+                    onChange={e => field.onChange(selMonth ? `${e.target.value}-${selMonth}` : "")}
+                    className="w-28 h-9 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-[#1c1c1c] dark:border-[#3a3a3a] dark:text-slate-100">
+                    <option value="">Year</option>
+                    {years.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                  </select>
+                </div>
+              )
+            }} />
           </div>
           {/* Start time + START CASE */}
           <div className="space-y-1">
@@ -1280,9 +1301,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
                 <button type="button"
                   onClick={() => {
                     const now  = new Date()
-                    const date = now.toISOString().split("T")[0]
                     const time = nowHHMM()
-                    setValue("date", date)
                     setValue("startTime", time)
                     setShowStartPrompt(false)
                     // Fire an immediate save so the case status becomes
@@ -1290,7 +1309,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
                     if (onAutoSave) {
                       const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
                         ? timetable : EMPTY_TIMETABLE
-                      onAutoSave({ ...getValues(), date, startTime: time, timetableData: safeT })
+                      onAutoSave({ ...getValues(), startTime: time, timetableData: safeT })
                     }
                   }}
                   className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors">
@@ -1309,20 +1328,17 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           <div className="space-y-1">
             <Label className={timeErrors.endTime ? "text-red-600 dark:text-red-400" : ""}>{t("intraop.endTime")} {timeErrors.endTime && <span className="font-normal">— required</span>}</Label>
             <div className={`flex items-center gap-2 flex-wrap ${timeErrors.endTime ? "ring-2 ring-red-400 rounded-lg p-0.5" : ""}`}>
-              {/* End date picker — defaults to start date, auto-advances if case crosses midnight */}
-              <Controller name="endTimeNextDay" control={control} render={({ field }) => {
-                const startDate = watch("date") || new Date().toISOString().split("T")[0]
-                const nextDay   = (() => { const d = new Date(startDate + "T00:00:00"); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0] })()
-                const displayDate = field.value ? nextDay : startDate
-                return (
-                  <input type="date"
-                    value={displayDate}
-                    min={startDate}
-                    max={nextDay}
-                    onChange={e => field.onChange(e.target.value === nextDay)}
-                    className="flex h-9 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-                )
-              }} />
+              {/* Crosses midnight toggle */}
+              <Controller name="endTimeNextDay" control={control} render={({ field }) => (
+                <button type="button"
+                  onClick={() => field.onChange(!field.value)}
+                  className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap
+                    ${field.value
+                      ? "bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300"
+                      : "border-slate-200 dark:border-[#3a3a3a] text-slate-400 hover:border-slate-400"}`}>
+                  +1 day
+                </button>
+              )} />
               <Controller name="endTime" control={control} render={({ field }) => (
                 <TimePicker ref={endHourRef} value={field.value} onChange={field.onChange} />
               )} />

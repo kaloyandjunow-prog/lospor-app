@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useTransition } from "react"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-type Category = "ui" | "automation" | "access"
+type Category = "ui" | "automation" | "access" | "privacy"
 
 function PillGroup({ options, value, onChange }: {
   options: { value: string; label: string; icon?: React.ReactNode }[]
@@ -61,15 +61,21 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
 type RoleReq = { id: string; status: string; requestedAt: string; resolvedAt: string | null } | null
 
-export function SettingsMenu({ userName, institutionName, currentLocale, role }: {
+export function SettingsMenu({ userName, institutionName, currentLocale, role, lastLoginAt }: {
   userName?: string | null
   institutionName?: string | null
   currentLocale?: string
   role?: string
+  lastLoginAt?: string | null
 }) {
-  const [open, setOpen]             = useState(false)
-  const [modalOpen, setModalOpen]   = useState(false)
-  const [category, setCategory]     = useState<Category>("ui")
+  const [open, setOpen]                     = useState(false)
+  const [modalOpen, setModalOpen]           = useState(false)
+  const [category, setCategory]             = useState<Category>("ui")
+  const [instEdit, setInstEdit]             = useState(false)
+  const [instList, setInstList]             = useState<{ id: string; name: string; city: string }[]>([])
+  const [instQuery, setInstQuery]           = useState("")
+  const [instSaving, setInstSaving]         = useState(false)
+  const [currentInstName, setCurrentInstName] = useState(institutionName ?? "")
   const [dark, setDark]             = useState(false)
   const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("scroll")
   const [ttLayout, setTtLayout]     = useState<"expand" | "scroll">("scroll")
@@ -161,7 +167,11 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role }:
     { id: "ui",         label: "UI Options"        },
     { id: "automation", label: "Automation"         },
     ...(role !== "ADMIN" ? [{ id: "access" as Category, label: "Security & Access" }] : []),
+    { id: "privacy",    label: "Privacy & Data"    },
   ]
+
+  const [deleteConfirm, setDeleteConfirm] = useState("")
+  const [deleting, setDeleting]           = useState(false)
 
   return (
     <>
@@ -177,10 +187,48 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role }:
 
         {open && (
           <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] shadow-xl z-50 overflow-hidden">
-            {(userName || institutionName) && (
-              <div className="px-4 py-3 border-b border-slate-100 dark:border-[#2a2a2a]">
-                {userName        && <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{userName}</p>}
-                {institutionName && <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{institutionName}</p>}
+            {(userName || currentInstName) && (
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-[#2a2a2a] space-y-1">
+                {userName && <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{userName}</p>}
+                {!instEdit ? (
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || "No institution"}</p>
+                    <button type="button" onClick={async () => {
+                      if (!instList.length) {
+                        const data = await fetch("/api/institutions").then(r => r.json())
+                        setInstList(data)
+                      }
+                      setInstEdit(true)
+                    }} className="text-[10px] text-blue-500 hover:underline shrink-0">Edit</button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <input value={instQuery} onChange={e => setInstQuery(e.target.value)}
+                      placeholder="Search institution…"
+                      className="w-full text-xs rounded border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    <div className="max-h-28 overflow-y-auto rounded border border-slate-100 dark:border-[#2a2a2a]">
+                      {(instQuery
+                        ? instList.filter(i => i.name.toLowerCase().includes(instQuery.toLowerCase()) || i.city.toLowerCase().includes(instQuery.toLowerCase()))
+                        : instList
+                      ).slice(0, 20).map(inst => (
+                        <button key={inst.id} type="button" disabled={instSaving}
+                          onClick={async () => {
+                            setInstSaving(true)
+                            await fetch("/api/user", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ institutionId: inst.id }) })
+                            setCurrentInstName(`${inst.name} — ${inst.city}`)
+                            setInstEdit(false)
+                            setInstQuery("")
+                            setInstSaving(false)
+                          }}
+                          className="w-full text-left px-2 py-1 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#242424]">
+                          {inst.name} <span className="text-slate-400">{inst.city}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => { setInstEdit(false); setInstQuery("") }}
+                      className="text-[10px] text-slate-400 hover:text-slate-600">Cancel</button>
+                  </div>
+                )}
               </div>
             )}
             <div className="py-1">
@@ -345,6 +393,59 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role }:
                         </button>
                       )
                     })()}
+                  </div>
+                )}
+
+                {category === "privacy" && (
+                  <div className="space-y-4 py-2">
+                    <div className="rounded-lg bg-slate-50 dark:bg-[#1a1a1a] border border-slate-100 dark:border-[#2a2a2a] px-4 py-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                      {lastLoginAt && (
+                        <p><span className="font-medium">Last login:</span>{" "}
+                          {new Date(lastLoginAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                        </p>
+                      )}
+                      <p className="text-[11px]">1 active session</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Export my data</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Download a JSON copy of your account, all cases, and the audit log (GDPR Article 15).
+                      </p>
+                      <button type="button"
+                        onClick={() => { window.location.href = "/api/user/export" }}
+                        className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                        Download my data
+                      </button>
+                    </div>
+
+                    <div className="space-y-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
+                      <p className="text-sm font-medium text-red-600 dark:text-red-400">Delete my account</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Your account will be deactivated immediately. Cases are retained for 30 days then permanently deleted (GDPR Article 17). This cannot be undone.
+                      </p>
+                      {deleting ? (
+                        <p className="text-xs text-slate-400">Deleting…</p>
+                      ) : (
+                        <div className="space-y-2 mt-2">
+                          <input
+                            type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
+                            placeholder='Type DELETE to confirm'
+                            className="w-full text-xs rounded border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500 text-slate-700 dark:text-slate-200"
+                          />
+                          <button type="button"
+                            disabled={deleteConfirm !== "DELETE"}
+                            onClick={async () => {
+                              setDeleting(true)
+                              await fetch("/api/user/delete", { method: "POST" })
+                              window.location.href = "/login"
+                            }}
+                            className="w-full text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            Confirm deletion
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

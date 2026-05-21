@@ -18,17 +18,18 @@ model User {
   title         String      @default("")
   passwordHash  String
   role           UserRole     @default(MEMBER)
-  institutionId  String
-  institution    Institution  @relation("UserPrimaryInstitution", fields: [institutionId], references: [id])
-  institutionId2 String?
-  institution2   Institution? @relation("UserSecondInstitution", fields: [institutionId2], references: [id])
-  institutionId3 String?
-  institution3   Institution? @relation("UserThirdInstitution", fields: [institutionId3], references: [id])
+  institutionId  String?
+  institution    Institution? @relation("UserPrimaryInstitution", fields: [institutionId], references: [id])
   cases              Case[]
   roleRequests       RoleRequest[]
   transfersSent      CaseTransfer[] @relation("TransfersSent")
   transfersReceived  CaseTransfer[] @relation("TransfersReceived")
-  approvedAt    DateTime?              // null = pending admin approval
+  approvedAt         DateTime?
+  acceptedTermsAt    DateTime?
+  acceptedPrivacyAt  DateTime?
+  termsVersion       String?
+  lastLoginAt        DateTime?
+  deletedAt          DateTime?
   createdAt     DateTime    @default(now())
 }
 
@@ -46,9 +47,6 @@ model Institution {
   city    String
   country String  @default("Bulgaria")
   users   User[]  @relation("UserPrimaryInstitution")
-  users2  User[]  @relation("UserSecondInstitution")
-  users3  User[]  @relation("UserThirdInstitution")
-  cases   Case[]
 }
 
 // ─── Case ────────────────────────────────────────────────────────────────────
@@ -59,8 +57,6 @@ model Case {
   notes         String?
   userId        String
   user          User        @relation(fields: [userId], references: [id])
-  institutionId String
-  institution   Institution @relation(fields: [institutionId], references: [id])
   status        CaseStatus  @default(DRAFT)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -125,6 +121,14 @@ model Icd11Code {
   labelBg String?       // Bulgarian (null until first BG search for this code)
 }
 
+model RevokedToken {
+  jti       String   @id
+  revokedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String
@@ -161,9 +165,7 @@ model PreoperativeAssessment {
   diagnosis              String
   plannedProcedure       String
   icdCode                String?
-  surgeonName            String?
-  anesthesiologistName   String?
-  anesthesiaNurseName    String?
+  teamNotes              String?
 
   // Comorbidities as ICD-10 tagged list: [{label, sub, system}]
   comorbidities          Json     @default("[]")
@@ -209,6 +211,8 @@ model PreoperativeAssessment {
 
   labResults Json @default("[]")
 
+  aiOptIn   Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -220,7 +224,8 @@ model IntraoperativeRecord {
   caseId String @unique
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  date      DateTime
+  monthYear       String?
+  durationMinutes Int?
   startTime DateTime
   endTime   DateTime?
 

@@ -8,10 +8,16 @@ import { SettingsMenu } from "@/components/SettingsMenu"
 import { OngoingCasesButton } from "@/components/OngoingCasesButton"
 import { TourManager } from "@/components/TourManager"
 import { TourButton } from "@/components/TourButton"
+import { OnboardingGate } from "@/components/OnboardingGate"
+import { prisma } from "@/lib/prisma"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session) redirect("/login")
+
+  const userId = session.user?.id
+  const user = userId ? await prisma.user.findUnique({ where: { id: userId }, select: { acceptedTermsAt: true } }) : null
+  const needsOnboarding = !user?.acceptedTermsAt
 
   const t      = await getTranslations()
   const locale = await getLocale()
@@ -50,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3">
             <TourButton />
             <span data-tour="settings-menu">
-              <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={(session.user as any).role} />
+              <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={(session.user as any).role} lastLoginAt={(session.user as any).lastLoginAt} />
             </span>
             <form action={handleSignOut}>
               <button type="submit" title={t("nav.signOut")}
@@ -63,21 +69,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-        {children}
+        <OnboardingGate needsOnboarding={needsOnboarding}>
+          {children}
+        </OnboardingGate>
       </main>
 
       <footer className="no-print border-t border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] py-4 text-center text-xs text-slate-400 dark:text-slate-500">
         {t("common.gdprFooter")}
+        {" · "}
+        <a href="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">Terms</a>
+        {" · "}
+        <a href="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">Privacy</a>
         {" · "}
         <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
           className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
           Documentation
         </a>
         {" · "}
+        <a href="https://github.com/kaloyandjunow-prog/lospor-app" target="_blank" rel="noopener noreferrer"
+          className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
+          Open source
+        </a>
+        {" · "}
         <a href="https://github.com/kaloyandjunow-prog/lospor-app/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"
           className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
           AGPL-3.0
         </a>
+        <span className="block mt-1 text-[10px] text-slate-300 dark:text-slate-600">
+          LOSPOR is intended for perioperative documentation and workflow support only — not a certified medical device.
+          Copyright © 2026 Kaloyan Dzhunov · AGPL-3.0
+        </span>
       </footer>
     </div>
     </TourManager>

@@ -77,9 +77,7 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   diagnosis: string | null
   plannedProcedure: string | null
   icdCode: string | null
-  surgeonName: string | null
-  anesthesiologistName: string | null
-  anesthesiaNurseName: string | null
+  teamNotes: string | null
   allergies: boolean | null
   allergyDetails: string | null
   latexAllergy: boolean | null
@@ -114,6 +112,7 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -131,9 +130,7 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   diagnosis: string | null
   plannedProcedure: string | null
   icdCode: string | null
-  surgeonName: string | null
-  anesthesiologistName: string | null
-  anesthesiaNurseName: string | null
+  teamNotes: string | null
   allergies: boolean | null
   allergyDetails: string | null
   latexAllergy: boolean | null
@@ -168,6 +165,7 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -185,9 +183,7 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   diagnosis: number
   plannedProcedure: number
   icdCode: number
-  surgeonName: number
-  anesthesiologistName: number
-  anesthesiaNurseName: number
+  teamNotes: number
   comorbidities: number
   allergies: number
   allergyDetails: number
@@ -224,6 +220,7 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   apfelScore: number
   stopBangScore: number
   labResults: number
+  aiOptIn: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -281,9 +278,7 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   diagnosis?: true
   plannedProcedure?: true
   icdCode?: true
-  surgeonName?: true
-  anesthesiologistName?: true
-  anesthesiaNurseName?: true
+  teamNotes?: true
   allergies?: true
   allergyDetails?: true
   latexAllergy?: true
@@ -318,6 +313,7 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  aiOptIn?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -335,9 +331,7 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   diagnosis?: true
   plannedProcedure?: true
   icdCode?: true
-  surgeonName?: true
-  anesthesiologistName?: true
-  anesthesiaNurseName?: true
+  teamNotes?: true
   allergies?: true
   allergyDetails?: true
   latexAllergy?: true
@@ -372,6 +366,7 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  aiOptIn?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -389,9 +384,7 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   diagnosis?: true
   plannedProcedure?: true
   icdCode?: true
-  surgeonName?: true
-  anesthesiologistName?: true
-  anesthesiaNurseName?: true
+  teamNotes?: true
   comorbidities?: true
   allergies?: true
   allergyDetails?: true
@@ -428,6 +421,7 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   apfelScore?: true
   stopBangScore?: true
   labResults?: true
+  aiOptIn?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -532,9 +526,7 @@ export type PreoperativeAssessmentGroupByOutputType = {
   diagnosis: string
   plannedProcedure: string
   icdCode: string | null
-  surgeonName: string | null
-  anesthesiologistName: string | null
-  anesthesiaNurseName: string | null
+  teamNotes: string | null
   comorbidities: runtime.JsonValue
   allergies: boolean
   allergyDetails: string | null
@@ -571,6 +563,7 @@ export type PreoperativeAssessmentGroupByOutputType = {
   apfelScore: number | null
   stopBangScore: number | null
   labResults: runtime.JsonValue
+  aiOptIn: boolean
   createdAt: Date
   updatedAt: Date
   _count: PreoperativeAssessmentCountAggregateOutputType | null
@@ -611,9 +604,7 @@ export type PreoperativeAssessmentWhereInput = {
   diagnosis?: Prisma.StringFilter<"PreoperativeAssessment"> | string
   plannedProcedure?: Prisma.StringFilter<"PreoperativeAssessment"> | string
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  surgeonName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  anesthesiologistName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  anesthesiaNurseName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
@@ -650,6 +641,7 @@ export type PreoperativeAssessmentWhereInput = {
   apfelScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   labResults?: Prisma.JsonFilter<"PreoperativeAssessment">
+  aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
@@ -668,9 +660,7 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   diagnosis?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
-  surgeonName?: Prisma.SortOrderInput | Prisma.SortOrder
-  anesthesiologistName?: Prisma.SortOrderInput | Prisma.SortOrder
-  anesthesiaNurseName?: Prisma.SortOrderInput | Prisma.SortOrder
+  teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -707,6 +697,7 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   apfelScore?: Prisma.SortOrderInput | Prisma.SortOrder
   stopBangScore?: Prisma.SortOrderInput | Prisma.SortOrder
   labResults?: Prisma.SortOrder
+  aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
@@ -728,9 +719,7 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   diagnosis?: Prisma.StringFilter<"PreoperativeAssessment"> | string
   plannedProcedure?: Prisma.StringFilter<"PreoperativeAssessment"> | string
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  surgeonName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  anesthesiologistName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
-  anesthesiaNurseName?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
@@ -767,6 +756,7 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   apfelScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   labResults?: Prisma.JsonFilter<"PreoperativeAssessment">
+  aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
@@ -785,9 +775,7 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   diagnosis?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
-  surgeonName?: Prisma.SortOrderInput | Prisma.SortOrder
-  anesthesiologistName?: Prisma.SortOrderInput | Prisma.SortOrder
-  anesthesiaNurseName?: Prisma.SortOrderInput | Prisma.SortOrder
+  teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -824,6 +812,7 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   apfelScore?: Prisma.SortOrderInput | Prisma.SortOrder
   stopBangScore?: Prisma.SortOrderInput | Prisma.SortOrder
   labResults?: Prisma.SortOrder
+  aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.PreoperativeAssessmentCountOrderByAggregateInput
@@ -849,9 +838,7 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   diagnosis?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
   plannedProcedure?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
   icdCode?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
-  surgeonName?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
-  anesthesiologistName?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
-  anesthesiaNurseName?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
+  teamNotes?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonWithAggregatesFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
@@ -888,6 +875,7 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   apfelScore?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   labResults?: Prisma.JsonWithAggregatesFilter<"PreoperativeAssessment">
+  aiOptIn?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"PreoperativeAssessment"> | Date | string
 }
@@ -904,9 +892,7 @@ export type PreoperativeAssessmentCreateInput = {
   diagnosis: string
   plannedProcedure: string
   icdCode?: string | null
-  surgeonName?: string | null
-  anesthesiologistName?: string | null
-  anesthesiaNurseName?: string | null
+  teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -943,6 +929,7 @@ export type PreoperativeAssessmentCreateInput = {
   apfelScore?: number | null
   stopBangScore?: number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
@@ -961,9 +948,7 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   diagnosis: string
   plannedProcedure: string
   icdCode?: string | null
-  surgeonName?: string | null
-  anesthesiologistName?: string | null
-  anesthesiaNurseName?: string | null
+  teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1000,6 +985,7 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   apfelScore?: number | null
   stopBangScore?: number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1016,9 +1002,7 @@ export type PreoperativeAssessmentUpdateInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1055,6 +1039,7 @@ export type PreoperativeAssessmentUpdateInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
@@ -1073,9 +1058,7 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1112,6 +1095,7 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1129,9 +1113,7 @@ export type PreoperativeAssessmentCreateManyInput = {
   diagnosis: string
   plannedProcedure: string
   icdCode?: string | null
-  surgeonName?: string | null
-  anesthesiologistName?: string | null
-  anesthesiaNurseName?: string | null
+  teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1168,6 +1150,7 @@ export type PreoperativeAssessmentCreateManyInput = {
   apfelScore?: number | null
   stopBangScore?: number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1184,9 +1167,7 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1223,6 +1204,7 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1240,9 +1222,7 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1279,6 +1259,7 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1301,9 +1282,7 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   diagnosis?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
-  surgeonName?: Prisma.SortOrder
-  anesthesiologistName?: Prisma.SortOrder
-  anesthesiaNurseName?: Prisma.SortOrder
+  teamNotes?: Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
@@ -1340,6 +1319,7 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
   labResults?: Prisma.SortOrder
+  aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -1376,9 +1356,7 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   diagnosis?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
-  surgeonName?: Prisma.SortOrder
-  anesthesiologistName?: Prisma.SortOrder
-  anesthesiaNurseName?: Prisma.SortOrder
+  teamNotes?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
   latexAllergy?: Prisma.SortOrder
@@ -1413,6 +1391,7 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -1430,9 +1409,7 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   diagnosis?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
-  surgeonName?: Prisma.SortOrder
-  anesthesiologistName?: Prisma.SortOrder
-  anesthesiaNurseName?: Prisma.SortOrder
+  teamNotes?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
   latexAllergy?: Prisma.SortOrder
@@ -1467,6 +1444,7 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -1602,9 +1580,7 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   diagnosis: string
   plannedProcedure: string
   icdCode?: string | null
-  surgeonName?: string | null
-  anesthesiologistName?: string | null
-  anesthesiaNurseName?: string | null
+  teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1641,6 +1617,7 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   apfelScore?: number | null
   stopBangScore?: number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1657,9 +1634,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   diagnosis: string
   plannedProcedure: string
   icdCode?: string | null
-  surgeonName?: string | null
-  anesthesiologistName?: string | null
-  anesthesiaNurseName?: string | null
+  teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1696,6 +1671,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   apfelScore?: number | null
   stopBangScore?: number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1728,9 +1704,7 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1767,6 +1741,7 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1783,9 +1758,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  surgeonName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiologistName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  anesthesiaNurseName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1822,6 +1795,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1841,9 +1815,7 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   diagnosis?: boolean
   plannedProcedure?: boolean
   icdCode?: boolean
-  surgeonName?: boolean
-  anesthesiologistName?: boolean
-  anesthesiaNurseName?: boolean
+  teamNotes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -1880,6 +1852,7 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   apfelScore?: boolean
   stopBangScore?: boolean
   labResults?: boolean
+  aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -1898,9 +1871,7 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   diagnosis?: boolean
   plannedProcedure?: boolean
   icdCode?: boolean
-  surgeonName?: boolean
-  anesthesiologistName?: boolean
-  anesthesiaNurseName?: boolean
+  teamNotes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -1937,6 +1908,7 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   apfelScore?: boolean
   stopBangScore?: boolean
   labResults?: boolean
+  aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -1955,9 +1927,7 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   diagnosis?: boolean
   plannedProcedure?: boolean
   icdCode?: boolean
-  surgeonName?: boolean
-  anesthesiologistName?: boolean
-  anesthesiaNurseName?: boolean
+  teamNotes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -1994,6 +1964,7 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   apfelScore?: boolean
   stopBangScore?: boolean
   labResults?: boolean
+  aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -2012,9 +1983,7 @@ export type PreoperativeAssessmentSelectScalar = {
   diagnosis?: boolean
   plannedProcedure?: boolean
   icdCode?: boolean
-  surgeonName?: boolean
-  anesthesiologistName?: boolean
-  anesthesiaNurseName?: boolean
+  teamNotes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -2051,11 +2020,12 @@ export type PreoperativeAssessmentSelectScalar = {
   apfelScore?: boolean
   stopBangScore?: boolean
   labResults?: boolean
+  aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "plannedProcedure" | "icdCode" | "surgeonName" | "anesthesiologistName" | "anesthesiaNurseName" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "labResults" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
+export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "plannedProcedure" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
 export type PreoperativeAssessmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -2084,9 +2054,7 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     diagnosis: string
     plannedProcedure: string
     icdCode: string | null
-    surgeonName: string | null
-    anesthesiologistName: string | null
-    anesthesiaNurseName: string | null
+    teamNotes: string | null
     comorbidities: runtime.JsonValue
     allergies: boolean
     allergyDetails: string | null
@@ -2123,6 +2091,7 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     apfelScore: number | null
     stopBangScore: number | null
     labResults: runtime.JsonValue
+    aiOptIn: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["preoperativeAssessment"]>
@@ -2561,9 +2530,7 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly diagnosis: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly plannedProcedure: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly icdCode: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
-  readonly surgeonName: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
-  readonly anesthesiologistName: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
-  readonly anesthesiaNurseName: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
+  readonly teamNotes: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly comorbidities: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly allergies: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly allergyDetails: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
@@ -2600,6 +2567,7 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly apfelScore: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
   readonly stopBangScore: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
   readonly labResults: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
+  readonly aiOptIn: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"PreoperativeAssessment", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"PreoperativeAssessment", 'DateTime'>
 }

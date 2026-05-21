@@ -1,6 +1,5 @@
-﻿import { NextRequest } from "next/server"
+import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
-import Groq from "groq-sdk"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit } from "@/lib/audit"
@@ -49,9 +48,9 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const apiKey = process.env.GROQ_API_KEY
+  const apiKey = process.env.MISTRAL_API_KEY
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+    return new Response(JSON.stringify({ error: "AI advisor not configured" }), { status: 503 })
   }
 
   let parsed: z.infer<typeof dataSchema>
@@ -62,35 +61,74 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 })
   }
 
-  // buildPatientSummary receives preop fields directly — no name, ID, or caseCode is forwarded to Groq
+  // Opt-in consent check — user must explicitly enable AI advice for this case
+  if (!parsed.aiOptIn) {
+    return new Response(JSON.stringify({ error: "AI advice not enabled for this case" }), { status: 403 })
+  }
+
+  // GDPR: Only structured fields are sent to the AI provider.
+  // Free-text fields that may contain PHI are explicitly excluded.
   const patientSummary = buildPatientSummary(parsed)
-  logAudit(session.user.id, "AI_ADVISE", session.user.id)
+  logAudit(session.user.id, "AI_ADVISE", session.user.id, { optIn: true })
 
-  const groq = new Groq({ apiKey })
-
-  let groqStream: AsyncIterable<any>
+  let mistralRes: Response
   try {
-    groqStream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Please analyse this patient's pre-operative data:\n\n${patientSummary}` },
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      stream: true,
+    mistralRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistral-small-latest",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Please analyse this patient's pre-operative data:\n\n${patientSummary}` },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+        stream: true,
+      }),
     })
-  } catch (err: any) {
-    console.error("[ai/advise]", err)
+  } catch (err) {
+    console.error("[ai/advise] Mistral fetch error:", err)
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+  }
+
+  if (!mistralRes.ok) {
+    const errText = await mistralRes.text().catch(() => "")
+    console.error("[ai/advise] Mistral error:", mistralRes.status, errText)
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+  }
+
+  // Stream SSE from Mistral, extract text deltas, forward as plain text
+  const reader = mistralRes.body?.getReader()
+  if (!reader) {
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
   }
 
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const decoder = new TextDecoder()
+      const encoder = new TextEncoder()
+      let buffer = ""
       try {
-        for await (const chunk of groqStream) {
-          const text = chunk.choices[0]?.delta?.content
-          if (text) controller.enqueue(new TextEncoder().encode(text))
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue
+            const data = line.slice(6).trim()
+            if (data === "[DONE]") continue
+            try {
+              const json = JSON.parse(data)
+              const text = json.choices?.[0]?.delta?.content
+              if (text) controller.enqueue(encoder.encode(text))
+            } catch { /* skip malformed chunks */ }
+          }
         }
         controller.close()
       } catch (err) {
@@ -107,6 +145,10 @@ export async function POST(req: NextRequest) {
   })
 }
 
+// GDPR: builds patient summary from structured fields ONLY.
+// The following free-text fields are intentionally excluded:
+//   difficultAirwayNotes, familyAnesthesiaDetails, teamNotes, notes,
+//   allergyDetails (free-text), complications, airwayNotes
 function buildPatientSummary(data: any): string {
   const lines: string[] = []
 
@@ -120,7 +162,7 @@ function buildPatientSummary(data: any): string {
     demo.push(`BMI: ${bmi.toFixed(1)}`)
     if (bmi >= 35) demo.push(`(Class ${bmi >= 40 ? "III" : "II"} obesity)`)
   }
-  if (data.bloodType) demo.push(`Blood type: ${data.bloodType}${data.rhFactor === "NEGATIVE" ? "в€’" : data.rhFactor === "POSITIVE" ? "+" : ""}`)
+  if (data.bloodType) demo.push(`Blood type: ${data.bloodType}${data.rhFactor === "NEGATIVE" ? "−" : data.rhFactor === "POSITIVE" ? "+" : ""}`)
   if (demo.length) lines.push("**Demographics:** " + demo.join(", "))
 
   const surgery: string[] = []
@@ -139,17 +181,21 @@ function buildPatientSummary(data: any): string {
   }
 
   const safety: string[] = []
-  if (data.allergies) safety.push(`Allergies: ${data.allergyDetails?.map((t: any) => t.label).join(", ") || "unspecified"}`)
+  if (data.allergies) safety.push(`Allergies: ${Array.isArray(data.allergyDetails) ? data.allergyDetails.map((t: any) => t.label).join(", ") : "unspecified"}`)
   if (data.latexAllergy) safety.push("LATEX ALLERGY")
   if (data.currentMedications?.length) safety.push(`Current medications: ${data.currentMedications.map((t: any) => t.label).join(", ")}`)
-  if (data.familyAnesthesiaProblems) safety.push(`Family anaesthesia problems: ${data.familyAnesthesiaDetails || "yes, unspecified"}`)
+  // familyAnesthesiaDetails omitted (free-text, may contain names)
+  if (data.familyAnesthesiaProblems) safety.push("Family anaesthesia problems: yes (details withheld)")
   if (data.dentalProsthetics) safety.push("Dental prosthetics present")
   if (data.looseTeeth) safety.push("Loose teeth")
+  if (data.smoking) safety.push("Smoker")
+  if (data.substanceAbuse) safety.push("Substance use")
   if (safety.length) lines.push("\n**Safety flags:** " + safety.join(" | "))
 
   const vitals: string[] = []
   if (data.bpSystolic && data.bpDiastolic) vitals.push(`BP ${data.bpSystolic}/${data.bpDiastolic} mmHg`)
   if (data.heartRate) vitals.push(`HR ${data.heartRate} bpm`)
+  if (data.heartArrhythmia) vitals.push("arrhythmia present")
   if (data.spO2) vitals.push(`SpO₂ ${data.spO2}%`)
   if (data.temperature) vitals.push(`Temp ${data.temperature}°C`)
   if (data.respiratoryRate) vitals.push(`RR ${data.respiratoryRate}/min`)
@@ -165,10 +211,16 @@ function buildPatientSummary(data: any): string {
   if (data.prominentIncisors) airway.push("prominent incisors")
   if (data.facialHair) airway.push("facial hair")
   if (data.cormackLehane) airway.push(`Previous Cormack-Lehane grade ${data.cormackLehane}`)
-  if (data.difficultAirwayHistory) airway.push(`Difficult airway history: ${data.difficultAirwayNotes || "yes, no details"}`)
+  // difficultAirwayNotes omitted (free-text); surface boolean only
+  if (data.difficultAirwayHistory) airway.push("Difficult airway history: yes (details withheld)")
   if (airway.length) lines.push("\n**Airway assessment:** " + airway.join("; "))
   else lines.push("\n**Airway assessment:** Not performed / not recorded")
 
+  const scores: string[] = []
+  if (data.rcriScore != null)   scores.push(`RCRI ${data.rcriScore}`)
+  if (data.apfelScore != null)  scores.push(`Apfel ${data.apfelScore}`)
+  if (data.stopBangScore != null) scores.push(`STOP-BANG ${data.stopBangScore}`)
+  if (scores.length) lines.push("\n**Risk scores:** " + scores.join(", "))
+
   return lines.join("\n")
 }
-

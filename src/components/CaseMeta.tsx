@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react"
 import { StickyNote, X } from "lucide-react"
-import { ShareCaseButton } from "@/components/ShareCaseButton"
 
 export function CaseMeta({
   caseId,
@@ -38,7 +37,6 @@ export function CaseMeta({
       <span className="font-mono text-xs tracking-wider text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] dark:text-slate-400 px-2.5 py-1 rounded-md border border-slate-200 dark:border-[#3a3a3a] select-all">
         {caseCode}
       </span>
-      <ShareCaseButton caseId={caseId} />
       <div className="relative">
         <button
           type="button"

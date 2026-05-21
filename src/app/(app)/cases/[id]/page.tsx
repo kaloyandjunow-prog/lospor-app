@@ -48,10 +48,17 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   if (!session) return null
 
   const { id } = await params
+  const role   = (session.user as any).role
+  const userId = session.user!.id
+
+  // Admins and HODs can view any case; members see only their own
+  const where = (role === "ADMIN" || role === "HEAD_OF_DEPT")
+    ? { id }
+    : { id, userId }
 
   const record = await prisma.case.findFirst({
-    where: { id, userId: session.user!.id },
-    include: { preop: true, intraop: true, postop: true, institution: true },
+    where,
+    include: { preop: true, intraop: true, postop: true, user: { include: { institution: true } } },
   })
 
   if (!record) notFound()
@@ -74,8 +81,10 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
             <h1 className="text-xl font-bold text-slate-800">{p?.plannedProcedure ?? "Anaesthesia case"}</h1>
             <p className="text-slate-500 text-sm mt-1">
               {p?.diagnosis} · {p?.ageYears}y {p?.sex === "MALE" ? "M" : p?.sex === "FEMALE" ? "F" : ""} ·{" "}
-              {i?.date ? format(new Date(i.date), "dd MMM yyyy") : format(record.createdAt, "dd MMM yyyy")} ·{" "}
-              {record.institution.name}
+              {i?.monthYear
+                ? (() => { const [y, m] = i.monthYear!.split("-"); const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m,10)-1]} ${y}` })()
+                : format(record.createdAt, "dd MMM yyyy")}{" "}
+              {record.user.institution ? `· ${record.user.institution.name}` : ""}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">

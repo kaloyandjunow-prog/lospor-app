@@ -4,23 +4,20 @@ import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
+import { checkPII } from "@/lib/pii-check"
 import { z } from "zod"
 
-async function generateCaseCode(): Promise<string> {
-  const now = new Date()
-  const dd   = String(now.getDate()).padStart(2, "0")
-  const mm   = String(now.getMonth() + 1).padStart(2, "0")
-  const yyyy = String(now.getFullYear())
-  const prefix = `${dd}${mm}${yyyy}`
-  const count = await prisma.case.count({ where: { caseCode: { startsWith: prefix } } })
-  return `${prefix}-${String(count + 1).padStart(2, "0")}`
+async function generateCaseCode(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } })
+  const year = user!.createdAt.getFullYear()
+  const count = await prisma.case.count({ where: { userId } })
+  return `${year}-${String(count + 1).padStart(4, "0")}`
 }
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   const userId = session?.user?.id
-  const institutionId = session?.user?.institutionId
-  if (!userId || !institutionId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   try {
     const body = await req.json()
@@ -30,14 +27,24 @@ export async function POST(req: NextRequest) {
     const intraop = body.intraop ? intraopSchema.parse(body.intraop) : undefined
     const postop  = body.postop  ? postopSchema.parse(body.postop)   : undefined
 
+    const piiError = checkPII({
+      teamNotes:              preop.teamNotes as string | null,
+      difficultAirwayNotes:  preop.difficultAirwayNotes as string | null,
+      familyAnesthesiaDetails: preop.familyAnesthesiaDetails as string | null,
+      complications:         intraop?.complications as string | null,
+    })
+    if (piiError) {
+      logAudit(userId, "PII_BLOCKED", "new", { error: piiError })
+      return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+    }
+
     const status = postop ? "COMPLETE" : intraop ? "IN_PROGRESS" : "DRAFT"
 
     const caseRecord = await prisma.case.create({
       data: {
         userId,
-        institutionId,
         status,
-        caseCode: await generateCaseCode(),
+        caseCode: await generateCaseCode(userId),
         preop: { create: mapPreop(preop) },
         ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
         ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),
@@ -63,7 +70,7 @@ export async function GET() {
     include: {
       preop:  { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
       postop: { select: { disposition: true, aldreteTotal: true } },
-      intraop: { select: { date: true, endTime: true } },
+      intraop: { select: { monthYear: true, durationMinutes: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,

@@ -75,12 +75,11 @@ export default function NewCasePage() {
         if (record.caseCode) setCaseCode(record.caseCode)
         if (record.preop)   setPreopData(dbPreopToForm(record.preop) as PreopData)
         if (record.intraop) {
-          const startDate = isoToDateOnly(record.intraop.date)
-          const endDate   = record.intraop.endTime ? isoToDateOnly(record.intraop.endTime) : undefined
-          const endTimeNextDay = !!(startDate && endDate && endDate !== startDate)
+          const endTimeNextDay = !!(record.intraop.endTime &&
+            new Date(record.intraop.endTime).getTime() - new Date(record.intraop.startTime).getTime() > 12 * 60 * 60 * 1000)
           setIntraopData({
             ...record.intraop,
-            date:           startDate,
+            monthYear:      record.intraop.monthYear ?? undefined,
             startTime:      isoToHHMM(record.intraop.startTime),
             endTime:        record.intraop.endTime ? isoToHHMM(record.intraop.endTime) : undefined,
             endTimeNextDay,
@@ -109,28 +108,18 @@ export default function NewCasePage() {
     router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId])
 
-  // Convert Prisma DateTime → HH:MM for time fields
+  // Convert Prisma DateTime → HH:MM. DB values are stored in UTC (ref date 2000-01-01),
+  // so read UTC hours/minutes to recover the original local time the user entered.
   function isoToHHMM(iso: any): string | undefined {
     if (!iso) return undefined
     if (typeof iso === "string" && /^\d{2}:\d{2}$/.test(iso)) return iso
     try {
       const d = new Date(iso)
-      if (!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
+      if (!isNaN(d.getTime())) return `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`
     } catch {}
     return undefined
   }
 
-  // Convert Prisma DateTime → YYYY-MM-DD for the date field
-  function isoToDateOnly(iso: any): string | undefined {
-    if (!iso) return undefined
-    const s = String(iso)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
-    try {
-      const d = new Date(s)
-      if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
-    } catch {}
-    return undefined
-  }
 
   // Convert flat DB preop record → PreopForm defaultValues shape
   // Only map fields that exist in the PreopForm schema — strip all DB-only fields
@@ -151,9 +140,7 @@ export default function NewCasePage() {
       // Case — DB stores joined strings, form expects Tag arrays
       diagnoses:          toTags(p.diagnosis),
       procedures:         toTags(p.plannedProcedure),
-      surgeonName:          p.surgeonName          ?? undefined,
-      anesthesiologistName: p.anesthesiologistName ?? undefined,
-      anesthesiaNurseName:  p.anesthesiaNurseName  ?? undefined,
+      teamNotes:            p.teamNotes            ?? undefined,
       highRiskSurgery:      p.highRiskSurgery      ?? false,
       emergencySurgery:     p.emergencySurgery      ?? false,
 

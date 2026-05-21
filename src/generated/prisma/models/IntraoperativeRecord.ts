@@ -27,6 +27,7 @@ export type AggregateIntraoperativeRecord = {
 }
 
 export type IntraoperativeRecordAvgAggregateOutputType = {
+  durationMinutes: number | null
   tubeSize: number | null
   peepCmH2O: number | null
   dltSize: number | null
@@ -42,6 +43,7 @@ export type IntraoperativeRecordAvgAggregateOutputType = {
 }
 
 export type IntraoperativeRecordSumAggregateOutputType = {
+  durationMinutes: number | null
   tubeSize: number | null
   peepCmH2O: number | null
   dltSize: number | null
@@ -59,7 +61,8 @@ export type IntraoperativeRecordSumAggregateOutputType = {
 export type IntraoperativeRecordMinAggregateOutputType = {
   id: string | null
   caseId: string | null
-  date: Date | null
+  monthYear: string | null
+  durationMinutes: number | null
   startTime: Date | null
   endTime: Date | null
   airwayDevice: $Enums.AirwayDevice | null
@@ -117,7 +120,8 @@ export type IntraoperativeRecordMinAggregateOutputType = {
 export type IntraoperativeRecordMaxAggregateOutputType = {
   id: string | null
   caseId: string | null
-  date: Date | null
+  monthYear: string | null
+  durationMinutes: number | null
   startTime: Date | null
   endTime: Date | null
   airwayDevice: $Enums.AirwayDevice | null
@@ -175,7 +179,8 @@ export type IntraoperativeRecordMaxAggregateOutputType = {
 export type IntraoperativeRecordCountAggregateOutputType = {
   id: number
   caseId: number
-  date: number
+  monthYear: number
+  durationMinutes: number
   startTime: number
   endTime: number
   positions: number
@@ -242,6 +247,7 @@ export type IntraoperativeRecordCountAggregateOutputType = {
 
 
 export type IntraoperativeRecordAvgAggregateInputType = {
+  durationMinutes?: true
   tubeSize?: true
   peepCmH2O?: true
   dltSize?: true
@@ -257,6 +263,7 @@ export type IntraoperativeRecordAvgAggregateInputType = {
 }
 
 export type IntraoperativeRecordSumAggregateInputType = {
+  durationMinutes?: true
   tubeSize?: true
   peepCmH2O?: true
   dltSize?: true
@@ -274,7 +281,8 @@ export type IntraoperativeRecordSumAggregateInputType = {
 export type IntraoperativeRecordMinAggregateInputType = {
   id?: true
   caseId?: true
-  date?: true
+  monthYear?: true
+  durationMinutes?: true
   startTime?: true
   endTime?: true
   airwayDevice?: true
@@ -332,7 +340,8 @@ export type IntraoperativeRecordMinAggregateInputType = {
 export type IntraoperativeRecordMaxAggregateInputType = {
   id?: true
   caseId?: true
-  date?: true
+  monthYear?: true
+  durationMinutes?: true
   startTime?: true
   endTime?: true
   airwayDevice?: true
@@ -390,7 +399,8 @@ export type IntraoperativeRecordMaxAggregateInputType = {
 export type IntraoperativeRecordCountAggregateInputType = {
   id?: true
   caseId?: true
-  date?: true
+  monthYear?: true
+  durationMinutes?: true
   startTime?: true
   endTime?: true
   positions?: true
@@ -544,7 +554,8 @@ export type IntraoperativeRecordGroupByArgs<ExtArgs extends runtime.Types.Extens
 export type IntraoperativeRecordGroupByOutputType = {
   id: string
   caseId: string
-  date: Date
+  monthYear: string | null
+  durationMinutes: number | null
   startTime: Date
   endTime: Date | null
   positions: runtime.JsonValue
@@ -634,7 +645,8 @@ export type IntraoperativeRecordWhereInput = {
   NOT?: Prisma.IntraoperativeRecordWhereInput | Prisma.IntraoperativeRecordWhereInput[]
   id?: Prisma.StringFilter<"IntraoperativeRecord"> | string
   caseId?: Prisma.StringFilter<"IntraoperativeRecord"> | string
-  date?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
+  monthYear?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
+  durationMinutes?: Prisma.IntNullableFilter<"IntraoperativeRecord"> | number | null
   startTime?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   endTime?: Prisma.DateTimeNullableFilter<"IntraoperativeRecord"> | Date | string | null
   positions?: Prisma.JsonFilter<"IntraoperativeRecord">
@@ -702,7 +714,8 @@ export type IntraoperativeRecordWhereInput = {
 export type IntraoperativeRecordOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  date?: Prisma.SortOrder
+  monthYear?: Prisma.SortOrderInput | Prisma.SortOrder
+  durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
   positions?: Prisma.SortOrder
@@ -773,7 +786,8 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.IntraoperativeRecordWhereInput | Prisma.IntraoperativeRecordWhereInput[]
   OR?: Prisma.IntraoperativeRecordWhereInput[]
   NOT?: Prisma.IntraoperativeRecordWhereInput | Prisma.IntraoperativeRecordWhereInput[]
-  date?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
+  monthYear?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
+  durationMinutes?: Prisma.IntNullableFilter<"IntraoperativeRecord"> | number | null
   startTime?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   endTime?: Prisma.DateTimeNullableFilter<"IntraoperativeRecord"> | Date | string | null
   positions?: Prisma.JsonFilter<"IntraoperativeRecord">
@@ -841,7 +855,8 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
 export type IntraoperativeRecordOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  date?: Prisma.SortOrder
+  monthYear?: Prisma.SortOrderInput | Prisma.SortOrder
+  durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrderInput | Prisma.SortOrder
   positions?: Prisma.SortOrder
@@ -916,7 +931,8 @@ export type IntraoperativeRecordScalarWhereWithAggregatesInput = {
   NOT?: Prisma.IntraoperativeRecordScalarWhereWithAggregatesInput | Prisma.IntraoperativeRecordScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"IntraoperativeRecord"> | string
   caseId?: Prisma.StringWithAggregatesFilter<"IntraoperativeRecord"> | string
-  date?: Prisma.DateTimeWithAggregatesFilter<"IntraoperativeRecord"> | Date | string
+  monthYear?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
+  durationMinutes?: Prisma.IntNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   startTime?: Prisma.DateTimeWithAggregatesFilter<"IntraoperativeRecord"> | Date | string
   endTime?: Prisma.DateTimeNullableWithAggregatesFilter<"IntraoperativeRecord"> | Date | string | null
   positions?: Prisma.JsonWithAggregatesFilter<"IntraoperativeRecord">
@@ -982,7 +998,8 @@ export type IntraoperativeRecordScalarWhereWithAggregatesInput = {
 
 export type IntraoperativeRecordCreateInput = {
   id?: string
-  date: Date | string
+  monthYear?: string | null
+  durationMinutes?: number | null
   startTime: Date | string
   endTime?: Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1050,7 +1067,8 @@ export type IntraoperativeRecordCreateInput = {
 export type IntraoperativeRecordUncheckedCreateInput = {
   id?: string
   caseId: string
-  date: Date | string
+  monthYear?: string | null
+  durationMinutes?: number | null
   startTime: Date | string
   endTime?: Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1116,7 +1134,8 @@ export type IntraoperativeRecordUncheckedCreateInput = {
 
 export type IntraoperativeRecordUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1184,7 +1203,8 @@ export type IntraoperativeRecordUpdateInput = {
 export type IntraoperativeRecordUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1251,7 +1271,8 @@ export type IntraoperativeRecordUncheckedUpdateInput = {
 export type IntraoperativeRecordCreateManyInput = {
   id?: string
   caseId: string
-  date: Date | string
+  monthYear?: string | null
+  durationMinutes?: number | null
   startTime: Date | string
   endTime?: Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1317,7 +1338,8 @@ export type IntraoperativeRecordCreateManyInput = {
 
 export type IntraoperativeRecordUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1384,7 +1406,8 @@ export type IntraoperativeRecordUpdateManyMutationInput = {
 export type IntraoperativeRecordUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1456,7 +1479,8 @@ export type IntraoperativeRecordNullableScalarRelationFilter = {
 export type IntraoperativeRecordCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  date?: Prisma.SortOrder
+  monthYear?: Prisma.SortOrder
+  durationMinutes?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   positions?: Prisma.SortOrder
@@ -1521,6 +1545,7 @@ export type IntraoperativeRecordCountOrderByAggregateInput = {
 }
 
 export type IntraoperativeRecordAvgOrderByAggregateInput = {
+  durationMinutes?: Prisma.SortOrder
   tubeSize?: Prisma.SortOrder
   peepCmH2O?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
@@ -1538,7 +1563,8 @@ export type IntraoperativeRecordAvgOrderByAggregateInput = {
 export type IntraoperativeRecordMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  date?: Prisma.SortOrder
+  monthYear?: Prisma.SortOrder
+  durationMinutes?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   airwayDevice?: Prisma.SortOrder
@@ -1596,7 +1622,8 @@ export type IntraoperativeRecordMaxOrderByAggregateInput = {
 export type IntraoperativeRecordMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  date?: Prisma.SortOrder
+  monthYear?: Prisma.SortOrder
+  durationMinutes?: Prisma.SortOrder
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   airwayDevice?: Prisma.SortOrder
@@ -1652,6 +1679,7 @@ export type IntraoperativeRecordMinOrderByAggregateInput = {
 }
 
 export type IntraoperativeRecordSumOrderByAggregateInput = {
+  durationMinutes?: Prisma.SortOrder
   tubeSize?: Prisma.SortOrder
   peepCmH2O?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
@@ -1724,7 +1752,8 @@ export type NullableEnumArterialLineSiteFieldUpdateOperationsInput = {
 
 export type IntraoperativeRecordCreateWithoutCaseInput = {
   id?: string
-  date: Date | string
+  monthYear?: string | null
+  durationMinutes?: number | null
   startTime: Date | string
   endTime?: Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1790,7 +1819,8 @@ export type IntraoperativeRecordCreateWithoutCaseInput = {
 
 export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
   id?: string
-  date: Date | string
+  monthYear?: string | null
+  durationMinutes?: number | null
   startTime: Date | string
   endTime?: Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1872,7 +1902,8 @@ export type IntraoperativeRecordUpdateToOneWithWhereWithoutCaseInput = {
 
 export type IntraoperativeRecordUpdateWithoutCaseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1938,7 +1969,8 @@ export type IntraoperativeRecordUpdateWithoutCaseInput = {
 
 export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2007,7 +2039,8 @@ export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
 export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   caseId?: boolean
-  date?: boolean
+  monthYear?: boolean
+  durationMinutes?: boolean
   startTime?: boolean
   endTime?: boolean
   positions?: boolean
@@ -2075,7 +2108,8 @@ export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.
 export type IntraoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   caseId?: boolean
-  date?: boolean
+  monthYear?: boolean
+  durationMinutes?: boolean
   startTime?: boolean
   endTime?: boolean
   positions?: boolean
@@ -2143,7 +2177,8 @@ export type IntraoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtim
 export type IntraoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   caseId?: boolean
-  date?: boolean
+  monthYear?: boolean
+  durationMinutes?: boolean
   startTime?: boolean
   endTime?: boolean
   positions?: boolean
@@ -2211,7 +2246,8 @@ export type IntraoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtim
 export type IntraoperativeRecordSelectScalar = {
   id?: boolean
   caseId?: boolean
-  date?: boolean
+  monthYear?: boolean
+  durationMinutes?: boolean
   startTime?: boolean
   endTime?: boolean
   positions?: boolean
@@ -2275,7 +2311,7 @@ export type IntraoperativeRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "date" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "n2oPercent" | "o2Percent" | "n2oLitersPerMin" | "o2LitersPerMin" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
+export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "n2oPercent" | "o2Percent" | "n2oLitersPerMin" | "o2LitersPerMin" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
 export type IntraoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -2294,7 +2330,8 @@ export type $IntraoperativeRecordPayload<ExtArgs extends runtime.Types.Extension
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     caseId: string
-    date: Date
+    monthYear: string | null
+    durationMinutes: number | null
     startTime: Date
     endTime: Date | null
     positions: runtime.JsonValue
@@ -2782,7 +2819,8 @@ export interface Prisma__IntraoperativeRecordClient<T, Null = never, ExtArgs ext
 export interface IntraoperativeRecordFieldRefs {
   readonly id: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
   readonly caseId: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
-  readonly date: Prisma.FieldRef<"IntraoperativeRecord", 'DateTime'>
+  readonly monthYear: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
+  readonly durationMinutes: Prisma.FieldRef<"IntraoperativeRecord", 'Int'>
   readonly startTime: Prisma.FieldRef<"IntraoperativeRecord", 'DateTime'>
   readonly endTime: Prisma.FieldRef<"IntraoperativeRecord", 'DateTime'>
   readonly positions: Prisma.FieldRef<"IntraoperativeRecord", 'Json'>

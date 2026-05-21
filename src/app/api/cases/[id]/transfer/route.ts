@@ -19,9 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const isAdmin  = me.role === "ADMIN"
 
   const caseRecord = await prisma.case.findFirst({
-    where: isAdmin ? { id: caseId }
-      : isHOD    ? { id: caseId, institutionId: me.institutionId }
-      :              { id: caseId, userId: me.id },
+    where: isAdmin || isHOD ? { id: caseId }
+      : { id: caseId, userId: me.id },
   })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })
 

@@ -1,5 +1,16 @@
 import { z } from "zod"
 
+// Accepts number, string, or null/undefined from HTML inputs; coerces to number or null.
+// z.preprocess runs before type checking, so it handles all input forms safely.
+const coerceNum = z.preprocess(
+  v => (v === "" || v === null || v === undefined) ? null : Number(v),
+  z.number().nullable().optional()
+)
+const coerceInt = z.preprocess(
+  v => (v === "" || v === null || v === undefined) ? null : parseInt(String(v), 10),
+  z.number().int().nullable().optional()
+)
+
 const labelledItem = z.object({
   label:  z.string(),
   sub:    z.string().optional(),
@@ -7,11 +18,11 @@ const labelledItem = z.object({
 }).passthrough()
 
 export const preopSchema = z.object({
-  ageYears:  z.number().int().min(0).max(120).optional(),
+  ageYears:  coerceInt,
   sex:       z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  heightCm:  z.number().min(30).max(280).optional(),
-  weightKg:  z.number().min(0.5).max(600).optional(),
-  bmi:       z.number().min(5).max(100).optional(),
+  heightCm:  coerceNum,
+  weightKg:  coerceNum,
+  bmi:       coerceNum,
   bloodType: z.enum(["A", "B", "AB", "O"]).nullable().optional(),
   rhFactor:  z.enum(["POSITIVE", "NEGATIVE"]).nullable().optional(),
 
@@ -20,9 +31,8 @@ export const preopSchema = z.object({
   plannedProcedure:     z.string().max(1000).optional(),
   procedures:           z.array(labelledItem).optional(),
   icdCode:              z.string().max(20).nullable().optional(),
-  surgeonName:          z.string().max(200).nullable().optional(),
-  anesthesiologistName: z.string().max(200).nullable().optional(),
-  anesthesiaNurseName:  z.string().max(200).nullable().optional(),
+  teamNotes:            z.string().max(500).nullable().optional(),
+  aiOptIn:              z.boolean().optional(),
 
   comorbidities: z.array(labelledItem).optional(),
 
@@ -37,17 +47,17 @@ export const preopSchema = z.object({
   smoking:                  z.boolean().optional(),
   substanceAbuse:           z.boolean().optional(),
 
-  bpSystolic:      z.number().int().min(40).max(350).nullable().optional(),
-  bpDiastolic:     z.number().int().min(20).max(200).nullable().optional(),
-  heartRate:       z.number().int().min(10).max(400).nullable().optional(),
+  bpSystolic:      coerceInt,
+  bpDiastolic:     coerceInt,
+  heartRate:       coerceInt,
   heartArrhythmia: z.boolean().optional(),
-  spO2:            z.number().min(50).max(100).nullable().optional(),
-  temperature:     z.number().min(30).max(45).nullable().optional(),
-  respiratoryRate: z.number().int().min(1).max(100).nullable().optional(),
+  spO2:            coerceNum,
+  temperature:     coerceNum,
+  respiratoryRate: coerceInt,
 
   mallampati:             z.enum(["I", "II", "III", "IV"]).nullable().optional(),
-  mouthOpeningCm:         z.number().min(0).max(15).nullable().optional(),
-  thyromental:            z.number().min(0).max(20).nullable().optional(),
+  mouthOpeningCm:         coerceNum,
+  thyromental:            coerceNum,
   neckMobility:           z.enum(["FULL", "LIMITED", "FIXED"]).nullable().optional(),
   upperLipBiteTest:       z.enum(["CLASS_I", "CLASS_II", "CLASS_III"]).nullable().optional(),
   retrognathia:           z.boolean().optional(),
@@ -59,16 +69,17 @@ export const preopSchema = z.object({
 
   asaScore:        z.enum(["I", "II", "III", "IV", "V", "VI"]).nullable().optional(),
   emergencySurgery: z.boolean().optional(),
-  rcriScore:       z.number().int().min(0).max(6).nullable().optional(),
-  gutaScore:       z.number().min(0).max(100).nullable().optional(),
-  apfelScore:      z.number().int().min(0).max(4).nullable().optional(),
-  stopBangScore:   z.number().int().min(0).max(8).nullable().optional(),
+  rcriScore:       coerceInt,
+  gutaScore:       coerceNum,
+  apfelScore:      coerceInt,
+  stopBangScore:   coerceInt,
 
   labResults: z.array(z.record(z.string(), z.unknown())).optional(),
 }).passthrough()
 
 export const intraopSchema = z.object({
-  date:      z.string().optional(),
+  monthYear:       z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  durationMinutes: z.number().int().min(0).max(1440).optional(),
   startTime: z.string().optional(),
   endTime:   z.string().nullable().optional(),
 
@@ -127,17 +138,17 @@ export const intraopSchema = z.object({
 }).passthrough()
 
 export const postopSchema = z.object({
-  aldreteActivity:      z.number().int().min(0).max(2).nullable().optional(),
-  aldreteRespiration:   z.number().int().min(0).max(2).nullable().optional(),
-  aldreteCirculation:   z.number().int().min(0).max(2).nullable().optional(),
-  aldreteConsciousness: z.number().int().min(0).max(2).nullable().optional(),
-  aldreteSpO2:          z.number().int().min(0).max(2).nullable().optional(),
-  aldreteTotal:         z.number().int().min(0).max(10).nullable().optional(),
+  aldreteActivity:      coerceInt,
+  aldreteRespiration:   coerceInt,
+  aldreteCirculation:   coerceInt,
+  aldreteConsciousness: coerceInt,
+  aldreteSpO2:          coerceInt,
+  aldreteTotal:         coerceInt,
 
-  painScoreNRS:       z.number().int().min(0).max(10).nullable().optional(),
+  painScoreNRS:       coerceInt,
   ponv:               z.boolean().optional(),
-  temperatureCelsius: z.number().min(30).max(45).nullable().optional(),
-  timeInRecoveryMin:  z.number().int().min(0).max(1440).nullable().optional(),
+  temperatureCelsius: coerceNum,
+  timeInRecoveryMin:  coerceInt,
 
   complications:    z.string().max(2000).nullable().optional(),
   disposition:      z.enum(["WARD", "PACU", "ICU"]).nullable().optional(),
