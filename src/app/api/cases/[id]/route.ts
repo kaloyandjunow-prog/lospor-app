@@ -21,8 +21,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const role  = (session as any).user?.role
-  const where = (role === "ADMIN" || role === "HEAD_OF_DEPT") ? { id } : { id, userId }
+  const me    = (session as any).user
+  const role  = me?.role
+  const where = role === "ADMIN"
+    ? { id }
+    : role === "HEAD_OF_DEPT"
+      ? { id, user: { institutionId: me.institutionId } }
+      : { id, userId }
 
   const record = await prisma.case.findFirst({
     where,
@@ -41,11 +46,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const existing = await prisma.case.findUnique({
     where: { id },
-    select: { userId: true, status: true, intraop: { select: { id: true } }, postop: { select: { id: true } } },
+    select: {
+      userId: true, status: true,
+      user:   { select: { institutionId: true } },
+      intraop: { select: { id: true } },
+      postop:  { select: { id: true } },
+    },
   })
-  const role = (session as any).user?.role
+  const me   = (session as any).user
+  const role = me?.role
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (existing.userId !== userId && role !== "ADMIN" && role !== "HEAD_OF_DEPT")
+  const isAdmin = role === "ADMIN"
+  const isHOD   = role === "HEAD_OF_DEPT" && existing.user?.institutionId === me.institutionId
+  if (existing.userId !== userId && !isAdmin && !isHOD)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
 
@@ -97,7 +110,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ id })
   } catch (err: any) {
-    if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+    if (err instanceof z.ZodError) {
+      console.error("[PATCH /api/cases/:id] ZodError:", JSON.stringify(err.issues, null, 2))
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+    }
     console.error("[PATCH /api/cases/:id]", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

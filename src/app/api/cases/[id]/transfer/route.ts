@@ -19,7 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const isAdmin  = me.role === "ADMIN"
 
   const caseRecord = await prisma.case.findFirst({
-    where: isAdmin || isHOD ? { id: caseId }
+    where: isAdmin ? { id: caseId }
+      : isHOD      ? { id: caseId, user: { institutionId: me.institutionId } }
       : { id: caseId, userId: me.id },
   })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const recipient = await prisma.user.findUnique({ where: { id: toUserId } })
   if (!recipient) return NextResponse.json({ error: "Recipient not found" }, { status: 404 })
 
-  // MEMBER: recipient must be in same institution
-  if (!isHOD && !isAdmin && recipient.institutionId !== me.institutionId) {
+  // Only ADMIN can transfer cross-institution; MEMBER and HOD are institution-scoped
+  if (!isAdmin && recipient.institutionId !== me.institutionId) {
     return NextResponse.json({ error: "Recipient must be in your institution" }, { status: 403 })
   }
 

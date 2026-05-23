@@ -425,7 +425,9 @@ function computeFluidRows(fluids: TimetableFluid[]): FluidLaneRow[] {
   const byCat = new Map<string, TimetableFluid[]>()
   for (const f of fluids) {
     const cat = f.category ?? fluidCategory(f.name)
-    const list = byCat.get(cat) ?? []; list.push(f); byCat.set(cat, list)
+    // Normalise: endCol must be >= startCol to guarantee the overlap formula works.
+    const normalised = f.endCol < f.startCol ? { ...f, endCol: f.startCol } : f
+    const list = byCat.get(cat) ?? []; list.push(normalised); byCat.set(cat, list)
   }
   const rows: FluidLaneRow[] = []
   for (const [cat, catFluids] of byCat) {
@@ -1339,24 +1341,33 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     discontinuedFluidWithAmounts: { id: string; amount: number; category: string }[]
   }) {
     const col = nowCol ?? 0
-    for (const startCol of result.discontinuedAgentCols) extendSegment(startCol, col, true)
-    for (const id of result.discontinuedInfusionIds) extendInfusion(id, col, true)
-    // Batch-stop fluids and stamp the actual volume infused onto the segment so
-    // the auto-calc in IntraopForm reads the correct amount (not the full bag size).
-    if (result.discontinuedFluidWithAmounts.length > 0) {
-      const amtById: Record<string, number> = Object.fromEntries(
-        result.discontinuedFluidWithAmounts.map(f => [f.id, f.amount])
-      )
-      const d = dataRef.current
-      onChangeRef.current({
-        ...d,
-        fluids: (d.fluids ?? []).map(f =>
-          Object.prototype.hasOwnProperty.call(amtById, f.id)
-            ? { ...f, endCol: col, stopped: true as const, volume: String(amtById[f.id]) }
-            : f
-        ),
-      })
-    }
+    // One combined read + one combined write avoids stale-closure overwrites when
+    // multiple item types (agent + infusion + fluid) are discontinued together.
+    const d = dataRef.current
+    const discontinuedAgentSet = new Set(result.discontinuedAgentCols)
+    const discontinuedInfSet   = new Set(result.discontinuedInfusionIds)
+    const amtById: Record<string, number> = Object.fromEntries(
+      result.discontinuedFluidWithAmounts.map(f => [f.id, f.amount])
+    )
+    onChangeRef.current({
+      ...d,
+      agents: d.agents.map(a =>
+        discontinuedAgentSet.has(a.startCol)
+          ? { ...a, endCol: col, stopped: true as const }
+          : a
+      ),
+      infusions: (d.infusions ?? []).map(i =>
+        discontinuedInfSet.has(i.id)
+          ? { ...i, endCol: col, stopped: true as const }
+          : i
+      ),
+      // Stamp actual volume infused so the summary reads the correct amount (not bag size).
+      fluids: (d.fluids ?? []).map(f =>
+        Object.prototype.hasOwnProperty.call(amtById, f.id)
+          ? { ...f, endCol: Math.max(col, f.startCol), stopped: true as const, volume: String(amtById[f.id]) }
+          : f
+      ),
+    })
     endedAtRef.current = new Date()
     setResumeSecsLeft(30 * 60)
     onEndCase?.()
@@ -3128,7 +3139,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   ...d,
                   fluids: (d.fluids ?? []).map(f =>
                     f.id === discFluidState.id
-                      ? { ...f, endCol: nowCol ?? f.endCol, stopped: true as const, volume: discFluidState.volInput }
+                      ? { ...f, endCol: Math.max(nowCol ?? f.endCol, f.startCol), stopped: true as const, volume: discFluidState.volInput }
                       : f
                   ),
                 })

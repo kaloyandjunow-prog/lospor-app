@@ -156,19 +156,20 @@ export const HANDOVER_GROUPS_BG: HandoverGroup[] = [
   ]},
 ]
 
-export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialComplicationsText }: {
+export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialComplicationsText, defaultValues }: {
   onSubmit: (data: PostopData) => void
   onBack: () => void
   submitting?: boolean
   onAutoSave?: (data: PostopData) => void
   initialComplicationsText?: string
+  defaultValues?: Partial<PostopData>
 }) {
   const t      = useTranslations()
   const locale = useLocale()
   const HANDOVER_GROUPS = locale === "bg" ? HANDOVER_GROUPS_BG : HANDOVER_GROUPS_EN
   const { register, handleSubmit, control, watch, setValue, getValues } = useForm<PostopData>({
     resolver: zodResolver(schema) as any,
-    defaultValues: { ponv: false, handoverItems: [] },
+    defaultValues: { ponv: false, handoverItems: [], ...defaultValues },
   })
 
   const allValues = watch()

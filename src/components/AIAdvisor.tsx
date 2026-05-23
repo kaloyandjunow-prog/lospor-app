@@ -124,7 +124,7 @@ export function AIAdvisor({ getFormData }: Props) {
 
             {status === "error" && (
               <div className="text-red-600 text-sm py-2">
-                Error: {error}. Make sure GROQ_API_KEY is set in .env.
+                Error: {error}. Make sure MISTRAL_API_KEY is set in .env.
               </div>
             )}
 

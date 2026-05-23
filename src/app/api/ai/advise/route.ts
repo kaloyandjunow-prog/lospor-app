@@ -73,14 +73,15 @@ export async function POST(req: NextRequest) {
 
   let mistralRes: Response
   try {
-    mistralRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    const base = (process.env.MISTRAL_API_BASE ?? "https://api.mistral.ai/v1").replace(/\/$/, "")
+    mistralRes = await fetch(`${base}/chat/completions`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mistral-small-latest",
+        model: process.env.MISTRAL_MODEL ?? "open-mistral-7b",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Please analyse this patient's pre-operative data:\n\n${patientSummary}` },
@@ -98,6 +99,9 @@ export async function POST(req: NextRequest) {
   if (!mistralRes.ok) {
     const errText = await mistralRes.text().catch(() => "")
     console.error("[ai/advise] Mistral error:", mistralRes.status, errText)
+    if (mistralRes.status === 429) {
+      return new Response(JSON.stringify({ error: "AI service is busy — please try again in a moment" }), { status: 429 })
+    }
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
   }
 

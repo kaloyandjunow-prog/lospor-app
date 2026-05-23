@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useLayoutEffect, useState, useRef } from "react"
 import { flushSync } from "react-dom"
 import { format } from "date-fns"
 import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW, calcABW } from "@/lib/scores"
@@ -170,11 +170,25 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
   const [dims,   setDims]   = useState({ w: 0, h: 0 })
   const [isDark, setIsDark] = useState(false)
 
+  // Read dimensions synchronously before first paint to avoid a zero-height
+  // flash when the flex parent hasn't established its height yet.
+  useLayoutEffect(() => {
+    if (!wrapRef.current) return
+    const r = wrapRef.current.getBoundingClientRect()
+    if (r.width > 10) {
+      const h = r.height > 10 ? r.height : Math.round(r.width * 0.58)
+      setDims({ w: r.width, h })
+    }
+  }, [])
+
   useEffect(() => {
     if (!wrapRef.current) return
     const obs = new ResizeObserver(entries => {
       const r = entries[0]?.contentRect
-      if (r && r.width > 10 && r.height > 10) setDims({ w: r.width, h: r.height })
+      if (r && r.width > 10) {
+        const h = r.height > 10 ? r.height : Math.round(r.width * 0.58)
+        setDims({ w: r.width, h })
+      }
     })
     obs.observe(wrapRef.current)
     return () => obs.disconnect()
@@ -736,6 +750,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
              calc(210mm - 1px) avoids the Chrome float-rounding bug that creates a blank 3rd page. */
           .page-intraop,
           .page-preoppost {
+            min-height: unset !important;
             width: 297mm !important;
             height: calc(210mm - 1px) !important;
             padding: 7mm !important;
@@ -755,6 +770,14 @@ export function CaseSummary({ caseId }: { caseId: string }) {
           * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
           .no-print { display: none !important; }
           /* SVG light-mode is handled via beforeprint listener — no filter needed */
+
+          /* Compact lab rows in print — overrides Tailwind text-[10.5px] / py-[2px] */
+          .lab-compact .lab-entry > div {
+            font-size: 8px !important;
+            padding-top: 1px !important;
+            padding-bottom: 1px !important;
+          }
+          .lab-compact .lab-entry > div > * { font-size: 8px !important; }
         }
       `}</style>
 
@@ -800,7 +823,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
         {/* ═══════════════════════════════════════════════════════
             PAGE 1 — LANDSCAPE — INTRAOPERATIVE
         ════════════════════════════════════════════════════════ */}
-        <div data-tour="summary-page1" className="page-intraop border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2">
+        <div data-tour="summary-page1" className="page-intraop border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2 min-h-[520px]">
 
           {/* Header strip */}
           <div className="flex items-center justify-between border-b-2 border-blue-700 dark:border-blue-500 pb-1.5">
@@ -946,7 +969,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
         {/* ═══════════════════════════════════════════════════════
             PAGE 2 — PORTRAIT — PREOP + POSTOP
         ════════════════════════════════════════════════════════ */}
-        <div data-tour="summary-page2" className="page-preoppost border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2">
+        <div data-tour="summary-page2" className="page-preoppost border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2 min-h-[520px]">
 
           {/* Header */}
           <div className="flex items-center justify-between border-b-2 border-blue-700 dark:border-blue-500 pb-1.5">
@@ -1021,9 +1044,19 @@ export function CaseSummary({ caseId }: { caseId: string }) {
               {labResults.length > 0 && (
                 <>
                   <Sec title={L.lab} />
-                  {labResults.map((l: any, idx: number) => (
-                    <F key={idx} label={l.test} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
-                  ))}
+                  <div
+                    className={labResults.length >= 9 ? "lab-compact" : ""}
+                    style={{
+                      columns: labResults.length >= 30 ? 4 : labResults.length >= 16 ? 3 : labResults.length >= 9 ? 2 : 1,
+                      columnGap: "0.5rem",
+                    }}
+                  >
+                    {labResults.map((l: any, idx: number) => (
+                      <div key={idx} className="lab-entry" style={{ breakInside: "avoid" }}>
+                        <F label={l.test} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
 

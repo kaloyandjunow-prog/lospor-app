@@ -4,6 +4,28 @@ All notable changes to LOSPOR are documented here.
 
 ---
 
+## [0.4.0] — 2026-05-24
+
+### Features
+- **30-minute graceful close window** — submitting postop no longer immediately finalises the case. A 30-minute review window opens with a countdown banner visible at every step (preop / intraop / postop). The user can navigate back to correct any data; the timer persists across navigation and page reloads via `localStorage`. The case auto-closes when the timer expires or the user clicks "Close Now". Status is promoted to `COMPLETE` only at that point.
+- **HOD access now institution-scoped** — `HEAD_OF_DEPT` users can view and edit only cases belonging to clinicians in their own institution. Case transfers are also restricted to within-institution recipients. `ADMIN` retains global access (GET `/cases/[id]`, PATCH `/cases/[id]`, POST `/cases/[id]/transfer`, and the case view page all enforce this).
+- **Expanded lab catalogue** — preop Labs section now has 100+ perioperative tests across 9 categories: Haematology (15 tests including full differential), Coagulation (7), Electrolytes (8), Biochemistry (12), Liver (9), Cardiac (8 including BNP/NT-proBNP), Blood Gas (7), Thyroid (4), Inflammatory / Other (8). Tests are shown in collapsible category rows.
+- **Lab reference ranges** — each test in the results table shows a reference interval badge. Values within the normal range are shown in green; out-of-range values are flagged in amber with the value bolded. No range data → no badge.
+- **Lab search / filter** — a search input above the category buttons filters the catalogue in real time; only matching tests and their categories are shown.
+- **AI lab scan** — a "Scan lab report" button lets the user upload a photo of a printed lab result. Mistral AI extracts test names, values, and units from the image (multilingual, handles abbreviations and alternate spellings). Extracted results appear in a preview panel with per-row checkboxes; clicking "Add selected" merges checked rows into the existing results, skipping duplicates. A GDPR notice is displayed above the file picker at all times.
+- **AI advisor: configurable base URL and model** — `MISTRAL_API_BASE` env var overrides the Mistral API endpoint (useful for self-hosted or compatible providers). `MISTRAL_MODEL` overrides the default model (`open-mistral-7b`).
+- **AI advisor: 429 rate-limit handling** — when Mistral returns 429, the advisor now shows "AI service is busy — please try again in a moment" instead of a generic error.
+
+### Fixes
+- **Autosave ZodError on case reopen** — when continuing a case from the dashboard to the intraop step, `keyEvents` (a `TimetableData` object stored in the DB) was spread into `IntraopForm` default values. `getValues()` returned it and the autosave payload failed server Zod validation with 400. Fixed by a dedicated `dbIntraopToForm` mapper that strips all DB-only fields (`id`, `caseId`, `keyEvents`, `timeSeriesData`, `durationMinutes`, timestamps) before passing data to the form.
+- **Postop data blank on reopen** — reopening a case that had been submitted through postop sent the user to the postop form with empty fields. All postop data is now restored via `dbPostopToForm`.
+- **Countdown resets on dashboard navigation** — leaving the summary page and returning restarted the 30-minute window from scratch. The timer now uses a `localStorage` timestamp and resumes from the correct remaining time on every re-mount.
+- **Parallel fluid row disappears after inline discontinuation** — when two same-category fluids ran in parallel and one was inline-discontinued, the discontinued fluid's lane row disappeared. Fixed by normalising `endCol` (guarding against `endCol < startCol`) and combining all discontinuation updates into a single `onChangeRef.current` call to avoid stale-closure overwrites.
+- **Lab results print overflow** — entering more than ~12 lab results caused the print layout to clip. The summary now uses a multi-column layout (2 columns for 9–15 results, 3 for 16–29, 4 for 30+) with a compact 8 px print font, fitting up to ~40 results within the A4 page height.
+- **Summary cards sizing on first open** — the two printable cards were too narrow when first entering the summary during case entry. The step-3 container now uses `max-w-[1200px]`, matching the read-only case view.
+
+---
+
 ## [0.3.0] — 2026-05-21
 
 ### GDPR — Data minimisation

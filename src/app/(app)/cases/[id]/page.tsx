@@ -48,13 +48,16 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   if (!session) return null
 
   const { id } = await params
-  const role   = (session.user as any).role
-  const userId = session.user!.id
+  const me     = session.user as any
+  const role   = me.role
+  const userId = me.id
 
-  // Admins and HODs can view any case; members see only their own
-  const where = (role === "ADMIN" || role === "HEAD_OF_DEPT")
+  // ADMIN: any case. HOD: cases within their institution. MEMBER: own cases only.
+  const where = role === "ADMIN"
     ? { id }
-    : { id, userId }
+    : role === "HEAD_OF_DEPT"
+      ? { id, user: { institutionId: me.institutionId } }
+      : { id, userId }
 
   const record = await prisma.case.findFirst({
     where,

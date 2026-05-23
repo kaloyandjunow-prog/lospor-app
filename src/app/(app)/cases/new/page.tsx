@@ -31,8 +31,12 @@ export default function NewCasePage() {
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
+  const [postopData, setPostopData]   = useState<PostopData | null>(null)
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
   const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("scroll")
+  // 30-minute graceful close window (seconds remaining; null = not started)
+  const [closeSecsLeft, setCloseSecsLeft] = useState<number | null>(null)
+  const closeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem("layoutMode")
@@ -74,16 +78,9 @@ export default function NewCasePage() {
         setCaseId(continueId)
         if (record.caseCode) setCaseCode(record.caseCode)
         if (record.preop)   setPreopData(dbPreopToForm(record.preop) as PreopData)
+        if (record.postop)  setPostopData(dbPostopToForm(record.postop))
         if (record.intraop) {
-          const endTimeNextDay = !!(record.intraop.endTime &&
-            new Date(record.intraop.endTime).getTime() - new Date(record.intraop.startTime).getTime() > 12 * 60 * 60 * 1000)
-          setIntraopData({
-            ...record.intraop,
-            monthYear:      record.intraop.monthYear ?? undefined,
-            startTime:      isoToHHMM(record.intraop.startTime),
-            endTime:        record.intraop.endTime ? isoToHHMM(record.intraop.endTime) : undefined,
-            endTimeNextDay,
-          })
+          setIntraopData(dbIntraopToForm(record.intraop) as IntraopData)
           // keyEvents must be a non-array object with a "vitals" key — the old
           // Prisma default was "[]" which is an array; skip that gracefully.
           const ke = record.intraop.keyEvents
@@ -93,9 +90,13 @@ export default function NewCasePage() {
         }
         // URL step param wins; fall back to deriving from saved data
         const target = stepParam
-          ? Math.max(0, Math.min(2, parseInt(stepParam)))
-          : record.postop ? 2 : record.intraop ? 1 : 0
+          ? Math.max(0, Math.min(3, parseInt(stepParam)))
+          : record.postop ? 3 : record.intraop ? 1 : 0
         setStep(target)
+        // Re-enter the 30-min window when reopening a case that had postop but isn't finalised
+        if (target === 3 && record.status !== "COMPLETE") {
+          startCloseCountdown()
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -107,6 +108,9 @@ export default function NewCasePage() {
     if (!caseId) return
     router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId])
+
+  // Cleanup close countdown on unmount
+  useEffect(() => () => { if (closeTimerRef.current) clearInterval(closeTimerRef.current) }, [])
 
   // Convert Prisma DateTime → HH:MM. DB values are stored in UTC (ref date 2000-01-01),
   // so read UTC hours/minutes to recover the original local time the user entered.
@@ -196,6 +200,40 @@ export default function NewCasePage() {
       patientFirstName: undefined,
       patientLastName:  undefined,
       patientId:        undefined,
+    }
+  }
+
+  function dbPostopToForm(o: any): PostopData {
+    return {
+      aldreteActivity:      o.aldreteActivity      ?? undefined,
+      aldreteRespiration:   o.aldreteRespiration   ?? undefined,
+      aldreteCirculation:   o.aldreteCirculation   ?? undefined,
+      aldreteConsciousness: o.aldreteConsciousness ?? undefined,
+      aldreteSpO2:          o.aldreteSpO2          ?? undefined,
+      painScoreNRS:         o.painScoreNRS         ?? undefined,
+      ponv:                 o.ponv                 ?? false,
+      temperatureCelsius:   o.temperatureCelsius   ?? undefined,
+      timeInRecoveryMin:    o.timeInRecoveryMin    ?? undefined,
+      disposition:          o.disposition          ?? undefined,
+      dispositionNotes:     o.dispositionNotes     ?? undefined,
+      handoverItems:        Array.isArray(o.handoverItems) ? o.handoverItems : [],
+    }
+  }
+
+  function dbIntraopToForm(intraop: any): Partial<IntraopData> {
+    // Strip DB-only fields that don't belong in the form and would cause autosave
+    // ZodErrors: keyEvents is a TimetableData object but intraopSchema expects an array;
+    // id/caseId/createdAt/updatedAt are DB metadata; timeSeriesData/durationMinutes are computed.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, caseId, createdAt, updatedAt, keyEvents, timeSeriesData, durationMinutes, ...formFields } = intraop
+    const endTimeNextDay = !!(intraop.endTime &&
+      new Date(intraop.endTime).getTime() - new Date(intraop.startTime).getTime() > 12 * 60 * 60 * 1000)
+    return {
+      ...formFields,
+      monthYear:      intraop.monthYear ?? undefined,
+      startTime:      isoToHHMM(intraop.startTime),
+      endTime:        intraop.endTime ? isoToHHMM(intraop.endTime) : undefined,
+      endTimeNextDay,
     }
   }
 
@@ -289,10 +327,13 @@ export default function NewCasePage() {
       const res = await fetch(`/api/cases/${caseIdRef.current}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postop: postopData, status: "COMPLETE" }),
+        body: JSON.stringify({ postop: postopData }),
       })
       if (!res.ok) throw new Error()
+      setPostopData(postopData)
       toast.success(t("case.savedSuccess"))
+      // Start 30-minute graceful close countdown before finalising
+      startCloseCountdown()
       setStep(3); window.scrollTo(0, 0)
     } catch {
       toast.error(t("case.saveFailed"))
@@ -301,8 +342,53 @@ export default function NewCasePage() {
     }
   }
 
+  function startCloseCountdown() {
+    const id = caseIdRef.current
+    if (!id) return
+    if (closeTimerRef.current) clearInterval(closeTimerRef.current)
+
+    const storageKey = `summaryOpenedAt_${id}`
+    const stored = localStorage.getItem(storageKey)
+    const openedAt = stored ? parseInt(stored, 10) : Date.now()
+    if (!stored) localStorage.setItem(storageKey, String(openedAt))
+
+    const remaining = Math.max(0, 30 * 60 - Math.floor((Date.now() - openedAt) / 1000))
+    if (remaining === 0) { finaliseCase(); return }
+
+    setCloseSecsLeft(remaining)
+    closeTimerRef.current = setInterval(() => {
+      setCloseSecsLeft(s => {
+        if (s === null || s <= 1) {
+          clearInterval(closeTimerRef.current!)
+          closeTimerRef.current = null
+          localStorage.removeItem(`summaryOpenedAt_${id}`)
+          finaliseCase()
+          return null
+        }
+        return s - 1
+      })
+    }, 1000)
+  }
+
+  async function finaliseCase() {
+    const id = caseIdRef.current
+    if (!id) return
+    if (closeTimerRef.current) { clearInterval(closeTimerRef.current); closeTimerRef.current = null }
+    localStorage.removeItem(`summaryOpenedAt_${id}`)
+    try {
+      await fetch(`/api/cases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "COMPLETE" }),
+      })
+      router.push(`/cases/${id}`)
+    } catch {
+      toast.error("Could not close case — please try again.")
+    }
+  }
+
   return (
-    <div className={`${step === 1 ? "max-w-6xl" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
+    <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
       <div className="no-print flex items-center gap-4">
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-950 border-2 border-blue-100 dark:border-blue-900 shrink-0">
           <UserRound className="h-9 w-9 text-blue-500 dark:text-blue-400" strokeWidth={1.5} />
@@ -349,6 +435,26 @@ export default function NewCasePage() {
           })}
         </div>
       </div>
+
+      {/* Compact pending-close banner — visible at steps 0/1/2 while countdown is running */}
+      {closeSecsLeft !== null && step < 3 && (
+        <div className="no-print rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-sm text-amber-700 dark:text-amber-300">
+              Case pending close — auto-closes in{" "}
+              <span className="font-bold tabular-nums">
+                {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
+              </span>
+            </span>
+          </div>
+          <Button size="sm" variant="outline"
+            className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40"
+            onClick={() => setStep(3)}>
+            Back to Summary
+          </Button>
+        </div>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-20 text-slate-400">
@@ -400,6 +506,7 @@ export default function NewCasePage() {
       )}
       {!loading && step === 2 && (
         <PostopForm
+          defaultValues={postopData ?? undefined}
           onSubmit={handlePostopSubmit}
           onBack={() => setStep(1)}
           submitting={submitting}
@@ -411,13 +518,33 @@ export default function NewCasePage() {
       {/* Step 3: Case summary / protocol preview */}
       {step === 3 && caseId && (
         <div className="space-y-4">
-          {/* Success banner — hidden on print */}
-          <div className="no-print rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-5 py-4 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
-            <div>
-              <p className="font-semibold text-green-800 dark:text-green-300">Case saved successfully</p>
-              <p className="text-sm text-green-600 dark:text-green-400">Click "Print / Save as PDF" to generate the protocol.</p>
+          {/* Graceful close countdown banner — hidden on print */}
+          <div className="no-print rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-300">Case is pending close</p>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  {closeSecsLeft !== null
+                    ? <>Review and correct any data. Case closes automatically in{" "}
+                        <span className="font-bold tabular-nums">
+                          {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
+                        </span>.</>
+                    : "Case has been closed."}
+                </p>
+              </div>
             </div>
+            {closeSecsLeft !== null && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-amber-600 dark:text-amber-400">Edit:</span>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(0)}>Preop</Button>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(1)}>Intraop</Button>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(2)}>Postop</Button>
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setCloseSecsLeft(null); finaliseCase() }}>
+                  Close Now
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Case summary — patient name dialog is inside CaseSummary */}
