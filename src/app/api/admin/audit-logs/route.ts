@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 
 const PAGE_SIZE = 50
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session || (session.user as any).role !== "ADMIN") {
+  const user = await getAuthUser(req)
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
     }),
   ])
 
-  // Resolve user names without a schema relation
   const userIds = [...new Set(logs.map(l => l.userId))]
   const users   = await prisma.user.findMany({
     where:  { id: { in: userIds } },

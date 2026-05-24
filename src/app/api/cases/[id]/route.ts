@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "../_mappers"
 import { z } from "zod"
@@ -15,18 +15,16 @@ const patchBodySchema = z.object({
   postop:  postopSchema.optional(),
 })
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  const userId = session?.user?.id
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   const { id } = await params
-  const me    = (session as any).user
-  const role  = me?.role
-  const where = role === "ADMIN"
+  const where = user.role === "ADMIN"
     ? { id }
-    : role === "HEAD_OF_DEPT"
-      ? { id, user: { institutionId: me.institutionId } }
+    : user.role === "HEAD_OF_DEPT"
+      ? { id, user: { institutionId: user.institutionId } }
       : { id, userId }
 
   const record = await prisma.case.findFirst({
@@ -38,9 +36,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  const userId = session?.user?.id
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   const { id } = await params
 
@@ -53,11 +51,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       postop:  { select: { id: true } },
     },
   })
-  const me   = (session as any).user
-  const role = me?.role
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  const isAdmin = role === "ADMIN"
-  const isHOD   = role === "HEAD_OF_DEPT" && existing.user?.institutionId === me.institutionId
+  const isAdmin = user.role === "ADMIN"
+  const isHOD   = user.role === "HEAD_OF_DEPT" && existing.user?.institutionId === user.institutionId
   if (existing.userId !== userId && !isAdmin && !isHOD)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
@@ -119,10 +115,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  const userId = session?.user?.id
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   const { id } = await params
 
@@ -130,9 +126,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     where: { id },
     select: { userId: true, status: true },
   })
-  const delRole = (session as any)?.user?.role
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (existing.userId !== userId && delRole !== "ADMIN")
+  if (existing.userId !== userId && user.role !== "ADMIN")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Cannot delete a completed case" }, { status: 400 })
 

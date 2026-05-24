@@ -1,15 +1,13 @@
-import { auth } from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
-import { NextResponse } from "next/server"
 
-export async function GET() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const userId = (session.user as any).id
+export async function GET(req: NextRequest) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const pending = await prisma.caseTransfer.findMany({
-    where: { toUserId: userId, status: "PENDING" },
+    where: { toUserId: user.id, status: "PENDING" },
     include: {
       case: {
         include: { preop: { select: { plannedProcedure: true, diagnosis: true } } },

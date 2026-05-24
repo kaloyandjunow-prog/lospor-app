@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
@@ -15,9 +15,9 @@ async function generateCaseCode(userId: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  const userId = session?.user?.id
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   try {
     const body = await req.json()
@@ -60,13 +60,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const session = await auth()
-  const sessionUserId = session?.user?.id
-  if (!sessionUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function GET(req: NextRequest) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const cases = await prisma.case.findMany({
-    where: { userId: sessionUserId },
+    where: { userId: user.id },
     include: {
       preop:  { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
       postop: { select: { disposition: true, aldreteTotal: true } },

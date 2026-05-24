@@ -3,15 +3,15 @@
  * Returns (or creates) a read-only demo case for the current user to browse.
  * The case is marked via notes="__DEMO__" so it can be identified and excluded from real stats.
  */
-import { auth }    from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma }  from "@/lib/prisma"
-import { NextResponse } from "next/server"
 
-export async function GET() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function GET(req: NextRequest) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const userId = (session.user as any).id
+  const userId = user.id
 
   // Re-use existing IN_PROGRESS demo case; delete stale COMPLETE ones
   const existing = await prisma.case.findFirst({

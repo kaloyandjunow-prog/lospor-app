@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { rateLimit } from "@/lib/rate-limit"
 
 const MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
@@ -32,8 +32,8 @@ Instructions:
 5. No markdown, no explanation — only the raw JSON array. If no results found, return [].`
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const user = await getAuthUser(req)
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image too large" }, { status: 413 })
   }
 
-  const rl = rateLimit(`ai-labs:${session.user.id}`, 10, 60 * 60 * 1000)
+  const rl = rateLimit(`ai-labs:${user.id}`, 10, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },

@@ -1,46 +1,40 @@
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/mobile-auth"
+import { prisma } from "@/lib/prisma"
 
 // POST — initiate a transfer
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id: caseId } = await params
-  const me = session.user as any
   const { toUserId } = await req.json()
 
   if (!toUserId) return NextResponse.json({ error: "toUserId required" }, { status: 400 })
-  if (toUserId === me.id) return NextResponse.json({ error: "Cannot transfer to yourself" }, { status: 400 })
+  if (toUserId === user.id) return NextResponse.json({ error: "Cannot transfer to yourself" }, { status: 400 })
 
-  // Load the case — access rules vary by role
-  const isHOD   = me.role === "HEAD_OF_DEPT"
-  const isAdmin  = me.role === "ADMIN"
+  const isHOD   = user.role === "HEAD_OF_DEPT"
+  const isAdmin = user.role === "ADMIN"
 
   const caseRecord = await prisma.case.findFirst({
     where: isAdmin ? { id: caseId }
-      : isHOD      ? { id: caseId, user: { institutionId: me.institutionId } }
-      : { id: caseId, userId: me.id },
+      : isHOD      ? { id: caseId, user: { institutionId: user.institutionId } }
+      : { id: caseId, userId: user.id },
   })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })
 
-  // Verify recipient exists
   const recipient = await prisma.user.findUnique({ where: { id: toUserId } })
   if (!recipient) return NextResponse.json({ error: "Recipient not found" }, { status: 404 })
 
-  // Only ADMIN can transfer cross-institution; MEMBER and HOD are institution-scoped
-  if (!isAdmin && recipient.institutionId !== me.institutionId) {
+  if (!isAdmin && recipient.institutionId !== user.institutionId) {
     return NextResponse.json({ error: "Recipient must be in your institution" }, { status: 403 })
   }
 
-  // Cancel any existing pending transfer for this case
   await prisma.caseTransfer.updateMany({
     where: { caseId, status: "PENDING" },
     data:  { status: "DECLINED", resolvedAt: new Date() },
   })
 
-  // HOD and ADMIN: instant transfer
   if (isHOD || isAdmin) {
     const [transfer] = await prisma.$transaction([
       prisma.caseTransfer.create({
@@ -48,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           caseId,
           fromUserId:  caseRecord.userId,
           toUserId,
-          initiatedBy: me.id,
+          initiatedBy: user.id,
           status:      "ACCEPTED",
           resolvedAt:  new Date(),
         },
@@ -61,13 +55,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ instant: true, transfer })
   }
 
-  // MEMBER: create pending transfer
   const transfer = await prisma.caseTransfer.create({
     data: {
       caseId,
-      fromUserId:  me.id,
+      fromUserId:  user.id,
       toUserId,
-      initiatedBy: me.id,
+      initiatedBy: user.id,
       status:      "PENDING",
     },
   })
@@ -76,11 +69,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 // PATCH — recipient accepts or declines
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id: caseId } = await params
-  const me = session.user as any
   const { action } = await req.json()
 
   if (action !== "accept" && action !== "decline") {
@@ -88,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const transfer = await prisma.caseTransfer.findFirst({
-    where: { caseId, toUserId: me.id, status: "PENDING" },
+    where: { caseId, toUserId: user.id, status: "PENDING" },
   })
   if (!transfer) return NextResponse.json({ error: "No pending transfer found" }, { status: 404 })
 
@@ -100,13 +92,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }),
       prisma.case.update({
         where: { id: caseId },
-        data:  { userId: me.id },
+        data:  { userId: user.id },
       }),
     ])
     return NextResponse.json({ accepted: true })
   }
 
-  // decline
   await prisma.caseTransfer.update({
     where: { id: transfer.id },
     data:  { status: "DECLINED", resolvedAt: new Date() },

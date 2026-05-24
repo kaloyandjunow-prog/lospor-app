@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import fs from "fs"
 import path from "path"
 
@@ -15,7 +15,7 @@ function loadData(): Entry[] {
 }
 
 export async function GET(req: NextRequest) {
-  if (!await auth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!await getAuthUser(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const q = req.nextUrl.searchParams.get("q")?.trim().toLowerCase()
   if (!q || q.length < 2) return NextResponse.json([])
 

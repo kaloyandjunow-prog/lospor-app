@@ -1,41 +1,34 @@
-import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 
-// GET — return the current user's latest role request
-export async function GET() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function GET(req: NextRequest) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const userId = session.user!.id
-  const req = await prisma.roleRequest.findFirst({
-    where:   { userId },
+  const request = await prisma.roleRequest.findFirst({
+    where:   { userId: user.id },
     orderBy: { requestedAt: "desc" },
   })
 
-  return NextResponse.json(req ?? null)
+  return NextResponse.json(request ?? null)
 }
 
-// POST — submit a new Head of Department request
-export async function POST() {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export async function POST(req: NextRequest) {
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const userId = session.user!.id
-  const role   = (session.user as any).role
-
-  if (role !== "MEMBER" && role !== "CLINICIAN" && role !== "RESEARCHER") {
+  if (user.role !== "MEMBER" && user.role !== "CLINICIAN" && user.role !== "RESEARCHER") {
     return NextResponse.json({ error: "Only members can submit this request" }, { status: 403 })
   }
 
-  // Block if a PENDING request already exists
   const existing = await prisma.roleRequest.findFirst({
-    where: { userId, status: "PENDING" },
+    where: { userId: user.id, status: "PENDING" },
   })
   if (existing) return NextResponse.json({ error: "Request already pending" }, { status: 409 })
 
   const request = await prisma.roleRequest.create({
-    data: { userId },
+    data: { userId: user.id },
   })
 
   return NextResponse.json(request, { status: 201 })

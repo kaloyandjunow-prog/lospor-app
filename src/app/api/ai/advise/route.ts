@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit } from "@/lib/audit"
@@ -31,8 +31,8 @@ Review known medications and allergies. Note interactions, drugs to avoid, dose 
 Tone: precise, colleague-to-colleague. Format: markdown with the section headers above. No preamble, no closing pleasantries. If data is missing that would materially change your recommendation, note the specific gap in the relevant section rather than refusing to advise.`
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const user = await getAuthUser(req)
+  if (!user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
   }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413 })
   }
 
-  const rl = rateLimit(`ai:${session.user.id}`, 20, 60 * 60 * 1000)
+  const rl = rateLimit(`ai:${user.id}`, 20, 60 * 60 * 1000)
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: "Too many requests" }), {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   // GDPR: Only structured fields are sent to the AI provider.
   // Free-text fields that may contain PHI are explicitly excluded.
   const patientSummary = buildPatientSummary(parsed)
-  logAudit(session.user.id, "AI_ADVISE", session.user.id, { optIn: true })
+  logAudit(user.id, "AI_ADVISE", user.id, { optIn: true })
 
   let mistralRes: Response
   try {

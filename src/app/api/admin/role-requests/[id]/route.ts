@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const schema = z.object({ action: z.enum(["approve", "reject"]) })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session || (session.user as any).role !== "ADMIN") {
+  const user = await getAuthUser(req)
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -16,8 +16,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const roleRequest = await prisma.roleRequest.findUnique({ where: { id } })
   if (!roleRequest) return NextResponse.json({ error: "Not found" }, { status: 404 })
-
-  const now = new Date()
 
   if (action === "approve") {
     await prisma.user.update({
@@ -28,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const updated = await prisma.roleRequest.update({
     where: { id },
-    data:  { status: action === "approve" ? "APPROVED" : "REJECTED", resolvedAt: now },
+    data:  { status: action === "approve" ? "APPROVED" : "REJECTED", resolvedAt: new Date() },
   })
 
   return NextResponse.json(updated)

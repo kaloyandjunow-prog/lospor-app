@@ -9,7 +9,17 @@ const nextConfig: NextConfig = {
   ...(isDev ? { allowedDevOrigins: ["192.168.0.105"] } : {}),
 
   async headers() {
-    return [{
+    return [
+    {
+      // CORS for React Native mobile app — bearer token auth still required on all routes
+      source: "/api/:path*",
+      headers: [
+        { key: "Access-Control-Allow-Origin",  value: "*" },
+        { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, DELETE, OPTIONS" },
+        { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+      ],
+    },
+    {
       source: "/(.*)",
       headers: [
         { key: "X-Frame-Options",        value: "DENY" },

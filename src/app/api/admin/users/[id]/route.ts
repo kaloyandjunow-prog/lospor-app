@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -8,8 +8,8 @@ const schema = z.object({
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session || (session.user as any).role !== "ADMIN") {
+  const user = await getAuthUser(req)
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -17,23 +17,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body   = await req.json()
   const data   = schema.parse(body)
 
-  const user = await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id },
     data:  { role: data.role },
     select: { id: true, role: true },
   })
 
-  return NextResponse.json(user)
+  return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session || (session.user as any).role !== "ADMIN") {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAuthUser(req)
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { id } = await params
-  if (id === session.user?.id) {
+  if (id === user.id) {
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 })
   }
 

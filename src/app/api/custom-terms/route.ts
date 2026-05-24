@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { rateLimit } from "@/lib/rate-limit"
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const q    = req.nextUrl.searchParams.get("q")?.trim().toLowerCase()
   const type = req.nextUrl.searchParams.get("type")?.trim()
   if (!q || q.length < 3) return NextResponse.json([])
 
-  const institutionId = (session.user as any).institutionId as string
+  const institutionId = user.institutionId
 
   const where: any = {
     term: { contains: q, mode: "insensitive" },
@@ -29,10 +29,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`custom-terms:${session.user.id}`, 30, 60 * 60 * 1000)
+  const rl = rateLimit(`custom-terms:${user.id}`, 30, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const { term, termType } = await req.json()
   if (!term?.trim() || !termType) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
 
-  const institutionId = (session.user as any).institutionId as string
+  const institutionId = user.institutionId
 
   // Check if this exact term already exists for this institution or as a global term (case-insensitive)
   const existing = await prisma.customTerm.findFirst({

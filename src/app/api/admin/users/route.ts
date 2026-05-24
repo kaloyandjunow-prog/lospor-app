@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session || (session.user as any).role !== "ADMIN") {
+  const user = await getAuthUser(req)
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

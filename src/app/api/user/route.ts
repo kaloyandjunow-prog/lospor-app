@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -8,9 +8,9 @@ const patchSchema = z.object({
 })
 
 export async function PATCH(req: NextRequest) {
-  const session = await auth()
-  const userId = session?.user?.id
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = await getAuthUser(req)
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   try {
     const body = patchSchema.parse(await req.json())
