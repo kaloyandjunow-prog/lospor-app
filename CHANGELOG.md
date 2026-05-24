@@ -4,6 +4,13 @@ All notable changes to LOSPOR are documented here.
 
 ---
 
+## [0.4.1] — 2026-05-24
+
+### Fixes
+- **Terms and Privacy links inaccessible when logged in** — clicking the Terms or Privacy links in the app footer (dashboard, preop, intraop, postop, summary) redirected back to the dashboard instead of opening the page. The auth guard treated `/terms` and `/privacy` as login-only pages and redirected authenticated users away. Fixed by splitting public pages (accessible to everyone) from login pages (which redirect logged-in users to the dashboard).
+
+---
+
 ## [0.4.0] — 2026-05-24
 
 ### Features
