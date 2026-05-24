@@ -10,6 +10,12 @@ All notable changes to LOSPOR are documented here.
 - **Full Bulgarian UI translation** — all user-visible strings across the app now route through next-intl instead of being hardcoded in English. Components and pages converted: admin panel (including audit log section), app layout (nav and footer), case entry wizard (save status, countdown banner, navigation buttons), login page, register page (institution picker, medical disclaimer, footer), CaseSummary (loading/error states), TourButton (guides menu and demo prompt), PreopForm (safety section, vitals labels, airway section, lab section, emergency surgery button), and IntraopForm (preop summary banner). New translation keys added across the `preop`, `intraop`, `case`, `tour`, `auth`, `nav`, `admin`, and `status` namespaces in both `en.json` and `bg.json`.
 - **Vercel Analytics** — page-view analytics via `@vercel/analytics/next` added to the root layout. Active on all routes when deployed to Vercel; no-op in local development.
 
+### Security / compliance
+- **AI wording corrected** — the AI advisor system prompt and UI disclaimer no longer claim "clinical decision support". Both now state clearly that the output is an informational summary, does not constitute clinical advice, and that the responsible anaesthesiologist retains full clinical responsibility.
+- **Lab scan GDPR warning strengthened** — the upload notice now explicitly instructs users to crop out patient names, date of birth, ID/MRN numbers, and any other identifying information before uploading. Includes a clear instruction not to upload if identifiers cannot be removed.
+- **PII detection best-effort notice** — the Privacy Policy now states that server-side PII pattern detection is best-effort and does not guarantee detection of all personal identifiers. Users remain responsible for not entering patient-identifiable data into free-text fields.
+- **Unused AI SDKs removed** — `@anthropic-ai/sdk` and `@google/genai` were installed but unused. Both packages have been removed.
+
 ---
 
 ## [0.4.1] — 2026-05-24

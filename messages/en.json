@@ -164,7 +164,7 @@
     "collapse": "Collapse",
     "expand": "Expand",
     "header": "AI Clinical Analysis — Mistral (EU)",
-    "disclaimer": "AI-generated — for decision support only. Clinical judgement of the responsible anaesthesiologist takes precedence.",
+    "disclaimer": "AI-generated summary for review by the responsible anaesthesiologist. Does not constitute clinical advice. Full clinical responsibility remains with the treating anaesthesiologist.",
     "analysingData": "Analysing patient data…",
     "errorHint": "Make sure MISTRAL_API_KEY is set in .env.",
     "errorPrefix": "Error"

@@ -75,7 +75,7 @@ export default function PrivacyPage() {
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">7. Security</h3>
-              <p>Passwords are hashed with bcrypt (cost factor 12). Sessions use short-lived JWT tokens with a revocation mechanism. All traffic is encrypted over HTTPS. Free-text fields submitted via the API are checked server-side for common identifying patterns (EGN, long digit sequences, email addresses, date formats, capitalised name patterns).</p>
+              <p>Passwords are hashed with bcrypt (cost factor 12). Sessions use short-lived JWT tokens with a revocation mechanism. All traffic is encrypted over HTTPS. Free-text fields submitted via the API are checked server-side for common identifying patterns (EGN, long digit sequences, email addresses, date formats, capitalised name patterns). This detection is best-effort and does not guarantee that all personal identifiers are caught. Users remain responsible for not entering patient-identifiable information into free-text fields.</p>
             </section>
 
           </CardContent>
