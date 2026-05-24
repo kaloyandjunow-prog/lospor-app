@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getMessages } from "next-intl/server"
 import { cookies } from "next/headers"
+import { Analytics } from "@vercel/analytics/next"
 
 const roboto = Roboto({ variable: "--font-sans", subsets: ["latin", "cyrillic"], weight: ["300","400","500","700"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
@@ -28,6 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider messages={messages}>
           {children}
           <Toaster richColors position="top-right" />
+          <Analytics />
         </NextIntlClientProvider>
       </body>
     </html>

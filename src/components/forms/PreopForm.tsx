@@ -435,15 +435,15 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                 />
               </div>
             )} />
-            {fieldErrors.has("procedures") && <p className="text-red-500 text-xs">At least one procedure is required.</p>}
+            {fieldErrors.has("procedures") && <p className="text-red-500 text-xs">{t("preop.procedureRequired")}</p>}
           </div>
           <div className="space-y-1 col-span-full">
-            <Label>Team notes <span className="font-normal text-slate-400">(optional)</span></Label>
+            <Label>{t("preop.teamNotes")} <span className="font-normal text-slate-400">({t("common.optional")})</span></Label>
             <GuardedTextarea
               {...register("teamNotes")}
               maxLength={500}
               rows={2}
-              placeholder="Roles, theatre number, any reminders — do not include names"
+              placeholder={t("preop.teamNotesPlaceholder")}
             />
           </div>
         </div>
@@ -462,7 +462,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   ? "bg-red-600 border-red-600 text-white scale-105 shadow"
                   : "border-red-300 text-red-500 hover:border-red-400"
               }`}>
-              🚨 Emergency Surgery
+              {t("preop.emergencySurgery")}
             </button>
           )} />
         </div>
@@ -507,7 +507,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       </SectionCard>
 
       {/* Safety */}
-      <SectionCard title="Safety — Allergies, Family History & Harmful Habits">
+      <SectionCard title={t("preop.safetySection")}>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Controller name="allergies" control={control} render={({ field }) => (
@@ -540,7 +540,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Controller name="familyAnesthesiaProblems" control={control} render={({ field }) => (
               <Checkbox id="familyAnesthesiaProblems" checked={!!field.value} onCheckedChange={field.onChange} />
             )} />
-            <Label htmlFor="familyAnesthesiaProblems" className="font-normal cursor-pointer">Family history of anaesthesia problems</Label>
+            <Label htmlFor="familyAnesthesiaProblems" className="font-normal cursor-pointer">{t("preop.familyAnesthesia")}</Label>
           </div>
           {familyAnesthesiaProblems && <Textarea placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />}
           <Separator />
@@ -557,18 +557,18 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label htmlFor="looseTeeth" className="font-normal cursor-pointer">{t("preop.looseTeeth")}</Label>
           </div>
           <Separator />
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Harmful Habits</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.harmfulHabits")}</p>
           <div className="flex items-center gap-2">
             <Controller name="smoking" control={control} render={({ field }) => (
               <Checkbox id="smoking" checked={!!field.value} onCheckedChange={field.onChange} />
             )} />
-            <Label htmlFor="smoking" className="font-normal cursor-pointer">Smoking</Label>
+            <Label htmlFor="smoking" className="font-normal cursor-pointer">{t("preop.smoking")}</Label>
           </div>
           <div className="flex items-center gap-2">
             <Controller name="substanceAbuse" control={control} render={({ field }) => (
               <Checkbox id="substanceAbuse" checked={!!field.value} onCheckedChange={field.onChange} />
             )} />
-            <Label htmlFor="substanceAbuse" className="font-normal cursor-pointer">Substance abuse</Label>
+            <Label htmlFor="substanceAbuse" className="font-normal cursor-pointer">{t("preop.substanceAbuse")}</Label>
           </div>
         </div>
       </SectionCard>
@@ -581,32 +581,32 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           {/* BP */}
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Blood Pressure (mmHg) <span className="text-red-500">*</span></Label>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.bloodPressure")} <span className="text-red-500">*</span></Label>
               <button type="button"
                 onClick={() => toggleUTO("bp", () => { setValue("bpSystolic", undefined); setValue("bpDiastolic", undefined) })}
                 className={`text-xs px-2.5 py-1 rounded-full border transition-all ${vitalsUTO.has("bp") ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                Unable to obtain
+                {t("preop.unableToObtain")}
               </button>
             </div>
             {vitalsUTO.has("bp")
-              ? <p className="text-sm text-slate-400 italic py-2">Unable to obtain</p>
+              ? <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
               : <div className={`flex items-center gap-3 ${fe("bp")}`}>
                   <div className="flex-1">
-                    <p className="text-xs text-slate-400 text-center mb-1">Systolic</p>
+                    <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
                     <Controller name="bpSystolic" control={control} render={({ field }) => (
                       <NumberStepper value={field.value} onChange={field.onChange} min={0} max={260} showSlider />
                     )} />
                   </div>
                   <span className="text-2xl font-light text-slate-300 mt-4">/</span>
                   <div className="flex-1">
-                    <p className="text-xs text-slate-400 text-center mb-1">Diastolic</p>
+                    <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
                     <Controller name="bpDiastolic" control={control} render={({ field }) => (
                       <NumberStepper value={field.value} onChange={field.onChange} min={0} max={160} showSlider />
                     )} />
                   </div>
                 </div>
             }
-            {fieldErrors.has("bp") && !vitalsUTO.has("bp") && <p className="text-red-500 text-xs">Required</p>}
+            {fieldErrors.has("bp") && !vitalsUTO.has("bp") && <p className="text-red-500 text-xs">{t("common.required")}</p>}
           </div>
 
           {[
@@ -625,7 +625,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                     <Controller name="heartArrhythmia" control={control} render={({ field }) => (
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
-                        <span className="text-xs text-slate-500">Arrhythmia</span>
+                        <span className="text-xs text-slate-500">{t("preop.arrhythmia")}</span>
                       </label>
                     )} />
                   )}
@@ -633,18 +633,18 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                 <button type="button"
                   onClick={() => toggleUTO(v.id, () => setValue(v.id as any, undefined))}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-all ${vitalsUTO.has(v.id) ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                  Unable to obtain
+                  {t("preop.unableToObtain")}
                 </button>
               </div>
               {vitalsUTO.has(v.id)
-                ? <p className="text-sm text-slate-400 italic py-2">Unable to obtain</p>
+                ? <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
                 : <>
                     <Controller name={v.id as any} control={control} render={({ field }) => (
                       <div className={fe(v.id)}>
                         <NumberStepper value={field.value} onChange={field.onChange} min={v.min} max={v.max} step={v.step} unit={v.unit} showSlider={v.slider} />
                       </div>
                     )} />
-                    {fieldErrors.has(v.id) && <p className="text-red-500 text-xs">Required</p>}
+                    {fieldErrors.has(v.id) && <p className="text-red-500 text-xs">{t("common.required")}</p>}
                   </>
               }
             </div>
@@ -654,8 +654,8 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
 
         {/* Physical Exam Report */}
         <div className="space-y-1 pt-2">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Physical Exam Report</Label>
-          <Textarea placeholder="No patient-identifying information — general appearance, relevant physical findings…" rows={3} {...register("physicalExamReport")} />
+          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.physicalExamReport")}</Label>
+          <Textarea placeholder={t("preop.physicalExamPlaceholder")} rows={3} {...register("physicalExamReport")} />
         </div>
       </SectionCard>
       </div>
@@ -666,11 +666,11 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         <button type="button"
           onClick={() => setAirwayUTO(v => !v)}
           className={`text-xs px-3 py-1 rounded-full border transition-all ${airwayUTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-          Unable to obtain
+          {t("preop.unableToObtain")}
         </button>
       }>
         {airwayUTO ? (
-          <p className="text-sm text-slate-400 italic py-4 text-center">Airway evaluation — Unable to obtain</p>
+          <p className="text-sm text-slate-400 italic py-4 text-center">{t("preop.airwayUTO")}</p>
         ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="space-y-2 col-span-2 sm:col-span-3">
@@ -764,7 +764,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             )} />
           </div>
           <div className="space-y-2 col-span-2 sm:col-span-3">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Airway features</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.airwayFeatures")}</Label>
             <div className="flex flex-wrap gap-2">
               {[
                 { id:"retrognathia",           label:t("preop.retrognathia") },
@@ -791,13 +791,13 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           </div>
         )}
         {fieldErrors.has("airway") && !airwayUTO && (
-          <p className="text-red-500 text-xs pt-1">Mallampati class is required (or mark Unable to Obtain).</p>
+          <p className="text-red-500 text-xs pt-1">{t("preop.mallampatiRequired")}</p>
         )}
       </SectionCard>
       </div>
 
       {/* Lab Results */}
-      <SectionCard title="Laboratory Results">
+      <SectionCard title={t("preop.labSection")}>
         <Controller name="labResults" control={control} render={({ field }) => (
           <LabResults
             value={(field.value ?? []) as LabResult[]}

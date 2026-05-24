@@ -52,6 +52,7 @@ function InstitutionPicker({
   placeholder: string
   disabled?: boolean
 }) {
+  const t = useTranslations()
   const [open,   setOpen]   = useState(false)
   const [query,  setQuery]  = useState("")
   const wrapRef             = useRef<HTMLDivElement>(null)
@@ -99,7 +100,7 @@ function InstitutionPicker({
           <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 dark:border-[#2a2a2a]">
             <Search className="h-4 w-4 text-slate-400 shrink-0" />
             <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Search by name or city…"
+              placeholder={t("auth.searchInstitution")}
               className="flex-1 text-sm bg-transparent outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400" />
             {query && <X className="h-3.5 w-3.5 text-slate-400 cursor-pointer" onClick={() => setQuery("")} />}
           </div>
@@ -107,7 +108,7 @@ function InstitutionPicker({
           {/* List */}
           <div className="max-h-64 overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-slate-400 dark:text-slate-500 text-center">No institutions found</p>
+              <p className="px-4 py-3 text-sm text-slate-400 dark:text-slate-500 text-center">{t("auth.noInstitutionsFound")}</p>
             ) : (
               filtered.map(inst => (
                 <button key={inst.id} type="button"
@@ -122,7 +123,7 @@ function InstitutionPicker({
           </div>
 
           <div className="px-3 py-1.5 border-t border-slate-100 dark:border-[#2a2a2a] text-[10px] text-slate-400 dark:text-slate-500">
-            {filtered.length} of {institutions.length} institutions
+            {t("auth.institutionCount", { shown: filtered.length, total: institutions.length })}
           </div>
         </div>
       )}
@@ -303,7 +304,7 @@ export default function RegisterPage() {
                 <Input type="password" {...register("password")}
                   onChange={e => { register("password").onChange(e); setPwValue(e.target.value) }} />
                 {pwValue && <PasswordStrength value={pwValue} />}
-                {errors.password && !pwValue && <p className="text-xs text-red-500">Password required</p>}
+                {errors.password && !pwValue && <p className="text-xs text-red-500">{t("auth.passwordRequired")}</p>}
               </div>
 
               <div className="space-y-1">
@@ -314,12 +315,12 @@ export default function RegisterPage() {
 
               {/* Terms acceptance */}
               <div className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-slate-50 dark:bg-[#1c1c1c] p-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                <p className="font-medium text-slate-700 dark:text-slate-300">Medical Disclaimer</p>
-                <p>LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is not intended to replace clinical judgment or serve as a certified medical device.</p>
+                <p className="font-medium text-slate-700 dark:text-slate-300">{t("auth.disclaimerTitle")}</p>
+                <p>{t("auth.disclaimerText")}</p>
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input type="checkbox" {...register("acceptedTerms")}
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                  <span>I have read and accept the Terms of Use, Privacy Policy, and the above Medical Disclaimer. <span className="text-red-500">*</span></span>
+                  <span>{t("auth.acceptTermsLabel")} <span className="text-red-500">*</span></span>
                 </label>
                 {errors.acceptedTerms && <p className="text-red-500">{String(errors.acceptedTerms.message)}</p>}
               </div>
@@ -339,16 +340,16 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-600">
           <Link href="/terms" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
-            Terms
+            {t("nav.footerTerms")}
           </Link>
           {" · "}
           <Link href="/privacy" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
-            Privacy
+            {t("nav.footerPrivacy")}
           </Link>
           {" · "}
           <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
             className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
-            Documentation
+            {t("nav.footerDocs")}
           </a>
         </p>
       </div>

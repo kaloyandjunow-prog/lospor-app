@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link href="/admin"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                 <Shield className="h-4 w-4" />
-                Admin
+                {t("nav.admin")}
               </Link>
             )}
             <Link href="/cases/new" data-tour="nav-new-case"
@@ -77,13 +77,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <footer className="no-print border-t border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] py-4 text-center text-xs text-slate-400 dark:text-slate-500">
         {t("common.gdprFooter")}
         {" · "}
-        <a href="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">Terms</a>
+        <a href="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">{t("nav.footerTerms")}</a>
         {" · "}
-        <a href="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">Privacy</a>
+        <a href="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">{t("nav.footerPrivacy")}</a>
         {" · "}
         <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
           className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
-          Documentation
+          {t("nav.footerDocs")}
         </a>
         {" · "}
         <a href="https://github.com/kaloyandjunow-prog/lospor-app" target="_blank" rel="noopener noreferrer"
@@ -96,8 +96,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           AGPL-3.0
         </a>
         <span className="block mt-1 text-[10px] text-slate-300 dark:text-slate-600">
-          LOSPOR is intended for perioperative documentation and workflow support only — not a certified medical device.
-          Copyright © 2026 Kaloyan Dzhunov · AGPL-3.0
+          {t("nav.footerDisclaimer")}
+          {" "}
+          {t("nav.footerCopyright")}
         </span>
       </footer>
     </div>

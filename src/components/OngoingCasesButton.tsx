@@ -16,19 +16,21 @@ type CaseRow = {
   postop:  { disposition: string | null } | null
 }
 
-function computeStatus(c: CaseRow): { label: string; cls: string } {
+type StatusKey = "finished" | "awaitingPostop" | "inTheatre" | "awaitingAllocation" | "inConsultation" | "draft"
+
+function computeStatus(c: CaseRow): { key: StatusKey; cls: string } {
   if (c.status === "COMPLETE")
-    return { label: "Case finished",     cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" }
+    return { key: "finished",           cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" }
   if (c.intraop?.endTime != null)
-    return { label: "Awaiting post-op",  cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" }
+    return { key: "awaitingPostop",     cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" }
   if (c.intraop != null)
-    return { label: "In theatre",        cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" }
+    return { key: "inTheatre",          cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" }
   const preopDone = !!(c.preop?.diagnosis && c.preop?.plannedProcedure && c.preop?.asaScore)
   if (preopDone)
-    return { label: "Awaiting allocation", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" }
+    return { key: "awaitingAllocation", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" }
   if (c.preop?.diagnosis)
-    return { label: "In consultation",   cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
-  return   { label: "Draft",             cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
+    return { key: "inConsultation",     cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
+  return   { key: "draft",             cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
 }
 
 export function OngoingCasesButton() {
@@ -101,15 +103,15 @@ export function OngoingCasesButton() {
           </div>
 
           {loading && (
-            <div className="px-4 py-8 text-center text-sm text-slate-400">Loading…</div>
+            <div className="px-4 py-8 text-center text-sm text-slate-400">{t("common.loading")}</div>
           )}
 
           {!loading && cases.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-slate-400">No ongoing cases</div>
+            <div className="px-4 py-8 text-center text-sm text-slate-400">{t("status.noOngoing")}</div>
           )}
 
           {!loading && cases.map(c => {
-            const { label, cls } = computeStatus(c)
+            const { key, cls } = computeStatus(c)
             const date = c.intraop?.date ?? c.createdAt
             return (
               <button
@@ -120,10 +122,10 @@ export function OngoingCasesButton() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
-                      {c.preop?.plannedProcedure || "Untitled case"}
+                      {c.preop?.plannedProcedure || t("status.untitled")}
                     </span>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
-                      {label}
+                      {t(`status.${key}`)}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">

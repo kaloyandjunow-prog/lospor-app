@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, Users, Clock, Check, X, ScrollText, ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 type UserRow = {
   id: string; email: string; name: string; firstName: string
@@ -21,12 +22,8 @@ type RoleRequest = {
   user: { id: string; email: string; name: string; firstName: string; lastName: string; title: string; institution: { name: string; city: string } }
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  MEMBER: "Member", HEAD_OF_DEPT: "Head of Dept", ADMIN: "Admin",
-  CLINICIAN: "Member (legacy)", RESEARCHER: "Member (legacy)",
-}
-
 export default function AdminPage() {
+  const t = useTranslations()
   const router = useRouter()
   const [users,    setUsers]    = useState<UserRow[]>([])
   const [pending,  setPending]  = useState<PendingUser[]>([])
@@ -93,13 +90,18 @@ export default function AdminPage() {
     }
   }
 
+  const ROLE_LABELS: Record<string, string> = {
+    MEMBER: t("admin.roleMember"), HEAD_OF_DEPT: t("admin.roleHOD"), ADMIN: t("admin.roleAdmin"),
+    CLINICIAN: t("admin.roleMemberLegacy"), RESEARCHER: t("admin.roleMemberLegacy"),
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Shield className="h-6 w-6 text-blue-600" />
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Admin Panel</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Manage users and access levels</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t("admin.title")}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t("admin.subtitle")}</p>
         </div>
       </div>
 
@@ -108,13 +110,13 @@ export default function AdminPage() {
         <div className="px-5 py-3 border-b border-red-100 dark:border-red-900/40 flex items-center gap-2 bg-red-50 dark:bg-red-900/10">
           <Clock className="h-4 w-4 text-red-600 dark:text-red-400" />
           <span className="text-sm font-semibold text-red-800 dark:text-red-300">
-            Pending registrations {!loading && `(${pending.length})`}
+            {t("admin.pendingRegistrations")} {!loading && `(${pending.length})`}
           </span>
         </div>
         {loading ? (
-          <div className="py-8 text-center text-slate-400 animate-pulse text-sm">Loading…</div>
+          <div className="py-8 text-center text-slate-400 animate-pulse text-sm">{t("admin.loading")}</div>
         ) : pending.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-sm">No pending registrations</div>
+          <div className="py-8 text-center text-slate-400 text-sm">{t("admin.noPendingRegistrations")}</div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
             {pending.map(u => {
@@ -128,17 +130,17 @@ export default function AdminPage() {
                       {u.institution.name} — {u.institution.city}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      Registered {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                      {t("admin.registered")} {new Date(u.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => rejectPending(u.id)} disabled={acting === u.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors">
-                      <X className="h-3.5 w-3.5" /> Reject
+                      <X className="h-3.5 w-3.5" /> {t("admin.reject")}
                     </button>
                     <button onClick={() => approvePending(u.id)} disabled={acting === u.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors">
-                      <Check className="h-3.5 w-3.5" /> Approve
+                      <Check className="h-3.5 w-3.5" /> {t("admin.approve")}
                     </button>
                   </div>
                 </div>
@@ -153,14 +155,14 @@ export default function AdminPage() {
         <div className="px-5 py-3 border-b border-amber-100 dark:border-amber-900/40 flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10">
           <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-            Head of Department requests {!loading && `(${requests.length})`}
+            {t("admin.hodRequests")} {!loading && `(${requests.length})`}
           </span>
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-slate-400 animate-pulse text-sm">Loading…</div>
+          <div className="py-8 text-center text-slate-400 animate-pulse text-sm">{t("admin.loading")}</div>
         ) : requests.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-sm">No pending requests</div>
+          <div className="py-8 text-center text-slate-400 text-sm">{t("admin.noPendingRequests")}</div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
             {requests.map(req => {
@@ -175,17 +177,17 @@ export default function AdminPage() {
                       {u.institution.name} — {u.institution.city}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      Requested {new Date(req.requestedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                      {t("admin.requested")} {new Date(req.requestedAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => handleRequest(req.id, "reject")} disabled={acting === req.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors">
-                      <X className="h-3.5 w-3.5" /> Reject
+                      <X className="h-3.5 w-3.5" /> {t("admin.reject")}
                     </button>
                     <button onClick={() => handleRequest(req.id, "approve")} disabled={acting === req.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors">
-                      <Check className="h-3.5 w-3.5" /> Approve
+                      <Check className="h-3.5 w-3.5" /> {t("admin.approve")}
                     </button>
                   </div>
                 </div>
@@ -200,17 +202,17 @@ export default function AdminPage() {
         <div className="px-5 py-3 border-b border-slate-100 dark:border-[#2a2a2a] flex items-center gap-2">
           <Users className="h-4 w-4 text-slate-400" />
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            All users {!loading && `(${users.length})`}
+            {t("admin.allUsers")} {!loading && `(${users.length})`}
           </span>
         </div>
         {loading ? (
-          <div className="py-16 text-center text-slate-400 animate-pulse text-sm">Loading…</div>
+          <div className="py-16 text-center text-slate-400 animate-pulse text-sm">{t("admin.loading")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-[#161616] text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
-                  {["Name", "Email", "Institution", "Role", "Joined"].map(h => (
+                  {[t("admin.colName"), t("admin.colEmail"), t("admin.colInstitution"), t("admin.colRole"), t("admin.colJoined")].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
@@ -228,7 +230,7 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3">
                       {u.role === "ADMIN" ? (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Admin</span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{t("admin.roleAdmin")}</span>
                       ) : (
                         <select value={u.role === "CLINICIAN" || u.role === "RESEARCHER" ? "MEMBER" : u.role}
                           disabled={saving === u.id}
@@ -241,7 +243,7 @@ export default function AdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
-                      {new Date(u.createdAt).toLocaleDateString("en-GB")}
+                      {new Date(u.createdAt).toLocaleDateString(undefined)}
                     </td>
                   </tr>
                 ))}
@@ -252,9 +254,9 @@ export default function AdminPage() {
       </div>
 
       <div className="text-xs text-slate-400 dark:text-slate-500">
-        <p><strong>Member</strong> — sees only their own cases.</p>
-        <p><strong>Head of Dept</strong> — sees all cases within their institution.</p>
-        <p><strong>Admin</strong> — sees all cases across all institutions. Admin status set directly in the database.</p>
+        <p><strong>{t("admin.roleMember")}</strong> — {t("admin.legendMember")}</p>
+        <p><strong>{t("admin.roleHOD")}</strong> — {t("admin.legendHOD")}</p>
+        <p><strong>{t("admin.roleAdmin")}</strong> — {t("admin.legendAdmin")}</p>
       </div>
 
       <AuditLogSection />
@@ -268,18 +270,21 @@ type AuditRow = {
 }
 
 const ACTION_OPTIONS = ["", "CASE_CREATE", "CASE_UPDATE", "CASE_DELETE", "AI_ADVISE"]
-const ACTION_LABELS: Record<string, string> = {
-  "": "All actions", CASE_CREATE: "Case created", CASE_UPDATE: "Case updated",
-  CASE_DELETE: "Case deleted", AI_ADVISE: "AI advise",
-}
 
 function AuditLogSection() {
+  const t = useTranslations()
   const [logs,    setLogs]    = useState<AuditRow[]>([])
   const [total,   setTotal]   = useState(0)
   const [page,    setPage]    = useState(0)
   const [action,  setAction]  = useState("")
   const [loading, setLoading] = useState(false)
   const [loaded,  setLoaded]  = useState(false)
+
+  const ACTION_LABELS: Record<string, string> = {
+    "": t("admin.allActions"), CASE_CREATE: t("admin.actionCaseCreate"),
+    CASE_UPDATE: t("admin.actionCaseUpdate"), CASE_DELETE: t("admin.actionCaseDelete"),
+    AI_ADVISE: t("admin.actionAiAdvise"),
+  }
 
   async function load(p = page, a = action) {
     setLoading(true)
@@ -307,7 +312,7 @@ function AuditLogSection() {
         <div className="flex items-center gap-2">
           <ScrollText className="h-4 w-4 text-slate-400" />
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Audit log {loaded && `(${total})`}
+            {t("admin.auditLog")} {loaded && `(${total})`}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -318,25 +323,25 @@ function AuditLogSection() {
           {!loaded && (
             <button onClick={() => load(0)}
               className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#333] transition-colors">
-              Load
+              {t("admin.load")}
             </button>
           )}
         </div>
       </div>
 
       {!loaded ? (
-        <div className="py-10 text-center text-slate-400 text-sm">Click Load to fetch audit logs</div>
+        <div className="py-10 text-center text-slate-400 text-sm">{t("admin.clickToLoad")}</div>
       ) : loading ? (
-        <div className="py-10 text-center text-slate-400 animate-pulse text-sm">Loading…</div>
+        <div className="py-10 text-center text-slate-400 animate-pulse text-sm">{t("admin.loading")}</div>
       ) : logs.length === 0 ? (
-        <div className="py-10 text-center text-slate-400 text-sm">No entries</div>
+        <div className="py-10 text-center text-slate-400 text-sm">{t("admin.noEntries")}</div>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-[#161616] text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
-                  {["Time", "User", "Action", "Entity ID", "Detail"].map(h => (
+                  {[t("admin.colTime"), t("admin.colUser"), t("admin.colAction"), t("admin.colEntityId"), t("admin.colDetail")].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
                   ))}
                 </tr>
@@ -345,7 +350,7 @@ function AuditLogSection() {
                 {logs.map(l => (
                   <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition-colors">
                     <td className="px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
-                      {new Date(l.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(l.createdAt).toLocaleString(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </td>
                     <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 text-xs">{userName(l.user)}</td>
                     <td className="px-4 py-2.5">
@@ -366,7 +371,7 @@ function AuditLogSection() {
           </div>
           {totalPages > 1 && (
             <div className="px-5 py-3 border-t border-slate-100 dark:border-[#2a2a2a] flex items-center justify-between text-xs text-slate-500">
-              <span>Page {page + 1} of {totalPages}</span>
+              <span>{t("admin.pageOf", { page: page + 1, total: totalPages })}</span>
               <div className="flex gap-2">
                 <button onClick={() => load(page - 1)} disabled={page === 0}
                   className="p-1 rounded hover:bg-slate-100 dark:hover:bg-[#2a2a2a] disabled:opacity-40 transition-colors">

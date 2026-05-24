@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { Sparkles, X, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useTranslations } from "next-intl"
 import type { PreopData } from "@/components/forms/PreopForm"
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 type Status = "idle" | "loading" | "done" | "error"
 
 export function AIAdvisor({ getFormData }: Props) {
+  const t = useTranslations()
   const [open, setOpen]     = useState(false)
   const [status, setStatus] = useState<Status>("idle")
   const [text, setText]     = useState("")
@@ -78,7 +80,7 @@ export function AIAdvisor({ getFormData }: Props) {
           size="lg"
         >
           <Sparkles className="h-4 w-4" />
-          {status === "loading" ? "Analysing…" : "AI Clinical Analysis"}
+          {status === "loading" ? t("ai.analysing") : t("ai.button")}
         </Button>
         {open && status !== "loading" && (
           <button
@@ -87,7 +89,7 @@ export function AIAdvisor({ getFormData }: Props) {
             className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm"
           >
             {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {open ? "Collapse" : "Expand"}
+            {open ? t("ai.collapse") : t("ai.expand")}
           </button>
         )}
       </div>
@@ -98,7 +100,7 @@ export function AIAdvisor({ getFormData }: Props) {
           <div className="flex items-center justify-between px-4 py-3 bg-violet-100 dark:bg-violet-900 border-b border-violet-200 dark:border-violet-800">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-              <span className="text-sm font-semibold text-violet-800 dark:text-violet-200">AI Clinical Analysis — Mistral (EU)</span>
+              <span className="text-sm font-semibold text-violet-800 dark:text-violet-200">{t("ai.header")}</span>
             </div>
             <button type="button" onClick={dismiss} className="text-violet-400 hover:text-violet-700 dark:text-violet-500 dark:hover:text-violet-300">
               <X className="h-4 w-4" />
@@ -109,7 +111,7 @@ export function AIAdvisor({ getFormData }: Props) {
           <div className="flex items-start gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-800">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              AI-generated — for decision support only. Clinical judgement of the responsible anaesthesiologist takes precedence.
+              {t("ai.disclaimer")}
             </p>
           </div>
 
@@ -118,13 +120,13 @@ export function AIAdvisor({ getFormData }: Props) {
             {status === "loading" && text === "" && (
               <div className="flex items-center gap-2 text-violet-600 text-sm py-4">
                 <span className="animate-spin">⟳</span>
-                <span>Analysing patient data…</span>
+                <span>{t("ai.analysingData")}</span>
               </div>
             )}
 
             {status === "error" && (
               <div className="text-red-600 text-sm py-2">
-                Error: {error}. Make sure MISTRAL_API_KEY is set in .env.
+                {t("ai.errorPrefix")}: {error}. {t("ai.errorHint")}
               </div>
             )}
 

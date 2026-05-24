@@ -44,35 +44,26 @@ async function fetchCases(userId: string, role: string, institutionId: string | 
   })
 }
 
-function computeStatus(c: CaseRow): { label: string; cls: string } {
-  // Fully completed
+type StatusKey = "finished" | "awaitingPostop" | "inTheatre" | "awaitingAllocation" | "inConsultation" | "draft"
+
+function computeStatus(c: CaseRow): { key: StatusKey; cls: string } {
   if (c.status === "COMPLETE") {
-    return { label: "Case finished", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" }
+    return { key: "finished",           cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" }
   }
-
-  // Intraop ended — awaiting post-op documentation
   if (c.intraop?.endTime != null) {
-    return { label: "Awaiting post-op", cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" }
+    return { key: "awaitingPostop",     cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" }
   }
-
-  // Intraop record exists — procedure in progress
   if (c.intraop != null) {
-    return { label: "In theatre", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" }
+    return { key: "inTheatre",          cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" }
   }
-
-  // Preop is substantively complete (diagnosis + procedure + ASA set)
   const preopComplete = !!(c.preop?.diagnosis && c.preop?.plannedProcedure && c.preop?.asaScore)
   if (preopComplete) {
-    return { label: "Awaiting allocation", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" }
+    return { key: "awaitingAllocation", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" }
   }
-
-  // Preop record exists with at least a diagnosis entered
   if (c.preop?.diagnosis) {
-    return { label: "In consultation", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
+    return { key: "inConsultation",     cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
   }
-
-  // Case created but nothing meaningful entered yet
-  return { label: "Draft", cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
+  return   { key: "draft",             cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
 }
 
 export default async function DashboardPage() {
@@ -171,7 +162,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
               {cases.map((c: CaseRow) => {
-                const { label, cls } = computeStatus(c)
+                const { key, cls } = computeStatus(c)
                 const isComplete = c.status === "COMPLETE"
                 const href = isComplete ? `/cases/${c.id}` : `/cases/new?continue=${c.id}`
                 return (
@@ -179,10 +170,10 @@ export default async function DashboardPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                          {c.preop?.plannedProcedure || "Untitled case"}
+                          {c.preop?.plannedProcedure || t("status.untitled")}
                         </p>
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
-                          {label}
+                          {t(`status.${key}`)}
                         </span>
                       </div>
                       <p className="text-sm text-slate-500 truncate mt-0.5">

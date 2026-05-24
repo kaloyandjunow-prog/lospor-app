@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { UserCheck, Check, X, Loader2 } from "lucide-react"
-import { useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 
 interface PendingTransfer {
   id: string
@@ -16,8 +16,7 @@ interface PendingTransfer {
 }
 
 export function PendingHandovers() {
-  const locale  = useLocale()
-  const isBg    = locale === "bg"
+  const t = useTranslations()
   const [items, setItems]   = useState<PendingTransfer[]>([])
   const [acting, setActing] = useState<Record<string, boolean>>({})
 
@@ -49,7 +48,7 @@ export function PendingHandovers() {
       <div className="flex items-center gap-2">
         <UserCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-          {isBg ? "Чакащи предавания на случаи" : "Pending case handovers"}
+          {t("transfer.pendingHandovers")}
         </p>
       </div>
 
@@ -57,11 +56,11 @@ export function PendingHandovers() {
         <div key={item.id} className="flex items-center justify-between gap-4 bg-white dark:bg-[#1c1c1c] rounded-lg px-4 py-3 border border-amber-100 dark:border-amber-800/40">
           <div className="min-w-0">
             <p className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate">
-              {item.case.preop?.plannedProcedure || (isBg ? "Неозаглавен случай" : "Untitled case")}
+              {item.case.preop?.plannedProcedure || t("status.untitled")}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {item.case.preop?.diagnosis && <span>{item.case.preop.diagnosis} · </span>}
-              {isBg ? "от" : "from"} <span className="font-medium">{item.fromUser.name}</span>
+              {t("transfer.from")} <span className="font-medium">{item.fromUser.name}</span>
               {item.case.caseCode && <span className="ml-1 font-mono text-slate-400">#{item.case.caseCode}</span>}
             </p>
           </div>
@@ -72,7 +71,7 @@ export function PendingHandovers() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {acting[item.caseId] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-              {isBg ? "Приеми" : "Accept"}
+              {t("transfer.accept")}
             </button>
             <button
               onClick={() => respond(item.caseId, "decline")}
@@ -80,7 +79,7 @@ export function PendingHandovers() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg transition-colors disabled:opacity-50"
             >
               <X className="h-3 w-3" />
-              {isBg ? "Откажи" : "Decline"}
+              {t("transfer.decline")}
             </button>
           </div>
         </div>

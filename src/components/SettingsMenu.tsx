@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from "react"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 type Category = "ui" | "automation" | "access" | "privacy"
 
@@ -68,6 +69,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   role?: string
   lastLoginAt?: string | null
 }) {
+  const t = useTranslations()
   const [open, setOpen]                     = useState(false)
   const [modalOpen, setModalOpen]           = useState(false)
   const [category, setCategory]             = useState<Category>("ui")
@@ -164,10 +166,10 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   }
 
   const CATS: { id: Category; label: string }[] = [
-    { id: "ui",         label: "UI Options"        },
-    { id: "automation", label: "Automation"         },
-    ...(role !== "ADMIN" ? [{ id: "access" as Category, label: "Security & Access" }] : []),
-    { id: "privacy",    label: "Privacy & Data"    },
+    { id: "ui",         label: t("settings.cats.ui")         },
+    { id: "automation", label: t("settings.cats.automation")  },
+    ...(role !== "ADMIN" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
+    { id: "privacy",    label: t("settings.cats.privacy")    },
   ]
 
   const [deleteConfirm, setDeleteConfirm] = useState("")
@@ -176,7 +178,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   return (
     <>
       <div className="relative" ref={menuRef}>
-        <button type="button" onClick={() => setOpen(v => !v)} title="Account & Settings"
+        <button type="button" onClick={() => setOpen(v => !v)} title={t("settings.accountSettings")}
           className={`p-2 rounded-lg transition-colors ${
             open
               ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200"
@@ -192,19 +194,19 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                 {userName && <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{userName}</p>}
                 {!instEdit ? (
                   <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || "No institution"}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || t("settings.noInstitution")}</p>
                     <button type="button" onClick={async () => {
                       if (!instList.length) {
                         const data = await fetch("/api/institutions").then(r => r.json())
                         setInstList(data)
                       }
                       setInstEdit(true)
-                    }} className="text-[10px] text-blue-500 hover:underline shrink-0">Edit</button>
+                    }} className="text-[10px] text-blue-500 hover:underline shrink-0">{t("settings.edit")}</button>
                   </div>
                 ) : (
                   <div className="space-y-1">
                     <input value={instQuery} onChange={e => setInstQuery(e.target.value)}
-                      placeholder="Search institution…"
+                      placeholder={t("settings.searchInstitution")}
                       className="w-full text-xs rounded border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     <div className="max-h-28 overflow-y-auto rounded border border-slate-100 dark:border-[#2a2a2a]">
                       {(instQuery
@@ -226,7 +228,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       ))}
                     </div>
                     <button type="button" onClick={() => { setInstEdit(false); setInstQuery("") }}
-                      className="text-[10px] text-slate-400 hover:text-slate-600">Cancel</button>
+                      className="text-[10px] text-slate-400 hover:text-slate-600">{t("settings.cancel")}</button>
                   </div>
                 )}
               </div>
@@ -234,12 +236,12 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
             <div className="py-1">
               <button type="button" disabled
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 dark:text-[#555] cursor-not-allowed select-none">
-                <User className="h-4 w-4" /> View Profile
+                <User className="h-4 w-4" /> {t("settings.viewProfile")}
               </button>
               <button type="button"
                 onClick={() => { setOpen(false); setModalOpen(true) }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                <Settings className="h-4 w-4" /> Settings
+                <Settings className="h-4 w-4" /> {t("settings.title")}
               </button>
             </div>
           </div>
@@ -255,7 +257,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
             {/* Sidebar */}
             <div className="w-40 shrink-0 bg-slate-50 dark:bg-[#161616] border-r border-slate-200 dark:border-[#2a2a2a] py-5">
-              <p className="px-4 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Settings</p>
+              <p className="px-4 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">{t("settings.title")}</p>
               {CATS.map(cat => (
                 <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
                   className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -283,15 +285,15 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
               <div className="flex-1 overflow-y-auto px-6">
                 {category === "ui" && (
                   <>
-                    <SettingRow label="Theme">
+                    <SettingRow label={t("settings.theme")}>
                       <PillGroup value={dark ? "dark" : "light"} onChange={v => applyTheme(v === "dark")}
                         options={[
-                          { value: "light", label: "Light", icon: <Sun className="h-3 w-3" /> },
-                          { value: "dark",  label: "Dark",  icon: <Moon className="h-3 w-3" /> },
+                          { value: "light", label: t("settings.themeLight"), icon: <Sun className="h-3 w-3" /> },
+                          { value: "dark",  label: t("settings.themeDark"),  icon: <Moon className="h-3 w-3" /> },
                         ]} />
                     </SettingRow>
 
-                    <SettingRow label="Language">
+                    <SettingRow label={t("settings.language")}>
                       <PillGroup value={locale} onChange={switchLocale}
                         options={[
                           { value: "en", label: "EN" },
@@ -299,39 +301,38 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         ]} />
                     </SettingRow>
 
-                    <SettingRow label="Form layout" description="Intraoperative form display style">
+                    <SettingRow label={t("settings.formLayout")} description={t("settings.formLayoutDesc")}>
                       <PillGroup value={layoutMode} onChange={v => applyLayout(v as "tabs" | "scroll")}
                         options={[
-                          { value: "tabs",   label: "Tabbed", icon: <LayoutList className="h-3 w-3" /> },
-                          { value: "scroll", label: "Scroll", icon: <Rows3 className="h-3 w-3" /> },
+                          { value: "tabs",   label: t("settings.layoutTabbed"), icon: <LayoutList className="h-3 w-3" /> },
+                          { value: "scroll", label: t("settings.layoutScroll"), icon: <Rows3 className="h-3 w-3" /> },
                         ]} />
                     </SettingRow>
 
-                    <SettingRow label="Timetable layout" description="Intraoperative timeline rows">
+                    <SettingRow label={t("settings.timetableLayout")} description={t("settings.timetableLayoutDesc")}>
                       <PillGroup value={ttLayout} onChange={v => applyTtLayout(v as "expand" | "scroll")}
                         options={[
-                          { value: "expand", label: "Stacked"    },
-                          { value: "scroll", label: "Scrollable" },
+                          { value: "expand", label: t("settings.layoutStacked")    },
+                          { value: "scroll", label: t("settings.layoutScrollable") },
                         ]} />
                     </SettingRow>
 
-                    <SettingRow label="Default monitoring" description="Monitors pre-selected for new cases">
+                    <SettingRow label={t("settings.defaultMonitoring")} description={t("settings.defaultMonitoringDesc")}>
                       <PillGroup value={defMon} onChange={v => applyDefMon(v as "standard" | "advanced")}
                         options={[
-                          { value: "standard", label: "Standard" },
-                          { value: "advanced", label: "Advanced" },
+                          { value: "standard", label: t("settings.monitoringStandard") },
+                          { value: "advanced", label: t("settings.monitoringAdvanced") },
                         ]} />
                     </SettingRow>
 
-                    <SettingRow label="Vitals chart" description="Start expanded by default">
+                    <SettingRow label={t("settings.vitalsChart")} description={t("settings.vitalsChartDesc")}>
                       <Toggle value={vitalsExp} onChange={applyVitalsExp} />
                     </SettingRow>
                   </>
                 )}
 
                 {category === "automation" && (
-                  <SettingRow label="Auto-fill vitals"
-                    description="When the clock advances to a new column, automatically copy the previous EtCO₂, Temperature and SpO₂ values into the new cell.">
+                  <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>
                     <Toggle value={autoFill} onChange={applyAutoFill} />
                   </SettingRow>
                 )}
@@ -339,26 +340,23 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                 {category === "access" && (
                   <div className="py-4 space-y-4">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">Head of Department access</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t("settings.hodAccess")}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Head of Department accounts can view all cases recorded within their institution.
-                        Requests are reviewed by an administrator.
+                        {t("settings.hodAccessDesc")}
                       </p>
                     </div>
 
-                    {/* HEAD_OF_DEPT already approved */}
                     {isHOD && (
                       <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-3">
-                        <p className="text-sm font-semibold text-green-700 dark:text-green-300">✓ Head of Department</p>
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-300">{t("settings.hodApproved")}</p>
                         {roleReq?.resolvedAt && (
                           <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                            Since {new Date(roleReq.resolvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                            {t("settings.hodSince")} {new Date(roleReq.resolvedAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
                           </p>
                         )}
                       </div>
                     )}
 
-                    {/* MEMBER states */}
                     {isMember && (() => {
                       const status = roleReq?.status
 
@@ -366,10 +364,10 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         <div className="space-y-2">
                           <button disabled
                             className="w-full py-2 px-4 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-[#2a2a2a] text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-[#3a3a3a] cursor-not-allowed">
-                            Request pending…
+                            {t("settings.requestPending")}
                           </button>
                           <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
-                            Awaiting administrator review
+                            {t("settings.awaitingReview")}
                           </p>
                         </div>
                       )
@@ -377,11 +375,11 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       if (status === "REJECTED") return (
                         <div className="space-y-2">
                           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-600 dark:text-red-400">
-                            Your previous request was not approved. You may submit a new request.
+                            {t("settings.previousRejected")}
                           </div>
                           <button onClick={submitRoleRequest} disabled={reqLoading}
                             className="w-full py-2 px-4 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white transition-colors">
-                            {reqLoading ? "Submitting…" : "Request Head of Department access"}
+                            {reqLoading ? t("settings.submitting") : t("settings.requestHOD")}
                           </button>
                         </div>
                       )
@@ -389,7 +387,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       return (
                         <button onClick={submitRoleRequest} disabled={reqLoading}
                           className="w-full py-2 px-4 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white transition-colors">
-                          {reqLoading ? "Submitting…" : "Request Head of Department access"}
+                          {reqLoading ? t("settings.submitting") : t("settings.requestHOD")}
                         </button>
                       )
                     })()}
@@ -400,37 +398,37 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                   <div className="space-y-4 py-2">
                     <div className="rounded-lg bg-slate-50 dark:bg-[#1a1a1a] border border-slate-100 dark:border-[#2a2a2a] px-4 py-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
                       {lastLoginAt && (
-                        <p><span className="font-medium">Last login:</span>{" "}
+                        <p><span className="font-medium">{t("settings.lastLogin")}</span>{" "}
                           {new Date(lastLoginAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
                         </p>
                       )}
-                      <p className="text-[11px]">1 active session</p>
+                      <p className="text-[11px]">{t("settings.activeSessions")}</p>
                     </div>
 
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Export my data</p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("settings.exportData")}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500">
-                        Download a JSON copy of your account, all cases, and the audit log (GDPR Article 15).
+                        {t("settings.exportDataDesc")}
                       </p>
                       <button type="button"
                         onClick={() => { window.location.href = "/api/user/export" }}
                         className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                        Download my data
+                        {t("settings.downloadData")}
                       </button>
                     </div>
 
                     <div className="space-y-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
-                      <p className="text-sm font-medium text-red-600 dark:text-red-400">Delete my account</p>
+                      <p className="text-sm font-medium text-red-600 dark:text-red-400">{t("settings.deleteAccount")}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500">
-                        Your account will be deactivated immediately. Cases are retained for 30 days then permanently deleted (GDPR Article 17). This cannot be undone.
+                        {t("settings.deleteAccountDesc")}
                       </p>
                       {deleting ? (
-                        <p className="text-xs text-slate-400">Deleting…</p>
+                        <p className="text-xs text-slate-400">{t("settings.deleting")}</p>
                       ) : (
                         <div className="space-y-2 mt-2">
                           <input
                             type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
-                            placeholder='Type DELETE to confirm'
+                            placeholder={t("settings.typeDeleteToConfirm")}
                             className="w-full text-xs rounded border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500 text-slate-700 dark:text-slate-200"
                           />
                           <button type="button"
@@ -441,7 +439,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                               window.location.href = "/login"
                             }}
                             className="w-full text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                            Confirm deletion
+                            {t("settings.confirmDeletion")}
                           </button>
                         </div>
                       )}

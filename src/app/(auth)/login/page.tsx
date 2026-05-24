@@ -114,13 +114,13 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-600">
-          <a href="/terms" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">Terms</a>
+          <a href="/terms" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">{t("nav.footerTerms")}</a>
           {" · "}
-          <a href="/privacy" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">Privacy</a>
+          <a href="/privacy" className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">{t("nav.footerPrivacy")}</a>
           {" · "}
           <a href="https://docs.lospor.org" target="_blank" rel="noopener noreferrer"
             className="hover:text-slate-500 dark:hover:text-slate-400 transition-colors underline underline-offset-2">
-            Documentation
+            {t("nav.footerDocs")}
           </a>
         </p>
       </div>

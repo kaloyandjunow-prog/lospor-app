@@ -637,6 +637,7 @@ const LABELS = {
     noDrugs: "No drugs recorded", evening: "Evening", morning: "Morning",
     latexAllergy: "⚠ Latex allergy", familyHistory: "⚠ Family anaesthesia history",
     difficultAirway: "⚠ Difficult airway history",
+    loadingCase: "Loading case summary…", loadFailed: "Failed to load case data.",
   },
   bg: {
     protocol: "АНЕСТЕЗИОЛОГИЧЕН ПРОТОКОЛ", preoppost: "Предоперативна и следоперативна оценка",
@@ -671,6 +672,7 @@ const LABELS = {
     noDrugs: "Без записани медикаменти", evening: "Вечер", morning: "Сутрин",
     latexAllergy: "⚠ Алергия към латекс", familyHistory: "⚠ Фамилна анестезиологична история",
     difficultAirway: "⚠ История на труден дихателен път",
+    loadingCase: "Зареждане на резюмето…", loadFailed: "Грешка при зареждане на данните.",
   },
 }
 
@@ -693,8 +695,8 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     fetch(`/api/cases/${caseId}`).then(r => r.json()).then(d => { setData(d); setLoading(false) })
   }, [caseId])
 
-  if (loading) return <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-12 animate-pulse">Loading case summary…</div>
-  if (!data)   return <div className="text-sm text-red-500 text-center py-12">Failed to load case data.</div>
+  if (loading) return <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-12 animate-pulse">{L.loadingCase}</div>
+  if (!data)   return <div className="text-sm text-red-500 text-center py-12">{L.loadFailed}</div>
 
   const p    = data.preop
   const i    = data.intraop

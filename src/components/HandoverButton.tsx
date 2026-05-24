@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { UserCheck, Loader2, Check, ChevronDown } from "lucide-react"
-import { useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 
 interface Colleague { id: string; name: string; title: string; role: string }
 
@@ -17,8 +17,7 @@ interface Props {
 }
 
 export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole, hasPendingTransfer, onTransferred }: Props) {
-  const locale = useLocale()
-  const isBg   = locale === "bg"
+  const t = useTranslations()
 
   const [open,        setOpen]        = useState(false)
   const [colleagues,  setColleagues]  = useState<Colleague[]>([])
@@ -46,9 +45,9 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
 
   if (!canInitiate) return null
 
-  const label = isBg
-    ? (pending ? "Очаква се приемане" : (isHOD || isAdmin) ? "Назначи" : "Предай")
-    : (pending ? "Awaiting acceptance" : (isHOD || isAdmin) ? "Assign to" : "Hand over")
+  const label = pending
+    ? t("transfer.awaitingAcceptance")
+    : (isHOD || isAdmin) ? t("transfer.assign") : t("transfer.handOver")
 
   const filtered = colleagues.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -81,7 +80,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
   if (done) return (
     <span className="inline-flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
       <Check className="h-3.5 w-3.5" />
-      {isBg ? "Прехвърлен" : "Transferred"}
+      {t("transfer.transferred")}
     </span>
   )
 
@@ -118,13 +117,13 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
             onClick={e => { e.preventDefault(); e.stopPropagation() }}
           >
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {isBg ? "Избери колега" : "Select colleague"}
+              {t("transfer.selectColleague")}
             </p>
             <input
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder={isBg ? "Търсене…" : "Search…"}
+              placeholder={t("transfer.search")}
               className="w-full text-sm rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-3 py-1.5 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
@@ -136,7 +135,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
               )}
               {!loading && filtered.length === 0 && (
                 <p className="text-xs text-slate-400 text-center py-3">
-                  {isBg ? "Няма намерени колеги" : "No colleagues found"}
+                  {t("transfer.noColleagues")}
                 </p>
               )}
               {filtered.map(c => (
@@ -151,7 +150,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
                   {c.title && <span className="text-slate-400 dark:text-slate-500 ml-1 text-xs">{c.title}</span>}
                   {c.role !== "MEMBER" && (
                     <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-                      {c.role === "HEAD_OF_DEPT" ? (isBg ? "Нач. отд." : "HOD") : "Admin"}
+                      {c.role === "HEAD_OF_DEPT" ? t("transfer.hod") : "Admin"}
                     </span>
                   )}
                 </button>
@@ -162,8 +161,8 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
               <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                   {isHOD || isAdmin
-                    ? (isBg ? `Незабавно прехвърляне към ${selected.name}` : `Instantly transfer to ${selected.name}`)
-                    : (isBg ? `Ще изпратите заявка до ${selected.name}` : `Will send a request to ${selected.name}`)
+                    ? t("transfer.instantTransfer", { name: selected.name })
+                    : t("transfer.sendRequestNote", { name: selected.name })
                   }
                 </p>
                 <button
@@ -172,10 +171,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
                   {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {isHOD || isAdmin
-                    ? (isBg ? "Назначи" : "Assign now")
-                    : (isBg ? "Изпрати заявка" : "Send request")
-                  }
+                  {isHOD || isAdmin ? t("transfer.assignNow") : t("transfer.sendRequestBtn")}
                 </button>
               </div>
             )}

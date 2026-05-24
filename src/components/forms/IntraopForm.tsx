@@ -1092,7 +1092,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Preop summary */}
       {preop && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Preoperative summary</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">{t("intraop.preopSummary")}</p>
           {preop.diagnosis && (
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">{preop.diagnosis}</p>
           )}
@@ -1106,7 +1106,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
               </span>
             )}
             {preop.emergencySurgery && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">EMERGENCY</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">{t("intraop.emergencyBadge")}</span>
             )}
             {preop.bmi != null && <span className="text-slate-600 dark:text-slate-300">BMI {preop.bmi}</span>}
             {preop.heightCm && preop.weightKg && preop.sex && (() => {

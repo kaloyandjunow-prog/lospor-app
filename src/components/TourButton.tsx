@@ -3,23 +3,15 @@
 import { useState } from "react"
 import { HelpCircle, LayoutDashboard, ClipboardList, Activity, Heart, FileText, BookOpen, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 import { useTour, type TourId } from "@/context/TourContext"
-
-const FORM_TOURS: { id: TourId; icon: React.ReactNode; en: string; bg: string }[] = [
-  { id: "preop",   icon: <ClipboardList className="h-3.5 w-3.5" />, en: "Preoperative guide",   bg: "Предоперативна форма"  },
-  { id: "intraop", icon: <Activity      className="h-3.5 w-3.5" />, en: "Intraoperative guide", bg: "Интраоперативна форма" },
-  { id: "postop",  icon: <Heart         className="h-3.5 w-3.5" />, en: "Postoperative guide",  bg: "Следоперативна форма"  },
-  { id: "summary", icon: <FileText      className="h-3.5 w-3.5" />, en: "Protocol guide",       bg: "Протокол / резюме"    },
-]
 
 const STEP_TOUR_ID: TourId[] = ["preop", "intraop", "postop", "summary"]
 
 export function TourButton() {
   const { startTour, currentFormStep } = useTour()
-  const router  = useRouter()
-  const locale  = useLocale()
-  const isBg    = locale === "bg"
+  const router = useRouter()
+  const t = useTranslations()
 
   const [dropOpen,       setDropOpen]       = useState(false)
   const [showDemoPrompt, setShowDemoPrompt] = useState(false)
@@ -68,28 +60,24 @@ export function TourButton() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
-                  {isBg ? "Примерен случай" : "Example case walkthrough"}
+                  {t("tour.exampleCase")}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {isBg
-                    ? "70-год. мъж, колектомия при рак на дебелото черво, 3-часова обща + епидурална анестезия."
-                    : "70yo male, colectomy for colon cancer — 3-hour general + epidural anaesthesia."}
+                  {t("tour.exampleCaseDesc")}
                 </p>
               </div>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              {isBg
-                ? "Ще ви преведем през цялото попълване на случая стъпка по стъпка — като в игра."
-                : "We'll walk you through the full case workflow step by step — like a game tutorial."}
+              {t("tour.exampleCaseIntro")}
             </p>
             <div className="flex gap-2 pt-1">
               <button onClick={() => setShowDemoPrompt(false)}
                 className="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                {isBg ? "Не, благодаря" : "No thanks"}
+                {t("tour.noThanks")}
               </button>
               <button onClick={openDemoCase}
                 className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                {isBg ? "Да, покажи ми!" : "Yes, let's go!"}
+                {t("tour.letsGo")}
               </button>
             </div>
           </div>
@@ -101,7 +89,7 @@ export function TourButton() {
         <button
           type="button"
           onClick={() => setDropOpen(v => !v)}
-          title={isBg ? "Наръчници и помощ" : "Guides & help"}
+          title={t("tour.guidesHelp")}
           className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
         >
           {demoLoading
@@ -116,9 +104,14 @@ export function TourButton() {
 
               {/* Form-specific guides */}
               <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                {isBg ? "Наръчници за форми" : "Form guides"}
+                {t("tour.formGuides")}
               </p>
-              {FORM_TOURS.map(opt => (
+              {([
+                { id: "preop",   icon: <ClipboardList className="h-3.5 w-3.5" />, label: t("tour.preop")   },
+                { id: "intraop", icon: <Activity      className="h-3.5 w-3.5" />, label: t("tour.intraop") },
+                { id: "postop",  icon: <Heart         className="h-3.5 w-3.5" />, label: t("tour.postop")  },
+                { id: "summary", icon: <FileText      className="h-3.5 w-3.5" />, label: t("tour.summary") },
+              ] as { id: TourId; icon: React.ReactNode; label: string }[]).map(opt => (
                 <button key={opt.id} onClick={() => triggerTour(opt.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left
                     ${opt.id === activeTourId
@@ -128,8 +121,8 @@ export function TourButton() {
                   <span className={opt.id === activeTourId ? "text-blue-500" : "text-slate-400 dark:text-slate-500"}>
                     {opt.icon}
                   </span>
-                  {isBg ? opt.bg : opt.en}
-                  {opt.id === activeTourId && <span className="ml-auto text-[10px] text-blue-400">← current</span>}
+                  {opt.label}
+                  {opt.id === activeTourId && <span className="ml-auto text-[10px] text-blue-400">{t("tour.currentLabel")}</span>}
                 </button>
               ))}
 
@@ -137,19 +130,19 @@ export function TourButton() {
 
               {/* Dashboard tour */}
               <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                {isBg ? "Общи" : "General"}
+                {t("tour.general")}
               </p>
               <button onClick={triggerDashboard}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors text-left">
                 <span className="text-slate-400 dark:text-slate-500"><LayoutDashboard className="h-3.5 w-3.5" /></span>
-                {isBg ? "Обиколка на таблото" : "Dashboard tour"}
+                {t("tour.dashboardTour")}
               </button>
 
               {/* Example case */}
               <button onClick={() => { setDropOpen(false); setShowDemoPrompt(true) }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors text-left">
                 <span className="text-slate-400 dark:text-slate-500"><BookOpen className="h-3.5 w-3.5" /></span>
-                {isBg ? "Примерен случай" : "Example case walkthrough"}
+                {t("tour.exampleCase")}
               </button>
             </div>
           </>

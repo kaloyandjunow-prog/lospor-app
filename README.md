@@ -73,7 +73,7 @@ See [.env.example](.env.example) for all required variables.
 
 ## Tech stack
 
-Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI (EU)
+Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI (EU) · Vercel Analytics
 
 ## Licence
 

@@ -4,6 +4,14 @@ All notable changes to LOSPOR are documented here.
 
 ---
 
+## [0.4.2] — 2026-05-24
+
+### Features
+- **Full Bulgarian UI translation** — all user-visible strings across the app now route through next-intl instead of being hardcoded in English. Components and pages converted: admin panel (including audit log section), app layout (nav and footer), case entry wizard (save status, countdown banner, navigation buttons), login page, register page (institution picker, medical disclaimer, footer), CaseSummary (loading/error states), TourButton (guides menu and demo prompt), PreopForm (safety section, vitals labels, airway section, lab section, emergency surgery button), and IntraopForm (preop summary banner). New translation keys added across the `preop`, `intraop`, `case`, `tour`, `auth`, `nav`, `admin`, and `status` namespaces in both `en.json` and `bg.json`.
+- **Vercel Analytics** — page-view analytics via `@vercel/analytics/next` added to the root layout. Active on all routes when deployed to Vercel; no-op in local development.
+
+---
+
 ## [0.4.1] — 2026-05-24
 
 ### Fixes

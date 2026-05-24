@@ -3,8 +3,10 @@
 import { useState, useRef } from "react"
 import { Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 export function DeleteDraftButton({ caseId }: { caseId: string }) {
+  const t = useTranslations()
   const [stage, setStage] = useState<"idle" | "confirm" | "deleting">("idle")
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
@@ -21,7 +23,6 @@ export function DeleteDraftButton({ caseId }: { caseId: string }) {
       return
     }
 
-    // stage === "confirm" — execute delete
     if (timerRef.current) clearTimeout(timerRef.current)
     setStage("deleting")
     fetch(`/api/cases/${caseId}`, { method: "DELETE" })
@@ -41,7 +42,7 @@ export function DeleteDraftButton({ caseId }: { caseId: string }) {
       }`}
     >
       <Trash2 className="h-3.5 w-3.5" />
-      {stage === "deleting" ? "Deleting…" : stage === "confirm" ? "Confirm?" : "Delete"}
+      {stage === "deleting" ? t("case.deletingBtn") : stage === "confirm" ? t("case.confirmDelete") : t("case.deleteBtn")}
     </button>
   )
 }

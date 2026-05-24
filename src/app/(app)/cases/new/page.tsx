@@ -276,8 +276,8 @@ export default function NewCasePage() {
       }
 
       if (showToast) toast.success(
-        section === "preop"   ? "Preoperative data saved"   :
-        section === "intraop" ? "Intraoperative data saved" : t("case.savedSuccess")
+        section === "preop"   ? t("case.preopSaved")   :
+        section === "intraop" ? t("case.intraopSaved") : t("case.savedSuccess")
       )
       return true
     } catch (err: any) {
@@ -383,7 +383,7 @@ export default function NewCasePage() {
       })
       router.push(`/cases/${id}`)
     } catch {
-      toast.error("Could not close case — please try again.")
+      toast.error(t("case.couldNotClose"))
     }
   }
 
@@ -407,9 +407,9 @@ export default function NewCasePage() {
             <CaseMeta caseId={caseId} caseCode={caseCode} />
           )}
           <div className="text-xs">
-            {saveStatus === "saving" && <span className="text-slate-400 animate-pulse">Saving draft…</span>}
-            {saveStatus === "saved"  && <span className="text-green-500">✓ Draft saved</span>}
-            {saveStatus === "error"  && <span className="text-red-400">Auto-save failed</span>}
+            {saveStatus === "saving" && <span className="text-slate-400 animate-pulse">{t("case.savingDraft")}</span>}
+            {saveStatus === "saved"  && <span className="text-green-500">{t("case.draftSaved")}</span>}
+            {saveStatus === "error"  && <span className="text-red-400">{t("case.autoSaveFailed")}</span>}
           </div>
         </div>
       </div>
@@ -442,7 +442,7 @@ export default function NewCasePage() {
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="text-sm text-amber-700 dark:text-amber-300">
-              Case pending close — auto-closes in{" "}
+              {t("case.pendingClose")}{" "}
               <span className="font-bold tabular-nums">
                 {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
               </span>
@@ -451,14 +451,14 @@ export default function NewCasePage() {
           <Button size="sm" variant="outline"
             className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40"
             onClick={() => setStep(3)}>
-            Back to Summary
+            {t("case.backToSummary")}
           </Button>
         </div>
       )}
 
       {loading && (
         <div className="flex items-center justify-center py-20 text-slate-400">
-          <span className="animate-pulse">Loading draft…</span>
+          <span className="animate-pulse">{t("case.loadingDraft")}</span>
         </div>
       )}
 
@@ -523,25 +523,25 @@ export default function NewCasePage() {
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <div>
-                <p className="font-semibold text-amber-800 dark:text-amber-300">Case is pending close</p>
-                <p className="text-sm text-amber-600 dark:text-amber-400">
+                <p className="font-semibold text-amber-800 dark:text-amber-300">
+                  {t("case.pendingClose")}{" "}
                   {closeSecsLeft !== null
-                    ? <>Review and correct any data. Case closes automatically in{" "}
-                        <span className="font-bold tabular-nums">
-                          {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
-                        </span>.</>
-                    : "Case has been closed."}
+                    ? <span className="font-bold tabular-nums">
+                        {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
+                      </span>
+                    : t("case.caseClosed")}
                 </p>
+                <p className="text-sm text-amber-600 dark:text-amber-400">{t("case.pendingCloseHint")}</p>
               </div>
             </div>
             {closeSecsLeft !== null && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-amber-600 dark:text-amber-400">Edit:</span>
-                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(0)}>Preop</Button>
-                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(1)}>Intraop</Button>
-                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(2)}>Postop</Button>
+                <span className="text-xs text-amber-600 dark:text-amber-400">{t("settings.edit")}:</span>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(0)}>{t("case.steps.preop")}</Button>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(1)}>{t("case.steps.intraop")}</Button>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(2)}>{t("case.steps.postop")}</Button>
                 <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setCloseSecsLeft(null); finaliseCase() }}>
-                  Close Now
+                  {t("case.closeNow")}
                 </Button>
               </div>
             )}
@@ -553,11 +553,11 @@ export default function NewCasePage() {
 
           {/* Navigation — hidden on print */}
           <div className="no-print flex justify-between items-center pt-2">
-            <Button variant="outline" onClick={() => setStep(2)}>← Edit postop</Button>
+            <Button variant="outline" onClick={() => setStep(2)}>{t("case.editPostop")}</Button>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>Dashboard</Button>
+              <Button variant="outline" onClick={() => router.push("/dashboard")}>{t("nav.dashboard")}</Button>
               <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => router.push(`/cases/${caseId}`)}>
-                Go to case →
+                {t("case.goToCase")}
               </Button>
             </div>
           </div>
