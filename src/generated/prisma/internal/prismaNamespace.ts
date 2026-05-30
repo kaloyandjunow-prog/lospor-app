@@ -387,6 +387,7 @@ export const ModelName = {
   User: 'User',
   Institution: 'Institution',
   Case: 'Case',
+  CaseLock: 'CaseLock',
   CaseTransfer: 'CaseTransfer',
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "revokedToken" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
+    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "revokedToken" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -635,6 +636,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CaseCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CaseCountAggregateOutputType> | number
+        }
+      }
+    }
+    CaseLock: {
+      payload: Prisma.$CaseLockPayload<ExtArgs>
+      fields: Prisma.CaseLockFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CaseLockFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CaseLockFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        findFirst: {
+          args: Prisma.CaseLockFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CaseLockFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        findMany: {
+          args: Prisma.CaseLockFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>[]
+        }
+        create: {
+          args: Prisma.CaseLockCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        createMany: {
+          args: Prisma.CaseLockCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CaseLockCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>[]
+        }
+        delete: {
+          args: Prisma.CaseLockDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        update: {
+          args: Prisma.CaseLockUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        deleteMany: {
+          args: Prisma.CaseLockDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CaseLockUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CaseLockUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>[]
+        }
+        upsert: {
+          args: Prisma.CaseLockUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseLockPayload>
+        }
+        aggregate: {
+          args: Prisma.CaseLockAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCaseLock>
+        }
+        groupBy: {
+          args: Prisma.CaseLockGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseLockGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CaseLockCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseLockCountAggregateOutputType> | number
         }
       }
     }
@@ -1455,11 +1530,22 @@ export const CaseScalarFieldEnum = {
   notes: 'notes',
   userId: 'userId',
   status: 'status',
+  finalizedAt: 'finalizedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type CaseScalarFieldEnum = (typeof CaseScalarFieldEnum)[keyof typeof CaseScalarFieldEnum]
+
+
+export const CaseLockScalarFieldEnum = {
+  caseId: 'caseId',
+  userId: 'userId',
+  deviceId: 'deviceId',
+  expiresAt: 'expiresAt'
+} as const
+
+export type CaseLockScalarFieldEnum = (typeof CaseLockScalarFieldEnum)[keyof typeof CaseLockScalarFieldEnum]
 
 
 export const CaseTransferScalarFieldEnum = {
@@ -1548,7 +1634,9 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   bloodType: 'bloodType',
   rhFactor: 'rhFactor',
   diagnosis: 'diagnosis',
+  diagnosesJson: 'diagnosesJson',
   plannedProcedure: 'plannedProcedure',
+  proceduresJson: 'proceduresJson',
   icdCode: 'icdCode',
   teamNotes: 'teamNotes',
   comorbidities: 'comorbidities',
@@ -2185,6 +2273,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   institution?: Prisma.InstitutionOmit
   case?: Prisma.CaseOmit
+  caseLock?: Prisma.CaseLockOmit
   caseTransfer?: Prisma.CaseTransferOmit
   roleRequest?: Prisma.RoleRequestOmit
   icd10BgCode?: Prisma.Icd10BgCodeOmit

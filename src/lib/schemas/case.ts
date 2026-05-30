@@ -11,8 +11,10 @@ const coerceInt = z.preprocess(
   z.number().int().nullable().optional()
 )
 
+// Item 26: Canonical format for diagnoses/procedures — { label, code?, sub?, system? }
 const labelledItem = z.object({
   label:  z.string(),
+  code:   z.string().optional(),
   sub:    z.string().optional(),
   system: z.string().optional(),
 }).passthrough()
@@ -74,7 +76,13 @@ export const preopSchema = z.object({
   apfelScore:      coerceInt,
   stopBangScore:   coerceInt,
 
-  labResults: z.array(z.record(z.string(), z.unknown())).optional(),
+  // Item 27: Strict lab result shape matching the lab scan extractor output
+  labResults: z.array(z.object({
+    test:  z.string(),
+    value: z.string(),
+    unit:  z.string().optional(),
+    flag:  z.string().optional(),
+  })).optional(),
 }).passthrough()
 
 export const intraopSchema = z.object({
@@ -137,12 +145,18 @@ export const intraopSchema = z.object({
   complications:  z.string().max(2000).nullable().optional(),
 }).passthrough()
 
+// Item 25: Aldrete subscores are always 0, 1, or 2; reject out-of-range values
+const aldreteSubscore = z.preprocess(
+  v => (v === "" || v === null || v === undefined) ? null : parseInt(String(v), 10),
+  z.number().int().min(0).max(2).nullable().optional()
+)
+
 export const postopSchema = z.object({
-  aldreteActivity:      coerceInt,
-  aldreteRespiration:   coerceInt,
-  aldreteCirculation:   coerceInt,
-  aldreteConsciousness: coerceInt,
-  aldreteSpO2:          coerceInt,
+  aldreteActivity:      aldreteSubscore,
+  aldreteRespiration:   aldreteSubscore,
+  aldreteCirculation:   aldreteSubscore,
+  aldreteConsciousness: aldreteSubscore,
+  aldreteSpO2:          aldreteSubscore,
   aldreteTotal:         coerceInt,
 
   painScoreNRS:       coerceInt,

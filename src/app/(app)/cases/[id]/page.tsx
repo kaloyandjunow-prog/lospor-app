@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -97,6 +98,9 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       </div>
+
+      {/* Live sync — receives SSE events from mobile and refreshes the page */}
+      <LiveCaseUpdater caseId={id} />
 
       {/* Case summary — rendered OUTSIDE the max-width container so print CSS can make it full-width */}
       <CaseSummary caseId={id} />

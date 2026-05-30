@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   Institution: 'Institution',
   Case: 'Case',
+  CaseLock: 'CaseLock',
   CaseTransfer: 'CaseTransfer',
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
@@ -120,11 +121,22 @@ export const CaseScalarFieldEnum = {
   notes: 'notes',
   userId: 'userId',
   status: 'status',
+  finalizedAt: 'finalizedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type CaseScalarFieldEnum = (typeof CaseScalarFieldEnum)[keyof typeof CaseScalarFieldEnum]
+
+
+export const CaseLockScalarFieldEnum = {
+  caseId: 'caseId',
+  userId: 'userId',
+  deviceId: 'deviceId',
+  expiresAt: 'expiresAt'
+} as const
+
+export type CaseLockScalarFieldEnum = (typeof CaseLockScalarFieldEnum)[keyof typeof CaseLockScalarFieldEnum]
 
 
 export const CaseTransferScalarFieldEnum = {
@@ -213,7 +225,9 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   bloodType: 'bloodType',
   rhFactor: 'rhFactor',
   diagnosis: 'diagnosis',
+  diagnosesJson: 'diagnosesJson',
   plannedProcedure: 'plannedProcedure',
+  proceduresJson: 'proceduresJson',
   icdCode: 'icdCode',
   teamNotes: 'teamNotes',
   comorbidities: 'comorbidities',

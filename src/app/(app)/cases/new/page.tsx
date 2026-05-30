@@ -15,8 +15,21 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { CaseSummary } from "@/components/CaseSummary"
 import { useTour } from "@/context/TourContext"
+import { useCaseLock } from "@/hooks/useCaseLock"
+import { WatchingBanner } from "@/components/WatchingBanner"
+import { ConflictModal } from "@/components/ConflictModal"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
+
+interface ConflictState {
+  open: boolean
+  localValues: Record<string, unknown>
+  serverValues: Record<string, unknown>
+  section: "preop" | "intraop" | "postop"
+  pendingData: any
+  nextStep?: number
+  showToast?: boolean
+}
 
 export default function NewCasePage() {
   const router       = useRouter()
@@ -31,9 +44,11 @@ export default function NewCasePage() {
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
+  const [eventLog, setEventLog] = useState<any[]>([])
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
   const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("scroll")
+  const [preopLayout, setPreopLayout] = useState<"tabs" | "scroll">("scroll")
   // 30-minute graceful close window (seconds remaining; null = not started)
   const [closeSecsLeft, setCloseSecsLeft] = useState<number | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -41,9 +56,13 @@ export default function NewCasePage() {
   useEffect(() => {
     const stored = localStorage.getItem("layoutMode")
     if (stored === "tabs" || stored === "scroll") setLayoutMode(stored)
+    const storedPreop = localStorage.getItem("preopLayout")
+    if (storedPreop === "tabs" || storedPreop === "scroll") setPreopLayout(storedPreop)
     const handler = (e: StorageEvent) => {
       if (e.key === "layoutMode" && (e.newValue === "tabs" || e.newValue === "scroll"))
         setLayoutMode(e.newValue)
+      if (e.key === "preopLayout" && (e.newValue === "tabs" || e.newValue === "scroll"))
+        setPreopLayout(e.newValue)
     }
     window.addEventListener("storage", handler)
     return () => window.removeEventListener("storage", handler)
@@ -54,6 +73,21 @@ export default function NewCasePage() {
   const [patientName, setPatientName] = useState("")
   const [patientId,   setPatientId]   = useState("")
   const [caseCode, setCaseCode]       = useState<string | null>(null)
+  const [conflict, setConflict]       = useState<ConflictState | null>(null)
+  // Tracks the last known server updatedAt timestamps so conflict headers are sent correctly
+  const preopUpdatedAtRef  = useRef<string | null>(null)
+  const postopUpdatedAtRef = useRef<string | null>(null)
+  // Undo finalization state
+  const [finalizedCaseId,   setFinalizedCaseId]   = useState<string | null>(null)
+  const [undoSecsLeft,      setUndoSecsLeft]       = useState<number | null>(null)
+  const [undoExpired,       setUndoExpired]        = useState(false)
+  const undoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const finalizedAtRef = useRef<number | null>(null)
+
+  const { isWatching, holderName, takeover } = useCaseLock(
+    caseId,
+    step < 3  // only lock during editing steps, not the summary step
+  )
 
   // Sync current form step into TourContext so TourButton and TourManager can react
   useEffect(() => {
@@ -74,6 +108,11 @@ export default function NewCasePage() {
     fetch(`/api/cases/${continueId}`)
       .then(r => r.json())
       .then(record => {
+        if (record.status === "COMPLETE") {
+          toast(t("case.caseFinalisedRedirect"))
+          router.replace(`/cases/${continueId}`)
+          return
+        }
         caseIdRef.current = continueId
         setCaseId(continueId)
         if (record.caseCode) setCaseCode(record.caseCode)
@@ -86,6 +125,13 @@ export default function NewCasePage() {
           const ke = record.intraop.keyEvents
           if (ke && typeof ke === "object" && !Array.isArray(ke) && "vitals" in (ke as object)) {
             try { setTimetableDefault(ke as TimetableData) } catch {}
+          }
+          // Extract mobile event log if present
+          if (ke && typeof ke === "object" && !Array.isArray(ke) && "log" in (ke as object)) {
+            const mobileLog = (ke as any).log
+            if (Array.isArray(mobileLog) && mobileLog.length > 0) {
+              setEventLog(mobileLog)
+            }
           }
         }
         // URL step param wins; fall back to deriving from saved data
@@ -109,8 +155,9 @@ export default function NewCasePage() {
     router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId])
 
-  // Cleanup close countdown on unmount
+  // Cleanup countdowns on unmount
   useEffect(() => () => { if (closeTimerRef.current) clearInterval(closeTimerRef.current) }, [])
+  useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
 
   // Convert Prisma DateTime → HH:MM. DB values are stored in UTC (ref date 2000-01-01),
   // so read UTC hours/minutes to recover the original local time the user entered.
@@ -241,7 +288,7 @@ export default function NewCasePage() {
   const saveSection = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: any,
-    { showToast = false, nextStep }: { showToast?: boolean; nextStep?: number } = {}
+    { showToast = false, nextStep, forceUpdate = false }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean } = {}
   ) => {
     try {
       if (!caseIdRef.current) {
@@ -264,15 +311,46 @@ export default function NewCasePage() {
         const bmi = section === "preop" && data.heightCm && data.weightKg
           ? calcBMI(data.heightCm, data.weightKg) : undefined
         const payload = section === "preop" ? { ...data, bmi } : data
+        const headers: Record<string, string> = { "Content-Type": "application/json" }
+        if (preopUpdatedAtRef.current && section === "preop")
+          headers["x-lospor-preop-updated-at"] = preopUpdatedAtRef.current
+        if (postopUpdatedAtRef.current && section === "postop")
+          headers["x-lospor-postop-updated-at"] = postopUpdatedAtRef.current
+        if (forceUpdate) headers["x-lospor-force-update"] = "true"
         const res = await fetch(`/api/cases/${caseIdRef.current}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ [section]: payload }),
         })
-        if (!res.ok) {
+        if (res.status === 409) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.error ?? "Save failed")
+          if (body.error === "conflict" && body.serverVersion) {
+            // Open conflict resolution modal instead of throwing
+            setConflict({
+              open: true,
+              localValues: payload,
+              serverValues: body.serverVersion,
+              section,
+              pendingData: data,
+              nextStep,
+              showToast,
+            })
+            return false
+          }
+          // Unknown 409 — treat as error
+          throw new Error("Save conflict — please reload and try again.")
         }
+        if (!res.ok) {
+          const text = await res.text().catch(() => "")
+          let body: any = {}
+          try { body = JSON.parse(text) } catch {}
+          console.error(`[saveSection] ${res.status} ${res.statusText}`, text.slice(0, 500))
+          throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
+        }
+        // Track updated timestamps so future saves include correct conflict headers
+        const result = await res.json().catch(() => ({}))
+        if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
+        if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
       }
 
       if (showToast) toast.success(
@@ -376,19 +454,134 @@ export default function NewCasePage() {
     if (closeTimerRef.current) { clearInterval(closeTimerRef.current); closeTimerRef.current = null }
     localStorage.removeItem(`summaryOpenedAt_${id}`)
     try {
-      await fetch(`/api/cases/${id}`, {
+      const res = await fetch(`/api/cases/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "COMPLETE" }),
       })
-      router.push(`/cases/${id}`)
+      if (!res.ok) throw new Error()
+      // Use server finalizedAt if available, otherwise use current timestamp
+      let serverFinalizedAt: number = Date.now()
+      try {
+        const body = await res.json()
+        if (body?.finalizedAt) serverFinalizedAt = new Date(body.finalizedAt).getTime()
+      } catch {}
+      // Start 5-minute undo countdown
+      finalizedAtRef.current = serverFinalizedAt
+      const UNDO_WINDOW_SECS = 5 * 60
+      const elapsed = Math.floor((Date.now() - serverFinalizedAt) / 1000)
+      const remaining = Math.max(0, UNDO_WINDOW_SECS - elapsed)
+      setFinalizedCaseId(id)
+      setUndoExpired(false)
+      setUndoSecsLeft(remaining)
+      if (undoTimerRef.current) clearInterval(undoTimerRef.current)
+      undoTimerRef.current = setInterval(() => {
+        setUndoSecsLeft(s => {
+          if (s === null || s <= 1) {
+            clearInterval(undoTimerRef.current!)
+            undoTimerRef.current = null
+            setUndoSecsLeft(null)
+            setUndoExpired(false)
+            setFinalizedCaseId(null)
+            // Navigate to case detail after undo window expires
+            router.push(`/cases/${id}`)
+            return null
+          }
+          return s - 1
+        })
+      }, 1000)
+      // Navigate to summary step so user sees the undo banner
+      setStep(3)
     } catch {
       toast.error(t("case.couldNotClose"))
     }
   }
 
+  async function handleUndo() {
+    const id = finalizedCaseId
+    if (!id) return
+    if (undoTimerRef.current) { clearInterval(undoTimerRef.current); undoTimerRef.current = null }
+    try {
+      const res = await fetch(`/api/cases/${id}/unfinalize`, { method: "POST" })
+      if (res.status === 403) {
+        setUndoExpired(true)
+        setUndoSecsLeft(null)
+        setFinalizedCaseId(null)
+        return
+      }
+      if (!res.ok) throw new Error()
+      // Undo succeeded — restore editing state
+      setUndoSecsLeft(null)
+      setFinalizedCaseId(null)
+      setUndoExpired(false)
+      toast.success("Finalization undone. You can continue editing.")
+      // Re-enter the close countdown for the restored case
+      startCloseCountdown()
+    } catch {
+      toast.error("Could not undo finalization. Please try again.")
+    }
+  }
+
+  async function handleConflictResolve(resolved: Record<string, unknown>) {
+    if (!conflict) return
+    setConflict(null)
+    // Retry the save with forceUpdate so the server accepts it
+    const ok = await saveSection(conflict.section, resolved, {
+      showToast: conflict.showToast,
+      nextStep: conflict.nextStep,
+      forceUpdate: true,
+    })
+    if (ok && conflict.nextStep !== undefined) {
+      setStep(conflict.nextStep)
+      window.scrollTo(0, 0)
+    }
+  }
+
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
+      {conflict && (
+        <ConflictModal
+          open={conflict.open}
+          onClose={() => setConflict(null)}
+          localValues={conflict.localValues}
+          serverValues={conflict.serverValues}
+          onResolve={handleConflictResolve}
+        />
+      )}
+      {/* Undo finalization banner — shown for 5 minutes after finalizing */}
+      {(undoSecsLeft !== null || undoExpired) && (
+        <div className={`no-print rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${
+          undoExpired
+            ? "border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a]"
+            : "border-green-200 dark:border-green-700/50 bg-green-50 dark:bg-green-950/20"
+        }`}>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+            {undoExpired ? (
+              <span className="text-sm text-slate-600 dark:text-slate-400">Undo window has expired.</span>
+            ) : (
+              <span className="text-sm text-green-700 dark:text-green-300">
+                Case finalized.{" "}
+                <span className="font-bold tabular-nums">
+                  {String(Math.floor((undoSecsLeft ?? 0) / 60)).padStart(2, "0")}:{String((undoSecsLeft ?? 0) % 60).padStart(2, "0")}
+                </span>
+              </span>
+            )}
+          </div>
+          {!undoExpired && undoSecsLeft !== null && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
+              onClick={handleUndo}
+            >
+              Undo
+            </Button>
+          )}
+        </div>
+      )}
+
+      {isWatching && <WatchingBanner onTakeover={takeover} holderName={holderName} />}
       <div className="no-print flex items-center gap-4">
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-950 border-2 border-blue-100 dark:border-blue-900 shrink-0">
           <UserRound className="h-9 w-9 text-blue-500 dark:text-blue-400" strokeWidth={1.5} />
@@ -456,80 +649,83 @@ export default function NewCasePage() {
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-20 text-slate-400">
-          <span className="animate-pulse">{t("case.loadingDraft")}</span>
-        </div>
-      )}
+      <fieldset disabled={isWatching} style={{ border: "none", padding: 0, margin: 0, minWidth: 0 }}>
+        {loading && (
+          <div className="flex items-center justify-center py-20 text-slate-400">
+            <span className="animate-pulse">{t("case.loadingDraft")}</span>
+          </div>
+        )}
 
-      {!loading && step === 0 && (
-        <PreopForm
-          defaultValues={preopData ?? undefined}
-          onSubmit={handlePreopSubmit}
-          onNameChange={setPatientName}
-          onIdChange={setPatientId}
-          onAutoSave={data => handleAutoSave("preop", data)}
-        />
-      )}
-      {!loading && step === 1 && (
-        <IntraopForm
-          defaultValues={intraopData ?? undefined}
-          defaultTimetable={timetableDefault ?? undefined}
-          preop={preopData ? {
-            asaScore:              preopData.asaScore,
-            ageYears:              preopData.ageYears,
-            heightCm:              preopData.heightCm,
-            weightKg:              preopData.weightKg,
-            sex:                   preopData.sex,
-            bmi:                   preopData.heightCm && preopData.weightKg ? Math.round(preopData.weightKg / ((preopData.heightCm / 100) ** 2) * 10) / 10 : undefined,
-            bpSystolic:            preopData.bpSystolic,
-            bpDiastolic:           preopData.bpDiastolic,
-            heartRate:             preopData.heartRate,
-            spO2:                  preopData.spO2,
-            mallampati:            preopData.mallampati,
-            difficultAirwayHistory: preopData.difficultAirwayHistory,
-            allergies:             preopData.allergies,
-            allergyDetails:        preopData.allergyDetails as any,
-            comorbidities:         preopData.comorbidities as any,
-            labResults:            (preopData as any).labResults,
-            diagnosis:             (preopData.diagnoses as any[])?.map((t: any) => t.label).join("; ") || null,
-            plannedProcedure:      (preopData.procedures as any[])?.map((t: any) => t.label).join("; ") || null,
-            emergencySurgery:      preopData.emergencySurgery ?? null,
-          } : null}
-          caseStarted={!!(intraopData?.startTime)}
-          onSubmit={handleIntraopSubmit}
-          onBack={() => setStep(0)}
-          onAutoSave={data => handleAutoSave("intraop", data)}
-          onPostopContinued={items => setContinuedPostopItems(items)}
-          layoutMode={layoutMode}
-        />
-      )}
-      {!loading && step === 2 && (
-        <PostopForm
-          defaultValues={postopData ?? undefined}
-          onSubmit={handlePostopSubmit}
-          onBack={() => setStep(1)}
-          submitting={submitting}
-          onAutoSave={data => handleAutoSave("postop", data)}
-          initialComplicationsText={continuedPostopItems.length > 0 ? `Continued postoperatively: ${continuedPostopItems.join(", ")}` : undefined}
-        />
-      )}
+        {!loading && step === 0 && (
+          <PreopForm
+            defaultValues={preopData ?? undefined}
+            onSubmit={handlePreopSubmit}
+            onNameChange={setPatientName}
+            onIdChange={setPatientId}
+            onAutoSave={data => handleAutoSave("preop", data)}
+            layoutMode={preopLayout}
+          />
+        )}
+        {!loading && step === 1 && (
+          <IntraopForm
+            defaultValues={intraopData ?? undefined}
+            defaultTimetable={timetableDefault ?? undefined}
+            preop={preopData ? {
+              asaScore:              preopData.asaScore,
+              ageYears:              preopData.ageYears,
+              heightCm:              preopData.heightCm,
+              weightKg:              preopData.weightKg,
+              sex:                   preopData.sex,
+              bmi:                   preopData.heightCm && preopData.weightKg ? Math.round(preopData.weightKg / ((preopData.heightCm / 100) ** 2) * 10) / 10 : undefined,
+              bpSystolic:            preopData.bpSystolic,
+              bpDiastolic:           preopData.bpDiastolic,
+              heartRate:             preopData.heartRate,
+              spO2:                  preopData.spO2,
+              mallampati:            preopData.mallampati,
+              difficultAirwayHistory: preopData.difficultAirwayHistory,
+              allergies:             preopData.allergies,
+              allergyDetails:        preopData.allergyDetails as any,
+              comorbidities:         preopData.comorbidities as any,
+              labResults:            (preopData as any).labResults,
+              diagnosis:             (preopData.diagnoses as any[])?.map((t: any) => t.label).join("; ") || null,
+              plannedProcedure:      (preopData.procedures as any[])?.map((t: any) => t.label).join("; ") || null,
+              emergencySurgery:      preopData.emergencySurgery ?? null,
+            } : null}
+            caseStarted={!!(intraopData?.startTime)}
+            onSubmit={handleIntraopSubmit}
+            onBack={() => setStep(0)}
+            onAutoSave={data => handleAutoSave("intraop", data)}
+            onPostopContinued={items => setContinuedPostopItems(items)}
+            layoutMode={layoutMode}
+            eventLog={eventLog}
+          />
+        )}
+        {!loading && step === 2 && (
+          <PostopForm
+            defaultValues={postopData ?? undefined}
+            onSubmit={handlePostopSubmit}
+            onBack={() => setStep(1)}
+            submitting={submitting}
+            onAutoSave={data => handleAutoSave("postop", data)}
+            initialComplicationsText={continuedPostopItems.length > 0 ? `Continued postoperatively: ${continuedPostopItems.join(", ")}` : undefined}
+          />
+        )}
+      </fieldset>
 
       {/* Step 3: Case summary / protocol preview */}
       {step === 3 && caseId && (
         <div className="space-y-4">
-          {/* Graceful close countdown banner — hidden on print */}
+          {/* Graceful close countdown banner — hidden once finalized */}
+          {closeSecsLeft !== null && (
           <div className="no-print rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <div>
                 <p className="font-semibold text-amber-800 dark:text-amber-300">
                   {t("case.pendingClose")}{" "}
-                  {closeSecsLeft !== null
-                    ? <span className="font-bold tabular-nums">
-                        {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
-                      </span>
-                    : t("case.caseClosed")}
+                  <span className="font-bold tabular-nums">
+                    {String(Math.floor(closeSecsLeft / 60)).padStart(2,"0")}:{String(closeSecsLeft % 60).padStart(2,"0")}
+                  </span>
                 </p>
                 <p className="text-sm text-amber-600 dark:text-amber-400">{t("case.pendingCloseHint")}</p>
               </div>
@@ -546,6 +742,7 @@ export default function NewCasePage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Case summary — patient name dialog is inside CaseSummary */}
           <div data-tour="summary-print" className="no-print absolute opacity-0 pointer-events-none" aria-hidden />

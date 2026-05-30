@@ -16,6 +16,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const isHOD   = user.role === "HEAD_OF_DEPT"
   const isAdmin = user.role === "ADMIN"
 
+  if (!isHOD && !isAdmin) {
+    return NextResponse.json({ error: "Only HOD and admin can assign cases" }, { status: 403 })
+  }
+
   const caseRecord = await prisma.case.findFirst({
     where: isAdmin ? { id: caseId }
       : isHOD      ? { id: caseId, user: { institutionId: user.institutionId } }
@@ -23,9 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })
 
-  const recipient = await prisma.user.findUnique({ where: { id: toUserId } })
-  if (!recipient) return NextResponse.json({ error: "Recipient not found" }, { status: 404 })
+  // Fix 3: Reject transfers to deleted accounts
+  const recipient = await prisma.user.findUnique({ where: { id: toUserId, deletedAt: null } })
+  if (!recipient) return NextResponse.json({ error: "Recipient not found" }, { status: 400 })
 
+  // Fix 4: ADMIN can cross-institution; HOD cannot — must be same institution as recipient
   if (!isAdmin && recipient.institutionId !== user.institutionId) {
     return NextResponse.json({ error: "Recipient must be in your institution" }, { status: 403 })
   }

@@ -11,6 +11,7 @@
 export type * from './models/User'
 export type * from './models/Institution'
 export type * from './models/Case'
+export type * from './models/CaseLock'
 export type * from './models/CaseTransfer'
 export type * from './models/RoleRequest'
 export type * from './models/Icd10BgCode'

@@ -692,7 +692,18 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   const [showWarning, setShowWarning] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/cases/${caseId}`).then(r => r.json()).then(d => { setData(d); setLoading(false) })
+    let cancelled = false
+    async function load() {
+      const d = await fetch(`/api/cases/${caseId}`).then(r => r.json())
+      if (!cancelled) { setData(d); setLoading(false) }
+    }
+    load()
+    const onLive = () => load()
+    window.addEventListener("case-live-update", onLive)
+    return () => {
+      cancelled = true
+      window.removeEventListener("case-live-update", onLive)
+    }
   }, [caseId])
 
   if (loading) return <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-12 animate-pulse">{L.loadingCase}</div>

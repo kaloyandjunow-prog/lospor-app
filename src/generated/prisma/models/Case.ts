@@ -30,6 +30,7 @@ export type CaseMinAggregateOutputType = {
   notes: string | null
   userId: string | null
   status: $Enums.CaseStatus | null
+  finalizedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -40,6 +41,7 @@ export type CaseMaxAggregateOutputType = {
   notes: string | null
   userId: string | null
   status: $Enums.CaseStatus | null
+  finalizedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +52,7 @@ export type CaseCountAggregateOutputType = {
   notes: number
   userId: number
   status: number
+  finalizedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -62,6 +65,7 @@ export type CaseMinAggregateInputType = {
   notes?: true
   userId?: true
   status?: true
+  finalizedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -72,6 +76,7 @@ export type CaseMaxAggregateInputType = {
   notes?: true
   userId?: true
   status?: true
+  finalizedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -82,6 +87,7 @@ export type CaseCountAggregateInputType = {
   notes?: true
   userId?: true
   status?: true
+  finalizedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -165,6 +171,7 @@ export type CaseGroupByOutputType = {
   notes: string | null
   userId: string
   status: $Enums.CaseStatus
+  finalizedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: CaseCountAggregateOutputType | null
@@ -196,6 +203,7 @@ export type CaseWhereInput = {
   notes?: Prisma.StringNullableFilter<"Case"> | string | null
   userId?: Prisma.StringFilter<"Case"> | string
   status?: Prisma.EnumCaseStatusFilter<"Case"> | $Enums.CaseStatus
+  finalizedAt?: Prisma.DateTimeNullableFilter<"Case"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Case"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Case"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -203,6 +211,7 @@ export type CaseWhereInput = {
   intraop?: Prisma.XOR<Prisma.IntraoperativeRecordNullableScalarRelationFilter, Prisma.IntraoperativeRecordWhereInput> | null
   postop?: Prisma.XOR<Prisma.PostoperativeRecordNullableScalarRelationFilter, Prisma.PostoperativeRecordWhereInput> | null
   transfers?: Prisma.CaseTransferListRelationFilter
+  lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
 }
 
 export type CaseOrderByWithRelationInput = {
@@ -211,6 +220,7 @@ export type CaseOrderByWithRelationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  finalizedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -218,6 +228,7 @@ export type CaseOrderByWithRelationInput = {
   intraop?: Prisma.IntraoperativeRecordOrderByWithRelationInput
   postop?: Prisma.PostoperativeRecordOrderByWithRelationInput
   transfers?: Prisma.CaseTransferOrderByRelationAggregateInput
+  lock?: Prisma.CaseLockOrderByWithRelationInput
 }
 
 export type CaseWhereUniqueInput = Prisma.AtLeast<{
@@ -229,6 +240,7 @@ export type CaseWhereUniqueInput = Prisma.AtLeast<{
   notes?: Prisma.StringNullableFilter<"Case"> | string | null
   userId?: Prisma.StringFilter<"Case"> | string
   status?: Prisma.EnumCaseStatusFilter<"Case"> | $Enums.CaseStatus
+  finalizedAt?: Prisma.DateTimeNullableFilter<"Case"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Case"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Case"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -236,6 +248,7 @@ export type CaseWhereUniqueInput = Prisma.AtLeast<{
   intraop?: Prisma.XOR<Prisma.IntraoperativeRecordNullableScalarRelationFilter, Prisma.IntraoperativeRecordWhereInput> | null
   postop?: Prisma.XOR<Prisma.PostoperativeRecordNullableScalarRelationFilter, Prisma.PostoperativeRecordWhereInput> | null
   transfers?: Prisma.CaseTransferListRelationFilter
+  lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
 }, "id" | "caseCode">
 
 export type CaseOrderByWithAggregationInput = {
@@ -244,6 +257,7 @@ export type CaseOrderByWithAggregationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  finalizedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CaseCountOrderByAggregateInput
@@ -260,6 +274,7 @@ export type CaseScalarWhereWithAggregatesInput = {
   notes?: Prisma.StringNullableWithAggregatesFilter<"Case"> | string | null
   userId?: Prisma.StringWithAggregatesFilter<"Case"> | string
   status?: Prisma.EnumCaseStatusWithAggregatesFilter<"Case"> | $Enums.CaseStatus
+  finalizedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Case"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Case"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Case"> | Date | string
 }
@@ -269,6 +284,7 @@ export type CaseCreateInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCasesInput
@@ -276,6 +292,7 @@ export type CaseCreateInput = {
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateInput = {
@@ -284,12 +301,14 @@ export type CaseUncheckedCreateInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUpdateInput = {
@@ -297,6 +316,7 @@ export type CaseUpdateInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
@@ -304,6 +324,7 @@ export type CaseUpdateInput = {
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateInput = {
@@ -312,12 +333,14 @@ export type CaseUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseCreateManyInput = {
@@ -326,6 +349,7 @@ export type CaseCreateManyInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -335,6 +359,7 @@ export type CaseUpdateManyMutationInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -345,6 +370,7 @@ export type CaseUncheckedUpdateManyInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -365,6 +391,7 @@ export type CaseCountOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  finalizedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -375,6 +402,7 @@ export type CaseMaxOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  finalizedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -385,6 +413,7 @@ export type CaseMinOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  finalizedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -438,6 +467,20 @@ export type CaseUncheckedUpdateManyWithoutUserNestedInput = {
 
 export type EnumCaseStatusFieldUpdateOperationsInput = {
   set?: $Enums.CaseStatus
+}
+
+export type CaseCreateNestedOneWithoutLockInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutLockInput, Prisma.CaseUncheckedCreateWithoutLockInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutLockInput
+  connect?: Prisma.CaseWhereUniqueInput
+}
+
+export type CaseUpdateOneRequiredWithoutLockNestedInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutLockInput, Prisma.CaseUncheckedCreateWithoutLockInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutLockInput
+  upsert?: Prisma.CaseUpsertWithoutLockInput
+  connect?: Prisma.CaseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutLockInput, Prisma.CaseUpdateWithoutLockInput>, Prisma.CaseUncheckedUpdateWithoutLockInput>
 }
 
 export type CaseCreateNestedOneWithoutTransfersInput = {
@@ -501,12 +544,14 @@ export type CaseCreateWithoutUserInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutUserInput = {
@@ -514,12 +559,14 @@ export type CaseUncheckedCreateWithoutUserInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutUserInput = {
@@ -557,8 +604,85 @@ export type CaseScalarWhereInput = {
   notes?: Prisma.StringNullableFilter<"Case"> | string | null
   userId?: Prisma.StringFilter<"Case"> | string
   status?: Prisma.EnumCaseStatusFilter<"Case"> | $Enums.CaseStatus
+  finalizedAt?: Prisma.DateTimeNullableFilter<"Case"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Case"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Case"> | Date | string
+}
+
+export type CaseCreateWithoutLockInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCasesInput
+  preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+}
+
+export type CaseUncheckedCreateWithoutLockInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  userId: string
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+}
+
+export type CaseCreateOrConnectWithoutLockInput = {
+  where: Prisma.CaseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CaseCreateWithoutLockInput, Prisma.CaseUncheckedCreateWithoutLockInput>
+}
+
+export type CaseUpsertWithoutLockInput = {
+  update: Prisma.XOR<Prisma.CaseUpdateWithoutLockInput, Prisma.CaseUncheckedUpdateWithoutLockInput>
+  create: Prisma.XOR<Prisma.CaseCreateWithoutLockInput, Prisma.CaseUncheckedCreateWithoutLockInput>
+  where?: Prisma.CaseWhereInput
+}
+
+export type CaseUpdateToOneWithWhereWithoutLockInput = {
+  where?: Prisma.CaseWhereInput
+  data: Prisma.XOR<Prisma.CaseUpdateWithoutLockInput, Prisma.CaseUncheckedUpdateWithoutLockInput>
+}
+
+export type CaseUpdateWithoutLockInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
+  preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+}
+
+export type CaseUncheckedUpdateWithoutLockInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutTransfersInput = {
@@ -566,12 +690,14 @@ export type CaseCreateWithoutTransfersInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCasesInput
   preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutTransfersInput = {
@@ -580,11 +706,13 @@ export type CaseUncheckedCreateWithoutTransfersInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutTransfersInput = {
@@ -608,12 +736,14 @@ export type CaseUpdateWithoutTransfersInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
   preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutTransfersInput = {
@@ -622,11 +752,13 @@ export type CaseUncheckedUpdateWithoutTransfersInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutPreopInput = {
@@ -634,12 +766,14 @@ export type CaseCreateWithoutPreopInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCasesInput
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutPreopInput = {
@@ -648,11 +782,13 @@ export type CaseUncheckedCreateWithoutPreopInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutPreopInput = {
@@ -676,12 +812,14 @@ export type CaseUpdateWithoutPreopInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutPreopInput = {
@@ -690,11 +828,13 @@ export type CaseUncheckedUpdateWithoutPreopInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutIntraopInput = {
@@ -702,12 +842,14 @@ export type CaseCreateWithoutIntraopInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCasesInput
   preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutIntraopInput = {
@@ -716,11 +858,13 @@ export type CaseUncheckedCreateWithoutIntraopInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutIntraopInput = {
@@ -744,12 +888,14 @@ export type CaseUpdateWithoutIntraopInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
   preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutIntraopInput = {
@@ -758,11 +904,13 @@ export type CaseUncheckedUpdateWithoutIntraopInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutPostopInput = {
@@ -770,12 +918,14 @@ export type CaseCreateWithoutPostopInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCasesInput
   preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutPostopInput = {
@@ -784,11 +934,13 @@ export type CaseUncheckedCreateWithoutPostopInput = {
   notes?: string | null
   userId: string
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutPostopInput = {
@@ -812,12 +964,14 @@ export type CaseUpdateWithoutPostopInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
   preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutPostopInput = {
@@ -826,11 +980,13 @@ export type CaseUncheckedUpdateWithoutPostopInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseCreateManyUserInput = {
@@ -838,6 +994,7 @@ export type CaseCreateManyUserInput = {
   caseCode?: string | null
   notes?: string | null
   status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -847,12 +1004,14 @@ export type CaseUpdateWithoutUserInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutUserInput = {
@@ -860,12 +1019,14 @@ export type CaseUncheckedUpdateWithoutUserInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateManyWithoutUserInput = {
@@ -873,6 +1034,7 @@ export type CaseUncheckedUpdateManyWithoutUserInput = {
   caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -914,6 +1076,7 @@ export type CaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   notes?: boolean
   userId?: boolean
   status?: boolean
+  finalizedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -921,6 +1084,7 @@ export type CaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   intraop?: boolean | Prisma.Case$intraopArgs<ExtArgs>
   postop?: boolean | Prisma.Case$postopArgs<ExtArgs>
   transfers?: boolean | Prisma.Case$transfersArgs<ExtArgs>
+  lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["case"]>
 
@@ -930,6 +1094,7 @@ export type CaseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   notes?: boolean
   userId?: boolean
   status?: boolean
+  finalizedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -941,6 +1106,7 @@ export type CaseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   notes?: boolean
   userId?: boolean
   status?: boolean
+  finalizedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -952,17 +1118,19 @@ export type CaseSelectScalar = {
   notes?: boolean
   userId?: boolean
   status?: boolean
+  finalizedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CaseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseCode" | "notes" | "userId" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["case"]>
+export type CaseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseCode" | "notes" | "userId" | "status" | "finalizedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["case"]>
 export type CaseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   preop?: boolean | Prisma.Case$preopArgs<ExtArgs>
   intraop?: boolean | Prisma.Case$intraopArgs<ExtArgs>
   postop?: boolean | Prisma.Case$postopArgs<ExtArgs>
   transfers?: boolean | Prisma.Case$transfersArgs<ExtArgs>
+  lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CaseIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -980,6 +1148,7 @@ export type $CasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     intraop: Prisma.$IntraoperativeRecordPayload<ExtArgs> | null
     postop: Prisma.$PostoperativeRecordPayload<ExtArgs> | null
     transfers: Prisma.$CaseTransferPayload<ExtArgs>[]
+    lock: Prisma.$CaseLockPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -987,6 +1156,7 @@ export type $CasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     notes: string | null
     userId: string
     status: $Enums.CaseStatus
+    finalizedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["case"]>
@@ -1388,6 +1558,7 @@ export interface Prisma__CaseClient<T, Null = never, ExtArgs extends runtime.Typ
   intraop<T extends Prisma.Case$intraopArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$intraopArgs<ExtArgs>>): Prisma.Prisma__IntraoperativeRecordClient<runtime.Types.Result.GetResult<Prisma.$IntraoperativeRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   postop<T extends Prisma.Case$postopArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$postopArgs<ExtArgs>>): Prisma.Prisma__PostoperativeRecordClient<runtime.Types.Result.GetResult<Prisma.$PostoperativeRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   transfers<T extends Prisma.Case$transfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  lock<T extends Prisma.Case$lockArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$lockArgs<ExtArgs>>): Prisma.Prisma__CaseLockClient<runtime.Types.Result.GetResult<Prisma.$CaseLockPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1422,6 +1593,7 @@ export interface CaseFieldRefs {
   readonly notes: Prisma.FieldRef<"Case", 'String'>
   readonly userId: Prisma.FieldRef<"Case", 'String'>
   readonly status: Prisma.FieldRef<"Case", 'CaseStatus'>
+  readonly finalizedAt: Prisma.FieldRef<"Case", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Case", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Case", 'DateTime'>
 }
@@ -1903,6 +2075,25 @@ export type Case$transfersArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.CaseTransferScalarFieldEnum | Prisma.CaseTransferScalarFieldEnum[]
+}
+
+/**
+ * Case.lock
+ */
+export type Case$lockArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CaseLock
+   */
+  select?: Prisma.CaseLockSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CaseLock
+   */
+  omit?: Prisma.CaseLockOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CaseLockInclude<ExtArgs> | null
+  where?: Prisma.CaseLockWhereInput
 }
 
 /**

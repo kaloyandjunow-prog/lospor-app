@@ -80,10 +80,13 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [currentInstName, setCurrentInstName] = useState(institutionName ?? "")
   const [dark, setDark]             = useState(false)
   const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("scroll")
+  const [preopLayout, setPreopLayout] = useState<"tabs" | "scroll">("scroll")
   const [ttLayout, setTtLayout]     = useState<"expand" | "scroll">("scroll")
   const [defMon, setDefMon]         = useState<"standard" | "advanced">("standard")
   const [vitalsExp, setVitalsExp]   = useState(true)
   const [autoFill, setAutoFill]     = useState(false)
+  const [autoFillBP, setAutoFillBP] = useState(false)
+  const [autoFillBg, setAutoFillBg] = useState(false)
   const [locale, setLocale]         = useState(currentLocale ?? "en")
   const [, startLangTrans]          = useTransition()
   const [roleReq, setRoleReq]       = useState<RoleReq>(undefined as any)
@@ -101,6 +104,9 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     const lm = localStorage.getItem("layoutMode")
     if (lm === "tabs" || lm === "scroll") setLayoutMode(lm)
 
+    const pl = localStorage.getItem("preopLayout")
+    if (pl === "tabs" || pl === "scroll") setPreopLayout(pl)
+
     const tt = localStorage.getItem("timetableLayout")
     if (tt === "expand" || tt === "scroll") setTtLayout(tt)
 
@@ -109,6 +115,8 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
     setVitalsExp(localStorage.getItem("vitalsExpanded") !== "false")
     setAutoFill(localStorage.getItem("autoFillVitals") === "on")
+    setAutoFillBP(localStorage.getItem("autoFillBP") === "on")
+    setAutoFillBg(localStorage.getItem("autoFillBackground") === "on")
 
     // Fetch role request status for non-admin users
     if (role === "MEMBER" || role === "CLINICIAN" || role === "RESEARCHER" || role === "HEAD_OF_DEPT") {
@@ -137,10 +145,13 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     document.cookie = `theme=${next ? "dark" : "light"}; path=/; max-age=31536000; SameSite=Lax`
   }
   function applyLayout(mode: "tabs" | "scroll") { setLayoutMode(mode); setSetting("layoutMode", mode) }
+  function applyPreopLayout(mode: "tabs" | "scroll") { setPreopLayout(mode); setSetting("preopLayout", mode) }
   function applyTtLayout(mode: "expand" | "scroll") { setTtLayout(mode); setSetting("timetableLayout", mode) }
   function applyDefMon(mode: "standard" | "advanced") { setDefMon(mode); setSetting("defaultMonitoring", mode) }
   function applyVitalsExp(val: boolean) { setVitalsExp(val); setSetting("vitalsExpanded", val ? "true" : "false") }
   function applyAutoFill(val: boolean) { setAutoFill(val); setSetting("autoFillVitals", val ? "on" : "off") }
+  function applyAutoFillBP(val: boolean) { setAutoFillBP(val); setSetting("autoFillBP", val ? "on" : "off") }
+  function applyAutoFillBg(val: boolean) { setAutoFillBg(val); setSetting("autoFillBackground", val ? "on" : "off") }
 
   async function switchLocale(l: string) {
     setLocale(l)
@@ -301,6 +312,14 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         ]} />
                     </SettingRow>
 
+                    <SettingRow label={t("settings.preopFormLayout")} description={t("settings.preopFormLayoutDesc")}>
+                      <PillGroup value={preopLayout} onChange={v => applyPreopLayout(v as "tabs" | "scroll")}
+                        options={[
+                          { value: "tabs",   label: t("settings.layoutTabbed"), icon: <LayoutList className="h-3 w-3" /> },
+                          { value: "scroll", label: t("settings.layoutScroll"), icon: <Rows3 className="h-3 w-3" /> },
+                        ]} />
+                    </SettingRow>
+
                     <SettingRow label={t("settings.formLayout")} description={t("settings.formLayoutDesc")}>
                       <PillGroup value={layoutMode} onChange={v => applyLayout(v as "tabs" | "scroll")}
                         options={[
@@ -332,9 +351,21 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                 )}
 
                 {category === "automation" && (
-                  <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>
-                    <Toggle value={autoFill} onChange={applyAutoFill} />
-                  </SettingRow>
+                  <>
+                    <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>
+                      <Toggle value={autoFill} onChange={applyAutoFill} />
+                    </SettingRow>
+                    {autoFill && (
+                      <div className="ml-4 border-l-2 border-slate-200 dark:border-[#2e2e2e] pl-4">
+                        <SettingRow label={t("settings.autoFillBP")} description={t("settings.autoFillBPDesc")}>
+                          <Toggle value={autoFillBP} onChange={applyAutoFillBP} />
+                        </SettingRow>
+                        <SettingRow label={t("settings.autoFillBackground")} description={t("settings.autoFillBackgroundDesc")}>
+                          <Toggle value={autoFillBg} onChange={applyAutoFillBg} />
+                        </SettingRow>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {category === "access" && (

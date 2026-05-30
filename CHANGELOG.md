@@ -1,126 +1,173 @@
-# Changelog
+# Changelog — LOSPOR Web App
 
-All notable changes to LOSPOR are documented here.
-
----
-
-## [0.4.2] — 2026-05-24
-
-### Features
-- **Full Bulgarian UI translation** — all user-visible strings across the app now route through next-intl instead of being hardcoded in English. Components and pages converted: admin panel (including audit log section), app layout (nav and footer), case entry wizard (save status, countdown banner, navigation buttons), login page, register page (institution picker, medical disclaimer, footer), CaseSummary (loading/error states), TourButton (guides menu and demo prompt), PreopForm (safety section, vitals labels, airway section, lab section, emergency surgery button), and IntraopForm (preop summary banner). New translation keys added across the `preop`, `intraop`, `case`, `tour`, `auth`, `nav`, `admin`, and `status` namespaces in both `en.json` and `bg.json`.
-- **Vercel Analytics** — page-view analytics via `@vercel/analytics/next` added to the root layout. Active on all routes when deployed to Vercel; no-op in local development.
-
-### Security / compliance
-- **AI wording corrected** — the AI advisor system prompt and UI disclaimer no longer claim "clinical decision support". Both now state clearly that the output is an informational summary, does not constitute clinical advice, and that the responsible anaesthesiologist retains full clinical responsibility.
-- **Lab scan GDPR warning strengthened** — the upload notice now explicitly instructs users to crop out patient names, date of birth, ID/MRN numbers, and any other identifying information before uploading. Includes a clear instruction not to upload if identifiers cannot be removed.
-- **PII detection best-effort notice** — the Privacy Policy now states that server-side PII pattern detection is best-effort and does not guarantee detection of all personal identifiers. Users remain responsible for not entering patient-identifiable data into free-text fields.
-- **Unused AI SDKs removed** — `@anthropic-ai/sdk` and `@google/genai` were installed but unused. Both packages have been removed.
+All notable changes to the web application are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [0.4.1] — 2026-05-24
+## [0.4.3] — 2026-05-30 "Data layer"
 
-### Fixes
-- **Terms and Privacy links inaccessible when logged in** — clicking the Terms or Privacy links in the app footer (dashboard, preop, intraop, postop, summary) redirected back to the dashboard instead of opening the page. The auth guard treated `/terms` and `/privacy` as login-only pages and redirected authenticated users away. Fixed by splitting public pages (accessible to everyone) from login pages (which redirect logged-in users to the dashboard).
+### Added
+- `AWAITING_REVIEW` case status between `IN_PROGRESS` and `COMPLETE` — automatically promoted when postop data is saved on an in-progress case
+- Case presence lock: one active editor per case at a time across all devices; other devices enter read-only **Watching** mode with a takeover option (`CaseLock` DB model, 30 s TTL, 15 s heartbeat)
+- Conflict detection on case updates: stale mobile writes are rejected if the server record has been modified since the client last loaded it
+- Live case refresh: SSE event stream (`GET /api/cases/[id]/stream`) with polling fallback so web and mobile see each other's changes in near-real time
+- New API routes: `POST /api/cases/[id]/events` (append event), `GET/DELETE /api/cases/[id]/lock`, `GET /api/cases/[id]/stream`, `POST /api/cases/[id]/unfinalize`
+- Intraop vitals autofill: backfill on reopen fills any gap between the last recorded vitals column and the current time using the last known values
+- Settings → Automation: "Backfill on reopen" toggle to enable/disable the gap-fill behaviour
+- Prisma migration system: baseline migration `20260530000000_init` replaces ad-hoc `prisma db push` for schema changes; Vercel build command updated to `prisma migrate deploy && next build`
+- Docs: `docs/mobile-companion.md`, `docs/preoperative-assessment.md`, `docs/intraoperative.md`, `docs/postoperative.md`
+- `src/lib/constants.ts` — shared server-side constants
+- `src/lib/caseEmitter.ts` — in-process event emitter for SSE fan-out
+- `ConflictModal`, `LiveCaseUpdater`, `WatchingBanner` components
+- `useCaseLock` hook
 
----
+### Changed
+- Dashboard: stat cards are clickable scope filters; "Awaiting postop" scope added; scope rail always visible on load
+- AI advisor: expanded patient context (allergies, medications, labs, comorbidities, vitals, risk scores) in the system prompt
+- PreopForm: validation now scrolls to the first failing section; section structure refined
+- IntraopTimetable: column count auto-expands as the live clock advances; per-column vitals entry now supports backfill
+- NumberStepper: hold-to-repeat on `+`/`-` buttons; slider range respects field-level min/max
+- Cases API (`GET /api/cases`): pagination via `?skip` and `?take` (capped at 200 per request)
+- Mobile sync: `_mappers.ts` maps mobile field aliases to canonical DB field names for preop, intraop, and postop; risk scores and postop aliases preserved on round-trip
+- Token blocklist: periodic pruning of expired JTIs to prevent unbounded in-memory growth
+- PII check: additional patterns (IBAN-like sequences, additional name heuristics)
+- Rate limiter: pruning of expired windows on new entry creation
+- Pending transfers API includes `procedureName` so mobile transfer list shows case context
+- Proxy middleware (`proxy.ts`) updated for new API surface
 
-## [0.4.0] — 2026-05-24
+### Removed
+- `ShareCaseButton` component — share functionality moved inline to case detail page
 
-### Features
-- **30-minute graceful close window** — submitting postop no longer immediately finalises the case. A 30-minute review window opens with a countdown banner visible at every step (preop / intraop / postop). The user can navigate back to correct any data; the timer persists across navigation and page reloads via `localStorage`. The case auto-closes when the timer expires or the user clicks "Close Now". Status is promoted to `COMPLETE` only at that point.
-- **HOD access now institution-scoped** — `HEAD_OF_DEPT` users can view and edit only cases belonging to clinicians in their own institution. Case transfers are also restricted to within-institution recipients. `ADMIN` retains global access (GET `/cases/[id]`, PATCH `/cases/[id]`, POST `/cases/[id]/transfer`, and the case view page all enforce this).
-- **Expanded lab catalogue** — preop Labs section now has 100+ perioperative tests across 9 categories: Haematology (15 tests including full differential), Coagulation (7), Electrolytes (8), Biochemistry (12), Liver (9), Cardiac (8 including BNP/NT-proBNP), Blood Gas (7), Thyroid (4), Inflammatory / Other (8). Tests are shown in collapsible category rows.
-- **Lab reference ranges** — each test in the results table shows a reference interval badge. Values within the normal range are shown in green; out-of-range values are flagged in amber with the value bolded. No range data → no badge.
-- **Lab search / filter** — a search input above the category buttons filters the catalogue in real time; only matching tests and their categories are shown.
-- **AI lab scan** — a "Scan lab report" button lets the user upload a photo of a printed lab result. Mistral AI extracts test names, values, and units from the image (multilingual, handles abbreviations and alternate spellings). Extracted results appear in a preview panel with per-row checkboxes; clicking "Add selected" merges checked rows into the existing results, skipping duplicates. A GDPR notice is displayed above the file picker at all times.
-- **AI advisor: configurable base URL and model** — `MISTRAL_API_BASE` env var overrides the Mistral API endpoint (useful for self-hosted or compatible providers). `MISTRAL_MODEL` overrides the default model (`open-mistral-7b`).
-- **AI advisor: 429 rate-limit handling** — when Mistral returns 429, the advisor now shows "AI service is busy — please try again in a moment" instead of a generic error.
-
-### Fixes
-- **Autosave ZodError on case reopen** — when continuing a case from the dashboard to the intraop step, `keyEvents` (a `TimetableData` object stored in the DB) was spread into `IntraopForm` default values. `getValues()` returned it and the autosave payload failed server Zod validation with 400. Fixed by a dedicated `dbIntraopToForm` mapper that strips all DB-only fields (`id`, `caseId`, `keyEvents`, `timeSeriesData`, `durationMinutes`, timestamps) before passing data to the form.
-- **Postop data blank on reopen** — reopening a case that had been submitted through postop sent the user to the postop form with empty fields. All postop data is now restored via `dbPostopToForm`.
-- **Countdown resets on dashboard navigation** — leaving the summary page and returning restarted the 30-minute window from scratch. The timer now uses a `localStorage` timestamp and resumes from the correct remaining time on every re-mount.
-- **Parallel fluid row disappears after inline discontinuation** — when two same-category fluids ran in parallel and one was inline-discontinued, the discontinued fluid's lane row disappeared. Fixed by normalising `endCol` (guarding against `endCol < startCol`) and combining all discontinuation updates into a single `onChangeRef.current` call to avoid stale-closure overwrites.
-- **Lab results print overflow** — entering more than ~12 lab results caused the print layout to clip. The summary now uses a multi-column layout (2 columns for 9–15 results, 3 for 16–29, 4 for 30+) with a compact 8 px print font, fitting up to ~40 results within the A4 page height.
-- **Summary cards sizing on first open** — the two printable cards were too narrow when first entering the summary during case entry. The step-3 container now uses `max-w-[1200px]`, matching the read-only case view.
-
----
-
-## [0.3.0] — 2026-05-21
-
-### GDPR — Data minimisation
-- **Removed staff names** — `surgeonName`, `anesthesiologistName`, `anesthesiaNurseName` dropped from `PreoperativeAssessment`; replaced by a single free-text `teamNotes` field with a GuardedTextarea warning.
-- **Removed exact surgery date** — `date DateTime` removed from `IntraoperativeRecord`; replaced by `monthYear String?` (e.g. `"2026-05"`) entered by the clinician. No calendar date is stored.
-- **Anonymous case codes** — caseCode format changed from `DDMMYYYY-NN` (date-prefixed) to `YYYY-NNNN` (enrollment year + per-user sequence, e.g. `2026-0001`).
-- **Institution decoupled from Case** — `institutionId` removed from `Case`; institution lives on `User` only. Registration now accepts a single optional institution.
-- **Patient identity never stored** — printable protocol now leaves identity fields blank for hand-writing after printing; the print-time name/ID prompt has been removed.
-
-### GDPR — Consent and transparency
-- **OnboardingModal** — shown on first login; requires explicit checkbox consent before accessing the app. Acceptance recorded as `acceptedTermsAt` + `termsVersion` on `User`.
-- **Terms checkbox on registration** — new accounts must accept the Terms of Use and Medical Disclaimer before submitting.
-- **Privacy Policy page** (`/privacy`) — accessible without login; covers what is processed, legal basis, sub-processors (Mistral EU, Supabase EU, Vercel EU), retention, and GDPR rights.
-- **Terms of Service page** (`/terms`) — accessible without login; defines permitted use, what must never be entered, liability, and AGPL-3.0 obligation.
-- **Footer links** — Terms · Privacy · Open source · AGPL-3.0 added to app footer, login page, and register page.
-
-### GDPR — Rights (Articles 15 & 17)
-- **Data export** (`GET /api/user/export`) — downloads a JSON file containing the user account (no password hash), all cases with preop/intraop/postop, and the audit log. Accessible from Settings → Privacy & Data.
-- **Account deletion** (`POST /api/user/delete`) — soft-deletes the account immediately (blocks future login), permanently deleted within 30 days. Requires typing `DELETE` in a confirmation input. Accessible from Settings → Privacy & Data.
-
-### Security
-- **DB-backed JWT revocation** — `RevokedToken` table replaces the in-memory `Set`; revoked JTIs survive server restarts. Lazy prune of expired tokens on each revoke.
-- **Constant-time check-pending** — `GET /api/auth/check-pending` now waits a minimum of 200 ms regardless of DB hit/miss, preventing email enumeration via timing.
-- **Last login tracking** — `lastLoginAt DateTime?` added to `User`; updated on each successful login; shown in Settings → Privacy & Data.
-- **Soft-delete blocks login** — `deletedAt DateTime?` on `User`; deleted accounts cannot authenticate.
-- **Server-side PII detection** — all free-text PATCH/POST fields are checked for: Bulgarian EGN (10-digit with checksum validation), 7+ digit sequences, DD.MM.YYYY date patterns, email addresses, two consecutive capitalised words (name pattern). Returns 400 with a descriptive message; logs `PII_BLOCKED` to the audit log.
-
-### AI advisor
-- **Migrated from Groq (US) to Mistral La Plateforme (EU)** — EU-hosted inference with GDPR DPA available; `groq-sdk` removed.
-- **Free-text fields stripped** — `teamNotes`, `difficultAirwayNotes`, `familyAnesthesiaDetails`, `complications`, `airwayNotes`, and the case-level `notes` field are never forwarded to the AI provider. The summary is built from structured fields only.
-- **Opt-in per case** — AI advisor is disabled by default; clinicians must enable it via a toggle in the preop form. Consent is recorded in the audit log.
-
-### Features
-- **Settings → Privacy & Data section** — shows last login time, data export button, and account deletion with confirmation.
-- **GuardedTextarea component** — wraps free-text inputs with a live character counter and a client-side blur warning when EGN or MRN-like patterns are detected.
-- **Admin / HOD case access** — ADMIN and HEAD_OF_DEPT roles can now view and edit cases owned by any member.
-
-### Fixes
-- **Timetable timezone** — `getHours()`/`getMinutes()` replaced with `getUTCHours()`/`getUTCMinutes()` in all functions that read DB-stored `startTime`/`endTime` values. Times were being shifted by the local UTC offset on every reload.
-- **Autosave schema coercion** — API schemas now use `z.preprocess` to accept both strings (from HTML inputs) and numbers; previously mid-typing values (e.g. `"5"` before completing `"36.5"`) caused Zod 400 errors and autosave failures.
-- **Autosave no longer locks cases** — postop autosave no longer auto-promotes case status to COMPLETE; only the explicit submit button does.
-- **PDF empty 3rd page** — footer text in the printable PDF was too long for the `flexDirection: row` layout, causing Page 2 content to overflow onto a blank 3rd page.
-- **check-pending checks deletedAt** — soft-deleted accounts no longer appear as "pending approval" on the login page.
+### Fixed
+- Production login failure (`P2023 — Value 'AWAITING_REVIEW' not found in enum 'CaseStatus'`): Prisma client committed to git now includes `AWAITING_REVIEW`; DB enum updated via `ALTER TYPE`
 
 ---
 
-## [0.2.0] — 2026-05-20
+## [1.0.0] — 2026-05-26
 
-### Security
-- **Admin approval for new registrations** — new accounts are now pending until an admin approves them. The admin panel shows a "Pending registrations" section with Approve / Reject buttons. Pending users see a clear message when they try to log in.
-- **Completed cases locked** — the API now blocks any edit to a case with status COMPLETE (returns 403). Previously only deletion was blocked.
-- **Rate limiting** — in-memory sliding window limits applied to: registration (5/hr per IP), login (10/15 min per email), AI advice (20/hr per user), ICD search (120/min per user), custom term creation (30/hr per user).
-- **AI endpoint hardening** — payload capped at 16 KB; incoming data validated with Zod; confirmed no patient name, ID, or case code is forwarded to the Groq API.
-- **Security headers** — all responses now include `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, and a `Content-Security-Policy`.
-- **Session invalidation on logout** — JWT tokens are added to an in-memory blocklist on sign-out and expire automatically after 8 hours.
-- **Supabase PostgREST API disabled** — the direct HTTP database API was exposed without row-level security; it has been disabled since the app uses Prisma over a direct connection only.
+### Added
 
-### Features
-- **Audit log** — all case create / update / delete and AI advice events are recorded in a new `AuditLog` table. Admins can view and filter the log in the admin panel.
-- **Institution-scoped custom terms** — custom procedures, diagnoses, medications, and allergies are now scoped to the creating user's institution. Legacy global terms remain visible to all.
+#### Authentication & User Management
+- User registration with admin approval flow — new accounts are pending until an administrator approves them
+- Login with bcrypt password hashing and per-email rate limiting (10 attempts / 15 min)
+- Registration rate limiting (5 attempts / hr / IP)
+- NextAuth v5 JWT sessions with 8-hour expiry
+- JTI blocklist for session invalidation on sign-out
+- Bearer token endpoint (`POST /api/auth/token`) for mobile companion login — same bcrypt + rate limiting as web
+- Admin panel: pending registration approvals, Head of Department role management, institution-scoped access control
+- Audit log: all case create/update/delete/finalise/PII-blocked events logged to DB and viewable in admin panel (paginated, filterable by action)
 
-### Validation
-- **Full Zod schemas for preop / intraop / postop** — all API routes now validate incoming case data with precise per-field schemas (types, enum values, numeric ranges). Invalid payloads return 400 instead of silently saving corrupt data.
+#### Security & Compliance
+- Security headers on all responses: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, Content Security Policy
+- Server-side PII detector on all free-text fields: EGN (Bulgarian national ID with checksum), 7+ digit sequences, date patterns, email addresses, two consecutive capitalised words (name detection)
+- PII blocks are logged via audit log before returning a 400 to the client
+- GDPR design: no patient identifiers ever stored. Case codes are auto-generated (`DDMMYYYY-NN`). Printed protocol renders blank lines for name and ID — clinician fills by hand after printing.
+- Supabase PostgREST API disabled; application uses Prisma direct connection only
+- AI system prompt worded as informational only (not clinical decision support per EU MDR)
+- Lab scan disclaimer: explicit instruction to crop patient identifiers before upload
 
-### Fixes
-- Broken characters (`В·`, `вЂ"`, `в‚‚`, `В°`, etc.) fixed across the app — caused by UTF-8 content being stored or edited as Windows-1252.
-- Browser tab title was unparseable due to smart quotes introduced during editing.
-- Register page institution picker and country / title dropdowns now work correctly when accessed from the local network IP (added `allowedDevOrigins`).
-- CSP in development mode now permits `unsafe-eval` required by the webpack dev bundle.
-- `public/logo.png` (1.5 MB) removed — `public/logo.webp` (26 KB) is used everywhere.
-- `dev.log` removed from working tree.
+#### Case Lifecycle
+- Dashboard statistics are clickable filters, and the case list can be scoped to All, Today, This month, Active, Drafts, Awaiting postop, Complete, Handovers, or ICU while defaulting to all accessible cases
+- Case creation with sequential date-scoped code (`DDMMYYYY-NN`, e.g. `14052026-01`)
+- Case status progression: Draft → In Progress (automatic on first intraop save) → Complete (manual finalise)
+- Case list (dashboard) with status indicators and last-updated timestamp
+- Case deletion (non-finalised cases only)
+- Share summary: copies a `/cases/[id]` link to clipboard
+- Printable protocol: browser-print view of the full perioperative record, formatted for A4
+- Finalised case redirect: opening an edit URL for a completed case redirects to the summary instead of showing an error
+- Private notes: floating popup, auto-saves, not included in AI advisor prompt
+
+#### Case Presence Lock
+- One active editor per case at a time across all devices and sessions
+- `CaseLock` DB model: 30-second TTL, renewed by heartbeat every 15 seconds
+- Any other device opening the same case enters **Watching** mode: all inputs disabled via `<fieldset disabled>`, amber sticky banner displayed
+- "Take over editing" button in the watching banner force-releases the existing lock and acquires it for the current device
+- Lock released automatically on page close (`beforeunload` + `keepalive` fetch) and component unmount
+- Fail-open: network errors never block editing — lock state falls back to "held" on fetch failure
+
+#### Preoperative Assessment Form
+- Demographics: age, sex, height, weight with automatic BMI, IBW (Devine formula: `50 + 2.3 × (height_in − 60)` male, `45.5 + 2.3 × (height_in − 60)` female), and ABW (`IBW + 0.4 × (actual − IBW)`) shown as live badges
+- ICD-10/ICD-11 diagnosis tagging with WHO API autocomplete, Bulgarian translation via Groq, cached in DB
+- Procedure tagging with specialty/CPT code search
+- Medical history (comorbidities) as ICD-11 tagged items grouped by body system
+- Current medications: drug name / INN search backed by Bulgarian Drug Agency register (3,661 drugs)
+- Allergies (allergen search + latex flag), family anaesthesia problems (free text), dental (prosthetics, loose teeth), habits (smoking, substance abuse)
+- Airway assessment: Mallampati (I–IV), mouth opening, thyromental distance, neck mobility, Upper Lip Bite Test, Cormack-Lehane grade, feature flags (retrognathia, prominent incisors, facial hair, difficult airway history). Entire block can be marked Unable to Obtain.
+- Vitals: BP systolic/diastolic, heart rate (+ arrhythmia flag), SpO₂, temperature, respiratory rate. Each field has an individual Unable to Obtain toggle.
+- Lab results: searchable panel (haematology, biochemistry, coagulation, ABG, microbiology) with out-of-range highlighting
+- ASA Physical Status (I–VI) with automatic Emergency (E) suffix; AI-powered suggestion based on comorbidities and BMI (advisory only)
+- Risk scores — RCRI (0–6), APFEL (0–4), STOP-BANG (0–8) — computed live with colour-coded risk labels (green / amber / red); automatic derivation of sex, BMI, age, and smoking from demographics
+- Form auto-saves 1.5 s after the last change once meaningful data is present
+- Validation scrolls to the first failing section on submit
+
+#### Intraoperative Form
+- Timing: operative month/year, start time, end time (with next-day flag for midnight-crossing cases), auto-computed duration
+- Anaesthesia technique tree: hierarchical multi-select covering General (ETT, LMA, TIVA variants), Neuraxial (Spinal → single/continuous → level, Epidural → level, CSE, DPE), Peripheral blocks (Upper / Lower / Trunk / Head & Neck / Ophthalmic), Sedation, Local, Other (free text)
+- Position cards: 15 positions across 5 categories (Supine, Lateral, Prone, Lithotomy, Seated/Other)
+- Monitoring cards: 18 monitors across 4 groups (Standard, Haemodynamic, Depth/Neuro, Other) — selecting a monitor adds its vital row to the timetable automatically
+- Airway management: device (Face mask / LMA / Oral ETT / Nasal ETT / Surgical airway), tube size, cuffed flag, PEEP, ventilation mode tree, airway tools (DL, VL, FOB, etc.), Cormack-Lehane grade, airway notes, DLT details, endobronchial size
+- Vascular access tree: Arterial (6 sites) / Venous → Peripheral / Central → PICC (3) / Central line (5); size (G/Fr), size presets, depth from skin
+- Preop summary card: amber card above timeline showing ASA, BMI, IBW, ABW, vitals, Mallampati, difficult airway flag, allergies, comorbidities, labs
+- Equipment suggestions card: ETT size/depth, LMA size, laryngoscope, Guedel, TV/RR/PEEP/I:E, 4-2-1 fluid rate, Foley/NGT depth, monitoring recommendations — computed from age, weight, IBW, sex, BMI
+- Fluids balance: crystalloids, colloids, blood products (with notes), urine output
+- Complications: free text (max 2,000 chars)
+
+#### IntraopTimetable
+- 5-minute column grid, starts at 1 hour (12 columns), auto-expands as the live clock advances — 1 column per 5 min in scroll mode, full row in expand mode
+- Live clock: orange "now" marker advances every 10 seconds; selected column follows the clock automatically
+- Vitals rows: systolic/diastolic (rendered as stacked bar), heart rate, SpO₂, EtCO₂, temperature — rows shown dynamically based on active monitors
+- Drug bolus pills: add via side panel or in-cell picker; drag to move between columns; Del to delete; → to duplicate to next column; keyboard 0–9 for dose entry; IBW-pre-filled slider for 28 drugs
+- Infusions: add via floating prompt (13 drugs with unit/range/colour config); continuous colour bar; rate change mid-infusion; stop at any column; total dose computed from rate × time segments
+- Fluids: 12 fluid types; continuous colour bar; end with partial or full volume; total volume shown
+- Inhalational agents (Sevoflurane / Desflurane / Isoflurane): continuous bar; switching agents auto-stops the previous
+- Auto-extend: active infusions, fluids, and agents extend automatically to the current clock column every tick
+- Auto-fill vitals: when the clock advances to a new column, copies EtCO₂, SpO₂, and temperature from the previous column (toggle in Settings → Automation)
+- Auto-fill BP & HR: secondary toggle under Auto-fill vitals — also carries forward systolic BP, diastolic BP, and heart rate
+- SVG chart / grid chart toggle (pill switch)
+- Undo/redo (Ctrl+Z / Ctrl+Shift+Z)
+- Keyboard legend displayed below grid
+- Scroll mode / expand mode toggle persisted in localStorage
+- Time rounding: start time floored to nearest 5 min
+
+#### Postoperative Form
+- Modified Aldrete score (Activity, Respiration, Circulation, Consciousness, SpO₂) with auto-summed total
+- Pain NRS (0–10), PONV flag, temperature, time in recovery (min)
+- Disposition (Ward / PACU / ICU) with notes
+- Handover checklist
+- Complications (free text)
+
+#### AI Advisor
+- EU-hosted Mistral AI (streaming, 16KB payload cap)
+- Receives only structured clinical fields — no free text, no patient identifiers
+- Opt-in per case (checkbox in preop form)
+- Advisory disclaimer displayed prominently in UI
+
+#### Mobile Companion API
+- `getAuthUser()` helper: checks Bearer token first, falls back to NextAuth cookie — all 23 protected routes use this transparently
+- CORS headers on all `/api/*` routes
+- Mobile alias mapping in `_mappers.ts`: incoming mobile field names remapped to canonical DB fields before persistence
+- Conflict detection: preop and postop saves include `updatedAt` timestamps; stale mobile writes rejected with 409
+- Live update stream: `GET /api/cases/[id]/stream` (SSE) for real-time intraop updates
+- Event log API: `POST /api/cases/[id]/events` (append), `PUT` (replace)
+- Transfer pending list includes `procedureName` for mobile case list context
+- Case lock API: `POST /api/cases/[id]/lock` (acquire), `PATCH` (heartbeat), `DELETE` (release)
+
+#### Settings & Customisation
+- Settings panel (automation, display, accessibility categories)
+- Auto-fill vitals toggle (EtCO₂, SpO₂, temperature)
+- Auto-fill BP & HR secondary toggle (subordinate to auto-fill vitals)
+- Timetable layout toggle (expand / scroll)
+- Vitals chart expand/collapse persisted
+- Dark mode toggle, persisted in localStorage
+- Language toggle (English / Bulgarian) via next-intl
+
+### Fixed
+- Finalised case edit URL now redirects to summary instead of showing a 403 error
+- `crypto.randomUUID()` replaced with `crypto.getRandomValues()` fallback for plain-HTTP dev environments
 
 ---
 
-## [0.1.0] — 2026-04-01
+## Prior Development
 
-Initial release. Preoperative, intraoperative, and postoperative data entry. PDF export. ICD-11 diagnosis search with Bulgarian translation. AI pre-operative advisor. Guided tour. Dark mode. Bilingual (English / Bulgarian).
+Versions 0.2.0–0.4.3 covered iterative security hardening, compliance fixes, and mobile bearer token infrastructure — all included and consolidated into the v1.0.0 release above.

@@ -17,5 +17,10 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   })
 
-  return NextResponse.json(pending)
+  return NextResponse.json(
+    pending.map((transfer) => ({
+      ...transfer,
+      procedureName: transfer.case.preop?.plannedProcedure ?? transfer.case.preop?.diagnosis ?? null,
+    }))
+  )
 }

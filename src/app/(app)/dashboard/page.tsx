@@ -4,12 +4,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FilePlus, FileText, Activity, Users, UserCheck } from "lucide-react"
-import { ShareCaseButton } from "@/components/ShareCaseButton"
 import { DeleteDraftButton } from "@/components/DeleteDraftButton"
 import { HandoverButton } from "@/components/HandoverButton"
 import { PendingHandovers } from "@/components/PendingHandovers"
 import { format } from "date-fns"
 import { getTranslations } from "next-intl/server"
+import type React from "react"
 
 function dispositionBadge(d: string | null) {
   if (!d) return null
@@ -24,6 +24,7 @@ function asaBadge(asa: string | null) {
 }
 
 type CaseRow = Awaited<ReturnType<typeof fetchCases>>[number]
+type DashboardScope = "all" | "today" | "month" | "active" | "drafts" | "awaiting-postop" | "complete" | "handovers" | "icu"
 
 async function fetchCases(userId: string, role: string, institutionId: string | null) {
   const where =
@@ -66,10 +67,62 @@ function computeStatus(c: CaseRow): { key: StatusKey; cls: string } {
   return   { key: "draft",             cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
 }
 
-export default async function DashboardPage() {
+function isToday(date: Date) {
+  const now = new Date()
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+}
+
+function isThisMonthCase(c: CaseRow) {
+  const now = new Date()
+  const my = c.intraop?.monthYear
+  if (my) {
+    const [y, m] = my.split("-").map(Number)
+    return y === now.getFullYear() && m === now.getMonth() + 1
+  }
+  return c.createdAt.getMonth() === now.getMonth() && c.createdAt.getFullYear() === now.getFullYear()
+}
+
+function scopeHref(scope: DashboardScope) {
+  return scope === "all" ? "/dashboard" : `/dashboard?scope=${scope}`
+}
+
+function StatCard({
+  href,
+  active,
+  icon,
+  value,
+  label,
+}: {
+  href: string
+  active: boolean
+  icon: React.ReactNode
+  value: number
+  label: string
+}) {
+  return (
+    <Link href={href} className="block">
+      <Card className={active ? "ring-2 ring-blue-500/70 dark:ring-blue-400/70" : ""}>
+        <CardContent className="pt-6 flex items-center gap-4">
+          {icon}
+          <div>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+            <p className="text-sm text-slate-500">{label}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams?: Promise<{ scope?: string }> }) {
   const session = await auth()
   if (!session) return null
   const t = await getTranslations()
+  const params = await searchParams
+  const requestedScope = params?.scope
+  const scope: DashboardScope = requestedScope === "today" || requestedScope === "month" || requestedScope === "active" || requestedScope === "drafts" || requestedScope === "awaiting-postop" || requestedScope === "complete" || requestedScope === "handovers" || requestedScope === "icu"
+    ? requestedScope
+    : "all"
 
   const role          = (session.user as any).role ?? "MEMBER"
   const institutionId = (session.user as any).institutionId ?? ""
@@ -77,17 +130,26 @@ export default async function DashboardPage() {
   const cases = await fetchCases(userId, role, institutionId)
 
   const totalCases = cases.length
-  const thisMonth = cases.filter((c: CaseRow) => {
-    const my = c.intraop?.monthYear
-    const now = new Date()
-    if (my) {
-      const [y, m] = my.split("-").map(Number)
-      return y === now.getFullYear() && m === now.getMonth() + 1
-    }
-    return c.createdAt.getMonth() === now.getMonth() && c.createdAt.getFullYear() === now.getFullYear()
-  }).length
-
+  const todayCases = cases.filter((c: CaseRow) => isToday(c.createdAt))
+  const thisMonth = cases.filter(isThisMonthCase).length
   const icuCount = cases.filter((c: CaseRow) => c.postop?.disposition === "ICU").length
+  const activeCount = cases.filter((c: CaseRow) => c.status !== "COMPLETE").length
+  const draftCount = cases.filter((c: CaseRow) => c.status === "DRAFT").length
+  const awaitingPostopCount = cases.filter((c: CaseRow) => c.status !== "COMPLETE" && c.intraop?.endTime != null).length
+  const completeCount = cases.filter((c: CaseRow) => c.status === "COMPLETE").length
+  const handoverCount = cases.filter((c: CaseRow) => c.transfers.length > 0).length
+  const filteredCases = cases.filter((c: CaseRow) => {
+    if (scope === "all") return true
+    if (scope === "today") return isToday(c.createdAt)
+    if (scope === "month") return isThisMonthCase(c)
+    if (scope === "active") return c.status !== "COMPLETE"
+    if (scope === "drafts") return c.status === "DRAFT"
+    if (scope === "awaiting-postop") return c.status !== "COMPLETE" && c.intraop?.endTime != null
+    if (scope === "complete") return c.status === "COMPLETE"
+    if (scope === "handovers") return c.transfers.length > 0
+    if (scope === "icu") return c.postop?.disposition === "ICU"
+    return true
+  })
   const asaDist = cases.reduce<Record<string, number>>((acc: Record<string, number>, c: CaseRow) => {
     const a = c.preop?.asaScore ?? "Unknown"
     acc[a] = (acc[a] ?? 0) + 1
@@ -104,39 +166,64 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-tour="dashboard-stats">
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
+        <StatCard
+          href={scopeHref("all")}
+          active={scope === "all"}
+          icon={
             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
               <FileText className="h-6 w-6 text-blue-600" />
             </div>
-            <div>
-              <p className="text-3xl font-bold text-slate-800">{totalCases}</p>
-              <p className="text-sm text-slate-500">{t("dashboard.totalCases")}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
+          }
+          value={totalCases}
+          label={t("dashboard.totalCases")}
+        />
+        <StatCard
+          href={scopeHref("month")}
+          active={scope === "month"}
+          icon={
             <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
               <Activity className="h-6 w-6 text-green-600" />
             </div>
-            <div>
-              <p className="text-3xl font-bold text-slate-800">{thisMonth}</p>
-              <p className="text-sm text-slate-500">{t("dashboard.thisMonth")}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-4">
+          }
+          value={thisMonth}
+          label={t("dashboard.thisMonth")}
+        />
+        <StatCard
+          href={scopeHref("icu")}
+          active={scope === "icu"}
+          icon={
             <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
               <Users className="h-6 w-6 text-red-600" />
             </div>
-            <div>
-              <p className="text-3xl font-bold text-slate-800">{icuCount}</p>
-              <p className="text-sm text-slate-500">{t("dashboard.icuAdmissions")}</p>
-            </div>
-          </CardContent>
-        </Card>
+          }
+          value={icuCount}
+          label={t("dashboard.icuAdmissions")}
+        />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          ["all", "All", totalCases],
+          ["today", "Today", todayCases.length],
+          ["month", "Month", thisMonth],
+          ["active", "Active", activeCount],
+          ["drafts", "Drafts", draftCount],
+          ["awaiting-postop", "Awaiting postop", awaitingPostopCount],
+          ["complete", "Complete", completeCount],
+          ["handovers", "Handovers", handoverCount],
+        ].map(([key, label, count]) => (
+          <Link
+            key={key}
+            href={scopeHref(key as DashboardScope)}
+            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+              scope === key
+                ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+            }`}
+          >
+            {label} <span className="tabular-nums">{count}</span>
+          </Link>
+        ))}
       </div>
 
       {/* Pending incoming handovers */}
@@ -148,7 +235,7 @@ export default async function DashboardPage() {
           <CardTitle className="text-base">{t("dashboard.recentCases")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {cases.length === 0 ? (
+          {filteredCases.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p className="font-medium">{t("dashboard.noCases")}</p>
@@ -161,7 +248,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
-              {cases.map((c: CaseRow) => {
+              {filteredCases.map((c: CaseRow) => {
                 const { key, cls } = computeStatus(c)
                 const isComplete = c.status === "COMPLETE"
                 const href = isComplete ? `/cases/${c.id}` : `/cases/new?continue=${c.id}`
@@ -189,7 +276,6 @@ export default async function DashboardPage() {
                         </span>
                       )}
                       {!isComplete && <DeleteDraftButton caseId={c.id} />}
-                      <ShareCaseButton caseId={c.id} />
                       <HandoverButton
                         caseId={c.id}
                         caseOwnerId={c.userId}

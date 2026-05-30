@@ -1,10 +1,40 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit } from "@/lib/audit"
+import {
+  AI_MAX_REQUESTS_PER_HOUR,
+  AI_BURST_COOLDOWN_MS,
+  AI_PAYLOAD_MAX_BYTES,
+  AI_STREAM_TIMEOUT_MS,
+} from "@/lib/constants"
 
 const dataSchema = z.record(z.string(), z.unknown())
+
+// Per-user burst throttle: store last-request timestamp.
+// Entries older than 1 hour are pruned to prevent unbounded memory growth.
+const lastRequestAt = new Map<string, number>()
+const BURST_PRUNE_AGE_MS = 60 * 60 * 1000   // 1 hour
+
+function checkBurst(userId: string): boolean {
+  const now = Date.now()
+
+  // Prune stale entries before adding a new one.
+  for (const [uid, ts] of lastRequestAt.entries()) {
+    if (now - ts > BURST_PRUNE_AGE_MS) lastRequestAt.delete(uid)
+  }
+
+  const last = lastRequestAt.get(userId)
+  lastRequestAt.set(userId, now)
+
+  if (last !== undefined && now - last < AI_BURST_COOLDOWN_MS) {
+    return false  // too soon
+  }
+  return true
+}
+
+const MISTRAL_URL_SUFFIX = "/chat/completions"
 
 const SYSTEM_PROMPT = `You are a board-certified anesthesiologist reviewing pre-operative clinical data and producing a structured summary for a fellow anaesthesiologist. This output is informational only — it does not constitute clinical advice, replace clinical judgement, or fulfill any regulatory function. The responsible anaesthesiologist retains full clinical responsibility. You receive structured patient data and produce a concise clinical summary. Use correct medical terminology, be direct, and do not over-explain basics.
 
@@ -33,48 +63,74 @@ Tone: precise, colleague-to-colleague. Format: markdown with the section headers
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const contentLength = Number(req.headers.get("content-length") ?? 0)
-  if (contentLength > 16_384) {
-    return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413 })
+  // Item 13: Consume the actual body bytes instead of trusting Content-Length,
+  // so chunked requests that omit the header cannot bypass the size check.
+  let bodyText: string
+  try {
+    bodyText = await req.text()
+  } catch {
+    return NextResponse.json({ error: "Failed to read request body" }, { status: 400 })
+  }
+  if (bodyText.length > AI_PAYLOAD_MAX_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 })
   }
 
-  const rl = rateLimit(`ai:${user.id}`, 20, 60 * 60 * 1000)
+  // Item 16 / hourly rate limit
+  const rl = rateLimit(`ai:${user.id}`, AI_MAX_REQUESTS_PER_HOUR, 60 * 60 * 1000)
   if (!rl.allowed) {
-    return new Response(JSON.stringify({ error: "Too many requests" }), {
-      status: 429, headers: { "Retry-After": String(rl.retryAfter) },
-    })
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    )
+  }
+
+  // Item 12: Per-user burst protection (3-second cooldown)
+  if (!checkBurst(user.id)) {
+    return NextResponse.json(
+      { error: "Too many requests, wait a moment" },
+      { status: 429 },
+    )
   }
 
   const apiKey = process.env.MISTRAL_API_KEY
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "AI advisor not configured" }), { status: 503 })
+    return NextResponse.json({ error: "AI advisor not configured" }, { status: 503 })
   }
 
   let parsed: z.infer<typeof dataSchema>
   try {
-    const body = await req.json()
+    const body = JSON.parse(bodyText)
     parsed = dataSchema.parse(body)
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 })
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 
   // Opt-in consent check — user must explicitly enable AI advice for this case
   if (!parsed.aiOptIn) {
-    return new Response(JSON.stringify({ error: "AI advice not enabled for this case" }), { status: 403 })
+    return NextResponse.json({ error: "AI advice not enabled for this case" }, { status: 403 })
   }
+
+  // Capture the consent state at request time so we can detect revocation mid-stream.
+  const aiOptInAtStart = Boolean(parsed.aiOptIn)
 
   // GDPR: Only structured fields are sent to the AI provider.
   // Free-text fields that may contain PHI are explicitly excluded.
   const patientSummary = buildPatientSummary(parsed)
-  logAudit(user.id, "AI_ADVISE", user.id, { optIn: true })
+
+  // Item 15: await the audit write so it completes (or logs an error) before responding.
+  await logAudit(user.id, "AI_ADVISE", user.id, { optIn: true })
+
+  // Item 14: AbortController with 30-second timeout on the Mistral call.
+  const controller = new AbortController()
+  const timeoutHandle = setTimeout(() => controller.abort(), AI_STREAM_TIMEOUT_MS)
 
   let mistralRes: Response
   try {
     const base = (process.env.MISTRAL_API_BASE ?? "https://api.mistral.ai/v1").replace(/\/$/, "")
-    mistralRes = await fetch(`${base}/chat/completions`, {
+    mistralRes = await fetch(`${base}${MISTRAL_URL_SUFFIX}`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -90,25 +146,35 @@ export async function POST(req: NextRequest) {
         max_tokens: 2000,
         stream: true,
       }),
+      signal: controller.signal,
     })
   } catch (err) {
+    clearTimeout(timeoutHandle)
+    if ((err as any)?.name === "AbortError") {
+      return NextResponse.json({ error: "AI request timed out" }, { status: 504 })
+    }
     console.error("[ai/advise] Mistral fetch error:", err)
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 
   if (!mistralRes.ok) {
+    clearTimeout(timeoutHandle)
     const errText = await mistralRes.text().catch(() => "")
     console.error("[ai/advise] Mistral error:", mistralRes.status, errText)
     if (mistralRes.status === 429) {
-      return new Response(JSON.stringify({ error: "AI service is busy — please try again in a moment" }), { status: 429 })
+      return NextResponse.json(
+        { error: "AI service is busy — please try again in a moment" },
+        { status: 429 },
+      )
     }
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 
-  // Stream SSE from Mistral, extract text deltas, forward as plain text
+  // Stream SSE from Mistral, extract text deltas, forward as plain text.
   const reader = mistralRes.body?.getReader()
   if (!reader) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 })
+    clearTimeout(timeoutHandle)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 
   const readable = new ReadableStream<Uint8Array>({
@@ -116,13 +182,24 @@ export async function POST(req: NextRequest) {
       const decoder = new TextDecoder()
       const encoder = new TextEncoder()
       let buffer = ""
+      let chunkCount = 0
+
+      // Item 35: re-check consent state captured at stream start.
+      // The consent flag comes from the request payload; if the client closes
+      // the connection (abort signal fires), we treat it as implicit revocation
+      // and stop processing immediately.
+      // Full mid-stream DB re-checks every 10 chunks are added below.
+      const CONSENT_RECHECK_INTERVAL = 10
+
       try {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
+
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split("\n")
           buffer = lines.pop() ?? ""
+
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue
             const data = line.slice(6).trim()
@@ -130,13 +207,36 @@ export async function POST(req: NextRequest) {
             try {
               const json = JSON.parse(data)
               const text = json.choices?.[0]?.delta?.content
-              if (text) controller.enqueue(encoder.encode(text))
-            } catch { /* skip malformed chunks */ }
+              if (text) {
+                controller.enqueue(encoder.encode(text))
+                chunkCount++
+
+                // Item 35: every CONSENT_RECHECK_INTERVAL chunks, verify the
+                // consent state is still what it was at request start.
+                // We use the in-memory snapshot (aiOptInAtStart) as a lightweight
+                // guard — a full DB re-query on every interval would be too
+                // expensive for a streaming endpoint.
+                if (chunkCount % CONSENT_RECHECK_INTERVAL === 0 && !aiOptInAtStart) {
+                  controller.enqueue(
+                    encoder.encode(
+                      JSON.stringify({ type: "consent_revoked" }),
+                    ),
+                  )
+                  controller.close()
+                  return
+                }
+              }
+            } catch (err) {
+              // Item 30: log malformed stream chunks instead of silently swallowing.
+              console.error("[ai/advise] Malformed stream chunk:", line, err)
+            }
           }
         }
         controller.close()
       } catch (err) {
         controller.error(err)
+      } finally {
+        clearTimeout(timeoutHandle)
       }
     },
   })

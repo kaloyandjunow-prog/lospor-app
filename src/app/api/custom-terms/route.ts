@@ -28,6 +28,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(terms.map(t => ({ code: t.code, term: t.term, termType: t.termType })))
 }
 
+// Format a numeric code as a zero-padded 7-digit string.
+function formatCode(n: number): string {
+  return String(n).padStart(7, "0")
+}
+
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -54,13 +59,32 @@ export async function POST(req: NextRequest) {
   })
   if (existing) return NextResponse.json({ code: existing.code, term: existing.term })
 
-  const last = await prisma.customTerm.findFirst({ orderBy: { code: "desc" } })
-  const nextNum = last ? parseInt(last.code, 10) + 1 : 0
-  const code = String(nextNum).padStart(7, "0")
+  // Item 22: Wrap the max-code read and the insert in a transaction and retry
+  // on unique-constraint violations so concurrent requests cannot silently
+  // compute the same next code and then one of them fail with P2002.
+  let attempts = 0
+  while (attempts < 5) {
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        const maxEntry = await tx.customTerm.findFirst({ orderBy: { code: "desc" } })
+        const nextCode = formatCode(Number(maxEntry?.code ?? 0) + 1)
+        return tx.customTerm.create({
+          data: { code: nextCode, term: term.trim(), termType, institutionId },
+        })
+      })
+      return NextResponse.json({ code: created.code, term: created.term }, { status: 201 })
+    } catch (e: any) {
+      if (e?.code === "P2002") {
+        // Unique constraint on code — another concurrent request got here first.
+        attempts++
+        continue
+      }
+      throw e
+    }
+  }
 
-  const created = await prisma.customTerm.create({
-    data: { code, term: term.trim(), termType, institutionId },
-  })
-
-  return NextResponse.json({ code: created.code, term: created.term }, { status: 201 })
+  return NextResponse.json(
+    { error: "Could not generate a unique code after several attempts" },
+    { status: 409 },
+  )
 }

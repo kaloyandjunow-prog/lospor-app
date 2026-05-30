@@ -1,18 +1,47 @@
 // Shared data-mapping helpers for POST and PATCH case routes
 
 export function mapPreop(preop: any) {
+  const upperLipBiteTest =
+    preop.upperLipBiteTest ??
+    (preop.ulbt === "I" ? "CLASS_I" : preop.ulbt === "II" ? "CLASS_II" : preop.ulbt === "III" ? "CLASS_III" : null)
+  const difficultAirwayHistory = preop.difficultAirwayHistory ?? preop.difficultAirway ?? false
+  const familyAnesthesiaProblems = preop.familyAnesthesiaProblems ?? preop.familyProblems ?? false
+  const familyAnesthesiaDetails = preop.familyAnesthesiaDetails ?? preop.familyProblemNotes ?? null
+  // Item 20: Validate/compute BMI from height+weight; discard client BMI if it diverges >10%
+  const heightCm = preop.heightCm ?? null
+  const weightKg = preop.weightKg ?? null
+  let bmi: number | null = null
+  if (heightCm != null && weightKg != null && heightCm > 0) {
+    const computedBmi = weightKg / Math.pow(heightCm / 100, 2)
+    if (preop.bmi != null) {
+      const clientBmi = Number(preop.bmi)
+      bmi = Math.abs(clientBmi - computedBmi) / computedBmi <= 0.1 ? clientBmi : computedBmi
+    } else {
+      bmi = computedBmi
+    }
+  }
+
+  // Item 26: Build JSON arrays for diagnoses/procedures; keep legacy string columns for compat
+  const diagnosesArr: any[] = Array.isArray(preop.diagnoses) ? preop.diagnoses : []
+  const proceduresArr: any[] = Array.isArray(preop.procedures) ? preop.procedures : []
+
   return {
-    ageYears:  preop.ageYears  ?? 0,
+    // Items 18 + 19: Use null instead of 0 for missing biometrics — 0 corrupts risk scores
+    ageYears:  preop.ageYears  ?? null,
     sex:       preop.sex ?? "OTHER",
-    heightCm:  preop.heightCm  ?? 0,
-    weightKg:  preop.weightKg  ?? 0,
-    bmi:       preop.bmi       ?? 0,
+    heightCm,
+    weightKg,
+    bmi,
     bloodType: safeEnum(preop.bloodType, ["A","B","AB","O"] as const),
     rhFactor:  safeEnum(preop.rhFactor,  ["POSITIVE","NEGATIVE"] as const),
 
-    diagnosis:        (preop.diagnoses  as any[])?.map((t: any) => t.label).join("; ") || "",
-    plannedProcedure: (preop.procedures as any[])?.map((t: any) => t.label).join("; ") || "",
-    icdCode:          (preop.diagnoses  as any[])?.[0]?.sub ?? null,
+    // Legacy string columns (kept for backward compatibility)
+    diagnosis:        diagnosesArr.map((t: any) => t.label).join("; ") || "",
+    plannedProcedure: proceduresArr.map((t: any) => t.label).join("; ") || "",
+    // Item 26: JSON columns for structured diagnoses/procedures
+    diagnosesJson:    diagnosesArr.length > 0 ? diagnosesArr : undefined,
+    proceduresJson:   proceduresArr.length > 0 ? proceduresArr : undefined,
+    icdCode:          diagnosesArr[0]?.sub ?? null,
     teamNotes:        preop.teamNotes ?? null,
     aiOptIn:          preop.aiOptIn   ?? false,
 
@@ -26,8 +55,8 @@ export function mapPreop(preop: any) {
     currentMedications:       Array.isArray(preop.currentMedications)
       ? (preop.currentMedications as any[]).map((t: any) => t.label).join(", ")
       : preop.currentMedications ?? null,
-    familyAnesthesiaProblems: preop.familyAnesthesiaProblems ?? false,
-    familyAnesthesiaDetails:  preop.familyAnesthesiaDetails  ?? null,
+    familyAnesthesiaProblems,
+    familyAnesthesiaDetails,
     dentalProsthetics:        preop.dentalProsthetics        ?? false,
     looseTeeth:               preop.looseTeeth               ?? false,
     smoking:                  preop.smoking                  ?? false,
@@ -45,20 +74,20 @@ export function mapPreop(preop: any) {
     mouthOpeningCm:         preop.mouthOpeningCm         ?? null,
     thyromental:            preop.thyromental            ?? null,
     neckMobility:           preop.neckMobility           ?? null,
-    upperLipBiteTest:       preop.upperLipBiteTest       ?? null,
+    upperLipBiteTest,
     retrognathia:           preop.retrognathia           ?? false,
     prominentIncisors:      preop.prominentIncisors      ?? false,
     facialHair:             preop.facialHair             ?? false,
-    difficultAirwayHistory: preop.difficultAirwayHistory ?? false,
+    difficultAirwayHistory,
     difficultAirwayNotes:   preop.difficultAirwayNotes   ?? null,
     cormackLehane:          preop.cormackLehane          ?? null,
 
     asaScore:         preop.asaScore        ?? null,
     emergencySurgery: preop.emergencySurgery ?? false,
-    rcriScore:    null,
-    gutaScore:    null,
-    apfelScore:   null,
-    stopBangScore: null,
+    rcriScore:    toIntOrNull(preop.rcriScore),
+    gutaScore:    toFloatOrNull(preop.gutaScore),
+    apfelScore:   toIntOrNull(preop.apfelScore),
+    stopBangScore: toIntOrNull(preop.stopBangScore),
 
     labResults: preop.labResults ?? [],
   }
@@ -69,7 +98,8 @@ function safeDate(s: string): Date {
   return isNaN(d.getTime()) ? new Date() : d
 }
 
-const HHMMRE = /^\d{2}:\d{2}$/
+// Item 21: Strict HH:MM validation — rejects invalid times like "25:90"
+const HHMMRE = /^([01]\d|2[0-3]):([0-5]\d)$/
 function toDateOnly(v: any): string {
   if (!v) return new Date().toISOString().split("T")[0]
   const s = String(v)
@@ -121,8 +151,8 @@ export function mapIntraop(intraop: any) {
   return {
     monthYear:       intraop.monthYear ?? null,
     durationMinutes: durationMinutes,
-    startTime: isHHMM(intraop.startTime) ? safeDate(`${REF_DATE}T${intraop.startTime}`)    : safeDate(REF_DATE),
-    endTime:   isHHMM(intraop.endTime)   ? safeDate(`${endRefDate}T${intraop.endTime}`)   : null,
+    startTime: isHHMM(intraop.startTime) ? new Date(`${REF_DATE}T${intraop.startTime}:00.000Z`)    : new Date(`${REF_DATE}T00:00:00.000Z`),
+    endTime:   isHHMM(intraop.endTime)   ? new Date(`${endRefDate}T${intraop.endTime}:00.000Z`)   : null,
     positions:       intraop.positions        ?? [],
     techniques:      intraop.techniques       ?? [],
     tubeSize:        intraop.tubeSize        ?? null,
@@ -200,24 +230,30 @@ export function mapIntraop(intraop: any) {
 }
 
 export function mapPostop(postop: any) {
+  const aldreteActivity = postop.aldreteActivity ?? postop.activityScore
+  const aldreteRespiration = postop.aldreteRespiration ?? postop.respirationScore
+  const aldreteCirculation = postop.aldreteCirculation ?? postop.circulationScore
+  const aldreteConsciousness = postop.aldreteConsciousness ?? postop.consciousnessScore
+  const aldreteSpO2 = postop.aldreteSpO2 ?? postop.spO2Score
   const aldreteTotal =
-    postop.aldreteActivity != null
-      ? [postop.aldreteActivity, postop.aldreteRespiration,
-         postop.aldreteCirculation, postop.aldreteConsciousness, postop.aldreteSpO2]
+    postop.aldreteTotal != null ? toIntOrNull(postop.aldreteTotal)
+    : aldreteActivity != null
+      ? [aldreteActivity, aldreteRespiration,
+         aldreteCirculation, aldreteConsciousness, aldreteSpO2]
           .reduce((s: number, v: any) => s + (parseInt(String(v ?? 0), 10) || 0), 0)
       : null
 
   return {
-    aldreteActivity:      toIntOrNull(postop.aldreteActivity),
-    aldreteRespiration:   toIntOrNull(postop.aldreteRespiration),
-    aldreteCirculation:   toIntOrNull(postop.aldreteCirculation),
-    aldreteConsciousness: toIntOrNull(postop.aldreteConsciousness),
-    aldreteSpO2:          toIntOrNull(postop.aldreteSpO2),
+    aldreteActivity:      toIntOrNull(aldreteActivity),
+    aldreteRespiration:   toIntOrNull(aldreteRespiration),
+    aldreteCirculation:   toIntOrNull(aldreteCirculation),
+    aldreteConsciousness: toIntOrNull(aldreteConsciousness),
+    aldreteSpO2:          toIntOrNull(aldreteSpO2),
     aldreteTotal,
     painScoreNRS:       toIntOrNull(postop.painScoreNRS),
     ponv:               postop.ponv               ?? false,
-    temperatureCelsius: toFloatOrNull(postop.temperatureCelsius),
-    timeInRecoveryMin:  toIntOrNull(postop.timeInRecoveryMin),
+    temperatureCelsius: toFloatOrNull(postop.temperatureCelsius ?? postop.temperaturePostop),
+    timeInRecoveryMin:  toIntOrNull(postop.timeInRecoveryMin ?? postop.timeInPacuMin),
     complications:      postop.complications      ?? null,
     handoverItems:      postop.handoverItems      ?? [],
     disposition:        postop.disposition        ?? null,

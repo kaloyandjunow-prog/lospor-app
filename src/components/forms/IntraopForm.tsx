@@ -755,7 +755,7 @@ const VENT_CONTROLLED = [
   { v: "VG",   label: "Volume Guarantee (VG)" },
 ]
 
-export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false }: {
+export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog }: {
   defaultValues?: Partial<IntraopData>
   defaultTimetable?: TimetableData
   preop?: PreopSummary | null
@@ -765,6 +765,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   onPostopContinued?: (items: string[]) => void
   layoutMode?: "tabs" | "scroll"
   caseStarted?: boolean
+  eventLog?: any[]
 }) {
   const t = useTranslations()
   const { register, handleSubmit, control, watch, setValue, getValues, formState } = useForm<IntraopData>({
@@ -778,7 +779,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     },
   })
 
-  const EMPTY_TIMETABLE: TimetableData = { vitals: [], drugs: [], fluids: [], agents: [], infusions: [] }
+  const EMPTY_TIMETABLE: TimetableData = { vitals: [], drugs: [], fluids: [], agents: [], infusions: [], clinicalEvents: [] }
   const safeTimetable = (defaultTimetable && !Array.isArray(defaultTimetable) && "vitals" in defaultTimetable)
     ? defaultTimetable : EMPTY_TIMETABLE
   const [timetable, setTimetable] = useState<TimetableData>(safeTimetable)
@@ -2010,6 +2011,13 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             setValue("endTimeNextDay", false)
           }}
           onPostopContinued={items => onPostopContinued?.(items)}
+          onComplicationAdded={labels => {
+            const cur = getValues("complications") || ""
+            const existing = cur.split(";").map((s: string) => s.trim()).filter(Boolean)
+            const newItems = labels.filter((l: string) => !existing.includes(l))
+            if (newItems.length === 0) return
+            setValue("complications", [...existing, ...newItems].join("; "))
+          }}
         />
       </SectionCard>
 
@@ -2107,6 +2115,45 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             />
           </div>
         )} />
+
+        {/* ── Mobile event log (read-only timeline) ──────────────────────── */}
+        {eventLog && eventLog.length > 0 && (
+          <div className="mt-5 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">Mobile event log</p>
+            <div className="space-y-0">
+              {[...eventLog].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()).map((ev: any) => {
+                const hhmm = (() => { const d = new Date(ev.ts); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` })()
+                let text = ""
+                let color = "#64748b"
+                if (ev.type === "drug") { text = `${ev.name} ${ev.dose} ${ev.unit}`; color = ev.color ?? "#3b82f6" }
+                else if (ev.type === "vital") {
+                  const parts: string[] = []
+                  if (ev.systolic != null && ev.diastolic != null) parts.push(`BP ${ev.systolic}/${ev.diastolic}`)
+                  if (ev.heartRate != null) parts.push(`HR ${ev.heartRate}`)
+                  if (ev.spO2 != null) parts.push(`SpO₂ ${ev.spO2}%`)
+                  if (ev.etco2 != null) parts.push(`EtCO₂ ${ev.etco2}`)
+                  text = parts.join("  "); color = "#22c55e"
+                }
+                else if (ev.type === "clinical_event") { text = ev.label ?? "Event"; color = ev.color ?? "#6366f1" }
+                else if (ev.type === "infusion_start") { text = `${ev.name} ${ev.rate} ${ev.unit} started`; color = ev.color ?? "#8b5cf6" }
+                else if (ev.type === "infusion_stop") { text = `${ev.name} stopped`; color = "#64748b" }
+                else if (ev.type === "infusion_rate") { text = `${ev.name} → ${ev.rate} ${ev.unit}`; color = ev.color ?? "#8b5cf6" }
+                else if (ev.type === "fluid_start") { text = `${ev.name} ${ev.volume} mL`; color = ev.color ?? "#06b6d4" }
+                else if (ev.type === "fluid_end") { text = `${ev.name} complete`; color = "#64748b" }
+                else if (ev.type === "agent_start") { text = `${ev.name} on`; color = ev.color ?? "#a855f7" }
+                else if (ev.type === "agent_stop") { text = `${ev.name} off`; color = "#64748b" }
+                else { text = ev.type; color = "#64748b" }
+                return (
+                  <div key={ev.id} className="flex items-start gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0">
+                    <span className="text-[11px] text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmm}</span>
+                    <div className="w-0.5 h-5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: color }} />
+                    <span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug">{text}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </SectionCard>
 
         </>)

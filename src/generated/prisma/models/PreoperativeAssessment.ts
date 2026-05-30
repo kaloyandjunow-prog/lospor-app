@@ -181,7 +181,9 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   bloodType: number
   rhFactor: number
   diagnosis: number
+  diagnosesJson: number
   plannedProcedure: number
+  proceduresJson: number
   icdCode: number
   teamNotes: number
   comorbidities: number
@@ -382,7 +384,9 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   bloodType?: true
   rhFactor?: true
   diagnosis?: true
+  diagnosesJson?: true
   plannedProcedure?: true
+  proceduresJson?: true
   icdCode?: true
   teamNotes?: true
   comorbidities?: true
@@ -516,15 +520,17 @@ export type PreoperativeAssessmentGroupByArgs<ExtArgs extends runtime.Types.Exte
 export type PreoperativeAssessmentGroupByOutputType = {
   id: string
   caseId: string
-  ageYears: number
+  ageYears: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm: number | null
+  weightKg: number | null
+  bmi: number | null
   bloodType: $Enums.BloodType | null
   rhFactor: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson: runtime.JsonValue | null
   plannedProcedure: string
+  proceduresJson: runtime.JsonValue | null
   icdCode: string | null
   teamNotes: string | null
   comorbidities: runtime.JsonValue
@@ -594,15 +600,17 @@ export type PreoperativeAssessmentWhereInput = {
   NOT?: Prisma.PreoperativeAssessmentWhereInput | Prisma.PreoperativeAssessmentWhereInput[]
   id?: Prisma.StringFilter<"PreoperativeAssessment"> | string
   caseId?: Prisma.StringFilter<"PreoperativeAssessment"> | string
-  ageYears?: Prisma.IntFilter<"PreoperativeAssessment"> | number
+  ageYears?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   sex?: Prisma.EnumSexFilter<"PreoperativeAssessment"> | $Enums.Sex
-  heightCm?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
-  weightKg?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
-  bmi?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
+  heightCm?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
+  weightKg?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
+  bmi?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   bloodType?: Prisma.EnumBloodTypeNullableFilter<"PreoperativeAssessment"> | $Enums.BloodType | null
   rhFactor?: Prisma.EnumRhFactorNullableFilter<"PreoperativeAssessment"> | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFilter<"PreoperativeAssessment"> | string
+  diagnosesJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   plannedProcedure?: Prisma.StringFilter<"PreoperativeAssessment"> | string
+  proceduresJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
@@ -650,15 +658,17 @@ export type PreoperativeAssessmentWhereInput = {
 export type PreoperativeAssessmentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  ageYears?: Prisma.SortOrder
+  ageYears?: Prisma.SortOrderInput | Prisma.SortOrder
   sex?: Prisma.SortOrder
-  heightCm?: Prisma.SortOrder
-  weightKg?: Prisma.SortOrder
-  bmi?: Prisma.SortOrder
+  heightCm?: Prisma.SortOrderInput | Prisma.SortOrder
+  weightKg?: Prisma.SortOrderInput | Prisma.SortOrder
+  bmi?: Prisma.SortOrderInput | Prisma.SortOrder
   bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
   rhFactor?: Prisma.SortOrderInput | Prisma.SortOrder
   diagnosis?: Prisma.SortOrder
+  diagnosesJson?: Prisma.SortOrderInput | Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
+  proceduresJson?: Prisma.SortOrderInput | Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
   teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
@@ -709,15 +719,17 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.PreoperativeAssessmentWhereInput | Prisma.PreoperativeAssessmentWhereInput[]
   OR?: Prisma.PreoperativeAssessmentWhereInput[]
   NOT?: Prisma.PreoperativeAssessmentWhereInput | Prisma.PreoperativeAssessmentWhereInput[]
-  ageYears?: Prisma.IntFilter<"PreoperativeAssessment"> | number
+  ageYears?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   sex?: Prisma.EnumSexFilter<"PreoperativeAssessment"> | $Enums.Sex
-  heightCm?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
-  weightKg?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
-  bmi?: Prisma.FloatFilter<"PreoperativeAssessment"> | number
+  heightCm?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
+  weightKg?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
+  bmi?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   bloodType?: Prisma.EnumBloodTypeNullableFilter<"PreoperativeAssessment"> | $Enums.BloodType | null
   rhFactor?: Prisma.EnumRhFactorNullableFilter<"PreoperativeAssessment"> | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFilter<"PreoperativeAssessment"> | string
+  diagnosesJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   plannedProcedure?: Prisma.StringFilter<"PreoperativeAssessment"> | string
+  proceduresJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
@@ -765,15 +777,17 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
 export type PreoperativeAssessmentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   caseId?: Prisma.SortOrder
-  ageYears?: Prisma.SortOrder
+  ageYears?: Prisma.SortOrderInput | Prisma.SortOrder
   sex?: Prisma.SortOrder
-  heightCm?: Prisma.SortOrder
-  weightKg?: Prisma.SortOrder
-  bmi?: Prisma.SortOrder
+  heightCm?: Prisma.SortOrderInput | Prisma.SortOrder
+  weightKg?: Prisma.SortOrderInput | Prisma.SortOrder
+  bmi?: Prisma.SortOrderInput | Prisma.SortOrder
   bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
   rhFactor?: Prisma.SortOrderInput | Prisma.SortOrder
   diagnosis?: Prisma.SortOrder
+  diagnosesJson?: Prisma.SortOrderInput | Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
+  proceduresJson?: Prisma.SortOrderInput | Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
   teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
@@ -828,15 +842,17 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   NOT?: Prisma.PreoperativeAssessmentScalarWhereWithAggregatesInput | Prisma.PreoperativeAssessmentScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
   caseId?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
-  ageYears?: Prisma.IntWithAggregatesFilter<"PreoperativeAssessment"> | number
+  ageYears?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   sex?: Prisma.EnumSexWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.Sex
-  heightCm?: Prisma.FloatWithAggregatesFilter<"PreoperativeAssessment"> | number
-  weightKg?: Prisma.FloatWithAggregatesFilter<"PreoperativeAssessment"> | number
-  bmi?: Prisma.FloatWithAggregatesFilter<"PreoperativeAssessment"> | number
+  heightCm?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
+  weightKg?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
+  bmi?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   bloodType?: Prisma.EnumBloodTypeNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.BloodType | null
   rhFactor?: Prisma.EnumRhFactorNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.RhFactor | null
   diagnosis?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
+  diagnosesJson?: Prisma.JsonNullableWithAggregatesFilter<"PreoperativeAssessment">
   plannedProcedure?: Prisma.StringWithAggregatesFilter<"PreoperativeAssessment"> | string
+  proceduresJson?: Prisma.JsonNullableWithAggregatesFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonWithAggregatesFilter<"PreoperativeAssessment">
@@ -882,15 +898,17 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
 
 export type PreoperativeAssessmentCreateInput = {
   id?: string
-  ageYears: number
+  ageYears?: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm?: number | null
+  weightKg?: number | null
+  bmi?: number | null
   bloodType?: $Enums.BloodType | null
   rhFactor?: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure: string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -938,15 +956,17 @@ export type PreoperativeAssessmentCreateInput = {
 export type PreoperativeAssessmentUncheckedCreateInput = {
   id?: string
   caseId: string
-  ageYears: number
+  ageYears?: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm?: number | null
+  weightKg?: number | null
+  bmi?: number | null
   bloodType?: $Enums.BloodType | null
   rhFactor?: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure: string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -992,15 +1012,17 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
 
 export type PreoperativeAssessmentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1048,15 +1070,17 @@ export type PreoperativeAssessmentUpdateInput = {
 export type PreoperativeAssessmentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1103,15 +1127,17 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
 export type PreoperativeAssessmentCreateManyInput = {
   id?: string
   caseId: string
-  ageYears: number
+  ageYears?: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm?: number | null
+  weightKg?: number | null
+  bmi?: number | null
   bloodType?: $Enums.BloodType | null
   rhFactor?: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure: string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1157,15 +1183,17 @@ export type PreoperativeAssessmentCreateManyInput = {
 
 export type PreoperativeAssessmentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1212,15 +1240,17 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
 export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1280,7 +1310,9 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   bloodType?: Prisma.SortOrder
   rhFactor?: Prisma.SortOrder
   diagnosis?: Prisma.SortOrder
+  diagnosesJson?: Prisma.SortOrder
   plannedProcedure?: Prisma.SortOrder
+  proceduresJson?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
   teamNotes?: Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
@@ -1500,8 +1532,8 @@ export type PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PreoperativeAssessmentUpdateToOneWithWhereWithoutCaseInput, Prisma.PreoperativeAssessmentUpdateWithoutCaseInput>, Prisma.PreoperativeAssessmentUncheckedUpdateWithoutCaseInput>
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
   increment?: number
   decrement?: number
   multiply?: number
@@ -1512,8 +1544,8 @@ export type EnumSexFieldUpdateOperationsInput = {
   set?: $Enums.Sex
 }
 
-export type FloatFieldUpdateOperationsInput = {
-  set?: number
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
   increment?: number
   decrement?: number
   multiply?: number
@@ -1530,22 +1562,6 @@ export type NullableEnumRhFactorFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
-}
-
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
-export type NullableFloatFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
 }
 
 export type NullableEnumMallampatiClassFieldUpdateOperationsInput = {
@@ -1570,15 +1586,17 @@ export type NullableEnumASAScoreFieldUpdateOperationsInput = {
 
 export type PreoperativeAssessmentCreateWithoutCaseInput = {
   id?: string
-  ageYears: number
+  ageYears?: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm?: number | null
+  weightKg?: number | null
+  bmi?: number | null
   bloodType?: $Enums.BloodType | null
   rhFactor?: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure: string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1624,15 +1642,17 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
 
 export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   id?: string
-  ageYears: number
+  ageYears?: number | null
   sex: $Enums.Sex
-  heightCm: number
-  weightKg: number
-  bmi: number
+  heightCm?: number | null
+  weightKg?: number | null
+  bmi?: number | null
   bloodType?: $Enums.BloodType | null
   rhFactor?: $Enums.RhFactor | null
   diagnosis: string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure: string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1694,15 +1714,17 @@ export type PreoperativeAssessmentUpdateToOneWithWhereWithoutCaseInput = {
 
 export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1748,15 +1770,17 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
 
 export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ageYears?: Prisma.IntFieldUpdateOperationsInput | number
+  ageYears?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sex?: Prisma.EnumSexFieldUpdateOperationsInput | $Enums.Sex
-  heightCm?: Prisma.FloatFieldUpdateOperationsInput | number
-  weightKg?: Prisma.FloatFieldUpdateOperationsInput | number
-  bmi?: Prisma.FloatFieldUpdateOperationsInput | number
+  heightCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  weightKg?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bmi?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   bloodType?: Prisma.NullableEnumBloodTypeFieldUpdateOperationsInput | $Enums.BloodType | null
   rhFactor?: Prisma.NullableEnumRhFactorFieldUpdateOperationsInput | $Enums.RhFactor | null
   diagnosis?: Prisma.StringFieldUpdateOperationsInput | string
+  diagnosesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   plannedProcedure?: Prisma.StringFieldUpdateOperationsInput | string
+  proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1813,7 +1837,9 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   bloodType?: boolean
   rhFactor?: boolean
   diagnosis?: boolean
+  diagnosesJson?: boolean
   plannedProcedure?: boolean
+  proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
   comorbidities?: boolean
@@ -1869,7 +1895,9 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   bloodType?: boolean
   rhFactor?: boolean
   diagnosis?: boolean
+  diagnosesJson?: boolean
   plannedProcedure?: boolean
+  proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
   comorbidities?: boolean
@@ -1925,7 +1953,9 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   bloodType?: boolean
   rhFactor?: boolean
   diagnosis?: boolean
+  diagnosesJson?: boolean
   plannedProcedure?: boolean
+  proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
   comorbidities?: boolean
@@ -1981,7 +2011,9 @@ export type PreoperativeAssessmentSelectScalar = {
   bloodType?: boolean
   rhFactor?: boolean
   diagnosis?: boolean
+  diagnosesJson?: boolean
   plannedProcedure?: boolean
+  proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
   comorbidities?: boolean
@@ -2025,7 +2057,7 @@ export type PreoperativeAssessmentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "plannedProcedure" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
+export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
 export type PreoperativeAssessmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -2044,15 +2076,17 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     caseId: string
-    ageYears: number
+    ageYears: number | null
     sex: $Enums.Sex
-    heightCm: number
-    weightKg: number
-    bmi: number
+    heightCm: number | null
+    weightKg: number | null
+    bmi: number | null
     bloodType: $Enums.BloodType | null
     rhFactor: $Enums.RhFactor | null
     diagnosis: string
+    diagnosesJson: runtime.JsonValue | null
     plannedProcedure: string
+    proceduresJson: runtime.JsonValue | null
     icdCode: string | null
     teamNotes: string | null
     comorbidities: runtime.JsonValue
@@ -2528,7 +2562,9 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly bloodType: Prisma.FieldRef<"PreoperativeAssessment", 'BloodType'>
   readonly rhFactor: Prisma.FieldRef<"PreoperativeAssessment", 'RhFactor'>
   readonly diagnosis: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
+  readonly diagnosesJson: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly plannedProcedure: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
+  readonly proceduresJson: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly icdCode: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly teamNotes: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly comorbidities: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>

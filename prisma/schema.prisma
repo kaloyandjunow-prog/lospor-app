@@ -58,6 +58,7 @@ model Case {
   userId        String
   user          User        @relation(fields: [userId], references: [id])
   status        CaseStatus  @default(DRAFT)
+  finalizedAt   DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -65,6 +66,16 @@ model Case {
   intraop       IntraoperativeRecord?
   postop        PostoperativeRecord?
   transfers     CaseTransfer[]
+  lock          CaseLock?
+}
+
+model CaseLock {
+  caseId    String   @id
+  userId    String
+  deviceId  String
+  expiresAt DateTime
+
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
 }
 
 model CaseTransfer {
@@ -90,6 +101,7 @@ enum TransferStatus {
 enum CaseStatus {
   DRAFT
   IN_PROGRESS
+  AWAITING_REVIEW
   COMPLETE
 }
 
@@ -154,16 +166,18 @@ model PreoperativeAssessment {
   caseId String @unique
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  ageYears   Int
+  ageYears   Int?
   sex        Sex
-  heightCm   Float
-  weightKg   Float
-  bmi        Float
+  heightCm   Float?
+  weightKg   Float?
+  bmi        Float?
   bloodType  BloodType?
   rhFactor   RhFactor?
 
   diagnosis              String
+  diagnosesJson          Json?
   plannedProcedure       String
+  proceduresJson         Json?
   icdCode                String?
   teamNotes              String?
 

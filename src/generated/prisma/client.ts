@@ -57,6 +57,11 @@ export type Institution = Prisma.InstitutionModel
  */
 export type Case = Prisma.CaseModel
 /**
+ * Model CaseLock
+ * 
+ */
+export type CaseLock = Prisma.CaseLockModel
+/**
  * Model CaseTransfer
  * 
  */

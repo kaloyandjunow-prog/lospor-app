@@ -32,7 +32,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
 
   const isHOD   = sessionRole === "HEAD_OF_DEPT"
   const isAdmin  = sessionRole === "ADMIN"
-  const canInitiate = isHOD || isAdmin || caseOwnerId === sessionUserId
+  const canInitiate = isHOD || isAdmin
 
   useEffect(() => {
     if (!open || colleagues.length) return
@@ -45,9 +45,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
 
   if (!canInitiate) return null
 
-  const label = pending
-    ? t("transfer.awaitingAcceptance")
-    : (isHOD || isAdmin) ? t("transfer.assign") : t("transfer.handOver")
+  const label = pending ? t("transfer.awaitingAcceptance") : t("transfer.assign")
 
   const filtered = colleagues.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -160,10 +158,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
             {selected && (
               <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  {isHOD || isAdmin
-                    ? t("transfer.instantTransfer", { name: selected.name })
-                    : t("transfer.sendRequestNote", { name: selected.name })
-                  }
+                  {t("transfer.instantTransfer", { name: selected.name })}
                 </p>
                 <button
                   onClick={submit}
@@ -171,7 +166,7 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
                   {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {isHOD || isAdmin ? t("transfer.assignNow") : t("transfer.sendRequestBtn")}
+                  {t("transfer.assignNow")}
                 </button>
               </div>
             )}

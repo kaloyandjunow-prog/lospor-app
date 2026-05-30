@@ -64,16 +64,30 @@ export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const cases = await prisma.case.findMany({
-    where: { userId: user.id },
-    include: {
-      preop:  { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
-      postop: { select: { disposition: true, aldreteTotal: true } },
-      intraop: { select: { monthYear: true, durationMinutes: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  })
+  const where =
+    user.role === "ADMIN" ? {}
+    : user.role === "HEAD_OF_DEPT" && user.institutionId ? { user: { institutionId: user.institutionId } }
+    : { userId: user.id }
 
-  return NextResponse.json(cases)
+  // Item 28: Pagination — accept optional ?skip and ?take; cap take at 200 per request
+  const url = new URL(req.url)
+  const skip = Math.max(0, Number(url.searchParams.get("skip") ?? "0"))
+  const take = Math.min(200, Math.max(1, Number(url.searchParams.get("take") ?? "50")))
+
+  const [cases, total] = await Promise.all([
+    prisma.case.findMany({
+      where,
+      include: {
+        preop:  { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
+        postop: { select: { disposition: true, aldreteTotal: true } },
+        intraop: { select: { monthYear: true, durationMinutes: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.case.count({ where }),
+  ])
+
+  return NextResponse.json({ cases, total, skip, take })
 }

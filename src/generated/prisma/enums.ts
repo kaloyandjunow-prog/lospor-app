@@ -32,6 +32,7 @@ export type TransferStatus = (typeof TransferStatus)[keyof typeof TransferStatus
 export const CaseStatus = {
   DRAFT: 'DRAFT',
   IN_PROGRESS: 'IN_PROGRESS',
+  AWAITING_REVIEW: 'AWAITING_REVIEW',
   COMPLETE: 'COMPLETE'
 } as const
 

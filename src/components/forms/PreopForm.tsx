@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { calcBMI, calcIBW, calcABW } from "@/lib/scores"
+import { calcBMI, calcIBW, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
 import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd10-categories"
 import { ChevronRight, AlertCircle, Lightbulb, X } from "lucide-react"
 import { TagInput, type Tag } from "@/components/TagInput"
@@ -84,6 +84,29 @@ const schema = z.object({
   looseTeeth:              z.boolean().default(false),
   smoking:                 z.boolean().default(false),
   substanceAbuse:          z.boolean().default(false),
+
+  // APFEL — PONV risk
+  apfelPONVHistory:        z.boolean().default(false),
+  apfelPostopOpioids:      z.boolean().default(false),
+
+  // STOP-BANG — OSA screening
+  stopbangSnoring:         z.boolean().default(false),
+  stopbangTired:           z.boolean().default(false),
+  stopbangObserved:        z.boolean().default(false),
+  stopbangBP:              z.boolean().default(false),
+  stopbangNeck:            z.boolean().default(false),
+
+  // RCRI — cardiac risk (high-risk surgery reused from case section)
+  rcriIschemicHeart:       z.boolean().default(false),
+  rcriCHF:                 z.boolean().default(false),
+  rcriCVD:                 z.boolean().default(false),
+  rcriInsulinDM:           z.boolean().default(false),
+  rcriCreatinine:          z.boolean().default(false),
+
+  // Computed scores injected before submit
+  rcriScore:               z.number().optional(),
+  apfelScore:              z.number().optional(),
+  stopBangScore:           z.number().optional(),
 
   // Vitals
   bpSystolic: z.coerce.number().optional(), bpDiastolic: z.coerce.number().optional(),
@@ -186,27 +209,78 @@ function CheckField({ id, label, control }: { id: string; label: string; control
   )
 }
 
+function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
+
 // ── Component ─────────────────────────────────────────────────────────────────
-export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, onAutoSave }: {
+export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, onAutoSave, layoutMode = "scroll" }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
   onIdChange?: (id: string) => void
   onAutoSave?: (data: PreopData) => void
+  layoutMode?: "tabs" | "scroll"
 }) {
   const t      = useTranslations()
   const locale = useLocale()
   const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors } } = useForm<PreopData>({
     resolver: zodResolver(schema) as any,
-    defaultValues: { comorbidities: [], diagnoses: [], procedures: [], currentMedications: [], allergyDetails: [], ...defaultValues },
+    defaultValues: {
+      bpSystolic:  randInt(120, 130),
+      bpDiastolic: randInt(70, 85),
+      heartRate:   randInt(60, 90),
+      spO2:        randInt(95, 99),
+      temperature: parseFloat((36 + Math.random()).toFixed(1)),
+      comorbidities: [], diagnoses: [], procedures: [], currentMedications: [], allergyDetails: [],
+      ...Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([, v]) => v !== undefined && v !== null)),
+    },
   })
 
   const height = watch("heightCm"), weight = watch("weightKg"), sex = watch("sex")
   const bmi  = height && weight ? calcBMI(Number(height), Number(weight)) : null
   const ibw  = height && sex ? calcIBW(Number(height), sex) : null
   const abw  = ibw && weight ? calcABW(ibw, Number(weight)) : null
-  const comorbidities = watch("comorbidities") ?? []
-  const asaSuggestion = suggestASAFromTags(comorbidities, bmi)
+  const comorbidities    = watch("comorbidities") ?? []
+  const asaSuggestion    = suggestASAFromTags(comorbidities, bmi)
+  const smoking          = watch("smoking")
+  const highRiskSurgery  = watch("highRiskSurgery")
+  const ageYearsVal      = watch("ageYears")
+  const apfelPONVHistory  = watch("apfelPONVHistory")
+  const apfelPostopOpioids = watch("apfelPostopOpioids")
+  const stopbangSnoring  = watch("stopbangSnoring")
+  const stopbangTired    = watch("stopbangTired")
+  const stopbangObserved = watch("stopbangObserved")
+  const stopbangBP       = watch("stopbangBP")
+  const stopbangNeck     = watch("stopbangNeck")
+  const rcriIschemicHeart = watch("rcriIschemicHeart")
+  const rcriCHF          = watch("rcriCHF")
+  const rcriCVD          = watch("rcriCVD")
+  const rcriInsulinDM    = watch("rcriInsulinDM")
+  const rcriCreatinine   = watch("rcriCreatinine")
+
+  const apfelScore = calcApfel({
+    female:         sex === "FEMALE",
+    nonSmoker:      !smoking,
+    ponvHistory:    apfelPONVHistory  ?? false,
+    opioidsPlanned: apfelPostopOpioids ?? false,
+  })
+  const stopBangScore = calcStopBang({
+    snoring:     stopbangSnoring  ?? false,
+    tired:       stopbangTired    ?? false,
+    observed:    stopbangObserved ?? false,
+    highBP:      stopbangBP       ?? false,
+    bmi:         bmi ?? 0,
+    ageOver50:   (ageYearsVal ?? 0) > 50,
+    neckOver40cm: stopbangNeck   ?? false,
+    male:        sex === "MALE",
+  })
+  const rcriScore = calcRCRI({
+    highRiskSurgery:         highRiskSurgery    ?? false,
+    ischaemicHeartDisease:   rcriIschemicHeart  ?? false,
+    congestiveHeartFailure:  rcriCHF            ?? false,
+    cerebrovascularDisease:  rcriCVD            ?? false,
+    insulinDependentDiabetes: rcriInsulinDM     ?? false,
+    creatinineHigh:          rcriCreatinine     ?? false,
+  })
   const [vitalsUTO, setVitalsUTO] = useState<Set<string>>(new Set())
   function toggleUTO(field: string, clearFn: () => void) {
     setVitalsUTO(prev => {
@@ -235,6 +309,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
   const difficultAirwayHistory = watch("difficultAirwayHistory")
   const emergencySurgery = watch("emergencySurgery")
   const [airwayUTO, setAirwayUTO] = useState(false)
+  const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">("patient")
 
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set())
   const refMap = useRef<Record<string, HTMLDivElement | null>>({})
@@ -259,32 +334,80 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     return errs
   }
 
+  const TABS = [
+    { value: "patient", label: "Patient"   },
+    { value: "case",    label: "Case"      },
+    { value: "history", label: "History"   },
+    { value: "exam",    label: "Exam"      },
+    { value: "risk",    label: "Risk & ASA"},
+  ]
+
+  function hasTabError(tab: string): boolean {
+    if (fieldErrors.size === 0) return false
+    switch (tab) {
+      case "patient": return fieldErrors.has("ageYears") || fieldErrors.has("sex")
+      case "case":    return fieldErrors.has("diagnoses") || fieldErrors.has("procedures")
+      case "exam":    return fieldErrors.has("bp") || fieldErrors.has("heartRate") || fieldErrors.has("respiratoryRate") || fieldErrors.has("airway")
+      case "risk":    return fieldErrors.has("asaScore")
+      default: return false
+    }
+  }
+
   function handleValidatedSubmit(data: PreopData) {
     const errs = validate(data)
     if (errs.length > 0) {
       const errSet = new Set(errs)
       setFieldErrors(errSet)
-      const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
-      const firstErr = sectionOrder.find(e => errSet.has(e))
-      if (firstErr) {
-        const sectionKey =
-          firstErr === "patientName" || firstErr === "patientId" ? "patient" :
-          firstErr === "ageYears"   || firstErr === "sex"        ? "demographics" :
-          firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
-          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
-          firstErr === "airway" ? "airway" : "asa"
-        setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
+      if (layoutMode === "tabs") {
+        const firstErr = errs[0]
+        const tab =
+          firstErr === "ageYears"  || firstErr === "sex"        ? "patient" :
+          firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
+          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
+          "risk"
+        setActiveTab(tab as any)
+      } else {
+        const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
+        const firstErr = sectionOrder.find(e => errSet.has(e))
+        if (firstErr) {
+          const sectionKey =
+            firstErr === "patientName" || firstErr === "patientId" ? "patient" :
+            firstErr === "ageYears"   || firstErr === "sex"        ? "demographics" :
+            firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
+            firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
+            firstErr === "airway" ? "airway" : "asa"
+          setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
+        }
       }
       return
     }
     setFieldErrors(new Set())
-    onSubmit(data)
+    onSubmit({ ...data, rcriScore, apfelScore, stopBangScore })
   }
 
   return (
     <form onSubmit={handleSubmit(handleValidatedSubmit, () => handleValidatedSubmit(getValues() as PreopData))} className="space-y-6">
 
+      {/* Tab bar — tabs mode only */}
+      {layoutMode === "tabs" && (
+        <div className="sticky top-0 z-20 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-[#2a2a2a] flex items-center h-11 -mx-0">
+          {TABS.map(tab => (
+            <button key={tab.value} type="button"
+              onClick={() => setActiveTab(tab.value as any)}
+              className={`relative h-full px-4 text-xs font-semibold border-b-2 transition-colors ${
+                activeTab === tab.value
+                  ? "border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100"
+                  : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+              }`}>
+              {tab.label}
+              {hasTabError(tab.value) && <span className="absolute top-2 right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />}
+            </button>
+          ))}
+        </div>
+      )}
 
+      {/* ── Patient tab ─────────────────────────────────────────── */}
+      <div className={layoutMode === "tabs" && activeTab !== "patient" ? "hidden" : ""}>
       {/* Demographics */}
       <div ref={el => { refMap.current.demographics = el }} data-tour="preop-demographics">
       <SectionCard title={t("preop.demographicsSection")} error={fieldErrors.has("ageYears") || fieldErrors.has("sex")}>
@@ -304,7 +427,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.weight")}</Label>
             <Controller name="weightKg" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={250} step={0.5} unit="kg" showSlider />
+              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={250} step={0.5} stepFn={v => v < 20 ? 0.5 : 1} unit="kg" showSlider />
             )} />
           </div>
         </div>
@@ -399,7 +522,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         </div>
       </SectionCard>
       </div>
+      </div>
 
+      {/* ── Case tab ─────────────────────────────────────────────── */}
+      <div className={layoutMode === "tabs" && activeTab !== "case" ? "hidden" : ""}>
       {/* Case details */}
       <div ref={el => { refMap.current.case = el }} data-tour="preop-diagnosis">
       <SectionCard title={t("preop.caseSection")} error={fieldErrors.has("diagnoses") || fieldErrors.has("procedures")}>
@@ -468,7 +594,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         </div>
       </SectionCard>
       </div>
+      </div>
 
+      {/* ── History tab ──────────────────────────────────────────── */}
+      <div className={layoutMode === "tabs" && activeTab !== "history" ? "hidden" : "space-y-6"}>
       {/* Medical History */}
       <SectionCard title={t("preop.historySection")}>
         <p className="text-sm text-slate-500">{t("preop.historyDesc")}</p>
@@ -506,9 +635,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         )} />
       </SectionCard>
 
-      {/* Safety */}
-      <SectionCard title={t("preop.safetySection")}>
+      {/* Anamnesis, habits & risk factor checkboxes */}
+      <SectionCard title="Clinical Anamnesis & History">
         <div className="space-y-3">
+          {/* Allergies */}
           <div className="flex items-center gap-2">
             <Controller name="allergies" control={control} render={({ field }) => (
               <Checkbox id="allergies" checked={!!field.value} onCheckedChange={field.onChange} />
@@ -536,6 +666,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label htmlFor="latexAllergy" className="font-normal cursor-pointer">{t("preop.latexAllergy")}</Label>
           </div>
           <Separator />
+          {/* Family history */}
           <div className="flex items-center gap-2">
             <Controller name="familyAnesthesiaProblems" control={control} render={({ field }) => (
               <Checkbox id="familyAnesthesiaProblems" checked={!!field.value} onCheckedChange={field.onChange} />
@@ -544,6 +675,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           </div>
           {familyAnesthesiaProblems && <Textarea placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />}
           <Separator />
+          {/* Dental */}
           <div className="flex items-center gap-2">
             <Controller name="dentalProsthetics" control={control} render={({ field }) => (
               <Checkbox id="dentalProsthetics" checked={!!field.value} onCheckedChange={field.onChange} />
@@ -557,6 +689,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label htmlFor="looseTeeth" className="font-normal cursor-pointer">{t("preop.looseTeeth")}</Label>
           </div>
           <Separator />
+          {/* Habits */}
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.harmfulHabits")}</p>
           <div className="flex items-center gap-2">
             <Controller name="smoking" control={control} render={({ field }) => (
@@ -570,9 +703,75 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             )} />
             <Label htmlFor="substanceAbuse" className="font-normal cursor-pointer">{t("preop.substanceAbuse")}</Label>
           </div>
+
+          <Separator />
+
+          {/* RCRI */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">RCRI — Cardiac risk factors</p>
+            <p className="text-xs text-slate-400">High-risk surgery is set in the Case section above.</p>
+            {[
+              { id:"rcriIschemicHeart", label:"Ischaemic heart disease (history of MI, positive stress test, use of nitrates, ECG Q waves)" },
+              { id:"rcriCHF",           label:"Congestive heart failure (pulmonary oedema, PND, S3, bilateral crackles, CXR redistribution)" },
+              { id:"rcriCVD",           label:"Cerebrovascular disease (history of TIA or stroke)" },
+              { id:"rcriInsulinDM",     label:"Insulin-dependent diabetes mellitus" },
+              { id:"rcriCreatinine",    label:"Creatinine > 177 µmol/L (> 2.0 mg/dL)" },
+            ].map(item => (
+              <div key={item.id} className="flex items-start gap-2">
+                <Controller name={item.id as any} control={control} render={({ field }) => (
+                  <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                )} />
+                <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
+          {/* APFEL */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">APFEL — PONV risk</p>
+            <p className="text-xs text-slate-400">Female sex and non-smoker status are derived from demographics and habits above.</p>
+            {[
+              { id:"apfelPONVHistory",   label:"History of PONV or motion sickness" },
+              { id:"apfelPostopOpioids", label:"Postoperative opioids planned" },
+            ].map(item => (
+              <div key={item.id} className="flex items-center gap-2">
+                <Controller name={item.id as any} control={control} render={({ field }) => (
+                  <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} />
+                )} />
+                <Label htmlFor={item.id} className="font-normal cursor-pointer">{item.label}</Label>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
+          {/* STOP-BANG */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">STOP-BANG — OSA screening</p>
+            <p className="text-xs text-slate-400">BMI &gt; 35, age &gt; 50, and male sex are derived automatically.</p>
+            {[
+              { id:"stopbangSnoring",  label:"Snoring — do you snore loudly?" },
+              { id:"stopbangTired",    label:"Tired — often feel tired, fatigued, or sleepy during daytime?" },
+              { id:"stopbangObserved", label:"Observed — has anyone observed you stop breathing during sleep?" },
+              { id:"stopbangBP",       label:"Pressure — do you have or are you being treated for high blood pressure?" },
+              { id:"stopbangNeck",     label:"Neck circumference > 40 cm" },
+            ].map(item => (
+              <div key={item.id} className="flex items-start gap-2">
+                <Controller name={item.id as any} control={control} render={({ field }) => (
+                  <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                )} />
+                <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
+              </div>
+            ))}
+          </div>
         </div>
       </SectionCard>
+      </div>
 
+      {/* ── Exam tab ─────────────────────────────────────────────── */}
+      <div className={layoutMode === "tabs" && activeTab !== "exam" ? "hidden" : "space-y-6"}>
       {/* Vitals */}
       <div ref={el => { refMap.current.vitals = el }}>
       <SectionCard title={t("preop.vitalsSection")} error={fieldErrors.has("bp") || fieldErrors.has("heartRate") || fieldErrors.has("respiratoryRate")}>
@@ -795,7 +994,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         )}
       </SectionCard>
       </div>
+      </div>
 
+      {/* ── Risk & ASA tab ────────────────────────────────────────── */}
+      <div className={layoutMode === "tabs" && activeTab !== "risk" ? "hidden" : "space-y-6"}>
       {/* Lab Results */}
       <SectionCard title={t("preop.labSection")}>
         <Controller name="labResults" control={control} render={({ field }) => (
@@ -857,6 +1059,43 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <p className="text-xs text-slate-500">{t("preop.scoresNote")}</p>
         </div>
 
+        {/* Calculated risk scores */}
+        <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Calculated Risk Scores</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">RCRI — Cardiac risk</p>
+              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
+                {rcriScore}
+                <span className="text-base font-normal text-slate-400">/6</span>
+              </p>
+              <p className={`text-xs font-semibold mt-1.5 ${rcriScore >= 3 ? "text-red-500" : rcriScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
+                {rcriRiskLabel(rcriScore)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">APFEL — PONV risk</p>
+              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
+                {apfelScore}
+                <span className="text-base font-normal text-slate-400">/4</span>
+              </p>
+              <p className={`text-xs font-semibold mt-1.5 ${apfelScore >= 3 ? "text-red-500" : apfelScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
+                {apfelRiskLabel(apfelScore)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">STOP-BANG — OSA</p>
+              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
+                {stopBangScore}
+                <span className="text-base font-normal text-slate-400">/8</span>
+              </p>
+              <p className={`text-xs font-semibold mt-1.5 ${stopBangScore >= 5 ? "text-red-500" : stopBangScore >= 3 ? "text-amber-500" : "text-emerald-600"}`}>
+                {stopBangRiskLabel(stopBangScore)}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Notes */}
         <div className="space-y-1 pt-2">
           <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</Label>
@@ -882,6 +1121,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       </div>
 
       {watch("aiOptIn") && <AIAdvisor getFormData={getValues} />}
+      </div>
 
       {fieldErrors.size > 0 && (
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-300">

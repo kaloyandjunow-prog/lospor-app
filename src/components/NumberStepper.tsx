@@ -9,12 +9,13 @@ interface Props {
   min: number
   max: number
   step?: number
+  stepFn?: (value: number) => number
   unit?: string
   placeholder?: string
   showSlider?: boolean
 }
 
-export function NumberStepper({ value, onChange, min, max, step = 1, unit, placeholder = "—", showSlider = false }: Props) {
+export function NumberStepper({ value, onChange, min, max, step = 1, stepFn, unit, placeholder = "—", showSlider = false }: Props) {
   const valueRef    = useRef(value)
   const onChangeRef = useRef(onChange)
   valueRef.current    = value
@@ -25,14 +26,22 @@ export function NumberStepper({ value, onChange, min, max, step = 1, unit, place
     repeat:  ReturnType<typeof setInterval> | null
   }>({ initial: null, repeat: null })
 
-  function clamp(v: number) {
-    const rounded = Math.round(v / step) * step
+  function clamp(v: number, s = step) {
+    const rounded = Math.round(v / s) * s
     const fixed = parseFloat(rounded.toFixed(10))
     return Math.min(max, Math.max(min, fixed))
   }
 
-  function increment() { onChangeRef.current(clamp((valueRef.current ?? min) + step)) }
-  function decrement() { onChangeRef.current(clamp((valueRef.current ?? min) - step)) }
+  function increment() {
+    const cur = valueRef.current ?? min
+    const s = stepFn ? stepFn(cur) : step
+    onChangeRef.current(clamp(cur + s, s))
+  }
+  function decrement() {
+    const cur = valueRef.current ?? min
+    const s = stepFn ? stepFn(cur) : step
+    onChangeRef.current(clamp(cur - s, s))
+  }
 
   function startHold(fn: () => void) {
     fn()

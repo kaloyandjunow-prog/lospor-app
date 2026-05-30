@@ -40,6 +40,68 @@ const QUICK_FLUIDS: { cat: string; color: string; fluids: { name: string }[] }[]
   { cat: "Other",         color: "bg-slate-100  dark:bg-slate-800/60  text-slate-700  dark:text-slate-300  border-slate-200  dark:border-slate-600",  fluids: [{name:"Mannitol 20%"},{name:"NaHCO3 8.4%"},{name:"Gelatin 4%"},{name:"Dextran 40"}] },
 ]
 
+// ── Clinical event categories ─────────────────────────────────────────────────
+type ClinicalEventDef = { label: string; color: string }
+const CLINICAL_EVENT_CATS: { cat: string; color: string; isComplication?: boolean; events: ClinicalEventDef[] }[] = [
+  { cat: "Airway", color: "#6366f1", events: [
+    { label:"Induction",        color:"#3b82f6" },
+    { label:"Mask vent",        color:"#0891b2" },
+    { label:"Intubated",        color:"#6366f1" },
+    { label:"LMA in",           color:"#6366f1" },
+    { label:"Extubated",        color:"#22c55e" },
+    { label:"Failed intubation",color:"#ef4444" },
+    { label:"Airway exchange",  color:"#f97316" },
+    { label:"DLT placed",       color:"#6366f1" },
+  ]},
+  { cat: "Regional", color: "#a855f7", events: [
+    { label:"Spinal in",        color:"#a855f7" },
+    { label:"Epidural in",      color:"#a855f7" },
+    { label:"CSE",              color:"#a855f7" },
+    { label:"Block done",       color:"#8b5cf6" },
+    { label:"LA top-up",        color:"#8b5cf6" },
+    { label:"Spinal removed",   color:"#64748b" },
+    { label:"Epidural removed", color:"#64748b" },
+  ]},
+  { cat: "Access", color: "#f59e0b", events: [
+    { label:"Art line in",      color:"#f59e0b" },
+    { label:"CVC in",           color:"#f59e0b" },
+    { label:"PA cath",          color:"#d97706" },
+    { label:"PICC",             color:"#d97706" },
+    { label:"IO access",        color:"#d97706" },
+  ]},
+  { cat: "Surgical", color: "#ef4444", events: [
+    { label:"Positioned",       color:"#64748b" },
+    { label:"Incision",         color:"#ef4444" },
+    { label:"Procedure started",color:"#ef4444" },
+    { label:"Procedure ended",  color:"#22c55e" },
+    { label:"Tourniquet on",    color:"#f97316" },
+    { label:"Tourniquet off",   color:"#22c55e" },
+    { label:"Closure",          color:"#22c55e" },
+  ]},
+  { cat: "Transfer", color: "#22c55e", events: [
+    { label:"To PACU",          color:"#22c55e" },
+    { label:"To ICU",           color:"#f97316" },
+    { label:"To HDU",           color:"#f59e0b" },
+    { label:"To ward",          color:"#22c55e" },
+  ]},
+  { cat: "Complications", color: "#ef4444", isComplication: true, events: [
+    { label:"Hypotension",                    color:"#ef4444" },
+    { label:"Hypertension",                   color:"#ef4444" },
+    { label:"Bradycardia",                    color:"#ef4444" },
+    { label:"Tachycardia",                    color:"#ef4444" },
+    { label:"Cardiac arrest",                 color:"#ef4444" },
+    { label:"Hypoxia / desaturation",         color:"#ef4444" },
+    { label:"Laryngospasm",                   color:"#ef4444" },
+    { label:"Bronchospasm",                   color:"#ef4444" },
+    { label:"Aspiration",                     color:"#ef4444" },
+    { label:"Anaphylaxis / allergic reaction",color:"#ef4444" },
+    { label:"Drug error",                     color:"#ef4444" },
+    { label:"LAST",                           color:"#ef4444" },
+    { label:"Massive haemorrhage",            color:"#ef4444" },
+    { label:"Awareness under anaesthesia",    color:"#ef4444" },
+  ]},
+]
+
 // в"Ђв"Ђ Infusion configs в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 const INFUSION_CONFIGS: Record<string, { units: string[]; min: number; max: number; step: number; color: string }> = {
   "Remifentanil":    { units:["mcg/kg/min","mcg/min"],            min:0.01, max:1,    step:0.01, color:"#a855f7" },
@@ -195,9 +257,10 @@ export interface TimetableDrug  { colIdx: number; name: string; dose: string; un
 export interface TimetableFluid { id: string; name: string; category?: string; volume: string; color: string; startCol: number; endCol: number; stopped?: boolean }
 export interface AgentSegment   { name: string; startCol: number; endCol: number; n2o?: number; stopped?: boolean }
 export interface TimetableInfusion { id: string; name: string; rate: number; unit: string; startCol: number; endCol: number; color: string; stopped?: boolean; rateChanges?: { col: number; rate: number; unit: string }[] }
-export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[] }
+export interface ClinicalEvent    { colIdx: number; label: string; color: string }
+export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[]; clinicalEvents?: ClinicalEvent[] }
 
-interface Props { startTime: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onFluidTotals?: (crystalloids: number, colloids: number, blood: number) => void }
+interface Props { startTime: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onFluidTotals?: (crystalloids: number, colloids: number, blood: number) => void; onComplicationAdded?: (labels: string[]) => void }
 
 // в"Ђв"Ђ Helpers в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 function addMinutes(hhmm: string, min: number) {
@@ -729,7 +792,7 @@ type TtFP = {
 }
 
 // в"Ђв"Ђ Component в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onFluidTotals }: Props) {
+export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onFluidTotals, onComplicationAdded }: Props) {
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
   const [addingDrug, setAddingDrug]       = useState<number | null>(null)
@@ -803,6 +866,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [customDrugUnit, setCustomDrugUnit]   = useState("mg")
   const [customDrugDose, setCustomDrugDose]   = useState("")
   const [customDrugs, setCustomDrugs]         = useState<{name:string; unit:string}[]>([])
+  // Clinical events picker
+  const [eventPicker, setEventPicker]         = useState<{ ci: number; rect: DOMRect } | null>(null)
+  const [evSearch, setEvSearch]               = useState("")
 
   // Vitals input refs (keyed "${col}-${rowKey}") for Tab column navigation
   const vitalsInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
@@ -818,9 +884,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const dataRef        = useRef(data)
   const rawOnChangeRef = useRef(onChange)   // raw parent callback — used only by clock auto-extend
   const layoutRef      = useRef(layout)
+  const colCountRef    = useRef(colCount)
   useEffect(() => { dataRef.current = data },              [data])
   useEffect(() => { rawOnChangeRef.current = onChange },   [onChange])
   useEffect(() => { layoutRef.current = layout },          [layout])
+  useEffect(() => { colCountRef.current = colCount },      [colCount])
   // Persist layout/vitals settings and listen for changes from the Settings panel
   useEffect(() => {
     localStorage.setItem("timetableLayout", layout)
@@ -1090,10 +1158,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
     const dataMax = Math.max(
       0,
-      ...(data.agents    ?? []).map(a => a.endCol),
-      ...(data.infusions ?? []).map(i => i.endCol),
-      ...(data.fluids    ?? []).map(f => f.endCol),
-      ...(data.drugs     ?? []).map(d => d.colIdx),
+      ...(data.agents         ?? []).map(a => a.endCol),
+      ...(data.infusions      ?? []).map(i => i.endCol),
+      ...(data.fluids         ?? []).map(f => f.endCol),
+      ...(data.drugs          ?? []).map(d => d.colIdx),
+      ...(data.clinicalEvents ?? []).map(e => e.colIdx),
       data.vitals && data.vitals.length > 0 ? data.vitals.length - 1 : 0,
     )
 
@@ -1110,7 +1179,45 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // intentionally run once on mount only
 
-  // в"Ђв"Ђ Live clock: advance selectedCol + pixel offset every 10 s в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+  // ── Mount-time backfill: fill any gap from last vitals col to current col ──
+  useEffect(() => {
+    if (!caseStarted) return
+    if (localStorage.getItem("autoFillVitals") !== "on") return
+    if (localStorage.getItem("autoFillBackground") !== "on") return
+
+    const d = dataRef.current
+    const AUTO_FILL_KEYS    = ["etco2", "temp", "spO2"] as const
+    const AUTO_FILL_BP_KEYS = ["systolic", "diastolic", "heartRate"] as const
+    const fillBP  = localStorage.getItem("autoFillBP") === "on"
+    const allKeys = fillBP ? [...AUTO_FILL_KEYS, ...AUTO_FILL_BP_KEYS] : AUTO_FILL_KEYS
+
+    let lastDataCol = -1
+    for (let i = (d.vitals?.length ?? 0) - 1; i >= 0; i--) {
+      if (allKeys.some(k => d.vitals[i]?.[k] != null)) { lastDataCol = i; break }
+    }
+    if (lastDataCol < 0) return
+
+    const now = new Date()
+    let diffSecs = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds())
+                 - (timeToMins(floorTo5(startTime || "08:00")) * 60)
+    if (diffSecs < 0) diffSecs += 24 * 3600
+    const currentCol = Math.max(0, Math.floor(diffSecs / (INTERVAL * 60)))
+    if (currentCol <= lastDataCol) return
+
+    const newVitals = [...(d.vitals ?? [])]
+    while (newVitals.length <= currentCol) newVitals.push({} as VitalsEntry)
+    for (let col = lastDataCol + 1; col <= currentCol; col++) {
+      allKeys.forEach(k => {
+        const pv = newVitals[lastDataCol]?.[k]
+        if (pv != null && newVitals[col]?.[k] == null)
+          newVitals[col] = { ...newVitals[col], [k]: pv }
+      })
+    }
+    rawOnChangeRef.current({ ...d, vitals: newVitals })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseStarted])
+
+  // ── Live clock: advance selectedCol + pixel offset every 10 s ──────────────
   useEffect(() => {
     if (!caseStarted) return          // case not started — don't run clock
     function tick() {
@@ -1121,10 +1228,10 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       if (diffSecs < 0) diffSecs += 24 * 3600  // case started yesterday (midnight crossing)
       if (diffSecs >= 0) {
         const px  = diffSecs / (INTERVAL * 60) * COL_W
-        const col = Math.min(Math.floor(diffSecs / (INTERVAL * 60)), colCount - 1)
-        setNowOffsetPx(Math.min(px, colCount * COL_W))
+        const col = Math.min(Math.floor(diffSecs / (INTERVAL * 60)), colCountRef.current - 1)
+        setNowOffsetPx(Math.min(px, colCountRef.current * COL_W))
         setSelectedCol(col)
-        if (col + 1 >= colCount) setColCount(layoutRef.current === "scroll" ? colCount + 1 : Math.ceil((col + 2) / ROW_COLS) * ROW_COLS)
+        if (col + 1 >= colCountRef.current) setColCount(layoutRef.current === "scroll" ? colCountRef.current + 1 : Math.ceil((col + 2) / ROW_COLS) * ROW_COLS)
 
         // Auto-extend live bars to current column (any bar behind current that isn't stopped)
         const d   = dataRef.current
@@ -1136,15 +1243,18 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           (d.fluids    ?? []).some(f => f.endCol < col && !f.stopped) ||
           (d.agents    ?? []).some(a => a.endCol < col && !a.stopped)
 
-        // Auto-fill EtCO₂/Temp/SpO₂ from previous column when clock advances
-        const AUTO_FILL_KEYS = ["etco2", "temp", "spO2"] as const
+        // Auto-fill vitals from previous column when clock advances
+        const AUTO_FILL_KEYS    = ["etco2", "temp", "spO2"] as const
+        const AUTO_FILL_BP_KEYS = ["systolic", "diastolic", "heartRate"] as const
         let newVitals = d.vitals
         if (prevCol !== null && col > prevCol && localStorage.getItem("autoFillVitals") === "on") {
-          const hasToFill = AUTO_FILL_KEYS.some(k => d.vitals[prevCol]?.[k] != null && d.vitals[col]?.[k] == null)
+          const fillBP   = localStorage.getItem("autoFillBP") === "on"
+          const allKeys  = fillBP ? [...AUTO_FILL_KEYS, ...AUTO_FILL_BP_KEYS] : AUTO_FILL_KEYS
+          const hasToFill = allKeys.some(k => d.vitals[prevCol]?.[k] != null && d.vitals[col]?.[k] == null)
           if (hasToFill) {
             newVitals = [...d.vitals]
             while (newVitals.length <= col) newVitals.push({} as VitalsEntry)
-            AUTO_FILL_KEYS.forEach(k => {
+            allKeys.forEach(k => {
               const pv = d.vitals[prevCol]?.[k]
               if (pv != null && newVitals[col]?.[k] == null)
                 newVitals[col] = { ...newVitals[col], [k]: pv }
@@ -1167,7 +1277,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     tick()
     const id = setInterval(tick, 10_000)
     return () => clearInterval(id)
-  }, [startTime, colCount, caseStarted])
+  }, [startTime, caseStarted])
 
   const nowCol    = nowOffsetPx !== null ? Math.min(Math.floor(nowOffsetPx / COL_W), colCount - 1) : null
   const nowCellPx = nowOffsetPx !== null && nowCol !== null ? nowOffsetPx - nowCol * COL_W : null
@@ -1217,6 +1327,17 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     while (next.length <= col) next.push({})
     next[col] = { ...next[col], [key]: val }
     onChange({ ...data, vitals: next })
+  }
+
+  // ── Clinical Events ───────────────────────────────────────────────────────────
+  function addClinicalEvent(colIdx: number, label: string, color: string, isComplication: boolean) {
+    const d = dataRef.current
+    onChangeRef.current({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), { colIdx, label, color }] })
+    if (isComplication) onComplicationAdded?.([label])
+  }
+  function removeClinicalEvent(colIdx: number, label: string) {
+    const d = dataRef.current
+    onChangeRef.current({ ...d, clinicalEvents: (d.clinicalEvents ?? []).filter(e => !(e.colIdx === colIdx && e.label === label)) })
   }
 
   // в"Ђв"Ђ Drugs в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
@@ -1731,6 +1852,41 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                           </button>
                         ) : null
                       })()}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
+          {/* Clinical Events row */}
+          {(() => {
+            const colEvents = rowCols.map(ci => (data.clinicalEvents ?? []).filter(e => e.colIdx === ci))
+            return (
+              <div className="flex items-stretch border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50/20 dark:bg-[#181818]/40" style={{ minHeight: 34 }}>
+                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-1.5"}>Events</div>
+                {rowCols.map((ci, lIdx) => {
+                  const evs = colEvents[lIdx]
+                  return (
+                    <div key={ci} style={{ width: colW, minWidth: colW }}
+                      className="group border-l border-slate-100 dark:border-[#2a2a2a] relative flex flex-col items-center justify-start py-0.5 px-0.5 cursor-pointer hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors"
+                      onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setEventPicker({ ci, rect }); setEvSearch("") }}>
+                      {evs.length === 0 && (
+                        <Plus className="h-2.5 w-2.5 opacity-0 group-hover:opacity-30 transition-opacity text-slate-400 dark:text-[#666] mt-1.5" />
+                      )}
+                      <div className="flex flex-col items-start gap-0.5 w-full">
+                        {evs.slice(0, 3).map(ev => (
+                          <div key={ev.label} title={ev.label}
+                            onClick={e => { e.stopPropagation(); removeClinicalEvent(ci, ev.label) }}
+                            className="flex items-center rounded-full px-1 py-px cursor-pointer hover:opacity-60 transition-opacity select-none w-full min-w-0"
+                            style={{ backgroundColor: ev.color + "20", color: ev.color, border: `1px solid ${ev.color}40` }}>
+                            <span className="text-[8px] font-bold truncate leading-tight">{ev.label}</span>
+                          </div>
+                        ))}
+                        {evs.length > 3 && (
+                          <span className="text-[8px] text-slate-400 dark:text-[#666] font-medium px-0.5">+{evs.length - 3}</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -2257,6 +2413,72 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         )
       })()
     ,
+      document.body
+    )}
+    {/* ── Event picker portal ─────────────────────────────────────────────── */}
+    {eventPicker && typeof document !== "undefined" && createPortal(
+      (() => {
+        const POP_W = 300
+        const r = eventPicker.rect
+        const spaceBelow = window.innerHeight - r.bottom
+        const showAbove  = spaceBelow < 340
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8))
+        const top  = showAbove ? r.top - 4 : r.bottom + 4
+        const q = evSearch.toLowerCase().trim()
+        const filtered = q
+          ? CLINICAL_EVENT_CATS.map(c => ({ ...c, events: c.events.filter(e => e.label.toLowerCase().includes(q)) })).filter(c => c.events.length > 0)
+          : CLINICAL_EVENT_CATS
+        return (
+          <>
+            <div className="fixed inset-0 z-[9990]" onClick={() => setEventPicker(null)} />
+            <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
+              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">Log Clinical Event</p>
+                <input autoFocus type="text" placeholder="Search events..." value={evSearch}
+                  onChange={e => setEvSearch(e.target.value)}
+                  onKeyDown={e => e.key === "Escape" && setEventPicker(null)}
+                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+              </div>
+              <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
+                {filtered.map(cat => {
+                  const colEvLabels = new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker!.ci).map(e => e.label))
+                  return (
+                    <div key={cat.cat}>
+                      <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: cat.color }}>{cat.cat}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {cat.events.map(ev => {
+                          const already = colEvLabels.has(ev.label)
+                          return (
+                            <button key={ev.label} type="button"
+                              onClick={() => {
+                                const ci = eventPicker!.ci
+                                setEventPicker(null)
+                                if (already) removeClinicalEvent(ci, ev.label)
+                                else addClinicalEvent(ci, ev.label, ev.color, cat.isComplication ?? false)
+                              }}
+                              className="text-xs font-medium px-2 py-0.5 rounded-full border cursor-pointer transition-all hover:opacity-80"
+                              style={{
+                                backgroundColor: already ? ev.color : ev.color + "18",
+                                borderColor: ev.color + "88",
+                                color: already ? "white" : ev.color,
+                              }}>
+                              {already && <span className="mr-0.5">✓</span>}{ev.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No events found</p>}
+              </div>
+            </div>
+          </>
+        )
+      })(),
       document.body
     )}
     {/* -- Drug picker portal -- */}
