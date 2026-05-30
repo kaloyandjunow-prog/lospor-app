@@ -3,6 +3,7 @@
 [![Licence: AGPL-3.0](https://img.shields.io/badge/Licence-AGPL--3.0-blue.svg)](LICENSE)
 [![Live app](https://img.shields.io/badge/Live-app.lospor.org-green)](https://app.lospor.org)
 [![Docs](https://img.shields.io/badge/Docs-docs.lospor.org-blue)](https://docs.lospor.org)
+[![Changelog](https://img.shields.io/badge/Changelog-CHANGELOG.md-orange)](CHANGELOG.md)
 
 Copyright (C) 2026 Kaloyan Dzhunov. Licensed under AGPL-3.0.
 
