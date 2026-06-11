@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth"
+import { jwtVerify } from "jose"
 import { prisma } from "@/lib/prisma"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound } from "next/navigation"
@@ -12,6 +13,23 @@ import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+
+function secret() {
+  return new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
+}
+
+// Verify a short-lived print token issued by POST /api/cases/:id/print-token.
+// Returns the userId from the token if valid, null otherwise.
+async function verifyPrintToken(token: string, caseId: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, secret())
+    if (payload.type !== "print") return null
+    if (payload.caseId !== caseId) return null
+    return (payload.userId as string) ?? null
+  } catch {
+    return null
+  }
+}
 
 function Row({ label, value }: { label: string; value?: string | number | boolean | null }) {
   if (value === null || value === undefined || value === "") return null
@@ -44,20 +62,45 @@ function SectionCard({ title, children }: { title: string; children: React.React
   )
 }
 
-export default async function CasePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return null
-
+export default async function CasePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ print_token?: string }>
+}) {
   const { id } = await params
-  const me     = session.user as any
-  const role   = me.role
-  const userId = me.id
+  const sp     = await searchParams
+
+  // ── Auth path 1: short-lived print token (mobile "Print PDF" flow) ─────────
+  // If a valid print_token is in the query string, bypass the web session check
+  // so the user can print directly from their phone browser without logging in.
+  const printToken   = sp?.print_token
+  const printUserId  = printToken ? await verifyPrintToken(printToken, id) : null
+  const isPrintMode  = !!printUserId
+
+  // ── Auth path 2: normal web session ───────────────────────────────────────
+  let userId: string
+  let role:   string
+  let institutionId: string | null = null
+
+  if (isPrintMode) {
+    userId = printUserId!
+    role   = "MEMBER"  // print tokens are always member-scoped to the case owner
+  } else {
+    const session = await auth()
+    if (!session) return null
+    const me  = session.user as any
+    userId    = me.id
+    role      = me.role
+    institutionId = me.institutionId ?? null
+  }
 
   // ADMIN: any case. HOD: cases within their institution. MEMBER: own cases only.
   const where = role === "ADMIN"
     ? { id }
-    : role === "HEAD_OF_DEPT"
-      ? { id, user: { institutionId: me.institutionId } }
+    : role === "HEAD_OF_DEPT" && institutionId
+      ? { id, user: { institutionId } }
       : { id, userId }
 
   const record = await prisma.case.findFirst({
@@ -73,8 +116,17 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
+      {/* Auto-trigger print dialog when opened via a print token from mobile */}
+      {isPrintMode && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if (typeof window !== "undefined") { window.addEventListener("load", function(){ setTimeout(function(){ window.print() }, 800) }) }`,
+          }}
+        />
+      )}
+
       {/* Header — constrained width, screen only */}
-      <div className="no-print max-w-4xl mx-auto mb-6">
+      <div className={`no-print max-w-4xl mx-auto mb-6 ${isPrintMode ? "hidden" : ""}`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <Link href="/dashboard">

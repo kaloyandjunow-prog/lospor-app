@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback, memo } from "react"
 import { createPortal } from "react-dom"
 import { Plus, Minus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
@@ -136,6 +136,29 @@ const INFUSION_CONFIGS: Record<string, { units: string[]; min: number; max: numb
   "Labetalol":       { units:["mg/hr"],                           min:10,   max:120,  step:10,   color:"#059669" },
 }
 const DEFAULT_INF = { units:["mg/hr","mcg/kg/min","ml/hr"], min:0, max:100, step:1, color:"#64748b" }
+
+// Weight basis for per-kg infusion units.
+// IBW = ideal body weight (default for most CNS/anaesthetic agents)
+// TBW = total (actual) body weight (haemodynamic agents dosed by actual weight per label)
+export const INFUSION_WEIGHT_BASIS: Record<string, "IBW" | "TBW"> = {
+  "Propofol":        "IBW",
+  "Remifentanil":    "IBW",
+  "Ketamine":        "IBW",
+  "Midazolam":       "IBW",
+  "Dexmedetomidine": "TBW",
+  "Fentanyl":        "IBW",
+  "Sufentanil":      "IBW",
+  "Morphine":        "IBW",
+  "Alfentanil":      "IBW",
+  "Norepinephrine":  "IBW",
+  "Epinephrine":     "IBW",
+  "Phenylephrine":   "TBW",
+  "Dopamine":        "TBW",
+  "Dobutamine":      "TBW",
+  "Rocuronium":      "IBW",
+  "Cisatracurium":   "IBW",
+  "Nitroglycerin":   "TBW",
+}
 
 // Common solution concentrations for local anaesthetics (shown as pill selector)
 const LA_CONCENTRATIONS: Record<string, string[]> = {
@@ -338,7 +361,7 @@ const VITAL_ROW_DEFS: {
 ]
 
 // в"Ђв"Ђ Div-based chart в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-function DivChart({ vitals, colStart, rowColCount, activeRows }: { vitals: VitalsEntry[]; colStart: number; rowColCount: number; activeRows: typeof VITAL_ROW_DEFS }) {
+const DivChart = memo(function DivChart({ vitals, colStart, rowColCount, activeRows }: { vitals: VitalsEntry[]; colStart: number; rowColCount: number; activeRows: typeof VITAL_ROW_DEFS }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [w, setW]    = useState(0)
 
@@ -460,7 +483,7 @@ function DivChart({ vitals, colStart, rowColCount, activeRows }: { vitals: Vital
       ))}
     </div>
   )
-}
+})
 
 // в"Ђв"Ђ Fluid color by category в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
 const FLUID_CAT_COLOR: Record<string, string> = {
@@ -540,16 +563,43 @@ interface EndCaseModalProps {
   }) => void
 }
 
-export function calcInfusionTotal(seg: TimetableInfusion): { amount: number; unit: string } {
+export function calcInfusionTotal(
+  seg: TimetableInfusion,
+  ibw: number | null = null,
+  tbw: number | null = null,
+): { amount: number; unit: string; weightUsed: number | null; weightBasis: "IBW" | "TBW" | null } {
+  // Determine whether this drug is dosed per-kg and which weight to use
+  const basis    = INFUSION_WEIGHT_BASIS[seg.name] ?? "IBW"
+  const bodyWt   = basis === "TBW" ? (tbw ?? ibw) : (ibw ?? tbw)
+
+  function segmentTotal(rate: number, unit: string, cols: number): number {
+    const isPerKg  = unit.includes("/kg/")
+    const wt       = isPerKg && bodyWt ? bodyWt : isPerKg ? 1 : 1  // fallback to 1 if no weight
+    const mins     = unit.includes("/min") ? cols * 5 : cols * 5 / 60
+    return rate * wt * mins
+  }
+
   const sorted = (seg.rateChanges ?? []).slice().sort((a, b) => a.col - b.col)
   let total = 0; let prevCol = seg.startCol; let prevRate = seg.rate; let prevUnit = seg.unit
   for (const rc of sorted) {
-    total += prevUnit.includes("/min") ? prevRate * (rc.col - prevCol) * 5 : prevRate * (rc.col - prevCol) * 5 / 60
+    total += segmentTotal(prevRate, prevUnit, rc.col - prevCol)
     prevCol = rc.col; prevRate = rc.rate; prevUnit = rc.unit
   }
-  total += prevUnit.includes("/min") ? prevRate * (seg.endCol - prevCol + 1) * 5 : prevRate * (seg.endCol - prevCol + 1) * 5 / 60
-  const baseUnit = prevUnit.replace(/\/kg\/min$/, "").replace(/\/min$/, "").replace(/\/hr$/, "").trim()
-  return { amount: Math.round(total * 100) / 100, unit: baseUnit }
+  total += segmentTotal(prevRate, prevUnit, seg.endCol - prevCol + 1)
+
+  const baseUnit = prevUnit
+    .replace(/\/kg\/min$/, "").replace(/\/kg\/hr$/, "")
+    .replace(/\/min$/, "").replace(/\/hr$/, "").trim()
+
+  const anyPerKg = seg.unit.includes("/kg/") || (seg.rateChanges ?? []).some(rc => rc.unit.includes("/kg/"))
+  const weightUsed = anyPerKg && bodyWt ? Math.round(bodyWt * 10) / 10 : null
+
+  return {
+    amount: Math.round(total * 100) / 100,
+    unit: baseUnit,
+    weightUsed,
+    weightBasis: anyPerKg ? basis : null,
+  }
 }
 
 function EndCaseModal({ agents, infusions, fluids, onDismiss, onConfirm }: EndCaseModalProps) {
@@ -1321,13 +1371,24 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }
 
   // в"Ђв"Ђ Vitals в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function setVital(col: number, key: keyof VitalsEntry, raw: string) {
+  const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
     const val  = raw === "" ? undefined : Number(raw)
-    const next = [...data.vitals]
+    const next = [...dataRef.current.vitals]
     while (next.length <= col) next.push({})
     next[col] = { ...next[col], [key]: val }
-    onChange({ ...data, vitals: next })
-  }
+    rawOnChangeRef.current({ ...dataRef.current, vitals: next })
+  // dataRef and rawOnChangeRef are stable refs — no deps needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const lastVitalBefore = useCallback((col: number, key: keyof VitalsEntry): number | undefined => {
+    for (let c = col - 1; c >= 0; c--) {
+      const v = dataRef.current.vitals[c]?.[key]
+      if (v != null) return v
+    }
+    return undefined
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Clinical Events ───────────────────────────────────────────────────────────
   function addClinicalEvent(colIdx: number, label: string, color: string, isComplication: boolean) {
@@ -1695,11 +1756,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                     value={data.vitals[ci]?.[row.key] ?? ""}
                     onChange={e => setVital(ci, row.key, e.target.value)}
                     ref={el => { const k = `${ci}-${row.key}`; if (el) vitalsInputRefs.current.set(k, el); else vitalsInputRefs.current.delete(k) }}
-                    onDoubleClick={e => { e.stopPropagation(); setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() }) }}
+                    onDoubleClick={e => { e.stopPropagation(); setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: lastVitalBefore(ci, row.key) ?? row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() }) }}
                     onKeyDown={e => {
                       if (e.key === "Enter") {
                         e.preventDefault()
-                        setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() })
+                        setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: lastVitalBefore(ci, row.key) ?? row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() })
                         return
                       }
                       if (e.key !== "Tab") return
@@ -1875,7 +1936,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                         <Plus className="h-2.5 w-2.5 opacity-0 group-hover:opacity-30 transition-opacity text-slate-400 dark:text-[#666] mt-1.5" />
                       )}
                       <div className="flex flex-col items-start gap-0.5 w-full">
-                        {evs.slice(0, 3).map(ev => (
+                        {evs.slice(0, 5).map(ev => (
                           <div key={ev.label} title={ev.label}
                             onClick={e => { e.stopPropagation(); removeClinicalEvent(ci, ev.label) }}
                             className="flex items-center rounded-full px-1 py-px cursor-pointer hover:opacity-60 transition-opacity select-none w-full min-w-0"
@@ -1883,8 +1944,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                             <span className="text-[8px] font-bold truncate leading-tight">{ev.label}</span>
                           </div>
                         ))}
-                        {evs.length > 3 && (
-                          <span className="text-[8px] text-slate-400 dark:text-[#666] font-medium px-0.5">+{evs.length - 3}</span>
+                        {evs.length > 5 && (
+                          <span className="text-[8px] text-slate-400 dark:text-[#666] font-medium px-0.5">+{evs.length - 5}</span>
                         )}
                       </div>
                     </div>
@@ -1997,20 +2058,46 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                         }
                       }}>
 
-                      {/* Rate pill — top of cell, only at rate-period start columns */}
-                      {ratePill && (
-                        <div className="absolute top-0 inset-x-0 flex items-start justify-center pt-0.5 z-20" style={{ height: 22 }}>
+                      {/* Rate segment bar — matches infusion bar geometry (same left/right insets + rounded corners) */}
+                      {seg && !seg.stopped && (() => {
+                        const sortedChanges = (seg.rateChanges ?? []).slice().sort((a, b) => a.col - b.col)
+                        const prevChange = sortedChanges.filter(rc => rc.col <= ci).pop()
+                        const curRate    = prevChange?.rate ?? seg.rate
+                        const curUnit    = prevChange?.unit ?? seg.unit
+                        const isSegStart = ci === seg.startCol || sortedChanges.some(rc => rc.col === ci)
+                        const isRateChangeCol = sortedChanges.some(rc => rc.col === ci)
+                        const isSel = sel?.type === "infusion" && sel.id === seg.id
+                        // Use same left/right geometry as infusion bar for seamless visual alignment
+                        const leftStyle  = (isActualStart || isRowCont) ? "left-1"  : "left-0"
+                        const rightStyle = (isActualEnd && !isRowExit)  ? "right-3" : "right-0"
+                        const tlRadius   = (isActualStart || isRowCont) ? "rounded-tl-full" : ""
+                        const trRadius   = (isActualEnd && !isRowExit)  ? "rounded-tr-sm"  : ""
+                        return (
                           <div
-                            draggable
-                            onClick={e => { e.stopPropagation(); setInfMenu({ segId: seg!.id, name: seg!.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: seg!.stopped, fromPillCol: ci }) }}
-                            onDragStart={e => { e.stopPropagation(); setMovingRatePill({ infId: seg!.id, fromCol: ci, rate: ratePill.rate, unit: ratePill.unit }) }}
-                            onDragEnd={() => { setMovingRatePill(null); setMovingRatePillCol(null) }}
-                            className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full border whitespace-nowrap select-none cursor-grab active:cursor-grabbing hover:opacity-80 transition-opacity"
-                            style={{ color, borderColor: color + "80", backgroundColor: color + "18" }}>
-                            {ratePill.rate} {ratePill.unit}
+                            className={`absolute top-0 z-20 flex items-center cursor-pointer select-none hover:opacity-90 transition-opacity overflow-hidden ${leftStyle} ${rightStyle} ${tlRadius} ${trRadius}`}
+                            style={{ height: 21, backgroundColor: color + (isSel ? "50" : "2e") }}
+                            onClick={e => { e.stopPropagation(); setInfMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci }) }}
+                          >
+                            {/* Draggable rate-change boundary — styled as a subtle divider */}
+                            {isRateChangeCol && (
+                              <div
+                                draggable
+                                className="absolute left-0 top-1 bottom-1 w-[2px] cursor-col-resize z-30 rounded-full opacity-70 hover:opacity-100"
+                                style={{ backgroundColor: color }}
+                                onDragStart={e => { e.stopPropagation(); const rc = sortedChanges.find(r => r.col === ci)!; setMovingRatePill({ infId: seg.id, fromCol: ci, rate: rc.rate, unit: rc.unit }) }}
+                                onDragEnd={() => { setMovingRatePill(null); setMovingRatePillCol(null) }}
+                                onClick={e => e.stopPropagation()}
+                              />
+                            )}
+                            {/* Rate label at start of each segment */}
+                            {isSegStart && (
+                              <span className="text-[8px] font-bold whitespace-nowrap truncate leading-none" style={{ color, paddingLeft: isRateChangeCol ? 10 : 5 }}>
+                                {curRate} {curUnit}
+                              </span>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {/* Infusion bar — lower portion of cell */}
                       {seg && (
@@ -3051,6 +3138,17 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       className="w-16 text-xs bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-blue-400 [appearance:textfield]" />
                     <span className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight">{fp.rateUnit}</span>
                   </div>
+                  {(() => {
+                    const basis = INFUSION_WEIGHT_BASIS[fp.name]
+                    const isPerKg = fp.rateUnit?.includes("/kg/")
+                    if (!isPerKg || !basis) return null
+                    const wt = basis === "TBW" ? tbw : ibw
+                    return (
+                      <p className="text-[9px] text-amber-500 dark:text-amber-400">
+                        ⚖ Total will use {basis}{wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}
+                      </p>
+                    )
+                  })()}
                   <button type="button" onClick={fpCommitInfusion}
                     className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">Start Infusion</button>
                 </>
@@ -3149,6 +3247,17 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{rateDialog.name} — Change rate</p>
             {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">Set new rate, then choose when to apply it.</p>}
             {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">Pick the time at which the rate changed.</p>}
+            {(() => {
+              const basis = INFUSION_WEIGHT_BASIS[rateDialog.name]
+              const isPerKg = rateDialog.unit?.includes("/kg/")
+              if (!isPerKg || !basis) return null
+              const wt = basis === "TBW" ? tbw : ibw
+              return (
+                <p className="text-[9px] text-amber-500 dark:text-amber-400 mt-1">
+                  ⚖ Drug totals calculated using {basis}{wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}
+                </p>
+              )
+            })()}
           </div>
 
           {rateDialog.step === "rate" && (
@@ -3244,7 +3353,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       (() => {
         const currentCellVal = data.vitals[vitalsPopup.col]?.[vitalsPopup.key]
         function commitAndClose() {
-          // If cell was never touched, persist the displayed default so the value is saved
+          // If cell was never touched, persist the displayed value (prev column's value or hardcoded default)
           if (currentCellVal === undefined) {
             setVital(vitalsPopup!.col, vitalsPopup!.key, String(vitalsPopup!.defaultVal))
           }

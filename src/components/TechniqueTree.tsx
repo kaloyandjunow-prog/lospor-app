@@ -174,11 +174,31 @@ function labelFor(v: string): string {
   return path ? path[path.length - 1].label : v
 }
 
-function shortLabel(v: string): string {
+// Grouping nodes that add no clinical value in a compact pill label
+const TECH_SKIP_LABELS = new Set([
+  "Peripheral nerve block", "Upper extremity", "Lower extremity",
+  "Trunk / Abdominal wall", "Head & Neck", "Ophthalmic", "Single shot",
+])
+const TECH_ROOT_SHORT: Record<string, string> = {
+  "General anaesthesia": "General",
+  "Regional anaesthesia": "Regional",
+  "Sedation / MAC": "Sedation",
+  "Local infiltration": "Local infiltration",
+}
+
+// Category-aware label: e.g. "General Inhalational", "Regional Femoral nerve",
+// "Regional Neuraxial Epidural Lumbar".
+export function techniqueDisplayLabel(v: string): string {
   if (v.startsWith("OTHER:")) return v.slice(6) || "Other"
   const path = findPath(TREE, v)
   if (!path) return v
-  return path.slice(-2).map(n => n.label).join(" › ")
+  const parts = path
+    .map((n, i) => (i === 0 ? (TECH_ROOT_SHORT[n.label] ?? n.label) : n.label))
+    .filter(label => !TECH_SKIP_LABELS.has(label))
+    .map(label => label.replace(" (SAB)", ""))
+  const out: string[] = []
+  for (const p of parts) if (out[out.length - 1] !== p) out.push(p)
+  return out.join(" ")
 }
 
 // ── Inline tree picker ────────────────────────────────────────────────────────
@@ -276,7 +296,7 @@ export function TechniqueTree({ value = [], onChange }: {
         {value.map(v => (
           <div key={v}
             className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border ${techniqueColor(v)}`}>
-            <span className="text-[11px] leading-tight">{shortLabel(v)}</span>
+            <span className="text-[11px] leading-tight">{techniqueDisplayLabel(v)}</span>
             <button type="button" onClick={() => remove(v)}
               className="opacity-70 hover:opacity-100 transition-opacity">
               <X className="h-3 w-3" />

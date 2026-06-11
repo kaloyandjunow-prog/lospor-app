@@ -24,10 +24,15 @@ Total auto-computed from the five domain scores.
 
 | Field | Notes |
 |-------|-------|
+| Systolic BP | Random initial value 120-130 mmHg; shared vital control |
+| Diastolic BP | Random initial value 70-85 mmHg; shared vital control |
+| Heart rate | Random initial value 60-90 bpm; shared vital control |
+| SpO2 | Random initial value 95-99%; shared vital control |
+| Temperature | Random initial value 36.0-37.0 C; shared vital control |
 | Pain NRS | 0–10 numeric rating scale |
 | PONV | Yes / No flag |
-| Temperature | °C |
-| Time in recovery | Minutes |
+
+The previous **Time in recovery / Time in PACU** field has been removed from web, mobile, summaries, and generated protocols.
 
 ---
 

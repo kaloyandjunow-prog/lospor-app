@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LosporBrand } from "@/components/LosporBrand"
 
 export const metadata = { title: "Terms of Service — LOSPOR" }
 
@@ -8,16 +9,13 @@ export default function TermsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4 py-12">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center">
-          <Link href="/login">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="LOSPOR" className="h-16 w-auto mx-auto hover:opacity-80 transition-opacity" />
-          </Link>
+          <LosporBrand compact linked />
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Terms of Service</CardTitle>
-            <p className="text-xs text-slate-400 mt-1">Effective date: 1 May 2026 · Version 1.0</p>
+            <p className="text-xs text-slate-400 mt-1">Effective date: 1 June 2026 · Version 1.1</p>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-sm leading-relaxed">
 
@@ -43,6 +41,17 @@ export default function TermsPage() {
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">3. Your account</h3>
               <p>Accounts are for individual use only. You are responsible for keeping your credentials secure. Accounts are subject to approval by a LOSPOR administrator before use.</p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">3a. AI image scanning</h3>
+              <p>LOSPOR provides optional AI-powered image scanning for lab reports and anaesthesia monitor readings. When you use these features:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>You must crop or obscure any patient-identifiable information (names, dates of birth, ID numbers, barcodes) from the image before uploading.</li>
+                <li>Images are sent to Mistral AI (EU-hosted) for text extraction and are not retained beyond the request.</li>
+                <li>The extracted values are a starting point — you remain responsible for reviewing and correcting them before saving.</li>
+                <li>These features are opt-in and require an explicit action each time.</li>
+              </ul>
             </section>
 
             <section>

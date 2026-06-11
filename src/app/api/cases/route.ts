@@ -7,10 +7,23 @@ import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkPII } from "@/lib/pii-check"
 import { z } from "zod"
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 async function generateCaseCode(userId: string): Promise<string> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } })
+  const [user, count] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.case.count({ where: { userId } }),
+  ])
   const year = user!.createdAt.getFullYear()
-  const count = await prisma.case.count({ where: { userId } })
   return `${year}-${String(count + 1).padStart(4, "0")}`
 }
 
@@ -49,10 +62,17 @@ export async function POST(req: NextRequest) {
         ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
         ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),
       },
+      include: {
+        preop: { select: { updatedAt: true } },
+      },
     })
 
     logAudit(userId, "CASE_CREATE", caseRecord.id)
-    return NextResponse.json({ id: caseRecord.id, caseCode: caseRecord.caseCode }, { status: 201 })
+    return NextResponse.json({
+      id: caseRecord.id,
+      caseCode: caseRecord.caseCode,
+      preopUpdatedAt: caseRecord.preop?.updatedAt,
+    }, { status: 201 })
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400 })
     console.error(err)
@@ -80,7 +100,7 @@ export async function GET(req: NextRequest) {
       include: {
         preop:  { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
         postop: { select: { disposition: true, aldreteTotal: true } },
-        intraop: { select: { monthYear: true, durationMinutes: true } },
+        intraop: { select: { monthYear: true, durationMinutes: true, endTime: true } },
       },
       orderBy: { createdAt: "desc" },
       skip,

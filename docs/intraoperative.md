@@ -29,6 +29,20 @@ Hierarchical multi-select tree:
 - **Other** (free text)
 
 Multiple techniques can be selected simultaneously.
+Selected technique pills include their clinical category, for example **General Inhalational**, **Regional Neuraxial Epidural Lumbar**, or **Regional Femoral nerve**.
+
+---
+
+### Volatile agent and fresh gas
+
+| Field | Behaviour |
+|-------|-----------|
+| Volatile agent | Sevoflurane, desflurane, or isoflurane |
+| FGF | Fresh gas flow, 0-100 L/min; slider, stepper, or direct numeric entry |
+| Gas mixture | O2 is always present; Air and N2O are mutually exclusive carrier-gas choices |
+| FiO2 | 0-100%; slider, stepper, or direct numeric entry |
+
+The legacy separate O2/N2O percentage and flow columns remain in the database for backward compatibility, but the current forms use FGF, carrier gas, and FiO2.
 
 ---
 
@@ -165,8 +179,10 @@ Two automation settings (Settings → Automation):
 
 | Setting | Behaviour |
 |---------|-----------|
-| Auto-fill vitals | When the clock advances to a new column, copies EtCO₂, SpO₂, and temperature from the previous column if the new column is empty |
-| Auto-fill BP & HR | Secondary toggle (requires Auto-fill vitals to be on): also copies systolic BP, diastolic BP, and heart rate |
+| Auto-fill vitals | When the clock advances, creates a saved event containing the previous EtCO₂, SpO₂, and temperature if the new column is empty |
+| Auto-fill BP & HR | Secondary toggle (requires Auto-fill vitals): also carries forward systolic BP, diastolic BP, and heart rate |
+
+Automatically carried-forward mobile values are saved as real events through the shared API, so they are visible on web and survive timetable reconstruction.
 
 ### Keyboard shortcuts
 

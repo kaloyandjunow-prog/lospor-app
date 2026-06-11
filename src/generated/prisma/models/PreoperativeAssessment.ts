@@ -108,10 +108,23 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   cormackLehane: $Enums.CormackLehane | null
   asaScore: $Enums.ASAScore | null
   emergencySurgery: boolean | null
+  highRiskSurgery: boolean | null
+  rcriIschemicHeart: boolean | null
+  rcriCHF: boolean | null
+  rcriCVD: boolean | null
+  rcriInsulinDM: boolean | null
+  rcriCreatinine: boolean | null
   rcriScore: number | null
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  apfelPONVHistory: boolean | null
+  apfelPostopOpioids: boolean | null
+  stopbangSnoring: boolean | null
+  stopbangTired: boolean | null
+  stopbangObserved: boolean | null
+  stopbangBP: boolean | null
+  stopbangNeck: boolean | null
   aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -161,10 +174,23 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   cormackLehane: $Enums.CormackLehane | null
   asaScore: $Enums.ASAScore | null
   emergencySurgery: boolean | null
+  highRiskSurgery: boolean | null
+  rcriIschemicHeart: boolean | null
+  rcriCHF: boolean | null
+  rcriCVD: boolean | null
+  rcriInsulinDM: boolean | null
+  rcriCreatinine: boolean | null
   rcriScore: number | null
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  apfelPONVHistory: boolean | null
+  apfelPostopOpioids: boolean | null
+  stopbangSnoring: boolean | null
+  stopbangTired: boolean | null
+  stopbangObserved: boolean | null
+  stopbangBP: boolean | null
+  stopbangNeck: boolean | null
   aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -217,10 +243,23 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   cormackLehane: number
   asaScore: number
   emergencySurgery: number
+  highRiskSurgery: number
+  rcriIschemicHeart: number
+  rcriCHF: number
+  rcriCVD: number
+  rcriInsulinDM: number
+  rcriCreatinine: number
   rcriScore: number
   gutaScore: number
   apfelScore: number
   stopBangScore: number
+  apfelPONVHistory: number
+  apfelPostopOpioids: number
+  stopbangSnoring: number
+  stopbangTired: number
+  stopbangObserved: number
+  stopbangBP: number
+  stopbangNeck: number
   labResults: number
   aiOptIn: number
   createdAt: number
@@ -311,10 +350,23 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   cormackLehane?: true
   asaScore?: true
   emergencySurgery?: true
+  highRiskSurgery?: true
+  rcriIschemicHeart?: true
+  rcriCHF?: true
+  rcriCVD?: true
+  rcriInsulinDM?: true
+  rcriCreatinine?: true
   rcriScore?: true
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  apfelPONVHistory?: true
+  apfelPostopOpioids?: true
+  stopbangSnoring?: true
+  stopbangTired?: true
+  stopbangObserved?: true
+  stopbangBP?: true
+  stopbangNeck?: true
   aiOptIn?: true
   createdAt?: true
   updatedAt?: true
@@ -364,10 +416,23 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   cormackLehane?: true
   asaScore?: true
   emergencySurgery?: true
+  highRiskSurgery?: true
+  rcriIschemicHeart?: true
+  rcriCHF?: true
+  rcriCVD?: true
+  rcriInsulinDM?: true
+  rcriCreatinine?: true
   rcriScore?: true
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  apfelPONVHistory?: true
+  apfelPostopOpioids?: true
+  stopbangSnoring?: true
+  stopbangTired?: true
+  stopbangObserved?: true
+  stopbangBP?: true
+  stopbangNeck?: true
   aiOptIn?: true
   createdAt?: true
   updatedAt?: true
@@ -420,10 +485,23 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   cormackLehane?: true
   asaScore?: true
   emergencySurgery?: true
+  highRiskSurgery?: true
+  rcriIschemicHeart?: true
+  rcriCHF?: true
+  rcriCVD?: true
+  rcriInsulinDM?: true
+  rcriCreatinine?: true
   rcriScore?: true
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  apfelPONVHistory?: true
+  apfelPostopOpioids?: true
+  stopbangSnoring?: true
+  stopbangTired?: true
+  stopbangObserved?: true
+  stopbangBP?: true
+  stopbangNeck?: true
   labResults?: true
   aiOptIn?: true
   createdAt?: true
@@ -564,10 +642,23 @@ export type PreoperativeAssessmentGroupByOutputType = {
   cormackLehane: $Enums.CormackLehane | null
   asaScore: $Enums.ASAScore | null
   emergencySurgery: boolean
+  highRiskSurgery: boolean
+  rcriIschemicHeart: boolean
+  rcriCHF: boolean
+  rcriCVD: boolean
+  rcriInsulinDM: boolean
+  rcriCreatinine: boolean
   rcriScore: number | null
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  apfelPONVHistory: boolean
+  apfelPostopOpioids: boolean
+  stopbangSnoring: boolean
+  stopbangTired: boolean
+  stopbangObserved: boolean
+  stopbangBP: boolean
+  stopbangNeck: boolean
   labResults: runtime.JsonValue
   aiOptIn: boolean
   createdAt: Date
@@ -644,10 +735,23 @@ export type PreoperativeAssessmentWhereInput = {
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
   asaScore?: Prisma.EnumASAScoreNullableFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  highRiskSurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriIschemicHeart?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCHF?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCVD?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriInsulinDM?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCreatinine?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   rcriScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   gutaScore?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   apfelScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
+  apfelPONVHistory?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  apfelPostopOpioids?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangSnoring?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangTired?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangObserved?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangBP?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangNeck?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   labResults?: Prisma.JsonFilter<"PreoperativeAssessment">
   aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
@@ -702,10 +806,23 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
   asaScore?: Prisma.SortOrderInput | Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
+  highRiskSurgery?: Prisma.SortOrder
+  rcriIschemicHeart?: Prisma.SortOrder
+  rcriCHF?: Prisma.SortOrder
+  rcriCVD?: Prisma.SortOrder
+  rcriInsulinDM?: Prisma.SortOrder
+  rcriCreatinine?: Prisma.SortOrder
   rcriScore?: Prisma.SortOrderInput | Prisma.SortOrder
   gutaScore?: Prisma.SortOrderInput | Prisma.SortOrder
   apfelScore?: Prisma.SortOrderInput | Prisma.SortOrder
   stopBangScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  apfelPONVHistory?: Prisma.SortOrder
+  apfelPostopOpioids?: Prisma.SortOrder
+  stopbangSnoring?: Prisma.SortOrder
+  stopbangTired?: Prisma.SortOrder
+  stopbangObserved?: Prisma.SortOrder
+  stopbangBP?: Prisma.SortOrder
+  stopbangNeck?: Prisma.SortOrder
   labResults?: Prisma.SortOrder
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -763,10 +880,23 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
   asaScore?: Prisma.EnumASAScoreNullableFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  highRiskSurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriIschemicHeart?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCHF?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCVD?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriInsulinDM?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  rcriCreatinine?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   rcriScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   gutaScore?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   apfelScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
+  apfelPONVHistory?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  apfelPostopOpioids?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangSnoring?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangTired?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangObserved?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangBP?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  stopbangNeck?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   labResults?: Prisma.JsonFilter<"PreoperativeAssessment">
   aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
@@ -821,10 +951,23 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
   asaScore?: Prisma.SortOrderInput | Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
+  highRiskSurgery?: Prisma.SortOrder
+  rcriIschemicHeart?: Prisma.SortOrder
+  rcriCHF?: Prisma.SortOrder
+  rcriCVD?: Prisma.SortOrder
+  rcriInsulinDM?: Prisma.SortOrder
+  rcriCreatinine?: Prisma.SortOrder
   rcriScore?: Prisma.SortOrderInput | Prisma.SortOrder
   gutaScore?: Prisma.SortOrderInput | Prisma.SortOrder
   apfelScore?: Prisma.SortOrderInput | Prisma.SortOrder
   stopBangScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  apfelPONVHistory?: Prisma.SortOrder
+  apfelPostopOpioids?: Prisma.SortOrder
+  stopbangSnoring?: Prisma.SortOrder
+  stopbangTired?: Prisma.SortOrder
+  stopbangObserved?: Prisma.SortOrder
+  stopbangBP?: Prisma.SortOrder
+  stopbangNeck?: Prisma.SortOrder
   labResults?: Prisma.SortOrder
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -886,10 +1029,23 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   cormackLehane?: Prisma.EnumCormackLehaneNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
   asaScore?: Prisma.EnumASAScoreNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  highRiskSurgery?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  rcriIschemicHeart?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  rcriCHF?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  rcriCVD?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  rcriInsulinDM?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  rcriCreatinine?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   rcriScore?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   gutaScore?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   apfelScore?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   stopBangScore?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
+  apfelPONVHistory?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  apfelPostopOpioids?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  stopbangSnoring?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  stopbangTired?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  stopbangObserved?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  stopbangBP?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  stopbangNeck?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   labResults?: Prisma.JsonWithAggregatesFilter<"PreoperativeAssessment">
   aiOptIn?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PreoperativeAssessment"> | Date | string
@@ -942,10 +1098,23 @@ export type PreoperativeAssessmentCreateInput = {
   cormackLehane?: $Enums.CormackLehane | null
   asaScore?: $Enums.ASAScore | null
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: number | null
   gutaScore?: number | null
   apfelScore?: number | null
   stopBangScore?: number | null
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: boolean
   createdAt?: Date | string
@@ -1000,10 +1169,23 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   cormackLehane?: $Enums.CormackLehane | null
   asaScore?: $Enums.ASAScore | null
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: number | null
   gutaScore?: number | null
   apfelScore?: number | null
   stopBangScore?: number | null
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: boolean
   createdAt?: Date | string
@@ -1056,10 +1238,23 @@ export type PreoperativeAssessmentUpdateInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1114,10 +1309,23 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1171,10 +1379,23 @@ export type PreoperativeAssessmentCreateManyInput = {
   cormackLehane?: $Enums.CormackLehane | null
   asaScore?: $Enums.ASAScore | null
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: number | null
   gutaScore?: number | null
   apfelScore?: number | null
   stopBangScore?: number | null
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: boolean
   createdAt?: Date | string
@@ -1227,10 +1448,23 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1284,10 +1518,23 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1346,10 +1593,23 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   cormackLehane?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
+  highRiskSurgery?: Prisma.SortOrder
+  rcriIschemicHeart?: Prisma.SortOrder
+  rcriCHF?: Prisma.SortOrder
+  rcriCVD?: Prisma.SortOrder
+  rcriInsulinDM?: Prisma.SortOrder
+  rcriCreatinine?: Prisma.SortOrder
   rcriScore?: Prisma.SortOrder
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  apfelPONVHistory?: Prisma.SortOrder
+  apfelPostopOpioids?: Prisma.SortOrder
+  stopbangSnoring?: Prisma.SortOrder
+  stopbangTired?: Prisma.SortOrder
+  stopbangObserved?: Prisma.SortOrder
+  stopbangBP?: Prisma.SortOrder
+  stopbangNeck?: Prisma.SortOrder
   labResults?: Prisma.SortOrder
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -1419,10 +1679,23 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   cormackLehane?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
+  highRiskSurgery?: Prisma.SortOrder
+  rcriIschemicHeart?: Prisma.SortOrder
+  rcriCHF?: Prisma.SortOrder
+  rcriCVD?: Prisma.SortOrder
+  rcriInsulinDM?: Prisma.SortOrder
+  rcriCreatinine?: Prisma.SortOrder
   rcriScore?: Prisma.SortOrder
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  apfelPONVHistory?: Prisma.SortOrder
+  apfelPostopOpioids?: Prisma.SortOrder
+  stopbangSnoring?: Prisma.SortOrder
+  stopbangTired?: Prisma.SortOrder
+  stopbangObserved?: Prisma.SortOrder
+  stopbangBP?: Prisma.SortOrder
+  stopbangNeck?: Prisma.SortOrder
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1472,10 +1745,23 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   cormackLehane?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
+  highRiskSurgery?: Prisma.SortOrder
+  rcriIschemicHeart?: Prisma.SortOrder
+  rcriCHF?: Prisma.SortOrder
+  rcriCVD?: Prisma.SortOrder
+  rcriInsulinDM?: Prisma.SortOrder
+  rcriCreatinine?: Prisma.SortOrder
   rcriScore?: Prisma.SortOrder
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  apfelPONVHistory?: Prisma.SortOrder
+  apfelPostopOpioids?: Prisma.SortOrder
+  stopbangSnoring?: Prisma.SortOrder
+  stopbangTired?: Prisma.SortOrder
+  stopbangObserved?: Prisma.SortOrder
+  stopbangBP?: Prisma.SortOrder
+  stopbangNeck?: Prisma.SortOrder
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1630,10 +1916,23 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   cormackLehane?: $Enums.CormackLehane | null
   asaScore?: $Enums.ASAScore | null
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: number | null
   gutaScore?: number | null
   apfelScore?: number | null
   stopBangScore?: number | null
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: boolean
   createdAt?: Date | string
@@ -1686,10 +1985,23 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   cormackLehane?: $Enums.CormackLehane | null
   asaScore?: $Enums.ASAScore | null
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: number | null
   gutaScore?: number | null
   apfelScore?: number | null
   stopBangScore?: number | null
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: boolean
   createdAt?: Date | string
@@ -1758,10 +2070,23 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1814,10 +2139,23 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCHF?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCVD?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriInsulinDM?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rcriCreatinine?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   gutaScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   apfelScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   stopBangScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  apfelPONVHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  apfelPostopOpioids?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangSnoring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangTired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangObserved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stopbangNeck?: Prisma.BoolFieldUpdateOperationsInput | boolean
   labResults?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1873,10 +2211,23 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   cormackLehane?: boolean
   asaScore?: boolean
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: boolean
   gutaScore?: boolean
   apfelScore?: boolean
   stopBangScore?: boolean
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: boolean
   aiOptIn?: boolean
   createdAt?: boolean
@@ -1931,10 +2282,23 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   cormackLehane?: boolean
   asaScore?: boolean
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: boolean
   gutaScore?: boolean
   apfelScore?: boolean
   stopBangScore?: boolean
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: boolean
   aiOptIn?: boolean
   createdAt?: boolean
@@ -1989,10 +2353,23 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   cormackLehane?: boolean
   asaScore?: boolean
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: boolean
   gutaScore?: boolean
   apfelScore?: boolean
   stopBangScore?: boolean
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: boolean
   aiOptIn?: boolean
   createdAt?: boolean
@@ -2047,17 +2424,30 @@ export type PreoperativeAssessmentSelectScalar = {
   cormackLehane?: boolean
   asaScore?: boolean
   emergencySurgery?: boolean
+  highRiskSurgery?: boolean
+  rcriIschemicHeart?: boolean
+  rcriCHF?: boolean
+  rcriCVD?: boolean
+  rcriInsulinDM?: boolean
+  rcriCreatinine?: boolean
   rcriScore?: boolean
   gutaScore?: boolean
   apfelScore?: boolean
   stopBangScore?: boolean
+  apfelPONVHistory?: boolean
+  apfelPostopOpioids?: boolean
+  stopbangSnoring?: boolean
+  stopbangTired?: boolean
+  stopbangObserved?: boolean
+  stopbangBP?: boolean
+  stopbangNeck?: boolean
   labResults?: boolean
   aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
+export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "highRiskSurgery" | "rcriIschemicHeart" | "rcriCHF" | "rcriCVD" | "rcriInsulinDM" | "rcriCreatinine" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "apfelPONVHistory" | "apfelPostopOpioids" | "stopbangSnoring" | "stopbangTired" | "stopbangObserved" | "stopbangBP" | "stopbangNeck" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
 export type PreoperativeAssessmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -2120,10 +2510,23 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     cormackLehane: $Enums.CormackLehane | null
     asaScore: $Enums.ASAScore | null
     emergencySurgery: boolean
+    highRiskSurgery: boolean
+    rcriIschemicHeart: boolean
+    rcriCHF: boolean
+    rcriCVD: boolean
+    rcriInsulinDM: boolean
+    rcriCreatinine: boolean
     rcriScore: number | null
     gutaScore: number | null
     apfelScore: number | null
     stopBangScore: number | null
+    apfelPONVHistory: boolean
+    apfelPostopOpioids: boolean
+    stopbangSnoring: boolean
+    stopbangTired: boolean
+    stopbangObserved: boolean
+    stopbangBP: boolean
+    stopbangNeck: boolean
     labResults: runtime.JsonValue
     aiOptIn: boolean
     createdAt: Date
@@ -2598,10 +3001,23 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly cormackLehane: Prisma.FieldRef<"PreoperativeAssessment", 'CormackLehane'>
   readonly asaScore: Prisma.FieldRef<"PreoperativeAssessment", 'ASAScore'>
   readonly emergencySurgery: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly highRiskSurgery: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly rcriIschemicHeart: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly rcriCHF: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly rcriCVD: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly rcriInsulinDM: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly rcriCreatinine: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly rcriScore: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
   readonly gutaScore: Prisma.FieldRef<"PreoperativeAssessment", 'Float'>
   readonly apfelScore: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
   readonly stopBangScore: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
+  readonly apfelPONVHistory: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly apfelPostopOpioids: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly stopbangSnoring: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly stopbangTired: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly stopbangObserved: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly stopbangBP: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly stopbangNeck: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly labResults: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly aiOptIn: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"PreoperativeAssessment", 'DateTime'>

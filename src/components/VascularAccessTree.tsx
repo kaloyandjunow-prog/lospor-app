@@ -10,6 +10,7 @@ export type VascularAccess = {
   sizeUnit:    string   // "G" or "Fr"
   size:        string
   depthCm:     string
+  lumens?:     string
   preexisting?: boolean
 }
 
@@ -75,6 +76,7 @@ function shortLabel(a: VascularAccess): string {
   const detail = [
     a.size && a.sizeUnit ? `${a.size}${a.sizeUnit}` : "",
     a.depthCm ? `${a.depthCm} cm depth` : "",
+    a.lumens ? `${a.lumens} lumen` : "",
   ].filter(Boolean).join(" · ")
   return detail ? `${a.siteLabel}  (${detail})` : a.siteLabel
 }
@@ -134,6 +136,7 @@ function DetailForm({
   const [sizeUnit, setSizeUnit] = useState(defaultUnit(site))
   const [size,     setSize]     = useState("")
   const [depthCm,  setDepthCm]  = useState("")
+  const [lumens,   setLumens]   = useState("")
   const isCentral = site.startsWith("CVK_") || site.startsWith("PICC_")
 
   const SIZE_PRESETS_G  = ["14", "16", "18", "20", "22"]
@@ -176,28 +179,43 @@ function DetailForm({
         />
       </div>
       {isCentral && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Depth from skin (cm)</p>
-          <div className="flex flex-wrap gap-1.5 mb-1">
-            {["2","4","6","8","10","12","14","16","18","20","22","24"].map(p => (
-              <button key={p} type="button" onClick={() => setDepthCm(p)}
-                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-all ${
-                  depthCm === p
-                    ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300"
-                    : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-blue-300"
-                }`}>{p}</button>
-            ))}
+        <>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Depth from skin (cm)</p>
+            <div className="flex flex-wrap gap-1.5 mb-1">
+              {["2","4","6","8","10","12","14","16","18","20","22","24"].map(p => (
+                <button key={p} type="button" onClick={() => setDepthCm(p)}
+                  className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-all ${
+                    depthCm === p
+                      ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300"
+                      : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-blue-300"
+                  }`}>{p}</button>
+              ))}
+            </div>
+            <Input
+              value={depthCm}
+              onChange={e => setDepthCm(e.target.value)}
+              placeholder="e.g. 12"
+              className="h-8 text-sm w-28"
+            />
           </div>
-          <Input
-            value={depthCm}
-            onChange={e => setDepthCm(e.target.value)}
-            placeholder="e.g. 12"
-            className="h-8 text-sm w-28"
-          />
-        </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Lumens</p>
+            <div className="flex gap-1.5">
+              {["1", "2", "3", "4+"].map(l => (
+                <button key={l} type="button" onClick={() => setLumens(lumens === l ? "" : l)}
+                  className={`px-3 py-1 rounded-md border text-xs font-bold transition-all ${
+                    lumens === l
+                      ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300"
+                      : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-blue-300"
+                  }`}>{l}</button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
       <div className="flex gap-2 pt-1">
-        <button type="button" onClick={() => onConfirm({ sizeUnit, size, depthCm })}
+        <button type="button" onClick={() => onConfirm({ sizeUnit, size, depthCm, lumens: lumens || undefined })}
           className="px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 dark:bg-slate-600 dark:hover:bg-slate-500 text-white text-sm font-medium transition-colors">
           Add
         </button>

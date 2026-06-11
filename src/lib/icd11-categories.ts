@@ -40,22 +40,39 @@ export const SYSTEM_ORDER: BodySystem[] = [
 
 export function getBodySystem(code: string): BodySystem {
   if (!code) return "Other"
-  const prefix = code.charAt(0).toUpperCase()
-  const num    = parseInt(code.substring(1, 3), 10) || 0
+  const p2 = code.substring(0, 2).toUpperCase()
 
-  if (prefix === "I") return "Cardiovascular"
-  if (prefix === "J") return "Respiratory"
-  if (prefix === "G" || prefix === "F") return "Neurological / Psychiatric"
-  if (prefix === "E") return "Endocrine / Metabolic"
-  if (prefix === "K") return "Gastrointestinal / Hepatic"
-  if (prefix === "N") return "Renal / Urological"
-  if (prefix === "D") return (num >= 50 && num <= 89) ? "Haematological" : "Neoplasms"
-  if (prefix === "C") return "Neoplasms"
-  if (prefix === "M") return "Musculoskeletal"
-  if (prefix === "A" || prefix === "B") return "Infectious diseases"
-  if (prefix === "H") return "Ophthalmological / ENT"
-  if (prefix === "O") return "Obstetric"
-  if (prefix === "Q") return "Congenital"
+  // ── ICD-11 two-character chapter prefixes (primary) ──────────────────────
+  if (["BA","BB","BC","BD","BE"].includes(p2))                                  return "Cardiovascular"
+  if (["CA","CB","CC","CD","CE","CF","CG","CH"].includes(p2))                  return "Respiratory"
+  if (["1A","1B","1C","1D","1E","1F","1G","1H"].includes(p2))                  return "Infectious diseases"
+  if (["2A","2B","2C","2D","2E","2F"].includes(p2))                            return "Neoplasms"
+  if (["3A","3B","3C"].includes(p2))                                            return "Haematological"
+  if (["5A","5B","5C","5D"].includes(p2))                                       return "Endocrine / Metabolic"
+  if (["6A","6B","6C","6D","6E","6F","6G","7A","7B","8A","8B","8C","8D","8E"].includes(p2)) return "Neurological / Psychiatric"
+  if (["9A","9B","9C","9D","9E","AA","AB","AC"].includes(p2))                  return "Ophthalmological / ENT"
+  if (["DA","DB","DC","DD","DE"].includes(p2))                                  return "Gastrointestinal / Hepatic"
+  if (["FA","FB","FC"].includes(p2))                                            return "Musculoskeletal"
+  if (["GA","GB","GC"].includes(p2))                                            return "Renal / Urological"
+  if (["JA","JB"].includes(p2))                                                 return "Obstetric"
+  if (["KA","KB","KC","KD","LA","LB","LC","LD"].includes(p2))                  return "Congenital"
+
+  // ── ICD-10 single-letter fallback (legacy entries) ────────────────────────
+  const p1  = p2.charAt(0)
+  const num = parseInt(code.substring(1, 3), 10) || 0
+  if (p1 === "I") return "Cardiovascular"
+  if (p1 === "J") return "Respiratory"
+  if (p1 === "G" || p1 === "F") return "Neurological / Psychiatric"
+  if (p1 === "E") return "Endocrine / Metabolic"
+  if (p1 === "K") return "Gastrointestinal / Hepatic"
+  if (p1 === "N") return "Renal / Urological"
+  if (p1 === "D") return (num >= 50 && num <= 89) ? "Haematological" : "Neoplasms"
+  if (p1 === "C") return "Neoplasms"
+  if (p1 === "M") return "Musculoskeletal"
+  if (p1 === "A" || p1 === "B") return "Infectious diseases"
+  if (p1 === "H") return "Ophthalmological / ENT"
+  if (p1 === "O") return "Obstetric"
+  if (p1 === "Q") return "Congenital"
   return "Other"
 }
 

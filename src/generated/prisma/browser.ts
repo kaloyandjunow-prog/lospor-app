@@ -58,6 +58,11 @@ export type Icd10BgCode = Prisma.Icd10BgCodeModel
  */
 export type Icd11Code = Prisma.Icd11CodeModel
 /**
+ * Model Icd11Alias
+ * 
+ */
+export type Icd11Alias = Prisma.Icd11AliasModel
+/**
  * Model RevokedToken
  * 
  */

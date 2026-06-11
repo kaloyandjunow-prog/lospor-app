@@ -9,16 +9,95 @@ import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/Posto
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
 const TECHNIQUE_LABELS: Record<string, { en: string; bg: string }> = {
-  GENERAL_INHALATION:      { en: "General Inhalation",              bg: "Обща инхалационна"                 },
-  GENERAL_TIVA:            { en: "General IV (TIVA)",               bg: "Обща венозна (ТИВА)"               },
-  GENERAL_COMBINED:        { en: "General Combined",                bg: "Обща комбинирана"                  },
-  SPINAL:                  { en: "Spinal",                          bg: "Спинална"                          },
-  SPINAL_SINGLE:           { en: "Spinal (single-shot)",            bg: "Спинална (единична доза)"          },
-  EPIDURAL:                { en: "Epidural",                        bg: "Епидурална"                        },
-  COMBINED_SPINAL_EPIDURAL:{ en: "Combined Spinal-Epidural (CSE)",  bg: "Комбинирана спинало-епидурална (КСЕ)" },
-  PERIPHERAL_NERVE_BLOCK:  { en: "Peripheral Nerve Block",          bg: "Периферен нервен блок"             },
-  LOCAL:                   { en: "Local Anaesthesia",               bg: "Местна анестезия"                  },
-  SEDATION:                { en: "Sedation",                        bg: "Седация"                           },
+  // General
+  GENERAL_INHALATION:      { en: "General Inhalation",              bg: "Обща инхалационна"                        },
+  GENERAL_TIVA:            { en: "General IV (TIVA)",               bg: "Обща венозна (ТИВА)"                      },
+  GENERAL_COMBINED:        { en: "General Combined",                bg: "Обща комбинирана"                         },
+  GENERAL_BALANCED:        { en: "General Combined",                bg: "Обща комбинирана"                         }, // legacy alias
+  // Neuraxial — generic
+  SPINAL:                  { en: "Spinal",                          bg: "Спинална"                                 },
+  SPINAL_SINGLE:           { en: "Spinal (single-shot)",            bg: "Спинална (единична доза)"                 },
+  SPINAL_CONTINUOUS:       { en: "Spinal (continuous)",             bg: "Спинална (непрекъсната)"                  },
+  // Spinal single-shot location variants
+  SPINAL_SINGLE_LUMBAR:         { en: "Spinal — Lumbar",            bg: "Спинална — лумбална"                      },
+  SPINAL_SINGLE_LOW_THORACIC:   { en: "Spinal — Low thoracic",      bg: "Спинална — ниска гръдна"                  },
+  SPINAL_SINGLE_MID_THORACIC:   { en: "Spinal — Mid thoracic",      bg: "Спинална — средна гръдна"                 },
+  SPINAL_SINGLE_HIGH_THORACIC:  { en: "Spinal — High thoracic",     bg: "Спинална — висока гръдна"                 },
+  // Spinal continuous variants
+  SPINAL_CONT_LUMBAR:           { en: "Spinal cont. — Lumbar",      bg: "Спинална непрекъсната — лумбална"         },
+  SPINAL_CONT_LOW_THORACIC:     { en: "Spinal cont. — Low thor.",   bg: "Спинална непрекъсната — ниска гръдна"     },
+  SPINAL_CONT_MID_THORACIC:     { en: "Spinal cont. — Mid thor.",   bg: "Спинална непрекъсната — средна гръдна"    },
+  SPINAL_CONT_HIGH_THORACIC:    { en: "Spinal cont. — High thor.",  bg: "Спинална непрекъсната — висока гръдна"    },
+  // Epidural
+  EPIDURAL:                { en: "Epidural",                        bg: "Епидурална"                               },
+  EPIDURAL_CAUDAL:         { en: "Epidural — Caudal",              bg: "Епидурална — каудална"                    },
+  EPIDURAL_LUMBAR:         { en: "Epidural — Lumbar",              bg: "Епидурална — лумбална"                    },
+  EPIDURAL_LOW_THORACIC:   { en: "Epidural — Low thoracic",        bg: "Епидурална — ниска гръдна"                },
+  EPIDURAL_MID_THORACIC:   { en: "Epidural — Mid thoracic",        bg: "Епидурална — средна гръдна"               },
+  EPIDURAL_HIGH_THORACIC:  { en: "Epidural — High thoracic",       bg: "Епидурална — висока гръдна"               },
+  // CSE / DPE
+  COMBINED_SPINAL_EPIDURAL:{ en: "Combined Spinal-Epidural (CSE)", bg: "Комбинирана спинало-епидурална (КСЕ)"      },
+  CSE:                     { en: "CSE",                            bg: "КСЕ"                                      }, // legacy alias
+  CSE_LUMBAR:              { en: "CSE — Lumbar",                   bg: "КСЕ — лумбална"                           },
+  CSE_LOW_THORACIC:        { en: "CSE — Low thoracic",             bg: "КСЕ — ниска гръдна"                       },
+  CSE_MID_THORACIC:        { en: "CSE — Mid thoracic",             bg: "КСЕ — средна гръдна"                      },
+  CSE_HIGH_THORACIC:       { en: "CSE — High thoracic",            bg: "КСЕ — висока гръдна"                      },
+  DPE:                     { en: "Dural Puncture Epidural (DPE)",  bg: "Дурална пункция + епидурал (ДПЕ)"         },
+  // Peripheral blocks — upper
+  PERIPHERAL_NERVE_BLOCK:  { en: "Peripheral Nerve Block",         bg: "Периферен нервен блок"                    },
+  BLOCK_UPPER:             { en: "Upper extremity block",          bg: "Блок — горен крайник"                     },
+  BLOCK_INTERSCALENE:      { en: "Interscalene block",             bg: "Интерскаленен блок"                       },
+  BLOCK_SUPRACLAVICULAR:   { en: "Supraclavicular block",          bg: "Супраклавикуларен блок"                   },
+  BLOCK_INFRACLAVICULAR:   { en: "Infraclavicular block",          bg: "Инфраклавикуларен блок"                   },
+  BLOCK_AXILLARY:          { en: "Axillary block",                 bg: "Аксиларен блок"                           },
+  BLOCK_WRIST:             { en: "Wrist block",                    bg: "Блок на китката"                          },
+  BLOCK_DIGITAL:           { en: "Digital block",                  bg: "Дигитален блок"                           },
+  BLOCK_BIER:              { en: "Bier block (IVRA)",              bg: "Биерова блокада (ИВРА)"                   },
+  BLOCK_ELBOW:             { en: "Elbow block",                    bg: "Блок на лакътя"                           },
+  // Peripheral blocks — lower
+  BLOCK_LOWER:             { en: "Lower extremity block",          bg: "Блок — долен крайник"                     },
+  BLOCK_FEMORAL:           { en: "Femoral nerve block",            bg: "Феморален блок"                           },
+  BLOCK_ADDUCTOR:          { en: "Adductor canal block",           bg: "Адукторен канален блок"                   },
+  BLOCK_SCIATIC:           { en: "Sciatic nerve block",            bg: "Седалищен блок"                           },
+  BLOCK_POPLITEAL:         { en: "Popliteal sciatic block",        bg: "Поплитеален блок"                         },
+  BLOCK_ANKLE:             { en: "Ankle block",                    bg: "Блок на глезена"                          },
+  BLOCK_OBTURATOR:         { en: "Obturator nerve block",          bg: "Обтураторен блок"                         },
+  BLOCK_LAT_FEMORAL:       { en: "Lat. femoral cutaneous block",   bg: "Страничен феморален кожен блок"           },
+  BLOCK_LUMBAR_PLEXUS:     { en: "Lumbar plexus (psoas) block",    bg: "Лумбален плексус (псоас) блок"            },
+  BLOCK_IPACK:             { en: "IPACK block",                    bg: "ИПАК блок"                                },
+  BLOCK_GENICULAR:         { en: "Genicular nerve block",          bg: "Геникуларен блок"                         },
+  BLOCK_FOOT:              { en: "Foot block",                     bg: "Блок на стъпалото"                        },
+  // Peripheral blocks — trunk
+  BLOCK_TRUNK:             { en: "Trunk / abdominal wall block",   bg: "Блок на корема / туловище"                },
+  BLOCK_TAP:               { en: "TAP block",                      bg: "ТАП блок"                                 },
+  BLOCK_RECTUS:            { en: "Rectus sheath block",            bg: "Блок на ректусовата обвивка"              },
+  BLOCK_PARAVERTEBRAL:     { en: "Paravertebral block",            bg: "Паравертебрален блок"                     },
+  BLOCK_ESP:               { en: "Erector spinae block (ESP)",     bg: "Блок на изправителя на гръбнака (ЕСП)"    },
+  BLOCK_SERRATUS:          { en: "Serratus anterior block",        bg: "Блок на предния зъбец"                    },
+  BLOCK_PECS1:             { en: "PECS I block",                   bg: "ПЕКС I блок"                              },
+  BLOCK_PECS2:             { en: "PECS II block",                  bg: "ПЕКС II блок"                             },
+  BLOCK_QL:                { en: "Quadratus lumborum block (QL)",  bg: "Квадратен лумбален блок (КЛ)"             },
+  BLOCK_ILIOINGUINAL:      { en: "Ilioinguinal / iliohypogastric", bg: "Илиоингвинален / илиохипогастрален блок"   },
+  BLOCK_INTERCOSTAL:       { en: "Intercostal block",              bg: "Интеркостален блок"                       },
+  // Head & neck
+  BLOCK_HEAD_NECK:               { en: "Head & neck block",        bg: "Блок — глава и шия"                       },
+  BLOCK_SUPERFICIAL_CERVICAL:    { en: "Superficial cervical plexus", bg: "Повърхностен шиен плексус"             },
+  BLOCK_DEEP_CERVICAL:           { en: "Deep cervical plexus",     bg: "Дълбок шиен плексус"                      },
+  BLOCK_SCALP:                   { en: "Scalp block",              bg: "Блок на скалпа"                           },
+  BLOCK_TRIGEMINAL:              { en: "Trigeminal nerve block",   bg: "Тригеминален блок"                        },
+  // Ophthalmic
+  BLOCK_OPHTHALMIC:        { en: "Ophthalmic block",               bg: "Офталмологичен блок"                      },
+  BLOCK_PERIBULBAR:        { en: "Peribulbar block",               bg: "Перибулбарен блок"                        },
+  BLOCK_RETROBULBAR:       { en: "Retrobulbar block",              bg: "Ретробулбарен блок"                       },
+  BLOCK_SUB_TENONS:        { en: "Sub-Tenon's block",              bg: "Суб-Тенонов блок"                         },
+  BLOCK_TOPICAL_EYE:       { en: "Topical (eye)",                  bg: "Топикална (окото)"                        },
+  // Sedation
+  LOCAL:                   { en: "Local Anaesthesia",              bg: "Местна анестезия"                         },
+  SEDATION:                { en: "Sedation",                       bg: "Седация"                                  },
+  SEDATION_CONSCIOUS:      { en: "Conscious sedation",             bg: "Съзнателна седация"                       },
+  SEDATION_DEEP:           { en: "Deep sedation",                  bg: "Дълбока седация"                          },
+  SEDATION_MAC:            { en: "MAC",                            bg: "МАК"                                      },
+  OTHER:                   { en: "Other technique",                bg: "Друга техника"                            },
 }
 
 const TOOL_LABELS: Record<string, { en: string; bg: string }> = {
@@ -620,7 +699,7 @@ const LABELS = {
     postopRecovery: "Postoperative Recovery", total: "TOTAL", ready: "Ready",
     monitor: "Monitor", continueStr: "Continue", recovery: "Recovery",
     disposition: "Disposition", handover: "Handover",
-    temperature: "Temperature", painNRS: "Pain NRS", ponv: "PONV", timeInPacu: "Time in PACU",
+    temperature: "Temperature", painNRS: "Pain NRS", ponv: "PONV",
     sigAnest: "Anaesthesiologist", sigNurse: "Anaesthesia nurse", sigSurg: "Surgeon",
     page1: "Page 1 of 2", page2: "Page 2 of 2", confidential: "Confidential",
     gdprNote: "GDPR: Patient-identifiable data — store securely. Anonymised record in LOSPOR.",
@@ -655,7 +734,7 @@ const LABELS = {
     postopRecovery: "Постоперативно състояние", total: "ОБЩО", ready: "Готов",
     monitor: "Наблюдение", continueStr: "Продължи", recovery: "Състояние при извеждане от операционната зала",
     disposition: "Извежда се към", handover: "Препоръки за постоперативния период",
-    temperature: "Температура", painNRS: "Болкова скала NRS", ponv: "ПОНВ", timeInPacu: "Престой в зала за събуждане",
+    temperature: "Температура", painNRS: "Болкова скала NRS", ponv: "ПОНВ",
     sigAnest: "Анестезиолог", sigNurse: "Анестезиологична мед. сестра", sigSurg: "Хирург",
     page1: "Страница 1 от 2", page2: "Страница 2 от 2", confidential: "Поверително",
     gdprNote: "GDPR: Документът съдържа лични данни — съхранявайте в историята. Анонимен запис в LOSPOR.",
@@ -1108,10 +1187,12 @@ export function CaseSummary({ caseId }: { caseId: string }) {
             <div className="flex gap-2 flex-1 overflow-hidden">
               <div className={`${panel} flex-1`}>
                 <Sec title={L.recovery} />
+                <F label="Blood pressure" value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic}/${o.recoveryBpDiastolic} mmHg` : null} />
+                <F label="Heart rate" value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
+                <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2}%` : null} />
                 <F label={L.temperature} value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
                 <F label={L.painNRS}     value={o?.painScoreNRS != null ? `${o.painScoreNRS}/10` : null} />
                 <F label={L.ponv}        value={o?.ponv ? "Yes" : o?.ponv === false ? "No" : null} />
-                <F label={L.timeInPacu}  value={o?.timeInRecoveryMin ? `${o.timeInRecoveryMin} min` : null} />
               </div>
               <div className={`${panel} flex-1`}>
                 <Sec title={L.disposition} />

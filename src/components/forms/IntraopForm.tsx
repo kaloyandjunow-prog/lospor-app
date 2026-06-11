@@ -15,9 +15,9 @@ import { Separator } from "@/components/ui/separator"
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Trash2, X } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTranslations } from "next-intl"
-import { IntraopTimetable, type TimetableData, calcInfusionTotal } from "@/components/IntraopTimetable"
+import { IntraopTimetable, type TimetableData, calcInfusionTotal, INFUSION_WEIGHT_BASIS } from "@/components/IntraopTimetable"
 import { NumberStepper } from "@/components/NumberStepper"
-import { TechniqueTree, techniqueIsGeneral, techniqueUsesGas, techniqueNeedsBlock } from "@/components/TechniqueTree"
+import { TechniqueTree, techniqueDisplayLabel, techniqueIsGeneral, techniqueUsesGas, techniqueNeedsBlock } from "@/components/TechniqueTree"
 import { calcIBW, calcABW } from "@/lib/scores"
 import { VascularAccessTree, type VascularAccess } from "@/components/VascularAccessTree"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
@@ -136,6 +136,9 @@ const schema = z.object({
   o2Percent:       z.coerce.number().optional(),
   n2oLitersPerMin: z.coerce.number().optional(),
   o2LitersPerMin:  z.coerce.number().optional(),
+  fgfLitersPerMin: z.coerce.number().optional(),
+  carrierGas:      z.string().optional().nullable(),
+  fio2Percent:     z.coerce.number().optional(),
 
   plexusBlock:      z.enum(["AXILLARY","INTERSCALENE","SUPRACLAVICULAR","INFRACLAVICULAR","FEMORAL","SCIATIC","POPLITEAL","TAP","ERECTOR_SPINAE"]).optional(),
   cvkSite:          z.enum(["INTERNAL_JUGULAR","EXTERNAL_JUGULAR","SUBCLAVIAN","FEMORAL"]).optional(),
@@ -755,7 +758,7 @@ const VENT_CONTROLLED = [
   { v: "VG",   label: "Volume Guarantee (VG)" },
 ]
 
-export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog }: {
+export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onDeleteEvent }: {
   defaultValues?: Partial<IntraopData>
   defaultTimetable?: TimetableData
   preop?: PreopSummary | null
@@ -766,6 +769,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   layoutMode?: "tabs" | "scroll"
   caseStarted?: boolean
   eventLog?: any[]
+  onDeleteEvent?: (id: string) => void
 }) {
   const t = useTranslations()
   const { register, handleSubmit, control, watch, setValue, getValues, formState } = useForm<IntraopData>({
@@ -775,6 +779,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
       nbpMonitor: true, spO2Monitor: true, ecg: true,
+      carrierGas: "air", fio2Percent: 21,
       ...defaultValues,
     },
   })
@@ -785,6 +790,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const [timetable, setTimetable] = useState<TimetableData>(safeTimetable)
   const [timetableDirty, setTimetableDirty] = useState(false)
   const [manualSaved, setManualSaved] = useState(false)
+
+  // Compute IBW/TBW from preop for weight-adjusted infusion totals
+  const calcIbw = preop?.heightCm && preop?.sex ? calcIBW(preop.heightCm, preop.sex as "MALE" | "FEMALE" | "OTHER") : null
+  const calcTbw = preop?.weightKg ?? null
 
   const liveDrugTotals = useMemo(() => {
     const bolusTotals: Record<string, { total: number; unit: string; count: number }> = {}
@@ -804,15 +813,27 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     }))
 
     const infusionList = (timetable.infusions ?? []).map(inf => {
-      const { amount, unit } = calcInfusionTotal(inf)
+      const { amount, unit, weightUsed, weightBasis } = calcInfusionTotal(inf, calcIbw, calcTbw)
       const isML    = unit.toLowerCase() === "ml"
       const laConc  = isML ? parseLAConc(inf.name) : null
       const mgTotal = laConc !== null ? Math.round(amount * laConc * 10 * 100) / 100 : null
-      return { name: inf.name, total: amount, unit, mgTotal }
+      return { name: inf.name, total: amount, unit, mgTotal, weightUsed, weightBasis }
     })
 
-    return { bolusList, infusionList }
-  }, [timetable.drugs, timetable.infusions])
+    // If any infusion used a weight-adjusted calculation, build a footnote
+    const weightedEntries = infusionList.filter(r => r.weightUsed != null)
+    const weightNote = weightedEntries.length > 0 ? (() => {
+      const ibwUsed = weightedEntries.some(r => r.weightBasis === "IBW") ? calcIbw : null
+      const tbwUsed = weightedEntries.some(r => r.weightBasis === "TBW") ? calcTbw : null
+      const parts: string[] = []
+      if (ibwUsed) parts.push(`IBW ${Math.round(ibwUsed * 10) / 10} kg`)
+      if (tbwUsed) parts.push(`TBW ${Math.round((tbwUsed ?? 0) * 10) / 10} kg`)
+      return parts.length ? `† Weight-adjusted totals use ${parts.join(" / ")}` : null
+    })() : null
+
+    return { bolusList, infusionList, weightNote }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timetable.drugs, timetable.infusions, calcIbw, calcTbw])
 
   // Auto-calculate fluid totals from timetable whenever fluids change
   useEffect(() => {
@@ -898,6 +919,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     }
   }, [])
   const [showStartPrompt,      setShowStartPrompt]      = useState(false)
+  const [startAtInput,         setStartAtInput]         = useState("")
+  const [showStartAt,          setShowStartAt]          = useState(false)
   const [showEndPrompt,        setShowEndPrompt]        = useState(false)
   const [ventExpanded,         setVentExpanded]         = useState<"assisted" | "controlled" | null>(null)
   const [presentsIntubated,    setPresentsIntubated]    = useState(false)
@@ -1287,7 +1310,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             <Label className={timeErrors.startTime ? "text-red-600 dark:text-red-400" : ""}>{t("intraop.startTime")} {timeErrors.startTime && <span className="font-normal">— required</span>}</Label>
             <div className={`flex items-center gap-2 ${timeErrors.startTime ? "ring-2 ring-red-400 rounded-lg p-0.5" : ""}`}>
               <Controller name="startTime" control={control} render={({ field }) => (
-                <TimePicker ref={startHourRef} value={field.value} onChange={v => { field.onChange(v); setTimeErrors(e => ({ ...e, startTime: false })) }} />
+                field.value
+                  // Once start time is set the field is locked — show as read-only badge
+                  ? <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] font-mono">{field.value} <span className="text-[10px] font-normal text-slate-400 ml-1">locked</span></span>
+                  : <TimePicker ref={startHourRef} value={field.value} onChange={v => { field.onChange(v); setTimeErrors(e => ({ ...e, startTime: false })) }} />
               )} />
               {!watch("startTime") && !watch("endTime") && (
                 <button type="button"
@@ -1298,28 +1324,65 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
               )}
             </div>
             {!watch("startTime") && !watch("endTime") && showStartPrompt && (
-              <div className="mt-1 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-3 flex gap-2">
+              <div className="mt-1 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-3 space-y-2">
+                <div className="flex gap-2">
+                  <button type="button"
+                    onClick={() => {
+                      const time = nowHHMM()
+                      setValue("startTime", time)
+                      setShowStartPrompt(false)
+                      setShowStartAt(false)
+                      if (onAutoSave) {
+                        const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
+                          ? timetable : EMPTY_TIMETABLE
+                        onAutoSave({ ...getValues(), startTime: time, timetableData: safeT })
+                      }
+                    }}
+                    className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors">
+                    Start now
+                  </button>
+                  <button type="button"
+                    onClick={() => {
+                      setShowStartAt(v => !v)
+                      if (!showStartAt) setStartAtInput(nowHHMM())
+                    }}
+                    className={`flex-1 text-sm font-semibold px-3 py-2 rounded-lg border-2 transition-colors whitespace-nowrap
+                      ${showStartAt
+                        ? "bg-indigo-500 border-indigo-500 text-white"
+                        : "border-indigo-400 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-600"}`}>
+                    Start at…
+                  </button>
+                </div>
+                {showStartAt && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={startAtInput}
+                      onChange={e => setStartAtInput(e.target.value)}
+                      className="flex-1 text-sm bg-white dark:bg-[#2a2a2a] border border-indigo-300 dark:border-indigo-700 rounded-lg px-3 py-1.5 text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono"
+                    />
+                    <button type="button"
+                      disabled={!startAtInput}
+                      onClick={() => {
+                        if (!startAtInput) return
+                        setValue("startTime", startAtInput)
+                        setShowStartPrompt(false)
+                        setShowStartAt(false)
+                        if (onAutoSave) {
+                          const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
+                            ? timetable : EMPTY_TIMETABLE
+                          onAutoSave({ ...getValues(), startTime: startAtInput, timetableData: safeT })
+                        }
+                      }}
+                      className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white transition-colors">
+                      Confirm
+                    </button>
+                  </div>
+                )}
                 <button type="button"
-                  onClick={() => {
-                    const now  = new Date()
-                    const time = nowHHMM()
-                    setValue("startTime", time)
-                    setShowStartPrompt(false)
-                    // Fire an immediate save so the case status becomes
-                    // "In theatre" on the dashboard without waiting for the debounce
-                    if (onAutoSave) {
-                      const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
-                        ? timetable : EMPTY_TIMETABLE
-                      onAutoSave({ ...getValues(), startTime: time, timetableData: safeT })
-                    }
-                  }}
-                  className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors">
-                  Start now
-                </button>
-                <button type="button"
-                  onClick={() => { setShowStartPrompt(false); setTimeout(() => startHourRef.current?.focus(), 50) }}
-                  className="flex-1 text-sm text-blue-600 dark:text-blue-400 font-medium px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-[#2a2a2a] hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors">
-                  Write manually
+                  onClick={() => { setShowStartPrompt(false); setShowStartAt(false); setTimeout(() => startHourRef.current?.focus(), 50) }}
+                  className="w-full text-xs text-center text-blue-500 dark:text-blue-400 hover:underline py-0.5">
+                  Write manually in the field above
                 </button>
               </div>
             )}
@@ -1494,7 +1557,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Anaesthesia technique */}
       <div data-tour="intraop-technique">
       <SectionCard title={t("intraop.techniqueSection")} collapsible
-        badge={techniques.length ? techniques.slice(0,2).join(", ").replace(/_/g," ") : undefined}>
+        badge={techniques.length ? techniques.slice(0, 2).map(techniqueDisplayLabel).join(", ") : undefined}>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
@@ -1954,6 +2017,90 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         </>}
       </SectionCard>}
 
+      {/* Volatile agent & gas settings — only shown for inhalational techniques */}
+      {showGases && (
+        <SectionCard title="Volatile Agent & Gas" collapsible
+          badge={(() => {
+            const agent = watch("volatileAgent")
+            const fgf   = watch("fgfLitersPerMin")
+            const fio2  = watch("fio2Percent")
+            const parts: string[] = []
+            if (agent) parts.push(agent.charAt(0) + agent.slice(1).toLowerCase().replace("flurane","fl."))
+            if (fgf  != null) parts.push(`FGF ${fgf} L/min`)
+            if (fio2 != null) parts.push(`FiO₂ ${fio2}%`)
+            return parts.length ? parts.join(" · ") : undefined
+          })()}>
+
+          {/* Volatile agent selector */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Volatile agent</p>
+            <Controller name="volatileAgent" control={control} render={({ field }) => (
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { v: "SEVOFLURANE", label: "Sevoflurane" },
+                  { v: "DESFLURANE",  label: "Desflurane"  },
+                  { v: "ISOFLURANE",  label: "Isoflurane"  },
+                ] as const).map(opt => (
+                  <button key={opt.v} type="button"
+                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
+                    className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${
+                      field.value === opt.v
+                        ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white scale-105 shadow-sm"
+                        : "border-slate-200 dark:border-[#333] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#444] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
+                    }`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )} />
+          </div>
+
+          {/* Gas settings — FGF + carrier gas + FiO₂ */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Gas settings</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* FGF */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">FGF (Fresh Gas Flow)</Label>
+                <Controller name="fgfLitersPerMin" control={control} render={({ field }) => (
+                  <NumberStepper value={field.value ?? 0} onChange={field.onChange} min={0} max={100} step={0.5} unit="L/min" showSlider />
+                )} />
+              </div>
+              {/* Carrier gas — O₂ is implicit; choose Air or N₂O */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Carrier gas</Label>
+                <Controller name="carrierGas" control={control} render={({ field }) => (
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border bg-blue-600/80 border-blue-600 text-white cursor-default">
+                      O₂
+                    </button>
+                    {(["air","n2o"] as const).map(g => (
+                      <button key={g} type="button"
+                        onClick={() => field.onChange(g)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          field.value === g
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 hover:border-blue-300"
+                        }`}>
+                        {g === "air" ? "Air" : "N₂O"}
+                      </button>
+                    ))}
+                  </div>
+                )} />
+              </div>
+              {/* FiO₂ */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">FiO₂</Label>
+                <Controller name="fio2Percent" control={control} render={({ field }) => (
+                  <NumberStepper value={field.value ?? 21} onChange={field.onChange} min={0} max={100} step={1} unit="%" showSlider />
+                )} />
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+      )}
+
       {/* Vascular access */}
       <SectionCard title="Vascular Access" collapsible defaultCollapsed
         badge={(() => { const a = (watch("vascularAccesses") ?? []) as any[]; return a.length ? `${a.length} access${a.length > 1 ? "es" : ""}` : undefined })()}>
@@ -2036,12 +2183,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
                 <span className="font-medium text-slate-700 dark:text-slate-200 w-44 truncate">{row.name}</span>
                 <span className="font-mono text-slate-600 dark:text-slate-300">
                   {row.total} {row.unit}
+                  {row.weightUsed != null && <span className="text-[10px] text-slate-400 ml-1">†</span>}
                 </span>
                 {row.mgTotal !== null && (
                   <span className="text-[11px] text-slate-400 dark:text-slate-500">({row.mgTotal} mg)</span>
                 )}
               </div>
             ))}
+            {liveDrugTotals.weightNote && (
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic mt-1">{liveDrugTotals.weightNote}</p>
+            )}
           </div>
         )}
 
@@ -2144,10 +2295,18 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
                 else if (ev.type === "agent_stop") { text = `${ev.name} off`; color = "#64748b" }
                 else { text = ev.type; color = "#64748b" }
                 return (
-                  <div key={ev.id} className="flex items-start gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0">
+                  <div key={ev.id} className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0 group">
                     <span className="text-[11px] text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmm}</span>
-                    <div className="w-0.5 h-5 rounded-full shrink-0 mt-0.5" style={{ backgroundColor: color }} />
-                    <span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug">{text}</span>
+                    <div className="w-0.5 h-5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug flex-1">{text}</span>
+                    {onDeleteEvent && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteEvent(ev.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-sm leading-none px-1 py-0.5 rounded"
+                        title="Delete event"
+                      >×</button>
+                    )}
                   </div>
                 )
               })}

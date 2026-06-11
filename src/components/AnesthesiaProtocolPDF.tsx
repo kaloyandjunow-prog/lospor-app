@@ -496,7 +496,9 @@ export function AnesthesiaProtocolPDF({
                 )}
                 {i?.peepCmH2O   && <F label="PEEP"    value={`${i.peepCmH2O} cmH₂O`} />}
                 {i?.volatileAgent && <F label="Agent"  value={i.volatileAgent} />}
-                {i?.n2oPercent  && <F label="N₂O / O₂" value={`${i.n2oPercent}% / ${i.o2Percent ?? "—"}%`} />}
+                {i?.fgfLitersPerMin != null && <F label="Fresh gas flow" value={`${i.fgfLitersPerMin} L/min`} />}
+                {i?.carrierGas && <F label="Carrier gas" value={`O₂ + ${i.carrierGas === "n2o" ? "N₂O" : "Air"}`} />}
+                {i?.fio2Percent != null && <F label="FiO₂" value={`${i.fio2Percent}%`} />}
                 {p?.premedicationEvening && <F label="Premed. eve." value={p.premedicationEvening} />}
                 {p?.premedicationMorning && <F label="Premed. morn." value={p.premedicationMorning} />}
               </View>
@@ -705,10 +707,12 @@ export function AnesthesiaProtocolPDF({
               <View style={[S.row, { marginBottom: 0 }]}>
                 <View style={[S.card, S.col]}>
                   <Text style={S.sec}>Recovery</Text>
+                  <F label="Blood pressure" value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic}/${o.recoveryBpDiastolic} mmHg` : null} />
+                  <F label="Heart rate" value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
+                  <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2}%` : null} />
                   <F label="Temperature"    value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
                   <F label="Pain (NRS)"     value={o?.painScoreNRS != null ? `${o.painScoreNRS}/10` : null} />
                   <F label="PONV"           value={o?.ponv ? "Yes" : o?.ponv === false ? "No" : null} />
-                  <F label="Time in PACU"   value={o?.timeInRecoveryMin ? `${o.timeInRecoveryMin} min` : null} />
                 </View>
                 <View style={[S.card, S.col]}>
                   <Text style={S.sec}>Disposition</Text>

@@ -392,6 +392,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  Icd11Alias: 'Icd11Alias',
   RevokedToken: 'RevokedToken',
   AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
@@ -413,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "revokedToken" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
+    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "icd11Alias" | "revokedToken" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1009,6 +1010,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Icd11Alias: {
+      payload: Prisma.$Icd11AliasPayload<ExtArgs>
+      fields: Prisma.Icd11AliasFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.Icd11AliasFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.Icd11AliasFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        findFirst: {
+          args: Prisma.Icd11AliasFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.Icd11AliasFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        findMany: {
+          args: Prisma.Icd11AliasFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+        }
+        create: {
+          args: Prisma.Icd11AliasCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        createMany: {
+          args: Prisma.Icd11AliasCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.Icd11AliasCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+        }
+        delete: {
+          args: Prisma.Icd11AliasDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        update: {
+          args: Prisma.Icd11AliasUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        deleteMany: {
+          args: Prisma.Icd11AliasDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.Icd11AliasUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.Icd11AliasUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+        }
+        upsert: {
+          args: Prisma.Icd11AliasUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+        }
+        aggregate: {
+          args: Prisma.Icd11AliasAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd11Alias>
+        }
+        groupBy: {
+          args: Prisma.Icd11AliasGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd11AliasGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.Icd11AliasCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd11AliasCountAggregateOutputType> | number
+        }
+      }
+    }
     RevokedToken: {
       payload: Prisma.$RevokedTokenPayload<ExtArgs>
       fields: Prisma.RevokedTokenFieldRefs
@@ -1590,6 +1665,16 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const Icd11AliasScalarFieldEnum = {
+  id: 'id',
+  bgTerm: 'bgTerm',
+  enTerm: 'enTerm',
+  createdAt: 'createdAt'
+} as const
+
+export type Icd11AliasScalarFieldEnum = (typeof Icd11AliasScalarFieldEnum)[keyof typeof Icd11AliasScalarFieldEnum]
+
+
 export const RevokedTokenScalarFieldEnum = {
   jti: 'jti',
   revokedAt: 'revokedAt',
@@ -1670,10 +1755,23 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   cormackLehane: 'cormackLehane',
   asaScore: 'asaScore',
   emergencySurgery: 'emergencySurgery',
+  highRiskSurgery: 'highRiskSurgery',
+  rcriIschemicHeart: 'rcriIschemicHeart',
+  rcriCHF: 'rcriCHF',
+  rcriCVD: 'rcriCVD',
+  rcriInsulinDM: 'rcriInsulinDM',
+  rcriCreatinine: 'rcriCreatinine',
   rcriScore: 'rcriScore',
   gutaScore: 'gutaScore',
   apfelScore: 'apfelScore',
   stopBangScore: 'stopBangScore',
+  apfelPONVHistory: 'apfelPONVHistory',
+  apfelPostopOpioids: 'apfelPostopOpioids',
+  stopbangSnoring: 'stopbangSnoring',
+  stopbangTired: 'stopbangTired',
+  stopbangObserved: 'stopbangObserved',
+  stopbangBP: 'stopbangBP',
+  stopbangNeck: 'stopbangNeck',
   labResults: 'labResults',
   aiOptIn: 'aiOptIn',
   createdAt: 'createdAt',
@@ -1713,6 +1811,9 @@ export const IntraoperativeRecordScalarFieldEnum = {
   o2Percent: 'o2Percent',
   n2oLitersPerMin: 'n2oLitersPerMin',
   o2LitersPerMin: 'o2LitersPerMin',
+  fgfLitersPerMin: 'fgfLitersPerMin',
+  carrierGas: 'carrierGas',
+  fio2Percent: 'fio2Percent',
   plexusBlock: 'plexusBlock',
   cvkSite: 'cvkSite',
   arterialLineSite: 'arterialLineSite',
@@ -1763,10 +1864,13 @@ export const PostoperativeRecordScalarFieldEnum = {
   aldreteConsciousness: 'aldreteConsciousness',
   aldreteSpO2: 'aldreteSpO2',
   aldreteTotal: 'aldreteTotal',
+  recoveryBpSystolic: 'recoveryBpSystolic',
+  recoveryBpDiastolic: 'recoveryBpDiastolic',
+  recoveryHeartRate: 'recoveryHeartRate',
+  recoverySpO2: 'recoverySpO2',
   painScoreNRS: 'painScoreNRS',
   ponv: 'ponv',
   temperatureCelsius: 'temperatureCelsius',
-  timeInRecoveryMin: 'timeInRecoveryMin',
   complications: 'complications',
   disposition: 'disposition',
   dispositionNotes: 'dispositionNotes',
@@ -2278,6 +2382,7 @@ export type GlobalOmitConfig = {
   roleRequest?: Prisma.RoleRequestOmit
   icd10BgCode?: Prisma.Icd10BgCodeOmit
   icd11Code?: Prisma.Icd11CodeOmit
+  icd11Alias?: Prisma.Icd11AliasOmit
   revokedToken?: Prisma.RevokedTokenOmit
   auditLog?: Prisma.AuditLogOmit
   customTerm?: Prisma.CustomTermOmit

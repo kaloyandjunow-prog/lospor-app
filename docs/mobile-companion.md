@@ -72,6 +72,15 @@ The mobile lock uses `expo-secure-store` for the device ID (prefixed `mob-`) and
 | Audit logs | `/(app)/audit-logs` | Paginated audit event list |
 | Admin | `/(app)/admin` | Pending registrations, HOD requests, roles |
 
+## Intraoperative mobile behaviour
+
+- Swipe left or right across the intraoperative content to change sections.
+- The active section automatically scrolls into the centre of the section rail, including the first and last sections.
+- Automatic vitals creates real five-minute vital events through the shared events API.
+- Assisted and controlled ventilation groups provide immediate selection feedback and use mutually exclusive mode families.
+- Gas entry uses FGF 0-100 L/min, O2 plus either Air or N2O, and FiO2 0-100%.
+- Ending a case with active agents, infusions, or fluids requires a Stop or Continue postop decision for every running item.
+
 ---
 
 ## Design principles

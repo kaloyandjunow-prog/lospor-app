@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LosporBrand } from "@/components/LosporBrand"
 
 export const metadata = { title: "Privacy Policy — LOSPOR" }
 
@@ -8,16 +9,13 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4 py-12">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center">
-          <Link href="/login">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="LOSPOR" className="h-16 w-auto mx-auto hover:opacity-80 transition-opacity" />
-          </Link>
+          <LosporBrand compact linked />
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Privacy Policy</CardTitle>
-            <p className="text-xs text-slate-400 mt-1">Effective date: 1 May 2026 · Version 1.0</p>
+            <p className="text-xs text-slate-400 mt-1">Effective date: 1 June 2026 · Version 1.1</p>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-sm leading-relaxed">
 
@@ -51,7 +49,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Supabase (EU region):</strong> PostgreSQL database hosting.</li>
                 <li><strong>Vercel (EU region):</strong> application hosting and edge functions.</li>
-                <li><strong>Mistral AI (EU — La Plateforme):</strong> AI pre-operative advisor inference. Only structured clinical fields are forwarded; free-text notes are never sent. AI advice is opt-in per case.</li>
+                <li><strong>Mistral AI (EU — La Plateforme):</strong> AI inference for three opt-in features: (1) the pre-operative advisor — only structured clinical fields are forwarded, never free-text notes; (2) the lab report scan — a camera image or gallery photo you choose to upload is sent for text extraction; (3) the anaesthesia monitor scan — a camera image or gallery photo you choose to upload is sent for vital-signs extraction. Images are processed transiently and not stored by Mistral AI. All three features are opt-in and require an explicit user action.</li>
               </ul>
             </section>
 

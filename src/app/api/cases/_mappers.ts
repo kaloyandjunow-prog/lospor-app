@@ -1,4 +1,5 @@
 // Shared data-mapping helpers for POST and PATCH case routes
+import { Prisma } from "@/generated/prisma/client"
 
 export function mapPreop(preop: any) {
   const upperLipBiteTest =
@@ -38,9 +39,9 @@ export function mapPreop(preop: any) {
     // Legacy string columns (kept for backward compatibility)
     diagnosis:        diagnosesArr.map((t: any) => t.label).join("; ") || "",
     plannedProcedure: proceduresArr.map((t: any) => t.label).join("; ") || "",
-    // Item 26: JSON columns for structured diagnoses/procedures
-    diagnosesJson:    diagnosesArr.length > 0 ? diagnosesArr : undefined,
-    proceduresJson:   proceduresArr.length > 0 ? proceduresArr : undefined,
+    // Item 26: JSON columns for structured diagnoses/procedures — use Prisma.JsonNull (not undefined) so Prisma clears the column when array is empty
+    diagnosesJson:    diagnosesArr.length > 0 ? diagnosesArr : Prisma.JsonNull,
+    proceduresJson:   proceduresArr.length > 0 ? proceduresArr : Prisma.JsonNull,
     icdCode:          diagnosesArr[0]?.sub ?? null,
     teamNotes:        preop.teamNotes ?? null,
     aiOptIn:          preop.aiOptIn   ?? false,
@@ -84,10 +85,27 @@ export function mapPreop(preop: any) {
 
     asaScore:         preop.asaScore        ?? null,
     emergencySurgery: preop.emergencySurgery ?? false,
+    highRiskSurgery:  preop.highRiskSurgery  ?? false,
+
+    rcriIschemicHeart:  preop.rcriIschemicHeart  ?? false,
+    rcriCHF:            preop.rcriCHF            ?? false,
+    rcriCVD:            preop.rcriCVD            ?? false,
+    rcriInsulinDM:      preop.rcriInsulinDM      ?? false,
+    rcriCreatinine:     preop.rcriCreatinine     ?? false,
+
     rcriScore:    toIntOrNull(preop.rcriScore),
     gutaScore:    toFloatOrNull(preop.gutaScore),
     apfelScore:   toIntOrNull(preop.apfelScore),
     stopBangScore: toIntOrNull(preop.stopBangScore),
+
+    apfelPONVHistory:   preop.apfelPONVHistory   ?? false,
+    apfelPostopOpioids: preop.apfelPostopOpioids ?? false,
+
+    stopbangSnoring:  preop.stopbangSnoring  ?? false,
+    stopbangTired:    preop.stopbangTired    ?? false,
+    stopbangObserved: preop.stopbangObserved ?? false,
+    stopbangBP:       preop.stopbangBP       ?? false,
+    stopbangNeck:     preop.stopbangNeck     ?? false,
 
     labResults: preop.labResults ?? [],
   }
@@ -127,6 +145,64 @@ function toFloatOrNull(v: any): number | null {
   if (v == null || v === "") return null
   const n = parseFloat(String(v))
   return isNaN(n) ? null : n
+}
+
+// For UPDATE operations: only include fields that were explicitly present in the payload.
+// Using mapIntraop for updates fills in ?? defaults for every missing field, silently
+// overwriting existing DB data with zeros/empty arrays on every partial save.
+export function mapIntraopUpdate(intraop: any) {
+  const full = mapIntraop(intraop)
+  const r: Partial<typeof full> = {}
+  const has = (k: string) => k in intraop
+
+  // Timing — only update when the relevant field was provided
+  if (has("monthYear"))       r.monthYear       = full.monthYear
+  if (has("startTime") || has("endTime") || has("endTimeNextDay")) {
+    // Only write startTime when it is a real HH:MM — never overwrite with the sentinel 00:00 default
+    if (has("startTime") && HHMMRE.test(intraop.startTime ?? "")) r.startTime = full.startTime
+    if (has("endTime"))       r.endTime         = full.endTime
+                              r.durationMinutes = full.durationMinutes
+  }
+
+  // Direct scalar fields
+  const DIRECT = [
+    "positions","techniques",
+    "tubeSize","cuffed","peepCmH2O","airwayNotes","cormackLehane",
+    "dltType","dltSide","dltSize","endobronchialSize",
+    "volatileAgent","n2oPercent","o2Percent","n2oLitersPerMin","o2LitersPerMin",
+    "fgfLitersPerMin","carrierGas","fio2Percent",
+    "plexusBlock","cvkSite","arterialLineSite",
+    "ecg","urinaryCatheter","stomachTube","spO2Monitor","invasiveBP","cvpMonitor",
+    "bglMonitor","bloodGasMonitor","neuroMonitor","nbpMonitor","etco2Monitor",
+    "tempMonitor","paCatheter","tee","bis","entropyMonitor","nirsMonitor",
+    "evokedPotentials","tofMonitor",
+    "vascularAccesses","premedicationEvening","premedicationMorning","drugsAdministered",
+    "crystalloidsMl","colloidsMl","bloodMl","bloodProductsNote","urineMl","complications",
+  ] as const
+  for (const k of DIRECT) {
+    if (has(k)) (r as any)[k] = (full as any)[k]
+  }
+
+  // Aliased source keys
+  if (has("vitals"))       r.timeSeriesData = full.timeSeriesData
+  if (has("timetableData")) r.keyEvents      = full.keyEvents
+
+  // Computed from compound sources
+  if (has("airwayTools") || has("fob")) r.airwayTools = full.airwayTools
+  if (has("airwayDevices") || has("airwayDevice")) {
+    r.airwayDevices = full.airwayDevices
+    r.airwayDevice  = full.airwayDevice
+  }
+  if (has("ventilationModes")) {
+    r.ventilationModes = full.ventilationModes
+    r.ippv             = full.ippv
+    r.jetVentilation   = full.jetVentilation
+  } else {
+    if (has("ippv"))           r.ippv           = full.ippv
+    if (has("jetVentilation")) r.jetVentilation = full.jetVentilation
+  }
+
+  return r
 }
 
 export function mapIntraop(intraop: any) {
@@ -192,6 +268,9 @@ export function mapIntraop(intraop: any) {
     o2Percent:       intraop.o2Percent       ?? null,
     n2oLitersPerMin: intraop.n2oLitersPerMin ?? null,
     o2LitersPerMin:  intraop.o2LitersPerMin  ?? null,
+    fgfLitersPerMin: toFloatOrNull(intraop.fgfLitersPerMin),
+    carrierGas:      intraop.carrierGas === "air" || intraop.carrierGas === "n2o" ? intraop.carrierGas : null,
+    fio2Percent:     toFloatOrNull(intraop.fio2Percent),
     plexusBlock:     safeEnum(intraop.plexusBlock, ["AXILLARY","INTERSCALENE","SUPRACLAVICULAR","INFRACLAVICULAR","FEMORAL","SCIATIC","POPLITEAL","TAP","ERECTOR_SPINAE"] as const),
     cvkSite:         safeEnum(intraop.cvkSite, ["INTERNAL_JUGULAR","EXTERNAL_JUGULAR","SUBCLAVIAN","FEMORAL"] as const),
     arterialLineSite:safeEnum(intraop.arterialLineSite, ["RADIAL","DORSALIS_PEDIS","FEMORAL","BRACHIAL"] as const),
@@ -229,6 +308,88 @@ export function mapIntraop(intraop: any) {
   }
 }
 
+// For UPDATE operations: only include fields explicitly present (and not undefined)
+// in the payload. Using mapPreop for updates fills in ?? null / ?? false defaults
+// for every missing field, silently wiping existing preop data on any partial or
+// stale save (e.g. a replayed offline snapshot). Mirrors mapIntraopUpdate.
+export function mapPreopUpdate(preop: any) {
+  const full = mapPreop(preop)
+  const r: Partial<typeof full> = {}
+  // "Present" means the key exists AND is not undefined. Form snapshots send
+  // undefined for unfilled optional fields, so undefined keys must be skipped.
+  const has = (k: string) => k in preop && preop[k] !== undefined
+
+  // Direct fields: source key name === output key name
+  const DIRECT = [
+    "ageYears", "sex", "heightCm", "weightKg", "bloodType", "rhFactor",
+    "teamNotes", "aiOptIn", "comorbidities",
+    "allergies", "allergyDetails", "latexAllergy", "currentMedications",
+    "dentalProsthetics", "looseTeeth", "smoking", "substanceAbuse",
+    "bpSystolic", "bpDiastolic", "heartRate", "heartArrhythmia", "spO2", "temperature", "respiratoryRate",
+    "mallampati", "mouthOpeningCm", "thyromental", "neckMobility",
+    "retrognathia", "prominentIncisors", "facialHair", "difficultAirwayNotes", "cormackLehane",
+    "asaScore", "emergencySurgery", "highRiskSurgery",
+    "rcriIschemicHeart", "rcriCHF", "rcriCVD", "rcriInsulinDM", "rcriCreatinine",
+    "rcriScore", "gutaScore", "apfelScore", "stopBangScore",
+    "apfelPONVHistory", "apfelPostopOpioids",
+    "stopbangSnoring", "stopbangTired", "stopbangObserved", "stopbangBP", "stopbangNeck",
+    "labResults",
+  ] as const
+  for (const k of DIRECT) {
+    if (has(k)) (r as any)[k] = (full as any)[k]
+  }
+
+  // Computed / aliased fields — include when any contributing source key is present
+  if (has("heightCm") || has("weightKg") || has("bmi")) r.bmi = full.bmi
+  if (has("diagnoses")) {
+    r.diagnosis      = full.diagnosis
+    r.diagnosesJson  = full.diagnosesJson
+    r.icdCode        = full.icdCode
+  }
+  if (has("procedures")) {
+    r.plannedProcedure = full.plannedProcedure
+    r.proceduresJson   = full.proceduresJson
+  }
+  if (has("familyAnesthesiaProblems") || has("familyProblems"))      r.familyAnesthesiaProblems = full.familyAnesthesiaProblems
+  if (has("familyAnesthesiaDetails")  || has("familyProblemNotes"))  r.familyAnesthesiaDetails  = full.familyAnesthesiaDetails
+  if (has("upperLipBiteTest") || has("ulbt"))                        r.upperLipBiteTest         = full.upperLipBiteTest
+  if (has("difficultAirwayHistory") || has("difficultAirway"))       r.difficultAirwayHistory   = full.difficultAirwayHistory
+
+  return r
+}
+
+// For UPDATE operations: same partial-update semantics as mapPreopUpdate.
+export function mapPostopUpdate(postop: any) {
+  const full = mapPostop(postop)
+  const r: Partial<typeof full> = {}
+  const has = (k: string) => k in postop && postop[k] !== undefined
+
+  const DIRECT = [
+    "recoveryBpSystolic", "recoveryBpDiastolic", "recoveryHeartRate", "recoverySpO2",
+    "painScoreNRS", "ponv", "complications", "handoverItems", "disposition", "dispositionNotes",
+  ] as const
+  for (const k of DIRECT) {
+    if (has(k)) (r as any)[k] = (full as any)[k]
+  }
+
+  // Aldrete subscores + total — recompute the total whenever any subscore is present
+  const aldreteKeys = ["aldreteActivity", "aldreteRespiration", "aldreteCirculation",
+    "aldreteConsciousness", "aldreteSpO2", "activityScore", "respirationScore",
+    "circulationScore", "consciousnessScore", "spO2Score"]
+  if (aldreteKeys.some(has) || has("aldreteTotal")) {
+    if (has("aldreteActivity") || has("activityScore"))           r.aldreteActivity      = full.aldreteActivity
+    if (has("aldreteRespiration") || has("respirationScore"))     r.aldreteRespiration   = full.aldreteRespiration
+    if (has("aldreteCirculation") || has("circulationScore"))     r.aldreteCirculation   = full.aldreteCirculation
+    if (has("aldreteConsciousness") || has("consciousnessScore")) r.aldreteConsciousness = full.aldreteConsciousness
+    if (has("aldreteSpO2") || has("spO2Score"))                   r.aldreteSpO2          = full.aldreteSpO2
+    r.aldreteTotal = full.aldreteTotal
+  }
+
+  if (has("temperatureCelsius") || has("temperaturePostop")) r.temperatureCelsius = full.temperatureCelsius
+
+  return r
+}
+
 export function mapPostop(postop: any) {
   const aldreteActivity = postop.aldreteActivity ?? postop.activityScore
   const aldreteRespiration = postop.aldreteRespiration ?? postop.respirationScore
@@ -250,10 +411,13 @@ export function mapPostop(postop: any) {
     aldreteConsciousness: toIntOrNull(aldreteConsciousness),
     aldreteSpO2:          toIntOrNull(aldreteSpO2),
     aldreteTotal,
+    recoveryBpSystolic:  toIntOrNull(postop.recoveryBpSystolic),
+    recoveryBpDiastolic: toIntOrNull(postop.recoveryBpDiastolic),
+    recoveryHeartRate:   toIntOrNull(postop.recoveryHeartRate),
+    recoverySpO2:        toFloatOrNull(postop.recoverySpO2),
     painScoreNRS:       toIntOrNull(postop.painScoreNRS),
     ponv:               postop.ponv               ?? false,
     temperatureCelsius: toFloatOrNull(postop.temperatureCelsius ?? postop.temperaturePostop),
-    timeInRecoveryMin:  toIntOrNull(postop.timeInRecoveryMin ?? postop.timeInPacuMin),
     complications:      postop.complications      ?? null,
     handoverItems:      postop.handoverItems      ?? [],
     disposition:        postop.disposition        ?? null,

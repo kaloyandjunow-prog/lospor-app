@@ -59,6 +59,7 @@ export const ModelName = {
   RoleRequest: 'RoleRequest',
   Icd10BgCode: 'Icd10BgCode',
   Icd11Code: 'Icd11Code',
+  Icd11Alias: 'Icd11Alias',
   RevokedToken: 'RevokedToken',
   AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
@@ -181,6 +182,16 @@ export const Icd11CodeScalarFieldEnum = {
 export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
 
 
+export const Icd11AliasScalarFieldEnum = {
+  id: 'id',
+  bgTerm: 'bgTerm',
+  enTerm: 'enTerm',
+  createdAt: 'createdAt'
+} as const
+
+export type Icd11AliasScalarFieldEnum = (typeof Icd11AliasScalarFieldEnum)[keyof typeof Icd11AliasScalarFieldEnum]
+
+
 export const RevokedTokenScalarFieldEnum = {
   jti: 'jti',
   revokedAt: 'revokedAt',
@@ -261,10 +272,23 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   cormackLehane: 'cormackLehane',
   asaScore: 'asaScore',
   emergencySurgery: 'emergencySurgery',
+  highRiskSurgery: 'highRiskSurgery',
+  rcriIschemicHeart: 'rcriIschemicHeart',
+  rcriCHF: 'rcriCHF',
+  rcriCVD: 'rcriCVD',
+  rcriInsulinDM: 'rcriInsulinDM',
+  rcriCreatinine: 'rcriCreatinine',
   rcriScore: 'rcriScore',
   gutaScore: 'gutaScore',
   apfelScore: 'apfelScore',
   stopBangScore: 'stopBangScore',
+  apfelPONVHistory: 'apfelPONVHistory',
+  apfelPostopOpioids: 'apfelPostopOpioids',
+  stopbangSnoring: 'stopbangSnoring',
+  stopbangTired: 'stopbangTired',
+  stopbangObserved: 'stopbangObserved',
+  stopbangBP: 'stopbangBP',
+  stopbangNeck: 'stopbangNeck',
   labResults: 'labResults',
   aiOptIn: 'aiOptIn',
   createdAt: 'createdAt',
@@ -304,6 +328,9 @@ export const IntraoperativeRecordScalarFieldEnum = {
   o2Percent: 'o2Percent',
   n2oLitersPerMin: 'n2oLitersPerMin',
   o2LitersPerMin: 'o2LitersPerMin',
+  fgfLitersPerMin: 'fgfLitersPerMin',
+  carrierGas: 'carrierGas',
+  fio2Percent: 'fio2Percent',
   plexusBlock: 'plexusBlock',
   cvkSite: 'cvkSite',
   arterialLineSite: 'arterialLineSite',
@@ -354,10 +381,13 @@ export const PostoperativeRecordScalarFieldEnum = {
   aldreteConsciousness: 'aldreteConsciousness',
   aldreteSpO2: 'aldreteSpO2',
   aldreteTotal: 'aldreteTotal',
+  recoveryBpSystolic: 'recoveryBpSystolic',
+  recoveryBpDiastolic: 'recoveryBpDiastolic',
+  recoveryHeartRate: 'recoveryHeartRate',
+  recoverySpO2: 'recoverySpO2',
   painScoreNRS: 'painScoreNRS',
   ponv: 'ponv',
   temperatureCelsius: 'temperatureCelsius',
-  timeInRecoveryMin: 'timeInRecoveryMin',
   complications: 'complications',
   disposition: 'disposition',
   dispositionNotes: 'dispositionNotes',

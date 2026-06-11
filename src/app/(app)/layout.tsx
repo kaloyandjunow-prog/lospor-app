@@ -26,10 +26,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <TourManager>
     <div className="min-h-screen flex flex-col bg-[#f0f0ef] dark:bg-[#111111]">
       <header className="no-print bg-white dark:bg-[#1c1c1c] border-b border-slate-200 dark:border-[#2e2e2e] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-40 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center gap-2">
+          <Link href="/dashboard" className="flex shrink-0 items-center" aria-label="LOSPOR dashboard">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="LOSPOR" className="h-36 w-auto" />
+            <img src="/brand/lospor-horizontal-light.svg" alt="LOSPOR" className="h-12 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/lospor-horizontal-dark.svg" alt="LOSPOR" className="hidden h-12 w-auto dark:block" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -53,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3">
             <TourButton />
             <span data-tour="settings-menu">
               <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={(session.user as any).role} lastLoginAt={(session.user as any).lastLoginAt} />
@@ -105,4 +107,3 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     </TourManager>
   )
 }
-

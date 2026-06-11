@@ -36,6 +36,8 @@ export type IntraoperativeRecordAvgAggregateOutputType = {
   o2Percent: number | null
   n2oLitersPerMin: number | null
   o2LitersPerMin: number | null
+  fgfLitersPerMin: number | null
+  fio2Percent: number | null
   crystalloidsMl: number | null
   colloidsMl: number | null
   bloodMl: number | null
@@ -52,6 +54,8 @@ export type IntraoperativeRecordSumAggregateOutputType = {
   o2Percent: number | null
   n2oLitersPerMin: number | null
   o2LitersPerMin: number | null
+  fgfLitersPerMin: number | null
+  fio2Percent: number | null
   crystalloidsMl: number | null
   colloidsMl: number | null
   bloodMl: number | null
@@ -83,6 +87,9 @@ export type IntraoperativeRecordMinAggregateOutputType = {
   o2Percent: number | null
   n2oLitersPerMin: number | null
   o2LitersPerMin: number | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -142,6 +149,9 @@ export type IntraoperativeRecordMaxAggregateOutputType = {
   o2Percent: number | null
   n2oLitersPerMin: number | null
   o2LitersPerMin: number | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -206,6 +216,9 @@ export type IntraoperativeRecordCountAggregateOutputType = {
   o2Percent: number
   n2oLitersPerMin: number
   o2LitersPerMin: number
+  fgfLitersPerMin: number
+  carrierGas: number
+  fio2Percent: number
   plexusBlock: number
   cvkSite: number
   arterialLineSite: number
@@ -256,6 +269,8 @@ export type IntraoperativeRecordAvgAggregateInputType = {
   o2Percent?: true
   n2oLitersPerMin?: true
   o2LitersPerMin?: true
+  fgfLitersPerMin?: true
+  fio2Percent?: true
   crystalloidsMl?: true
   colloidsMl?: true
   bloodMl?: true
@@ -272,6 +287,8 @@ export type IntraoperativeRecordSumAggregateInputType = {
   o2Percent?: true
   n2oLitersPerMin?: true
   o2LitersPerMin?: true
+  fgfLitersPerMin?: true
+  fio2Percent?: true
   crystalloidsMl?: true
   colloidsMl?: true
   bloodMl?: true
@@ -303,6 +320,9 @@ export type IntraoperativeRecordMinAggregateInputType = {
   o2Percent?: true
   n2oLitersPerMin?: true
   o2LitersPerMin?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -362,6 +382,9 @@ export type IntraoperativeRecordMaxAggregateInputType = {
   o2Percent?: true
   n2oLitersPerMin?: true
   o2LitersPerMin?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -426,6 +449,9 @@ export type IntraoperativeRecordCountAggregateInputType = {
   o2Percent?: true
   n2oLitersPerMin?: true
   o2LitersPerMin?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -581,6 +607,9 @@ export type IntraoperativeRecordGroupByOutputType = {
   o2Percent: number | null
   n2oLitersPerMin: number | null
   o2LitersPerMin: number | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -672,6 +701,9 @@ export type IntraoperativeRecordWhereInput = {
   o2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   n2oLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   o2LitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  fgfLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  carrierGas?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
+  fio2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -741,6 +773,9 @@ export type IntraoperativeRecordOrderByWithRelationInput = {
   o2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   plexusBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   cvkSite?: Prisma.SortOrderInput | Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -813,6 +848,9 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   o2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   n2oLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   o2LitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  fgfLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  carrierGas?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
+  fio2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -882,6 +920,9 @@ export type IntraoperativeRecordOrderByWithAggregationInput = {
   o2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   plexusBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   cvkSite?: Prisma.SortOrderInput | Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -958,6 +999,9 @@ export type IntraoperativeRecordScalarWhereWithAggregatesInput = {
   o2Percent?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   n2oLitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   o2LitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
+  fgfLitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
+  carrierGas?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
+  fio2Percent?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -1025,6 +1069,9 @@ export type IntraoperativeRecordCreateInput = {
   o2Percent?: number | null
   n2oLitersPerMin?: number | null
   o2LitersPerMin?: number | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1094,6 +1141,9 @@ export type IntraoperativeRecordUncheckedCreateInput = {
   o2Percent?: number | null
   n2oLitersPerMin?: number | null
   o2LitersPerMin?: number | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1161,6 +1211,9 @@ export type IntraoperativeRecordUpdateInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1230,6 +1283,9 @@ export type IntraoperativeRecordUncheckedUpdateInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1298,6 +1354,9 @@ export type IntraoperativeRecordCreateManyInput = {
   o2Percent?: number | null
   n2oLitersPerMin?: number | null
   o2LitersPerMin?: number | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1365,6 +1424,9 @@ export type IntraoperativeRecordUpdateManyMutationInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1433,6 +1495,9 @@ export type IntraoperativeRecordUncheckedUpdateManyInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1506,6 +1571,9 @@ export type IntraoperativeRecordCountOrderByAggregateInput = {
   o2Percent?: Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1554,6 +1622,8 @@ export type IntraoperativeRecordAvgOrderByAggregateInput = {
   o2Percent?: Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
   crystalloidsMl?: Prisma.SortOrder
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
@@ -1585,6 +1655,9 @@ export type IntraoperativeRecordMaxOrderByAggregateInput = {
   o2Percent?: Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1644,6 +1717,9 @@ export type IntraoperativeRecordMinOrderByAggregateInput = {
   o2Percent?: Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1688,6 +1764,8 @@ export type IntraoperativeRecordSumOrderByAggregateInput = {
   o2Percent?: Prisma.SortOrder
   n2oLitersPerMin?: Prisma.SortOrder
   o2LitersPerMin?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
   crystalloidsMl?: Prisma.SortOrder
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
@@ -1779,6 +1857,9 @@ export type IntraoperativeRecordCreateWithoutCaseInput = {
   o2Percent?: number | null
   n2oLitersPerMin?: number | null
   o2LitersPerMin?: number | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1846,6 +1927,9 @@ export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
   o2Percent?: number | null
   n2oLitersPerMin?: number | null
   o2LitersPerMin?: number | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1929,6 +2013,9 @@ export type IntraoperativeRecordUpdateWithoutCaseInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1996,6 +2083,9 @@ export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
   o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -2066,6 +2156,9 @@ export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.
   o2Percent?: boolean
   n2oLitersPerMin?: boolean
   o2LitersPerMin?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2135,6 +2228,9 @@ export type IntraoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtim
   o2Percent?: boolean
   n2oLitersPerMin?: boolean
   o2LitersPerMin?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2204,6 +2300,9 @@ export type IntraoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtim
   o2Percent?: boolean
   n2oLitersPerMin?: boolean
   o2LitersPerMin?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2273,6 +2372,9 @@ export type IntraoperativeRecordSelectScalar = {
   o2Percent?: boolean
   n2oLitersPerMin?: boolean
   o2LitersPerMin?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2311,7 +2413,7 @@ export type IntraoperativeRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "n2oPercent" | "o2Percent" | "n2oLitersPerMin" | "o2LitersPerMin" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
+export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "n2oPercent" | "o2Percent" | "n2oLitersPerMin" | "o2LitersPerMin" | "fgfLitersPerMin" | "carrierGas" | "fio2Percent" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
 export type IntraoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -2357,6 +2459,9 @@ export type $IntraoperativeRecordPayload<ExtArgs extends runtime.Types.Extension
     o2Percent: number | null
     n2oLitersPerMin: number | null
     o2LitersPerMin: number | null
+    fgfLitersPerMin: number | null
+    carrierGas: string | null
+    fio2Percent: number | null
     plexusBlock: $Enums.PlexusBlock | null
     cvkSite: $Enums.CVKSite | null
     arterialLineSite: $Enums.ArterialLineSite | null
@@ -2846,6 +2951,9 @@ export interface IntraoperativeRecordFieldRefs {
   readonly o2Percent: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly n2oLitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly o2LitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
+  readonly fgfLitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
+  readonly carrierGas: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
+  readonly fio2Percent: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly plexusBlock: Prisma.FieldRef<"IntraoperativeRecord", 'PlexusBlock'>
   readonly cvkSite: Prisma.FieldRef<"IntraoperativeRecord", 'CVKSite'>
   readonly arterialLineSite: Prisma.FieldRef<"IntraoperativeRecord", 'ArterialLineSite'>

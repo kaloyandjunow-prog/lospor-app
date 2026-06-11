@@ -5,6 +5,17 @@ import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { signMobileToken } from "@/lib/mobile-auth"
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 const schema = z.object({
   email:    z.string().email(),
   password: z.string().min(1),

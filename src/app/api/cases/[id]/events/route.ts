@@ -37,6 +37,7 @@ function projectTimetable(log: LogEvent[], start: Date) {
   const infusions: any[] = []
   const fluids: any[] = []
   const agents: any[] = []
+  const clinicalEvents: any[] = []
   const activeInf: Record<string, { startCol: number; ev: LogEvent }> = {}
   const activeFluid: Record<string, { startCol: number; ev: LogEvent }> = {}
   let activeAgent: { name: string; color: string; startCol: number } | null = null
@@ -87,10 +88,12 @@ function projectTimetable(log: LogEvent[], start: Date) {
     } else if (ev.type === "agent_stop" && activeAgent) {
       agents.push({ name: activeAgent.name, color: activeAgent.color, startCol: activeAgent.startCol, endCol: col })
       activeAgent = null
+    } else if ((ev.type === "clinical_event" || ev.type === "event") && (ev as any).label) {
+      clinicalEvents.push({ colIdx: col, label: (ev as any).label, color: ev.color ?? "#64748b" })
     }
   }
 
-  const openEnd = maxCol + 12
+  const openEnd = maxCol + 1
   for (const [id, { startCol, ev }] of Object.entries(activeInf)) {
     infusions.push({ id, name: ev.name, rate: ev.rate, unit: ev.unit, color: ev.color, startCol, endCol: openEnd })
   }
@@ -101,7 +104,7 @@ function projectTimetable(log: LogEvent[], start: Date) {
     agents.push({ name: activeAgent.name, color: activeAgent.color, startCol: activeAgent.startCol, endCol: openEnd })
   }
 
-  return { vitals, drugs, infusions, fluids, agents }
+  return { vitals, drugs, infusions, fluids, agents, clinicalEvents }
 }
 
 async function authorize(req: NextRequest, id: string) {
@@ -139,13 +142,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const keyEvents = (existing.intraop?.keyEvents as any) ?? {}
   const log: any[] = Array.isArray(keyEvents.log) ? keyEvents.log : []
   log.push(event)
-  const startTime = existing.intraop?.startTime ?? (event.ts ? new Date(event.ts) : new Date())
-  const projected = projectTimetable(log, startTime)
+  // Always derive chartStart from first real event timestamp — intraop.startTime is
+  // reference-date-encoded (2000-01-01T<HH:MM>Z) and must not be used as a datetime anchor.
+  const sorted = [...log].sort((a: any, b: any) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
+  const chartStart = sorted[0]?.ts ? new Date(sorted[0].ts) : new Date()
+  const projected = projectTimetable(log, chartStart)
 
   await prisma.intraoperativeRecord.upsert({
     where:  { caseId: id },
     update: { keyEvents: { ...keyEvents, ...projected, log } },
-    create: { caseId: id, startTime, keyEvents: { ...projected, log: [event] } },
+    create: { caseId: id, startTime: new Date(`2000-01-01T00:00:00.000Z`), keyEvents: { ...projected, log: [event] } },
   })
 
   if (existing.status === "DRAFT") {
@@ -167,8 +173,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!Array.isArray(log)) return NextResponse.json({ error: "log must be array" }, { status: 400 })
 
   const keyEvents = (existing.intraop?.keyEvents as any) ?? {}
-  const startTime = existing.intraop?.startTime ?? (log[0]?.ts ? new Date(log[0].ts) : new Date())
-  const projected = projectTimetable(log, startTime)
+  // Always derive chartStart from first real event timestamp — intraop.startTime is
+  // reference-date-encoded (2000-01-01T<HH:MM>Z) and must not be used as a datetime anchor.
+  const sortedLog = [...log].sort((a: any, b: any) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
+  const chartStart = sortedLog[0]?.ts ? new Date(sortedLog[0].ts) : new Date()
+  const projected = projectTimetable(log, chartStart)
 
   await prisma.intraoperativeRecord.update({
     where: { caseId: id },

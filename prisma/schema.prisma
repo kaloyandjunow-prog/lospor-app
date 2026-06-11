@@ -67,6 +67,9 @@ model Case {
   postop        PostoperativeRecord?
   transfers     CaseTransfer[]
   lock          CaseLock?
+
+  @@index([status])
+  @@index([userId, createdAt])
 }
 
 model CaseLock {
@@ -76,6 +79,8 @@ model CaseLock {
   expiresAt DateTime
 
   case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model CaseTransfer {
@@ -90,6 +95,9 @@ model CaseTransfer {
   status      TransferStatus @default(PENDING)
   createdAt   DateTime       @default(now())
   resolvedAt  DateTime?
+
+  @@index([status])
+  @@index([toUserId, status])
 }
 
 enum TransferStatus {
@@ -133,6 +141,13 @@ model Icd11Code {
   labelBg String?       // Bulgarian (null until first BG search for this code)
 }
 
+model Icd11Alias {
+  id        String   @id @default(cuid())
+  bgTerm    String   @unique               // Cyrillic search term as entered
+  enTerm    String                         // Translated English equivalent
+  createdAt DateTime @default(now())
+}
+
 model RevokedToken {
   jti       String   @id
   revokedAt DateTime @default(now())
@@ -148,6 +163,9 @@ model AuditLog {
   entityId  String
   detail    Json?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model CustomTerm {
@@ -218,10 +236,31 @@ model PreoperativeAssessment {
 
   asaScore         ASAScore?
   emergencySurgery Boolean @default(false)
-  rcriScore   Int?
-  gutaScore   Float?
-  apfelScore  Int?
+  highRiskSurgery  Boolean @default(false)
+
+  // Individual RCRI inputs — stored so the form can be restored accurately
+  rcriIschemicHeart  Boolean @default(false)
+  rcriCHF            Boolean @default(false)
+  rcriCVD            Boolean @default(false)
+  rcriInsulinDM      Boolean @default(false)
+  rcriCreatinine     Boolean @default(false)
+
+  // Computed risk scores
+  rcriScore     Int?
+  gutaScore     Float?
+  apfelScore    Int?
   stopBangScore Int?
+
+  // Individual Apfel inputs
+  apfelPONVHistory   Boolean @default(false)
+  apfelPostopOpioids Boolean @default(false)
+
+  // Individual STOP-BANG inputs
+  stopbangSnoring  Boolean @default(false)
+  stopbangTired    Boolean @default(false)
+  stopbangObserved Boolean @default(false)
+  stopbangBP       Boolean @default(false)
+  stopbangNeck     Boolean @default(false)
 
   labResults Json @default("[]")
 
@@ -268,6 +307,9 @@ model IntraoperativeRecord {
   o2Percent         Float?
   n2oLitersPerMin   Float?
   o2LitersPerMin    Float?
+  fgfLitersPerMin   Float?   // Fresh gas flow total (L/min)
+  carrierGas        String?  // "air" | "n2o" | null (O2-only)
+  fio2Percent       Float?   // FiO₂ %
 
   plexusBlock      PlexusBlock?
   cvkSite          CVKSite?
@@ -329,10 +371,13 @@ model PostoperativeRecord {
   aldreteSpO2           Int?
   aldreteTotal          Int?
 
-  painScoreNRS       Int?
-  ponv               Boolean @default(false)
-  temperatureCelsius Float?
-  timeInRecoveryMin  Int?
+  recoveryBpSystolic  Int?
+  recoveryBpDiastolic Int?
+  recoveryHeartRate   Int?
+  recoverySpO2        Float?
+  painScoreNRS        Int?
+  ponv                Boolean @default(false)
+  temperatureCelsius  Float?
 
   complications    String?
   disposition      Disposition?

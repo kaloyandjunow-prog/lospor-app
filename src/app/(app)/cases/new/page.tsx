@@ -45,6 +45,17 @@ export default function NewCasePage() {
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [eventLog, setEventLog] = useState<any[]>([])
+
+  async function handleDeleteEvent(evId: string) {
+    if (!caseId) return
+    const newLog = eventLog.filter(e => e.id !== evId)
+    setEventLog(newLog)
+    await fetch(`/api/cases/${caseId}/events`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ log: newLog }),
+    })
+  }
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
   const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("scroll")
@@ -106,7 +117,13 @@ export default function NewCasePage() {
     if (!continueId) return
     setLoading(true)
     fetch(`/api/cases/${continueId}`)
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}))
+          throw Object.assign(new Error(body.error ?? `Request failed (${r.status})`), { status: r.status })
+        }
+        return r.json()
+      })
       .then(record => {
         if (record.status === "COMPLETE") {
           toast(t("case.caseFinalisedRedirect"))
@@ -144,7 +161,16 @@ export default function NewCasePage() {
           startCloseCountdown()
         }
       })
-      .catch(() => {})
+      .catch((error: Error & { status?: number }) => {
+        caseIdRef.current = null
+        setCaseId(null)
+        if (error.status === 404) {
+          toast.error("This draft no longer exists.")
+          router.replace("/dashboard")
+          return
+        }
+        toast.error(error.message || t("case.saveFailed"))
+      })
       .finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -176,8 +202,14 @@ export default function NewCasePage() {
   // Only map fields that exist in the PreopForm schema — strip all DB-only fields
   // (id, caseId, bmi, rcriScore, gutaScore, apfelScore, stopBangScore, createdAt, etc.)
   function dbPreopToForm(p: any): Partial<PreopData> {
+    // Comma-joined fields (allergyDetails, currentMedications)
     const toTags = (str: string | null | undefined) =>
-      str ? str.split(/[;,]/).map(s => s.trim()).filter(Boolean).map(label => ({ label })) : []
+      str ? str.split(",").map(s => s.trim()).filter(Boolean).map(label => ({ label })) : []
+    // Semicolon-joined fields — diagnoses/procedure names can contain commas
+    const toTagsSemi = (json: any, str: string | null | undefined) => {
+      if (Array.isArray(json) && json.length > 0) return json as { label: string; sub?: string }[]
+      return str ? str.split(";").map(s => s.trim()).filter(Boolean).map(label => ({ label })) : []
+    }
 
     return {
       // Demographics
@@ -188,9 +220,9 @@ export default function NewCasePage() {
       bloodType: p.bloodType ?? undefined,
       rhFactor:  p.rhFactor  ?? undefined,
 
-      // Case — DB stores joined strings, form expects Tag arrays
-      diagnoses:          toTags(p.diagnosis),
-      procedures:         toTags(p.plannedProcedure),
+      // Case — prefer JSON arrays; fall back to semicolon-split string (never comma-split)
+      diagnoses:          toTagsSemi(p.diagnosesJson, p.diagnosis),
+      procedures:         toTagsSemi(p.proceduresJson, p.plannedProcedure),
       teamNotes:            p.teamNotes            ?? undefined,
       highRiskSurgery:      p.highRiskSurgery      ?? false,
       emergencySurgery:     p.emergencySurgery      ?? false,
@@ -260,7 +292,10 @@ export default function NewCasePage() {
       painScoreNRS:         o.painScoreNRS         ?? undefined,
       ponv:                 o.ponv                 ?? false,
       temperatureCelsius:   o.temperatureCelsius   ?? undefined,
-      timeInRecoveryMin:    o.timeInRecoveryMin    ?? undefined,
+      recoveryBpSystolic:   o.recoveryBpSystolic   ?? undefined,
+      recoveryBpDiastolic:  o.recoveryBpDiastolic  ?? undefined,
+      recoveryHeartRate:    o.recoveryHeartRate    ?? undefined,
+      recoverySpO2:         o.recoverySpO2         ?? undefined,
       disposition:          o.disposition          ?? undefined,
       dispositionNotes:     o.dispositionNotes     ?? undefined,
       handoverItems:        Array.isArray(o.handoverItems) ? o.handoverItems : [],
@@ -300,10 +335,11 @@ export default function NewCasePage() {
           body: JSON.stringify({ preop: { ...data, bmi } }),
         })
         if (!res.ok) throw new Error()
-        const { id, caseCode: code } = await res.json()
+        const { id, caseCode: code, preopUpdatedAt } = await res.json()
         caseIdRef.current = id
         setCaseId(id)
         if (code) setCaseCode(code)
+        if (preopUpdatedAt) preopUpdatedAtRef.current = new Date(preopUpdatedAt).toISOString()
         // Update URL so page refresh restores the correct step
         router.replace(`/cases/new?continue=${id}`, { scroll: false })
       } else {
@@ -340,17 +376,38 @@ export default function NewCasePage() {
           // Unknown 409 — treat as error
           throw new Error("Save conflict — please reload and try again.")
         }
-        if (!res.ok) {
+        if (res.status === 404 && section === "preop") {
+          caseIdRef.current = null
+          setCaseId(null)
+          preopUpdatedAtRef.current = null
+          postopUpdatedAtRef.current = null
+          const createRes = await fetch("/api/cases", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ preop: payload }),
+          })
+          if (!createRes.ok) {
+            const body = await createRes.json().catch(() => ({}))
+            throw new Error(body.error ?? `Save failed (HTTP ${createRes.status})`)
+          }
+          const created = await createRes.json()
+          caseIdRef.current = created.id
+          setCaseId(created.id)
+          if (created.caseCode) setCaseCode(created.caseCode)
+          if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
+          router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
+        } else if (!res.ok) {
           const text = await res.text().catch(() => "")
           let body: any = {}
           try { body = JSON.parse(text) } catch {}
           console.error(`[saveSection] ${res.status} ${res.statusText}`, text.slice(0, 500))
           throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
+        } else {
+          // Track updated timestamps so future saves include correct conflict headers
+          const result = await res.json().catch(() => ({}))
+          if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
+          if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
         }
-        // Track updated timestamps so future saves include correct conflict headers
-        const result = await res.json().catch(() => ({}))
-        if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
-        if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
       }
 
       if (showToast) toast.success(
@@ -698,6 +755,7 @@ export default function NewCasePage() {
             onPostopContinued={items => setContinuedPostopItems(items)}
             layoutMode={layoutMode}
             eventLog={eventLog}
+            onDeleteEvent={handleDeleteEvent}
           />
         )}
         {!loading && step === 2 && (

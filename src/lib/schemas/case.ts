@@ -116,6 +116,9 @@ export const intraopSchema = z.object({
   o2Percent:       z.number().min(0).max(100).nullable().optional(),
   n2oLitersPerMin: z.number().min(0).max(20).nullable().optional(),
   o2LitersPerMin:  z.number().min(0).max(20).nullable().optional(),
+  fgfLitersPerMin: z.number().min(0).max(100).nullable().optional(),
+  carrierGas:      z.enum(["air", "n2o"]).nullable().optional(),
+  fio2Percent:     z.number().min(0).max(100).nullable().optional(),
 
   plexusBlock:      z.enum(["AXILLARY", "INTERSCALENE", "SUPRACLAVICULAR", "INFRACLAVICULAR", "FEMORAL", "SCIATIC", "POPLITEAL", "TAP", "ERECTOR_SPINAE"]).nullable().optional(),
   cvkSite:          z.enum(["INTERNAL_JUGULAR", "EXTERNAL_JUGULAR", "SUBCLAVIAN", "FEMORAL"]).nullable().optional(),
@@ -159,10 +162,13 @@ export const postopSchema = z.object({
   aldreteSpO2:          aldreteSubscore,
   aldreteTotal:         coerceInt,
 
+  recoveryBpSystolic:  coerceInt,
+  recoveryBpDiastolic: coerceInt,
+  recoveryHeartRate:   coerceInt,
+  recoverySpO2:        coerceNum,
   painScoreNRS:       coerceInt,
   ponv:               z.boolean().optional(),
   temperatureCelsius: coerceNum,
-  timeInRecoveryMin:  coerceInt,
 
   complications:    z.string().max(2000).nullable().optional(),
   disposition:      z.enum(["WARD", "PACU", "ICU"]).nullable().optional(),

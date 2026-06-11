@@ -3,13 +3,16 @@ import { RATE_LIMIT_WINDOW_MS } from "@/lib/constants"
 type Entry = { count: number; windowStart: number }
 const store = new Map<string, Entry>()
 
-// Purge windows that have already expired.  Called only when a new entry is
-// being created so we don't pay the scan cost on every request.
-function pruneExpired(windowMs: number): void {
+function pruneExpired(windowMs: number = RATE_LIMIT_WINDOW_MS): void {
   const now = Date.now()
   for (const [key, entry] of store.entries()) {
     if (now - entry.windowStart > windowMs) store.delete(key)
   }
+}
+
+// Periodic cleanup so entries from one-time IPs don't accumulate indefinitely
+if (typeof setInterval !== "undefined") {
+  setInterval(() => pruneExpired(), RATE_LIMIT_WINDOW_MS * 2).unref?.()
 }
 
 export function rateLimit(

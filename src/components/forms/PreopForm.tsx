@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { calcBMI, calcIBW, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
-import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd10-categories"
+import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd11-categories"
 import { ChevronRight, AlertCircle, Lightbulb, X } from "lucide-react"
 import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
@@ -235,52 +235,52 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     },
   })
 
-  const height = watch("heightCm"), weight = watch("weightKg"), sex = watch("sex")
-  const bmi  = height && weight ? calcBMI(Number(height), Number(weight)) : null
-  const ibw  = height && sex ? calcIBW(Number(height), sex) : null
-  const abw  = ibw && weight ? calcABW(ibw, Number(weight)) : null
-  const comorbidities    = watch("comorbidities") ?? []
-  const asaSuggestion    = suggestASAFromTags(comorbidities, bmi)
-  const smoking          = watch("smoking")
-  const highRiskSurgery  = watch("highRiskSurgery")
-  const ageYearsVal      = watch("ageYears")
-  const apfelPONVHistory  = watch("apfelPONVHistory")
-  const apfelPostopOpioids = watch("apfelPostopOpioids")
-  const stopbangSnoring  = watch("stopbangSnoring")
-  const stopbangTired    = watch("stopbangTired")
-  const stopbangObserved = watch("stopbangObserved")
-  const stopbangBP       = watch("stopbangBP")
-  const stopbangNeck     = watch("stopbangNeck")
-  const rcriIschemicHeart = watch("rcriIschemicHeart")
-  const rcriCHF          = watch("rcriCHF")
-  const rcriCVD          = watch("rcriCVD")
-  const rcriInsulinDM    = watch("rcriInsulinDM")
-  const rcriCreatinine   = watch("rcriCreatinine")
+  // ── Batched watch subscriptions (5 groups instead of 19 individual) ──────────
+  const [height, weight, sex, ageYearsVal, smoking, highRiskSurgery, emergencySurgery,
+         allergies, familyAnesthesiaProblems, difficultAirwayHistory, comorbidities] =
+    watch(["heightCm", "weightKg", "sex", "ageYears", "smoking", "highRiskSurgery", "emergencySurgery",
+           "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities"])
 
-  const apfelScore = calcApfel({
+  const [rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine] =
+    watch(["rcriIschemicHeart", "rcriCHF", "rcriCVD", "rcriInsulinDM", "rcriCreatinine"])
+
+  const [apfelPONVHistory, apfelPostopOpioids, stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, stopbangNeck] =
+    watch(["apfelPONVHistory", "apfelPostopOpioids", "stopbangSnoring", "stopbangTired", "stopbangObserved", "stopbangBP", "stopbangNeck"])
+
+  // ── Memoised score + BMI calculations ────────────────────────────────────────
+  const bmi  = useMemo(() => height && weight ? calcBMI(Number(height), Number(weight)) : null,
+    [height, weight])
+  const ibw  = useMemo(() => height && sex ? calcIBW(Number(height), sex) : null, [height, sex])
+  const abw  = useMemo(() => ibw && weight ? calcABW(ibw, Number(weight)) : null, [ibw, weight])
+  const asaSuggestion = useMemo(() => suggestASAFromTags(comorbidities ?? [], bmi), [comorbidities, bmi])
+
+  const apfelScore = useMemo(() => calcApfel({
     female:         sex === "FEMALE",
     nonSmoker:      !smoking,
     ponvHistory:    apfelPONVHistory  ?? false,
     opioidsPlanned: apfelPostopOpioids ?? false,
-  })
-  const stopBangScore = calcStopBang({
-    snoring:     stopbangSnoring  ?? false,
-    tired:       stopbangTired    ?? false,
-    observed:    stopbangObserved ?? false,
-    highBP:      stopbangBP       ?? false,
-    bmi:         bmi ?? 0,
-    ageOver50:   (ageYearsVal ?? 0) > 50,
-    neckOver40cm: stopbangNeck   ?? false,
-    male:        sex === "MALE",
-  })
-  const rcriScore = calcRCRI({
-    highRiskSurgery:         highRiskSurgery    ?? false,
-    ischaemicHeartDisease:   rcriIschemicHeart  ?? false,
-    congestiveHeartFailure:  rcriCHF            ?? false,
-    cerebrovascularDisease:  rcriCVD            ?? false,
+  }), [sex, smoking, apfelPONVHistory, apfelPostopOpioids])
+
+  const stopBangScore = useMemo(() => calcStopBang({
+    snoring:      stopbangSnoring  ?? false,
+    tired:        stopbangTired    ?? false,
+    observed:     stopbangObserved ?? false,
+    highBP:       stopbangBP       ?? false,
+    bmi:          bmi ?? 0,
+    ageOver50:    (ageYearsVal ?? 0) > 50,
+    neckOver40cm: stopbangNeck    ?? false,
+    male:         sex === "MALE",
+  }), [stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, bmi, ageYearsVal, stopbangNeck, sex])
+
+  const rcriScore = useMemo(() => calcRCRI({
+    highRiskSurgery:          highRiskSurgery   ?? false,
+    ischaemicHeartDisease:    rcriIschemicHeart ?? false,
+    congestiveHeartFailure:   rcriCHF           ?? false,
+    cerebrovascularDisease:   rcriCVD           ?? false,
     insulinDependentDiabetes: rcriInsulinDM     ?? false,
-    creatinineHigh:          rcriCreatinine     ?? false,
-  })
+    creatinineHigh:           rcriCreatinine    ?? false,
+  }), [highRiskSurgery, rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine])
+
   const [vitalsUTO, setVitalsUTO] = useState<Set<string>>(new Set())
   function toggleUTO(field: string, clearFn: () => void) {
     setVitalsUTO(prev => {
@@ -291,23 +291,20 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     })
   }
 
-  // Debounced auto-save — triggers 1.5 s after the last change
-  const allValues = watch()
+  // ── Debounced auto-save — subscription callback instead of JSON.stringify ────
   useEffect(() => {
     if (!onAutoSave) return
-    // Only start saving once at least one meaningful field has a value
-    const { patientFirstName, patientLastName, patientId, sex, ageYears, diagnoses } = allValues
-    const hasData = patientFirstName || patientLastName || patientId || sex || ageYears != null || (diagnoses?.length ?? 0) > 0
-    if (!hasData) return
-    const timer = setTimeout(() => onAutoSave(getValues()), 1500)
-    return () => clearTimeout(timer)
+    let timer: ReturnType<typeof setTimeout>
+    const subscription = watch((values) => {
+      const { sex, ageYears, diagnoses } = values as any
+      const hasData = sex || ageYears != null || (diagnoses?.length ?? 0) > 0
+      if (!hasData) return
+      clearTimeout(timer)
+      timer = setTimeout(() => onAutoSave(getValues()), 1500)
+    })
+    return () => { subscription.unsubscribe(); clearTimeout(timer) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(allValues)])
-
-  const allergies = watch("allergies")
-  const familyAnesthesiaProblems = watch("familyAnesthesiaProblems")
-  const difficultAirwayHistory = watch("difficultAirwayHistory")
-  const emergencySurgery = watch("emergencySurgery")
+  }, [watch, onAutoSave])
   const [airwayUTO, setAirwayUTO] = useState(false)
   const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">("patient")
 
@@ -537,7 +534,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                 <TagInput
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
-                  searchUrl={`/api/search/icd10?locale=${locale}`}
+                  searchUrl={`/api/search/icd11?locale=${locale}`}
                   renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
                   placeholder={t("preop.diagnosisPlaceholder")}
                 />
@@ -606,7 +603,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <TagInput
               value={(field.value ?? []) as Tag[]}
               onChange={field.onChange}
-              searchUrl="/api/search/icd10"
+              searchUrl="/api/search/icd11"
               renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
               placeholder={t("preop.historyPlaceholder")}
             />

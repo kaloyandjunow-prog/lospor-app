@@ -194,7 +194,10 @@ export async function GET(req: NextRequest) {
           painScoreNRS:         3,
           ponv:                 false,
           temperatureCelsius:   36.4,
-          timeInRecoveryMin:    55,
+          recoveryBpSystolic:   124,
+          recoveryBpDiastolic:  76,
+          recoveryHeartRate:    72,
+          recoverySpO2:         98,
           disposition:          "WARD",
           dispositionNotes:     "Stable, tolerating oral fluids. Epidural infusion continued.",
           handoverItems: [

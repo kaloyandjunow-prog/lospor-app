@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { Sun, Moon } from "lucide-react"
+import { BrandBackdrop, LosporBrand } from "@/components/LosporBrand"
 
 const schema = z.object({
   email: z.string().email(),
@@ -33,6 +34,8 @@ export default function LoginPage() {
   useEffect(() => {
     const stored = localStorage.getItem("theme")
     const isDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    // Hydrate the theme control from the browser preference after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(isDark)
     document.documentElement.classList.toggle("dark", isDark)
   }, [])
@@ -45,6 +48,9 @@ export default function LoginPage() {
   }
 
   const { register, handleSubmit } = useForm<FormData>({
+    // The runtime schema is authoritative; react-hook-form's generic resolver
+    // currently disagrees with Zod 4's inferred input type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
   })
 
@@ -61,16 +67,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4 overflow-hidden">
-      {/* Watermark */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.webp" alt="" aria-hidden="true"
-        className="pointer-events-none select-none absolute inset-0 m-auto w-[85vw] opacity-[0.05] dark:opacity-[0.04] grayscale" />
+    <div className="relative min-h-screen flex items-center justify-center bg-[#f5f7f6] dark:bg-[#090b0c] p-4 overflow-hidden">
+      <BrandBackdrop />
       <div className="relative w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.webp" alt="LOSPOR" className="h-20 w-auto" />
-          <p className="text-sm text-slate-500 mt-1">{t("common.appFullName")}</p>
+          <LosporBrand />
           <div className="mt-3 flex items-center gap-2">
             <LanguageSwitcher currentLocale={locale} />
             <button type="button" onClick={toggleTheme}
@@ -127,4 +128,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

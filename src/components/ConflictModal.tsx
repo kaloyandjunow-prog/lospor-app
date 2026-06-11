@@ -57,7 +57,6 @@ const FIELD_LABELS: Record<string, string> = {
   painScoreNRS:          "Pain score (NRS)",
   ponv:                  "PONV",
   temperatureCelsius:    "Temperature (°C)",
-  timeInRecoveryMin:     "Time in PACU (min)",
   disposition:           "Disposition",
   dispositionNotes:      "Disposition notes",
 }

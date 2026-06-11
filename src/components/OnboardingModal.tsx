@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
+import { LosporBrand } from "@/components/LosporBrand"
 
 export function OnboardingModal({ onAccepted }: { onAccepted: () => void }) {
   const t = useTranslations()
@@ -20,8 +21,7 @@ export function OnboardingModal({ onAccepted }: { onAccepted: () => void }) {
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1c1c1c] shadow-2xl p-6 space-y-4">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.webp" alt="LOSPOR" className="h-10 w-auto" />
+          <LosporBrand compact />
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t("onboarding.title")}</h2>
         </div>
 

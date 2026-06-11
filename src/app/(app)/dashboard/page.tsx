@@ -3,77 +3,62 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FilePlus, FileText, Activity, Users, UserCheck } from "lucide-react"
-import { DeleteDraftButton } from "@/components/DeleteDraftButton"
-import { HandoverButton } from "@/components/HandoverButton"
+import { FilePlus, FileText, Activity, Users } from "lucide-react"
 import { PendingHandovers } from "@/components/PendingHandovers"
-import { format } from "date-fns"
+import { DashboardSearch } from "@/components/DashboardSearch"
 import { getTranslations } from "next-intl/server"
 import type React from "react"
-
-function dispositionBadge(d: string | null) {
-  if (!d) return null
-  const map: Record<string, string> = { WARD: "bg-green-100 text-green-800", PACU: "bg-amber-100 text-amber-800", ICU: "bg-red-100 text-red-800" }
-  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[d] ?? ""}`}>{d}</span>
-}
-
-function asaBadge(asa: string | null) {
-  if (!asa) return null
-  const map: Record<string, string> = { I: "bg-green-100 text-green-800", II: "bg-blue-100 text-blue-800", III: "bg-amber-100 text-amber-800", IV: "bg-red-100 text-red-800", V: "bg-red-200 text-red-900", VI: "bg-slate-200 text-slate-700" }
-  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[asa] ?? ""}`}>ASA {asa}</span>
-}
 
 type CaseRow = Awaited<ReturnType<typeof fetchCases>>[number]
 type DashboardScope = "all" | "today" | "month" | "active" | "drafts" | "awaiting-postop" | "complete" | "handovers" | "icu"
 
-async function fetchCases(userId: string, role: string, institutionId: string | null) {
-  const where =
-    role === "ADMIN" || role === "HEAD_OF_DEPT" ? {}
-    : { userId }
+const CASE_INCLUDE = {
+  preop:     { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
+  intraop:   { select: { monthYear: true, durationMinutes: true, endTime: true } },
+  postop:    { select: { disposition: true, aldreteTotal: true } },
+  user:      { select: { name: true } },
+  transfers: { where: { status: "PENDING" as const }, select: { id: true }, take: 1 },
+} as const
 
+function baseWhere(userId: string, role: string) {
+  return role === "ADMIN" || role === "HEAD_OF_DEPT" ? {} : { userId }
+}
+
+// Full fetch (max 200) — used to derive stat counts for all scope chips
+async function fetchCases(userId: string, role: string) {
   return prisma.case.findMany({
-    where,
-    include: {
-      preop:     { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
-      intraop:   { select: { monthYear: true, durationMinutes: true, endTime: true } },
-      postop:    { select: { disposition: true, aldreteTotal: true } },
-      user:      { select: { name: true } },
-      transfers: { where: { status: "PENDING" }, select: { id: true }, take: 1 },
-    },
+    where: baseWhere(userId, role),
+    include: CASE_INCLUDE,
     orderBy: { createdAt: "desc" },
     take: 200,
   })
 }
 
-type StatusKey = "finished" | "awaitingPostop" | "inTheatre" | "awaitingAllocation" | "inConsultation" | "draft"
-
-function computeStatus(c: CaseRow): { key: StatusKey; cls: string } {
-  if (c.status === "COMPLETE") {
-    return { key: "finished",           cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" }
-  }
-  if (c.intraop?.endTime != null) {
-    return { key: "awaitingPostop",     cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" }
-  }
-  if (c.intraop != null) {
-    return { key: "inTheatre",          cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" }
-  }
-  const preopComplete = !!(c.preop?.diagnosis && c.preop?.plannedProcedure && c.preop?.asaScore)
-  if (preopComplete) {
-    return { key: "awaitingAllocation", cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" }
-  }
-  if (c.preop?.diagnosis) {
-    return { key: "inConsultation",     cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" }
-  }
-  return   { key: "draft",             cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
+// Scoped fetch — pushes non-"all" filters into the DB query so only relevant
+// rows are loaded when a specific scope tab is selected.
+async function fetchScopedCases(userId: string, role: string, scope: string, now: Date) {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const scopeWhere: Record<string, unknown> =
+    scope === "drafts"          ? { status: "DRAFT" }
+    : scope === "active"        ? { status: { not: "COMPLETE" } }
+    : scope === "complete"      ? { status: "COMPLETE" }
+    : scope === "today"         ? { createdAt: { gte: startOfToday } }
+    : scope === "month"         ? { createdAt: { gte: startOfMonth } }
+    : {}
+  return prisma.case.findMany({
+    where: { ...baseWhere(userId, role), ...scopeWhere },
+    include: CASE_INCLUDE,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  })
 }
 
-function isToday(date: Date) {
-  const now = new Date()
+function isToday(date: Date, now: Date) {
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
 }
 
-function isThisMonthCase(c: CaseRow) {
-  const now = new Date()
+function isThisMonthCase(c: CaseRow, now: Date) {
   const my = c.intraop?.monthYear
   if (my) {
     const [y, m] = my.split("-").map(Number)
@@ -125,23 +110,31 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     : "all"
 
   const role          = (session.user as any).role ?? "MEMBER"
-  const institutionId = (session.user as any).institutionId ?? ""
   const userId        = session.user!.id
-  const cases = await fetchCases(userId, role, institutionId)
+  const now           = new Date()
+
+  // Fetch full list for stat counts + scoped list for display in parallel
+  const [cases, scopedCases] = await Promise.all([
+    fetchCases(userId, role),
+    scope !== "all" ? fetchScopedCases(userId, role, scope, now) : Promise.resolve(null),
+  ])
 
   const totalCases = cases.length
-  const todayCases = cases.filter((c: CaseRow) => isToday(c.createdAt))
-  const thisMonth = cases.filter(isThisMonthCase).length
+  const todayCases = cases.filter((c: CaseRow) => isToday(c.createdAt, now))
+  const thisMonth = cases.filter((c: CaseRow) => isThisMonthCase(c, now)).length
   const icuCount = cases.filter((c: CaseRow) => c.postop?.disposition === "ICU").length
   const activeCount = cases.filter((c: CaseRow) => c.status !== "COMPLETE").length
   const draftCount = cases.filter((c: CaseRow) => c.status === "DRAFT").length
   const awaitingPostopCount = cases.filter((c: CaseRow) => c.status !== "COMPLETE" && c.intraop?.endTime != null).length
   const completeCount = cases.filter((c: CaseRow) => c.status === "COMPLETE").length
   const handoverCount = cases.filter((c: CaseRow) => c.transfers.length > 0).length
-  const filteredCases = cases.filter((c: CaseRow) => {
+  // Use DB-scoped result for status/date scopes; fall back to JS filter for
+  // the remaining scopes (awaiting-postop, handovers, icu) that require
+  // joined-field predicates not easily expressed as a simple WHERE clause.
+  const filteredCases = scopedCases ?? cases.filter((c: CaseRow) => {
     if (scope === "all") return true
-    if (scope === "today") return isToday(c.createdAt)
-    if (scope === "month") return isThisMonthCase(c)
+    if (scope === "today") return isToday(c.createdAt, now)
+    if (scope === "month") return isThisMonthCase(c, now)
     if (scope === "active") return c.status !== "COMPLETE"
     if (scope === "drafts") return c.status === "DRAFT"
     if (scope === "awaiting-postop") return c.status !== "COMPLETE" && c.intraop?.endTime != null
@@ -229,7 +222,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       {/* Pending incoming handovers */}
       <PendingHandovers />
 
-      {/* Case list */}
+      {/* Case list with search */}
       <Card data-tour="case-list">
         <CardHeader>
           <CardTitle className="text-base">{t("dashboard.recentCases")}</CardTitle>
@@ -247,53 +240,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
-              {filteredCases.map((c: CaseRow) => {
-                const { key, cls } = computeStatus(c)
-                const isComplete = c.status === "COMPLETE"
-                const href = isComplete ? `/cases/${c.id}` : `/cases/new?continue=${c.id}`
-                return (
-                  <Link key={c.id} href={href} className="flex items-center justify-between py-3 px-2 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] rounded-lg transition-colors group">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
-                          {c.preop?.plannedProcedure || t("status.untitled")}
-                        </p>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
-                          {t(`status.${key}`)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500 truncate mt-0.5">
-                        {c.preop?.diagnosis ?? "—"} · {c.preop?.ageYears ? `${c.preop.ageYears}y` : ""} {c.preop?.sex === "MALE" ? "M" : c.preop?.sex === "FEMALE" ? "F" : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4 shrink-0">
-                      {asaBadge(c.preop?.asaScore ?? null)}
-                      {dispositionBadge(c.postop?.disposition ?? null)}
-                      {c.caseCode && (
-                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
-                          {c.caseCode}
-                        </span>
-                      )}
-                      {!isComplete && <DeleteDraftButton caseId={c.id} />}
-                      <HandoverButton
-                        caseId={c.id}
-                        caseOwnerId={c.userId}
-                        sessionUserId={userId}
-                        sessionRole={role}
-                        hasPendingTransfer={c.transfers.length > 0}
-                      />
-                      <span className="text-xs text-slate-400">
-                        {c.intraop?.monthYear
-                          ? (() => { const [y, m] = c.intraop!.monthYear!.split("-"); const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m,10)-1]} ${y}` })()
-                          : format(c.createdAt, "dd MMM yyyy")}
-                      </span>
-                      <FileText className="h-4 w-4 text-slate-300" />
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+            <DashboardSearch cases={filteredCases} userId={userId} role={role} />
           )}
         </CardContent>
       </Card>

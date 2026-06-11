@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { Sun, Moon, Check, Search, ChevronDown, X } from "lucide-react"
+import { BrandBackdrop, LosporBrand } from "@/components/LosporBrand"
 
 
 const COUNTRIES = [
@@ -168,6 +169,8 @@ export default function RegisterPage() {
     fetch("/api/institutions").then(r => r.json()).then(setInstitutions)
     const stored = localStorage.getItem("theme")
     const isDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    // Hydrate the theme control from the browser preference after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(isDark)
     document.documentElement.classList.toggle("dark", isDark)
   }, [])
@@ -180,6 +183,9 @@ export default function RegisterPage() {
   }
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+    // The runtime schema is authoritative; react-hook-form's generic resolver
+    // currently disagrees with Zod 4's inferred input type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
   })
 
@@ -212,14 +218,11 @@ export default function RegisterPage() {
   const isBulgaria     = country === "Bulgaria"
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 dark:from-[#111] dark:to-[#1a1a2e] p-4">
-      <div className="w-full max-w-lg space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center overflow-x-hidden bg-[#f5f7f6] dark:bg-[#090b0c] p-4">
+      <BrandBackdrop />
+      <div className="relative w-full max-w-lg space-y-6">
         <div className="flex flex-col items-center text-center">
-          <Link href="/login">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="LOSPOR" className="h-20 w-auto hover:opacity-80 transition-opacity" />
-          </Link>
-          <p className="text-sm text-slate-500 mt-1">{t("common.appFullName")}</p>
+          <LosporBrand linked />
           <div className="mt-3 flex items-center gap-2">
             <LanguageSwitcher currentLocale={locale} />
             <button type="button" onClick={toggleTheme}
@@ -356,4 +359,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

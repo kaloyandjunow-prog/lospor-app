@@ -26,6 +26,7 @@ async function resolveCase(
   const isAdmin = user.role === "ADMIN"
   const isHOD =
     user.role === "HEAD_OF_DEPT" &&
+    !!user.institutionId &&
     existing.user?.institutionId === user.institutionId
   if (existing.userId !== user.id && !isAdmin && !isHOD)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -64,10 +65,19 @@ export async function POST(
   if (existing && existing.expiresAt > now) {
     // Active lock held by someone
     if (existing.userId === userId && existing.deviceId === deviceId) {
-      // Same device reclaiming — refresh the TTL
-      await prisma.caseLock.update({
-        where: { caseId: id },
+      // The lock may be released between the read and write. updateMany keeps
+      // this path idempotent instead of throwing P2025 during that race.
+      const refreshed = await prisma.caseLock.updateMany({
+        where: { caseId: id, userId, deviceId },
         data: { expiresAt },
+      })
+      if (refreshed.count > 0) {
+        return NextResponse.json({ acquired: true, yours: true })
+      }
+      await prisma.caseLock.upsert({
+        where: { caseId: id },
+        create: { caseId: id, userId, deviceId, expiresAt },
+        update: { userId, deviceId, expiresAt },
       })
       return NextResponse.json({ acquired: true, yours: true })
     }
@@ -114,11 +124,11 @@ export async function PATCH(
   const existing = await prisma.caseLock.findUnique({ where: { caseId: id } })
 
   if (existing && existing.userId === userId && existing.deviceId === deviceId) {
-    await prisma.caseLock.update({
-      where: { caseId: id },
+    const refreshed = await prisma.caseLock.updateMany({
+      where: { caseId: id, userId, deviceId },
       data: { expiresAt },
     })
-    return NextResponse.json({ extended: true })
+    return NextResponse.json({ extended: refreshed.count > 0 }, { status: refreshed.count > 0 ? 200 : 409 })
   }
 
   return NextResponse.json({ extended: false }, { status: 409 })
@@ -126,7 +136,8 @@ export async function PATCH(
 
 // ---------------------------------------------------------------------------
 // DELETE /api/cases/[id]/lock — release lock (idempotent)
-// Body: { deviceId: string }
+// Body: { deviceId: string } — release own lock
+// Body: { force: true }      — force-release any lock on this case (own cases only)
 // ---------------------------------------------------------------------------
 export async function DELETE(
   req: NextRequest,
@@ -137,14 +148,21 @@ export async function DELETE(
   if (resolved instanceof NextResponse) return resolved
   const { userId } = resolved
 
-  const body: { deviceId?: string } = await req.json().catch(() => ({}))
-  const deviceId = typeof body.deviceId === "string" ? body.deviceId : ""
+  const body: { deviceId?: string; force?: boolean } = await req.json().catch(() => ({}))
 
-  const existing = await prisma.caseLock.findUnique({ where: { caseId: id } })
-
-  if (existing && existing.userId === userId && existing.deviceId === deviceId) {
-    await prisma.caseLock.delete({ where: { caseId: id } })
+  if (body.force === true) {
+    // Force-takeover: delete any lock on this case — only allowed by the case owner
+    const caseRecord = await prisma.case.findUnique({ where: { id }, select: { userId: true } })
+    if (!caseRecord) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    if (caseRecord.userId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+    await prisma.caseLock.deleteMany({ where: { caseId: id } })
+    return NextResponse.json({ released: true, forced: true })
   }
+
+  const deviceId = typeof body.deviceId === "string" ? body.deviceId : ""
+  await prisma.caseLock.deleteMany({ where: { caseId: id, userId, deviceId } })
 
   // Always 200 — idempotent
   return NextResponse.json({ released: true })

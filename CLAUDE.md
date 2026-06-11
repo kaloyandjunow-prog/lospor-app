@@ -24,6 +24,10 @@
 - If a web feature is added later, check whether mobile needs a matching screen/action or at least a read-only fallback.
 - Procedure search endpoint `/api/search/procedures` returns PCS entries. Web displays `group` as the primary clinical procedure label and `code · domain` as supporting text; mobile autocomplete should mirror that mapping, not show raw `description` as the main label.
 - Web `NumberStepper` is the reference pattern for mobile preop vitals: `- / number / +` with range slider, while mobile opens a custom keypad from the number field instead of native text entry.
+- Current gas contract: `fgfLitersPerMin` 0-100, `carrierGas` (`air` or `n2o`, with O2 implicit), and `fio2Percent` 0-100. Legacy gas columns remain compatibility data.
+- Postop recovery stores SBP, DBP, HR, SpO2, and temperature. The time-in-recovery/PACU field has been removed.
+- Migration `20260609000000_intraop_gas_and_recovery_vitals` must be deployed with these fields.
+- Full stored-data inventory is documented in `docs/data-model.md`.
 
 ## Verification
 
