@@ -19,12 +19,18 @@ export async function OPTIONS() {
 }
 
 async function generateCaseCode(userId: string): Promise<string> {
-  const [user, count] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
-    prisma.case.count({ where: { userId } }),
-  ])
-  const year = user!.createdAt.getFullYear()
-  return `${year}-${String(count + 1).padStart(4, "0")}`
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } })
+  const prefix = `${user!.createdAt.getFullYear()}-`
+  // Base the next code on the highest existing one (not a row count) so a gap
+  // left by a deleted draft can't collide with a still-existing higher code.
+  const last = await prisma.case.findFirst({
+    where: { userId, caseCode: { startsWith: prefix } },
+    orderBy: { caseCode: "desc" },
+    select: { caseCode: true },
+  })
+  const lastN = last?.caseCode ? Number(last.caseCode.slice(prefix.length)) : 0
+  const next = (Number.isFinite(lastN) ? lastN : 0) + 1
+  return `${prefix}${String(next).padStart(4, "0")}`
 }
 
 export async function POST(req: NextRequest) {
@@ -53,19 +59,30 @@ export async function POST(req: NextRequest) {
 
     const status = postop ? "COMPLETE" : intraop ? "IN_PROGRESS" : "DRAFT"
 
-    const caseRecord = await prisma.case.create({
-      data: {
-        userId,
-        status,
-        caseCode: await generateCaseCode(userId),
-        preop: { create: mapPreop(preop) },
-        ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
-        ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),
-      },
-      include: {
-        preop: { select: { updatedAt: true } },
-      },
-    })
+    let caseRecord
+    for (let attempt = 0; ; attempt++) {
+      try {
+        caseRecord = await prisma.case.create({
+          data: {
+            userId,
+            status,
+            caseCode: await generateCaseCode(userId),
+            preop: { create: mapPreop(preop) },
+            ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
+            ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),
+          },
+          include: {
+            preop: { select: { updatedAt: true } },
+          },
+        })
+        break
+      } catch (e: any) {
+        // Concurrent requests can compute the same next caseCode — retry with a
+        // freshly-generated one rather than failing the whole create.
+        if (e?.code === "P2002" && attempt < 4) continue
+        throw e
+      }
+    }
 
     logAudit(userId, "CASE_CREATE", caseRecord.id)
     return NextResponse.json({
