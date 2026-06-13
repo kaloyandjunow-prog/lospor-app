@@ -53,7 +53,7 @@ model Institution {
 
 model Case {
   id            String      @id @default(cuid())
-  caseCode      String?     @unique
+  caseCode      String?
   notes         String?
   userId        String
   user          User        @relation(fields: [userId], references: [id])
@@ -68,6 +68,7 @@ model Case {
   transfers     CaseTransfer[]
   lock          CaseLock?
 
+  @@unique([userId, caseCode])
   @@index([status])
   @@index([userId, createdAt])
 }

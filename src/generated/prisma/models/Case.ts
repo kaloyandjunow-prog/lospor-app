@@ -233,10 +233,11 @@ export type CaseOrderByWithRelationInput = {
 
 export type CaseWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  caseCode?: string
+  userId_caseCode?: Prisma.CaseUserIdCaseCodeCompoundUniqueInput
   AND?: Prisma.CaseWhereInput | Prisma.CaseWhereInput[]
   OR?: Prisma.CaseWhereInput[]
   NOT?: Prisma.CaseWhereInput | Prisma.CaseWhereInput[]
+  caseCode?: Prisma.StringNullableFilter<"Case"> | string | null
   notes?: Prisma.StringNullableFilter<"Case"> | string | null
   userId?: Prisma.StringFilter<"Case"> | string
   status?: Prisma.EnumCaseStatusFilter<"Case"> | $Enums.CaseStatus
@@ -249,7 +250,7 @@ export type CaseWhereUniqueInput = Prisma.AtLeast<{
   postop?: Prisma.XOR<Prisma.PostoperativeRecordNullableScalarRelationFilter, Prisma.PostoperativeRecordWhereInput> | null
   transfers?: Prisma.CaseTransferListRelationFilter
   lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
-}, "id" | "caseCode">
+}, "id" | "userId_caseCode">
 
 export type CaseOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -383,6 +384,11 @@ export type CaseListRelationFilter = {
 
 export type CaseOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type CaseUserIdCaseCodeCompoundUniqueInput = {
+  userId: string
+  caseCode: string
 }
 
 export type CaseCountOrderByAggregateInput = {
