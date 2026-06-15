@@ -9,10 +9,12 @@ The web API and PostgreSQL database are the source of truth for both clients. Pa
 - **RoleRequest:** requesting user, status, request and resolution timestamps.
 - **RevokedToken:** JWT identifier, revocation time, expiry.
 - **AuditLog:** user, action, affected entity, optional JSON detail, timestamp.
+- **RateLimit:** rate-limit key, request count, window start (shared, serverless-safe throttling store).
 
 ## Case lifecycle and collaboration
 
-- **Case:** anonymous case code, private notes, owner, status, finalisation timestamp, creation/update timestamps.
+- **Case:** anonymous case code (unique per owner), private notes, owner, status, finalisation timestamp, creation/update timestamps.
+- **CaseEvent:** immutable, append-only intraoperative events (vitals, drugs, infusions, fluids, agents, clinical events). Each row carries a logical event id, version, status (active/superseded/deleted), type, clinical timestamp, value/unit, full payload JSON, source (web/mobile/ai/import), and an idempotency key. The intraoperative chart is projected from these rows; edits supersede and deletes tombstone, so the full history is retained.
 - **CaseLock:** case, editing user, device ID, expiry.
 - **CaseTransfer:** case, sender, recipient, initiator, status, creation/resolution timestamps.
 

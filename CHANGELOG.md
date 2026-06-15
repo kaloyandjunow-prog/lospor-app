@@ -5,6 +5,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.0] — 2026-06-15
+
+### Intraoperative event store (event-sourcing)
+- New immutable `CaseEvent` table is the source of truth for the intraoperative chart. The legacy `keyEvents` projection is now a cache rebuilt from these rows, so every reader (web/mobile chart, printable protocol, OMOP export) is unchanged.
+- Concurrent intraoperative writes are serializable and idempotent (keyed by event id) — two clinicians documenting the same live case can no longer drop each other's entries, and offline retries never create duplicates.
+- Edits and deletes are append-only: an edit supersedes, a delete tombstones, and the full history is preserved for audit/medico-legal purposes.
+- Infusion rate changes are now projected as rate segments, so the chart shows the correct rate before and after each change.
+- Intraoperative stale-write conflict detection (matching pre-op/post-op); malformed conflict-timestamp headers are rejected instead of silently skipped.
+- Every event write is Zod-validated, PII-checked, and audit-logged.
+
+### Security & reliability
+- Rate limiting moved to a shared, serverless-safe database store (the previous in-memory limiter reset per instance in production).
+- Added per-IP login throttling alongside per-email.
+- Token revocation is now checked against the database on every request (closes a cold-start window); new `POST /api/auth/logout` revokes a mobile token server-side.
+- Fixed an authorization edge case for Heads of Department with no assigned institution; added consistent CORS preflight handling to all mobile-called routes.
+- An admin or Head of Department can now clear a stale case lock instead of being blocked by it.
+
+### Wording
+- Softened "GDPR compliant" to "designed with GDPR principles" pending formal legal review.
+
+### Database
+- New migrations: `CaseEvent` table and versioning columns, shared `RateLimit` table, `IntraoperativeRecord.updatedAt`.
+
+---
+
 ## [1.0.0] — 2026-06-11 "First public release"
 
 This is the first stable, publicly tagged release of LOSPOR. It consolidates all development from v0.1.0 through the v0.4.x series into a production-ready perioperative case register with a full web app, mobile-companion API, and PWA.
