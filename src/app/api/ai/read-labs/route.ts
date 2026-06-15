@@ -164,6 +164,17 @@ function normaliseValue(name: string, raw: string): string {
   return raw
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) {
@@ -175,7 +186,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image too large" }, { status: 413 })
   }
 
-  const rl = rateLimit(`ai-labs:${user.id}`, 10, 60 * 60 * 1000)
+  const rl = await rateLimit(`ai-labs:${user.id}`, 10, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },

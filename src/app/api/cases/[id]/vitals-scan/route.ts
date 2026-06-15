@@ -4,11 +4,22 @@ import { rateLimit } from "@/lib/rate-limit"
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY ?? ""
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`vitals-scan:${user.id}`, 30, 60 * 60 * 1000)
+  const rl = await rateLimit(`vitals-scan:${user.id}`, 30, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Rate limit reached. Try again later." }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },

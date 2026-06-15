@@ -67,6 +67,7 @@ model Case {
   postop        PostoperativeRecord?
   transfers     CaseTransfer[]
   lock          CaseLock?
+  events        CaseEvent[]
 
   @@unique([userId, caseCode])
   @@index([status])
@@ -155,6 +156,41 @@ model RevokedToken {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime @default(now())
+
+  @@index([windowStart])
+}
+
+// Immutable, event-sourced clinical events. Written in parallel with the legacy
+// IntraoperativeRecord.keyEvents.log JSON (dual-write) — this table is the
+// append-only audit trail and the future source of truth for the intraop chart.
+model CaseEvent {
+  id             String   @id @default(cuid())
+  caseId         String
+  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId         String?
+  logicalId      String   @default("")          // stable client event id; versions share it
+  version        Int      @default(1)
+  status         String   @default("active")    // active | superseded | deleted
+  type           String
+  timestamp      DateTime
+  label          String?
+  value          String?
+  unit           String?
+  metadataJson   Json?
+  source         String   @default("mobile")
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([caseId, timestamp])
+  @@index([caseId, status])
+  @@index([caseId, logicalId])
 }
 
 model AuditLog {

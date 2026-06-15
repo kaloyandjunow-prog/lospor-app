@@ -60,6 +60,17 @@ Review known medications and allergies. Note interactions, drugs to avoid, dose 
 
 Tone: precise, colleague-to-colleague. Format: markdown with the section headers above. No preamble, no closing pleasantries. If data is missing that would materially change your recommendation, note the specific gap in the relevant section rather than refusing to advise.`
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) {
@@ -79,7 +90,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Item 16 / hourly rate limit
-  const rl = rateLimit(`ai:${user.id}`, AI_MAX_REQUESTS_PER_HOUR, 60 * 60 * 1000)
+  const rl = await rateLimit(`ai:${user.id}`, AI_MAX_REQUESTS_PER_HOUR, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many requests" },

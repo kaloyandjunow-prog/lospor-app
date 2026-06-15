@@ -1,7 +1,7 @@
 import "server-only"
 import { SignJWT, jwtVerify } from "jose"
 import { auth } from "@/lib/auth"
-import { isRevoked } from "@/lib/token-blocklist"
+import { isRevokedAsync } from "@/lib/token-blocklist"
 
 // Shape returned by getAuthUser — same fields that route files pull from session.user
 export type AuthUser = {
@@ -46,7 +46,9 @@ export async function getAuthUser(req: Request): Promise<AuthUser | null> {
     try {
       const { payload } = await jwtVerify(authHeader.slice(7), secret())
       const jti = payload.jti as string | undefined
-      if (jti && isRevoked(jti)) return null
+      // Async variant awaits the initial DB load, closing the cold-start window
+      // where a freshly-booted instance's cache is still empty.
+      if (jti && await isRevokedAsync(jti)) return null
       if (!payload.id) return null
       return {
         id:              payload.id as string,

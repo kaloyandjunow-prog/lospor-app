@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { signOut } from "@/lib/auth"
 import { getAuthUser } from "@/lib/mobile-auth"
-import { prisma } from "@/lib/prisma"
 import { revokeToken } from "@/lib/token-blocklist"
-import { logAudit } from "@/lib/audit"
 
 const CORS = {
   "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age":       "86400",
 }
@@ -16,23 +13,14 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
+// POST /api/auth/logout — revokes the caller's bearer token server-side so a
+// lost/stolen device's token stops working immediately instead of staying valid
+// for the rest of its 8h lifetime. Idempotent: always returns ok.
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
-  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data:  { deletedAt: new Date() },
-  })
-
-  logAudit(user.id, "ACCOUNT_DELETE_REQUEST", user.id)
-
-  if (user.jti) {
+  if (user?.jti) {
+    // Token TTL is 8h; block the jti until at least then so it can't be replayed.
     await revokeToken(user.jti, new Date(Date.now() + 8 * 60 * 60 * 1000))
   }
-
-  // Clears the web cookie — no-op for mobile bearer token clients
-  await signOut({ redirect: false })
-
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true }, { headers: CORS })
 }

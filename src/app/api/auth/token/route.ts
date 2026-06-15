@@ -31,8 +31,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 
-  const rl = rateLimit(`login:${body.email}`, 10, 15 * 60 * 1000)
-  if (!rl.allowed) {
+  // Throttle per-email AND per-IP: the email key stops targeting one account,
+  // the IP key stops credential-stuffing many accounts from one source.
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown"
+  const [rlEmail, rlIp] = await Promise.all([
+    rateLimit(`login:${body.email}`, 10, 15 * 60 * 1000),
+    rateLimit(`login-ip:${ip}`, 50, 15 * 60 * 1000),
+  ])
+  if (!rlEmail.allowed || !rlIp.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 })
   }
 

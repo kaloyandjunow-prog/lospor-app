@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
+import { logAudit } from "@/lib/audit"
+
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
@@ -31,5 +43,6 @@ export async function POST(req: NextRequest) {
     data: { userId: user.id },
   })
 
+  logAudit(user.id, "ROLE_REQUEST_SUBMIT", user.id)
   return NextResponse.json(request, { status: 201 })
 }

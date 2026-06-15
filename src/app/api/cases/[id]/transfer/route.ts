@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
+import { logAudit } from "@/lib/audit"
+import { z } from "zod"
+
+const postSchema  = z.object({ toUserId: z.string().min(1) })
+const patchSchema = z.object({ action: z.enum(["accept", "decline"]) })
+
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
 
 // POST — initiate a transfer
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,9 +24,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id: caseId } = await params
-  const { toUserId } = await req.json()
+  const parsed = postSchema.safeParse(await req.json().catch(() => ({})))
+  if (!parsed.success) return NextResponse.json({ error: "toUserId required" }, { status: 400 })
+  const { toUserId } = parsed.data
 
-  if (!toUserId) return NextResponse.json({ error: "toUserId required" }, { status: 400 })
   if (toUserId === user.id) return NextResponse.json({ error: "Cannot transfer to yourself" }, { status: 400 })
 
   const isHOD   = user.role === "HEAD_OF_DEPT"
@@ -58,6 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         data:  { userId: toUserId },
       }),
     ])
+    logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true })
     return NextResponse.json({ instant: true, transfer })
   }
 
@@ -70,6 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       status:      "PENDING",
     },
   })
+  logAudit(user.id, "CASE_TRANSFER_INITIATE", caseId, { toUserId })
   return NextResponse.json({ instant: false, transfer })
 }
 
@@ -79,11 +98,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id: caseId } = await params
-  const { action } = await req.json()
-
-  if (action !== "accept" && action !== "decline") {
+  const parsed = patchSchema.safeParse(await req.json().catch(() => ({})))
+  if (!parsed.success) {
     return NextResponse.json({ error: "action must be accept or decline" }, { status: 400 })
   }
+  const { action } = parsed.data
 
   const transfer = await prisma.caseTransfer.findFirst({
     where: { caseId, toUserId: user.id, status: "PENDING" },
@@ -101,6 +120,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         data:  { userId: user.id },
       }),
     ])
+    logAudit(user.id, "CASE_TRANSFER_ACCEPT", caseId)
     return NextResponse.json({ accepted: true })
   }
 
@@ -108,5 +128,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id: transfer.id },
     data:  { status: "DECLINED", resolvedAt: new Date() },
   })
+  logAudit(user.id, "CASE_TRANSFER_DECLINE", caseId)
   return NextResponse.json({ declined: true })
 }

@@ -45,7 +45,7 @@ export default function PrivacyPage() {
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">4. Sub-processors</h3>
-              <p>We use the following sub-processors, all with GDPR-compliant DPAs:</p>
+              <p>We use the following sub-processors, each under a Data Processing Agreement (DPA) intended to align with GDPR requirements:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Supabase (EU region):</strong> PostgreSQL database hosting.</li>
                 <li><strong>Vercel (EU region):</strong> application hosting and edge functions.</li>

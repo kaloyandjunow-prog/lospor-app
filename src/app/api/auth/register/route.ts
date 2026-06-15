@@ -31,7 +31,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown"
-  const rl = rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+  const rl = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },

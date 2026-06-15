@@ -20,7 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
-        const rl = rateLimit(`login:${parsed.data.email}`, 10, 15 * 60 * 1000)
+        const rl = await rateLimit(`login:${parsed.data.email}`, 10, 15 * 60 * 1000)
         if (!rl.allowed) return null
 
         const user = await prisma.user.findUnique({

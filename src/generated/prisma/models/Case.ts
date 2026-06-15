@@ -212,6 +212,7 @@ export type CaseWhereInput = {
   postop?: Prisma.XOR<Prisma.PostoperativeRecordNullableScalarRelationFilter, Prisma.PostoperativeRecordWhereInput> | null
   transfers?: Prisma.CaseTransferListRelationFilter
   lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
+  events?: Prisma.CaseEventListRelationFilter
 }
 
 export type CaseOrderByWithRelationInput = {
@@ -229,6 +230,7 @@ export type CaseOrderByWithRelationInput = {
   postop?: Prisma.PostoperativeRecordOrderByWithRelationInput
   transfers?: Prisma.CaseTransferOrderByRelationAggregateInput
   lock?: Prisma.CaseLockOrderByWithRelationInput
+  events?: Prisma.CaseEventOrderByRelationAggregateInput
 }
 
 export type CaseWhereUniqueInput = Prisma.AtLeast<{
@@ -250,6 +252,7 @@ export type CaseWhereUniqueInput = Prisma.AtLeast<{
   postop?: Prisma.XOR<Prisma.PostoperativeRecordNullableScalarRelationFilter, Prisma.PostoperativeRecordWhereInput> | null
   transfers?: Prisma.CaseTransferListRelationFilter
   lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
+  events?: Prisma.CaseEventListRelationFilter
 }, "id" | "userId_caseCode">
 
 export type CaseOrderByWithAggregationInput = {
@@ -294,6 +297,7 @@ export type CaseCreateInput = {
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateInput = {
@@ -310,6 +314,7 @@ export type CaseUncheckedCreateInput = {
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUpdateInput = {
@@ -326,6 +331,7 @@ export type CaseUpdateInput = {
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateInput = {
@@ -342,6 +348,7 @@ export type CaseUncheckedUpdateInput = {
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateManyInput = {
@@ -503,6 +510,20 @@ export type CaseUpdateOneRequiredWithoutTransfersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutTransfersInput, Prisma.CaseUpdateWithoutTransfersInput>, Prisma.CaseUncheckedUpdateWithoutTransfersInput>
 }
 
+export type CaseCreateNestedOneWithoutEventsInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutEventsInput, Prisma.CaseUncheckedCreateWithoutEventsInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutEventsInput
+  connect?: Prisma.CaseWhereUniqueInput
+}
+
+export type CaseUpdateOneRequiredWithoutEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutEventsInput, Prisma.CaseUncheckedCreateWithoutEventsInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutEventsInput
+  upsert?: Prisma.CaseUpsertWithoutEventsInput
+  connect?: Prisma.CaseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutEventsInput, Prisma.CaseUpdateWithoutEventsInput>, Prisma.CaseUncheckedUpdateWithoutEventsInput>
+}
+
 export type CaseCreateNestedOneWithoutPreopInput = {
   create?: Prisma.XOR<Prisma.CaseCreateWithoutPreopInput, Prisma.CaseUncheckedCreateWithoutPreopInput>
   connectOrCreate?: Prisma.CaseCreateOrConnectWithoutPreopInput
@@ -558,6 +579,7 @@ export type CaseCreateWithoutUserInput = {
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutUserInput = {
@@ -573,6 +595,7 @@ export type CaseUncheckedCreateWithoutUserInput = {
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutUserInput = {
@@ -628,6 +651,7 @@ export type CaseCreateWithoutLockInput = {
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutLockInput = {
@@ -643,6 +667,7 @@ export type CaseUncheckedCreateWithoutLockInput = {
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutLockInput = {
@@ -674,6 +699,7 @@ export type CaseUpdateWithoutLockInput = {
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutLockInput = {
@@ -689,6 +715,7 @@ export type CaseUncheckedUpdateWithoutLockInput = {
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutTransfersInput = {
@@ -704,6 +731,7 @@ export type CaseCreateWithoutTransfersInput = {
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutTransfersInput = {
@@ -719,6 +747,7 @@ export type CaseUncheckedCreateWithoutTransfersInput = {
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutTransfersInput = {
@@ -750,6 +779,7 @@ export type CaseUpdateWithoutTransfersInput = {
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutTransfersInput = {
@@ -764,6 +794,87 @@ export type CaseUncheckedUpdateWithoutTransfersInput = {
   preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
+}
+
+export type CaseCreateWithoutEventsInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCasesInput
+  preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+}
+
+export type CaseUncheckedCreateWithoutEventsInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  userId: string
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+}
+
+export type CaseCreateOrConnectWithoutEventsInput = {
+  where: Prisma.CaseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CaseCreateWithoutEventsInput, Prisma.CaseUncheckedCreateWithoutEventsInput>
+}
+
+export type CaseUpsertWithoutEventsInput = {
+  update: Prisma.XOR<Prisma.CaseUpdateWithoutEventsInput, Prisma.CaseUncheckedUpdateWithoutEventsInput>
+  create: Prisma.XOR<Prisma.CaseCreateWithoutEventsInput, Prisma.CaseUncheckedCreateWithoutEventsInput>
+  where?: Prisma.CaseWhereInput
+}
+
+export type CaseUpdateToOneWithWhereWithoutEventsInput = {
+  where?: Prisma.CaseWhereInput
+  data: Prisma.XOR<Prisma.CaseUpdateWithoutEventsInput, Prisma.CaseUncheckedUpdateWithoutEventsInput>
+}
+
+export type CaseUpdateWithoutEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
+  preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+}
+
+export type CaseUncheckedUpdateWithoutEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
 }
 
@@ -780,6 +891,7 @@ export type CaseCreateWithoutPreopInput = {
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutPreopInput = {
@@ -795,6 +907,7 @@ export type CaseUncheckedCreateWithoutPreopInput = {
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutPreopInput = {
@@ -826,6 +939,7 @@ export type CaseUpdateWithoutPreopInput = {
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutPreopInput = {
@@ -841,6 +955,7 @@ export type CaseUncheckedUpdateWithoutPreopInput = {
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutIntraopInput = {
@@ -856,6 +971,7 @@ export type CaseCreateWithoutIntraopInput = {
   postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutIntraopInput = {
@@ -871,6 +987,7 @@ export type CaseUncheckedCreateWithoutIntraopInput = {
   postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutIntraopInput = {
@@ -902,6 +1019,7 @@ export type CaseUpdateWithoutIntraopInput = {
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutIntraopInput = {
@@ -917,6 +1035,7 @@ export type CaseUncheckedUpdateWithoutIntraopInput = {
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateWithoutPostopInput = {
@@ -932,6 +1051,7 @@ export type CaseCreateWithoutPostopInput = {
   intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
 }
 
 export type CaseUncheckedCreateWithoutPostopInput = {
@@ -947,6 +1067,7 @@ export type CaseUncheckedCreateWithoutPostopInput = {
   intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
 }
 
 export type CaseCreateOrConnectWithoutPostopInput = {
@@ -978,6 +1099,7 @@ export type CaseUpdateWithoutPostopInput = {
   intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutPostopInput = {
@@ -993,6 +1115,7 @@ export type CaseUncheckedUpdateWithoutPostopInput = {
   intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseCreateManyUserInput = {
@@ -1018,6 +1141,7 @@ export type CaseUpdateWithoutUserInput = {
   postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateWithoutUserInput = {
@@ -1033,6 +1157,7 @@ export type CaseUncheckedUpdateWithoutUserInput = {
   postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
 }
 
 export type CaseUncheckedUpdateManyWithoutUserInput = {
@@ -1052,10 +1177,12 @@ export type CaseUncheckedUpdateManyWithoutUserInput = {
 
 export type CaseCountOutputType = {
   transfers: number
+  events: number
 }
 
 export type CaseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   transfers?: boolean | CaseCountOutputTypeCountTransfersArgs
+  events?: boolean | CaseCountOutputTypeCountEventsArgs
 }
 
 /**
@@ -1075,6 +1202,13 @@ export type CaseCountOutputTypeCountTransfersArgs<ExtArgs extends runtime.Types.
   where?: Prisma.CaseTransferWhereInput
 }
 
+/**
+ * CaseCountOutputType without action
+ */
+export type CaseCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CaseEventWhereInput
+}
+
 
 export type CaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1091,6 +1225,7 @@ export type CaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   postop?: boolean | Prisma.Case$postopArgs<ExtArgs>
   transfers?: boolean | Prisma.Case$transfersArgs<ExtArgs>
   lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
+  events?: boolean | Prisma.Case$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["case"]>
 
@@ -1137,6 +1272,7 @@ export type CaseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   postop?: boolean | Prisma.Case$postopArgs<ExtArgs>
   transfers?: boolean | Prisma.Case$transfersArgs<ExtArgs>
   lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
+  events?: boolean | Prisma.Case$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CaseIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1155,6 +1291,7 @@ export type $CasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     postop: Prisma.$PostoperativeRecordPayload<ExtArgs> | null
     transfers: Prisma.$CaseTransferPayload<ExtArgs>[]
     lock: Prisma.$CaseLockPayload<ExtArgs> | null
+    events: Prisma.$CaseEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1565,6 +1702,7 @@ export interface Prisma__CaseClient<T, Null = never, ExtArgs extends runtime.Typ
   postop<T extends Prisma.Case$postopArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$postopArgs<ExtArgs>>): Prisma.Prisma__PostoperativeRecordClient<runtime.Types.Result.GetResult<Prisma.$PostoperativeRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   transfers<T extends Prisma.Case$transfersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   lock<T extends Prisma.Case$lockArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$lockArgs<ExtArgs>>): Prisma.Prisma__CaseLockClient<runtime.Types.Result.GetResult<Prisma.$CaseLockPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  events<T extends Prisma.Case$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2100,6 +2238,30 @@ export type Case$lockArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   include?: Prisma.CaseLockInclude<ExtArgs> | null
   where?: Prisma.CaseLockWhereInput
+}
+
+/**
+ * Case.events
+ */
+export type Case$eventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CaseEvent
+   */
+  select?: Prisma.CaseEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CaseEvent
+   */
+  omit?: Prisma.CaseEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CaseEventInclude<ExtArgs> | null
+  where?: Prisma.CaseEventWhereInput
+  orderBy?: Prisma.CaseEventOrderByWithRelationInput | Prisma.CaseEventOrderByWithRelationInput[]
+  cursor?: Prisma.CaseEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CaseEventScalarFieldEnum | Prisma.CaseEventScalarFieldEnum[]
 }
 
 /**

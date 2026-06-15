@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`icd:${user.id}`, 120, 60 * 1000)
+  const rl = await rateLimit(`icd:${user.id}`, 120, 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429, headers: { "Retry-After": String(rl.retryAfter) },

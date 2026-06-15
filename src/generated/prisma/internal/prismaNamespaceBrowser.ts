@@ -61,6 +61,8 @@ export const ModelName = {
   Icd11Code: 'Icd11Code',
   Icd11Alias: 'Icd11Alias',
   RevokedToken: 'RevokedToken',
+  RateLimit: 'RateLimit',
+  CaseEvent: 'CaseEvent',
   AuditLog: 'AuditLog',
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
@@ -199,6 +201,37 @@ export const RevokedTokenScalarFieldEnum = {
 } as const
 
 export type RevokedTokenScalarFieldEnum = (typeof RevokedTokenScalarFieldEnum)[keyof typeof RevokedTokenScalarFieldEnum]
+
+
+export const RateLimitScalarFieldEnum = {
+  key: 'key',
+  count: 'count',
+  windowStart: 'windowStart'
+} as const
+
+export type RateLimitScalarFieldEnum = (typeof RateLimitScalarFieldEnum)[keyof typeof RateLimitScalarFieldEnum]
+
+
+export const CaseEventScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  userId: 'userId',
+  logicalId: 'logicalId',
+  version: 'version',
+  status: 'status',
+  type: 'type',
+  timestamp: 'timestamp',
+  label: 'label',
+  value: 'value',
+  unit: 'unit',
+  metadataJson: 'metadataJson',
+  source: 'source',
+  idempotencyKey: 'idempotencyKey',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CaseEventScalarFieldEnum = (typeof CaseEventScalarFieldEnum)[keyof typeof CaseEventScalarFieldEnum]
 
 
 export const AuditLogScalarFieldEnum = {

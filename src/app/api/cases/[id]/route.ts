@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       userId: true, status: true,
       user:   { select: { institutionId: true } },
       preop:  true,
-      intraop: { select: { id: true, keyEvents: true } },
+      intraop: { select: { id: true, keyEvents: true, updatedAt: true } },
       postop:  true,
     },
   })
@@ -79,8 +79,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { preop, intraop, postop, status, notes } = body
     const preopBase = req.headers.get("x-lospor-preop-updated-at")
     const postopBase = req.headers.get("x-lospor-postop-updated-at")
+    const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
     const forceUpdate = req.headers.get("x-lospor-force-update") === "true" ||
       (body as any).forceUpdate === true
+
+    // Reject an unparseable conflict header instead of silently skipping the
+    // guard (NaN comparisons are always false → a stale write would slip through).
+    for (const [name, h] of [["preop", preopBase], ["postop", postopBase], ["intraop", intraopBase]] as const) {
+      if (h && Number.isNaN(new Date(h).getTime())) {
+        return NextResponse.json({ error: `Invalid ${name} conflict timestamp` }, { status: 400 })
+      }
+    }
 
     if (!forceUpdate && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
       return NextResponse.json({
@@ -94,6 +103,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         error: "conflict",
         section: "postop",
         serverVersion: existing.postop,
+      }, { status: 409 })
+    }
+    if (!forceUpdate && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "intraop",
+        serverVersion: { updatedAt: existing.intraop.updatedAt },
       }, { status: 409 })
     }
 
@@ -128,7 +144,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Sentinel used to surface a conflict detected inside the transaction
     class ConflictError extends Error {
-      constructor(readonly section: "preop" | "postop", readonly serverVersion: unknown) { super("conflict") }
+      constructor(readonly section: "preop" | "postop" | "intraop", readonly serverVersion: unknown) { super("conflict") }
     }
 
     let finalStatus: string | undefined
@@ -139,7 +155,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         // between the outer read and the transaction start.
         const fresh = await tx.case.findUnique({
           where: { id },
-          select: { status: true, preop: { select: { updatedAt: true } }, postop: { select: { updatedAt: true } } },
+          select: {
+            status: true,
+            preop:   { select: { updatedAt: true } },
+            postop:  { select: { updatedAt: true } },
+            intraop: { select: { updatedAt: true } },
+          },
         })
         if (!forceUpdate && preop && preopBase && fresh?.preop?.updatedAt &&
             fresh.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
@@ -148,6 +169,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         if (!forceUpdate && postop && postopBase && fresh?.postop?.updatedAt &&
             fresh.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
           throw new ConflictError("postop", fresh.postop)
+        }
+        if (!forceUpdate && intraop && intraopBase && fresh?.intraop?.updatedAt &&
+            fresh.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+          throw new ConflictError("intraop", fresh.intraop)
         }
 
         if (preop) {
@@ -239,8 +264,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       select: {
         updatedAt: true,
         finalizedAt: true,
-        preop:  { select: { updatedAt: true } },
-        postop: { select: { updatedAt: true } },
+        preop:   { select: { updatedAt: true } },
+        postop:  { select: { updatedAt: true } },
+        intraop: { select: { updatedAt: true } },
       },
     })
 
@@ -250,6 +276,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       finalizedAt: updated?.finalizedAt,
       preopUpdatedAt: updated?.preop?.updatedAt,
       postopUpdatedAt: updated?.postop?.updatedAt,
+      intraopUpdatedAt: updated?.intraop?.updatedAt,
     })
   } catch (err: any) {
     if (err instanceof z.ZodError) {

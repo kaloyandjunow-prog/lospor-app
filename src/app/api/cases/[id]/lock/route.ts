@@ -34,6 +34,17 @@ async function resolveCase(
   return { userId: user.id, status: existing.status }
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age":       "86400",
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS })
+}
+
 const LOCK_TTL_MS = 30_000
 
 // ---------------------------------------------------------------------------
@@ -151,12 +162,10 @@ export async function DELETE(
   const body: { deviceId?: string; force?: boolean } = await req.json().catch(() => ({}))
 
   if (body.force === true) {
-    // Force-takeover: delete any lock on this case — only allowed by the case owner
-    const caseRecord = await prisma.case.findUnique({ where: { id }, select: { userId: true } })
-    if (!caseRecord) return NextResponse.json({ error: "Not found" }, { status: 404 })
-    if (caseRecord.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    // Force-takeover: delete any lock on this case. resolveCase() has already
+    // authorized the caller for this case (owner, admin, or same-institution HOD),
+    // so an admin/HOD editing someone else's case can clear a stale lock too —
+    // previously only the literal owner could, leaving them stuck behind it.
     await prisma.caseLock.deleteMany({ where: { caseId: id } })
     return NextResponse.json({ released: true, forced: true })
   }

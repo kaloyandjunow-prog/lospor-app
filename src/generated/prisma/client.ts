@@ -92,6 +92,16 @@ export type Icd11Alias = Prisma.Icd11AliasModel
  */
 export type RevokedToken = Prisma.RevokedTokenModel
 /**
+ * Model RateLimit
+ * 
+ */
+export type RateLimit = Prisma.RateLimitModel
+/**
+ * Model CaseEvent
+ * 
+ */
+export type CaseEvent = Prisma.CaseEventModel
+/**
  * Model AuditLog
  * 
  */
