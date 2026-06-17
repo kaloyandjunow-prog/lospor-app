@@ -51,7 +51,7 @@ git clone https://github.com/kaloyandjunow-prog/lospor-app.git
 cd lospor-app
 npm install
 cp .env.example .env   # fill in your values
-npx prisma db push
+npx prisma migrate deploy
 npx tsx prisma/seed.ts
 npm run dev
 ```

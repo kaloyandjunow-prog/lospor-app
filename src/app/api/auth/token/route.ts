@@ -47,8 +47,9 @@ export async function POST(req: NextRequest) {
     include: { institution: true },
   })
 
-  // Always run bcrypt to prevent email-enumeration via timing
-  const DUMMY = "$2b$12$dummy.hash.prevents.timing.attacks.on.email.existence.x"
+  // Always run bcrypt to prevent email-enumeration via timing. The dummy MUST be a
+  // real 60-char bcrypt hash, or bcryptjs short-circuits and defeats the constant time.
+  const DUMMY = "$2b$12$8Hgfmzh/eT3wO6GKKkEPoeC6rP9R5wI8M97v53FtBfe8chBgTrHpy"
   const hash  = user?.passwordHash ?? DUMMY
   const valid = await bcrypt.compare(body.password, hash)
 

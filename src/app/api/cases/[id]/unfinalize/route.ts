@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Undo window expired" }, { status: 403 })
   }
 
-  const UNDO_WINDOW_MS = 5 * 60 * 1000
+  const UNDO_WINDOW_MS = 30 * 60 * 1000   // matches the 30-min window shown in the apps
   if (Date.now() - caseRecord.finalizedAt.getTime() >= UNDO_WINDOW_MS) {
     return NextResponse.json({ error: "Undo window expired" }, { status: 403 })
   }

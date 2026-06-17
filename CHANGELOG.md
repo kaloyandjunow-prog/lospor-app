@@ -11,6 +11,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **CORS preflight** now allows `PUT` and the newer mobile/event headers (`x-lospor-intraop-updated-at`, `x-lospor-force-update`, `x-lospor-source`, `x-idempotency-key`). Browser/PWA intraoperative edits, conflict-detected saves, and idempotent offline replay previously failed preflight even though the routes would have accepted them (native was unaffected).
 - **Finalised cases are now protected on the event `PUT` path** (edit/delete reconciliation), matching `POST`/`PATCH` — a finalised intraoperative record can no longer be modified.
 - **Case codes use the current calendar year** (yearly numbering per user) instead of the user's registration year.
+- **HOD dashboard scoped to its own institution** — the dashboard queried the database directly and showed a Head of Department *every* case across all institutions; it now restricts to the HOD's own institution (a HOD with no institution sees only their own cases). Cross-institution data exposure fixed.
+- **Constant-time login** — login no longer returns early for unknown emails and uses a valid bcrypt dummy hash on both web and mobile paths, so response time can't reveal whether an email exists.
+- **Desktop "Ongoing cases" button** now reads the paginated `/api/cases` response (`{ cases, … }`) instead of expecting a raw array.
+- **Transfer route** now applies the explicit HOD null-institution guard used elsewhere (a HOD with no institution falls back to owner-only).
+- **Unfinalize undo window** extended from 5 to 30 minutes to match the window shown in the apps.
+- README quick start uses `prisma migrate deploy` instead of `prisma db push`.
 
 ### Removed
 - Stale developer scripts (`prisma/scrape-institutions.ts`, `scripts/process-data.ts`).

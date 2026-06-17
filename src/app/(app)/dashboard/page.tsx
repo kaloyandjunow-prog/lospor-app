@@ -20,14 +20,18 @@ const CASE_INCLUDE = {
   transfers: { where: { status: "PENDING" as const }, select: { id: true }, take: 1 },
 } as const
 
-function baseWhere(userId: string, role: string) {
-  return role === "ADMIN" || role === "HEAD_OF_DEPT" ? {} : { userId }
+function baseWhere(userId: string, role: string, institutionId?: string | null) {
+  if (role === "ADMIN") return {}
+  // A HOD sees only their OWN institution's cases — never the whole database.
+  // (A HOD with no institution falls back to owner-only, matching the API routes.)
+  if (role === "HEAD_OF_DEPT" && institutionId) return { user: { institutionId } }
+  return { userId }
 }
 
 // Full fetch (max 200) — used to derive stat counts for all scope chips
-async function fetchCases(userId: string, role: string) {
+async function fetchCases(userId: string, role: string, institutionId?: string | null) {
   return prisma.case.findMany({
-    where: baseWhere(userId, role),
+    where: baseWhere(userId, role, institutionId),
     include: CASE_INCLUDE,
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -36,7 +40,7 @@ async function fetchCases(userId: string, role: string) {
 
 // Scoped fetch — pushes non-"all" filters into the DB query so only relevant
 // rows are loaded when a specific scope tab is selected.
-async function fetchScopedCases(userId: string, role: string, scope: string, now: Date) {
+async function fetchScopedCases(userId: string, role: string, institutionId: string | null | undefined, scope: string, now: Date) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const scopeWhere: Record<string, unknown> =
@@ -47,7 +51,7 @@ async function fetchScopedCases(userId: string, role: string, scope: string, now
     : scope === "month"         ? { createdAt: { gte: startOfMonth } }
     : {}
   return prisma.case.findMany({
-    where: { ...baseWhere(userId, role), ...scopeWhere },
+    where: { ...baseWhere(userId, role, institutionId), ...scopeWhere },
     include: CASE_INCLUDE,
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -111,12 +115,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   const role          = (session.user as any).role ?? "MEMBER"
   const userId        = session.user!.id
+  const institutionId = (session.user as any).institutionId ?? null
   const now           = new Date()
 
   // Fetch full list for stat counts + scoped list for display in parallel
   const [cases, scopedCases] = await Promise.all([
-    fetchCases(userId, role),
-    scope !== "all" ? fetchScopedCases(userId, role, scope, now) : Promise.resolve(null),
+    fetchCases(userId, role, institutionId),
+    scope !== "all" ? fetchScopedCases(userId, role, institutionId, scope, now) : Promise.resolve(null),
   ])
 
   const totalCases = cases.length

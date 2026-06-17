@@ -39,7 +39,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const caseRecord = await prisma.case.findFirst({
     where: isAdmin ? { id: caseId }
-      : isHOD      ? { id: caseId, user: { institutionId: user.institutionId } }
+      // Explicit null guard: a HOD with no institution falls back to owner-only.
+      : (isHOD && user.institutionId) ? { id: caseId, user: { institutionId: user.institutionId } }
       : { id: caseId, userId: user.id },
   })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })

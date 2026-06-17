@@ -47,7 +47,11 @@ export function OngoingCasesButton() {
     setLoading(true)
     fetch("/api/cases")
       .then(r => r.json())
-      .then((data: CaseRow[]) => { setCases(data.filter(c => c.status !== "COMPLETE")); setLoading(false) })
+      .then((data: any) => {
+        // /api/cases returns { cases, total, skip, take }; tolerate a raw array too.
+        const rows: CaseRow[] = Array.isArray(data) ? data : (data?.cases ?? [])
+        setCases(rows.filter(c => c.status !== "COMPLETE")); setLoading(false)
+      })
       .catch(() => setLoading(false))
   }
   useEffect(() => { fetchCases() }, [])            // badge count on mount
