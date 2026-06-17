@@ -8,9 +8,10 @@ import { authConfig } from "@/lib/auth.config"
 // preflight because Authorization is a non-simple header.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  // x-lospor-* are the conflict-detection timestamp headers sent by the mobile PATCH requests
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-updated-at",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  // x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
+  // x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key",
   "Access-Control-Max-Age":       "86400",
 }
 

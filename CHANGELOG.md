@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.1] — 2026-06-17
+
+### Fixed
+- **CORS preflight** now allows `PUT` and the newer mobile/event headers (`x-lospor-intraop-updated-at`, `x-lospor-force-update`, `x-lospor-source`, `x-idempotency-key`). Browser/PWA intraoperative edits, conflict-detected saves, and idempotent offline replay previously failed preflight even though the routes would have accepted them (native was unaffected).
+- **Finalised cases are now protected on the event `PUT` path** (edit/delete reconciliation), matching `POST`/`PATCH` — a finalised intraoperative record can no longer be modified.
+- **Case codes use the current calendar year** (yearly numbering per user) instead of the user's registration year.
+
+### Removed
+- Stale developer scripts (`prisma/scrape-institutions.ts`, `scripts/process-data.ts`).
+
+---
+
 ## [1.1.0] — 2026-06-15
 
 ### Intraoperative event store (event-sourcing)

@@ -52,8 +52,8 @@ const nextConfig: NextConfig = {
       source: "/api/:path*",
       headers: [
         { key: "Access-Control-Allow-Origin",  value: corsOrigin },
-        { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, DELETE, OPTIONS" },
-        { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-updated-at" },
+        { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
+        { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key" },
       ],
     },
     {

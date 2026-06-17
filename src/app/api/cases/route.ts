@@ -19,8 +19,9 @@ export async function OPTIONS() {
 }
 
 async function generateCaseCode(userId: string): Promise<string> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } })
-  const prefix = `${user!.createdAt.getFullYear()}-`
+  // Yearly numbering: codes reset each calendar year, per user. Uniqueness is
+  // (userId, caseCode), so two users both holding e.g. 2026-0001 is fine.
+  const prefix = `${new Date().getFullYear()}-`
   // Base the next code on the highest existing one (not a row count) so a gap
   // left by a deleted draft can't collide with a still-existing higher code.
   const last = await prisma.case.findFirst({

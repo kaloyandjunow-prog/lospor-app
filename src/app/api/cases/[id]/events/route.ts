@@ -137,7 +137,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const auth = await authorize(req, id)
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
-  const { user } = auth
+  const { user, existing } = auth
+  if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
   const source = sourceFrom(req)
 
   const body = await req.json()
