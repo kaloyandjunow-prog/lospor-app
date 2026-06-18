@@ -85,7 +85,7 @@
 
 - **ASA suggestion** — advisory ASA class suggestion based on comorbidity tags and BMI; shown as a prompt, never overrides the clinician's choice.
 - **Lab scan** — mobile camera/gallery upload of lab reports; Mistral vision API extracts values for review before import.
-- **GDPR compliance** — all AI features use Mistral AI (EU-hosted) exclusively. US providers (Groq, OpenAI, Anthropic API) are not used. GDPR disclosure shown in UI whenever data is sent to AI. Lab scan includes an explicit instruction to crop patient identifiers before upload.
+- **Data protection (GDPR-oriented design)** — all AI features use Mistral AI (EU-hosted) exclusively. US providers (Groq, OpenAI, Anthropic API) are not used. A data-handling disclosure is shown in the UI whenever data is sent to AI. Lab scan includes an explicit instruction to crop patient identifiers before upload.
 
 ### ICD-11 Bulgarian Translation
 

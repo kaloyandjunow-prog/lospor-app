@@ -360,7 +360,7 @@ eas submit --platform android --profile production
 > • Postoperative documentation and handover checklists
 > • Offline-capable with automatic sync
 > • Bilingual: English and Bulgarian
-> • GDPR-compliant: no patient names stored, EU infrastructure only
+> • Built with GDPR in mind: no patient names stored, EU infrastructure only
 >
 > Designed for use in theatre — fast entry, thumb-friendly controls, dark clinical theme.
 
