@@ -5,6 +5,7 @@ import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkPII } from "@/lib/pii-check"
+import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { z } from "zod"
 
 const CORS = {
@@ -86,6 +87,8 @@ export async function POST(req: NextRequest) {
     }
 
     logAudit(userId, "CASE_CREATE", caseRecord.id)
+    // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
+    syncCaseRelationalSafe(prisma, caseRecord.id)
     return NextResponse.json({
       id: caseRecord.id,
       caseCode: caseRecord.caseCode,

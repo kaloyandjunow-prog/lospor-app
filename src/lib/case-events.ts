@@ -159,6 +159,10 @@ function buildRow(
   source: string,
 ) {
   const primary = ev.dose ?? (ev as any).value ?? ev.rate ?? ev.volume
+  // Typed vital columns (only for vital events) so vitals are queryable as columns.
+  const isVital = ev.type === "vital"
+  const numI = (v: unknown) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Math.round(Number(v)))
+  const numF = (v: unknown) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v))
   return {
     caseId,
     userId,
@@ -170,6 +174,12 @@ function buildRow(
     label:          (ev.label ?? ev.name ?? null) as string | null,
     value:          primary != null ? String(primary) : null,
     unit:           ev.unit ?? null,
+    systolic:       isVital ? numI(ev.systolic)  : null,
+    diastolic:      isVital ? numI(ev.diastolic) : null,
+    heartRate:      isVital ? numI(ev.heartRate) : null,
+    spO2:           isVital ? numF(ev.spO2)      : null,
+    etco2:          isVital ? numF(ev.etco2)     : null,
+    temp:           isVital ? numF(ev.temp)      : null,
     metadataJson:   ev as object,
     source,
     idempotencyKey,

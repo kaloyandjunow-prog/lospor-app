@@ -102,3 +102,33 @@ export type IntraoperativeRecord = Prisma.IntraoperativeRecordModel
  * 
  */
 export type PostoperativeRecord = Prisma.PostoperativeRecordModel
+/**
+ * Model PreopDiagnosis
+ * 
+ */
+export type PreopDiagnosis = Prisma.PreopDiagnosisModel
+/**
+ * Model PreopProcedure
+ * 
+ */
+export type PreopProcedure = Prisma.PreopProcedureModel
+/**
+ * Model Comorbidity
+ * 
+ */
+export type Comorbidity = Prisma.ComorbidityModel
+/**
+ * Model LabResult
+ * 
+ */
+export type LabResult = Prisma.LabResultModel
+/**
+ * Model VascularAccess
+ * 
+ */
+export type VascularAccess = Prisma.VascularAccessModel
+/**
+ * Model CaseSelection
+ * 
+ */
+export type CaseSelection = Prisma.CaseSelectionModel

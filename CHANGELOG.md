@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-06-18
+
+### Added — relational clinical data (JSON normalisation)
+- Clinical data previously stored only as JSON blobs is now also mirrored into
+  queryable SQL tables: **pre-op diagnoses, procedures, comorbidities, lab results**
+  (`PreopDiagnosis`, `PreopProcedure`, `Comorbidity`, `LabResult`), **intra-op
+  vascular accesses** (`VascularAccess`), and the controlled-vocabulary multi-selects
+  — positions, techniques, airway devices/tools, ventilation modes, handover items —
+  in a generic `CaseSelection` table. Intra-op **vitals** gained typed columns on
+  `CaseEvent` (`systolic/diastolic/heartRate/spO2/etco2/temp`).
+- The JSON columns remain authoritative and are still the apps' read path, so there
+  is **no user-visible change and no slowdown** — the rows are an indexed query
+  surface for research and exports.
+- Rows are written **best-effort** on each case save (a sync failure can never block
+  a clinical save) and are reconciled (delete + re-insert) so they can't drift.
+  Backfill script (`scripts/backfill-relational.ts`) populates existing data.
+
+### Migration
+- `20260618000000_relational_clinical_rows` — additive: 6 new tables + 6 nullable
+  `CaseEvent` columns. No existing column changed or dropped.
+
+---
+
 ## [1.1.1] — 2026-06-17
 
 ### Fixed

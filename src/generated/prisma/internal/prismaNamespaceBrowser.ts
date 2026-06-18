@@ -67,7 +67,13 @@ export const ModelName = {
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
   IntraoperativeRecord: 'IntraoperativeRecord',
-  PostoperativeRecord: 'PostoperativeRecord'
+  PostoperativeRecord: 'PostoperativeRecord',
+  PreopDiagnosis: 'PreopDiagnosis',
+  PreopProcedure: 'PreopProcedure',
+  Comorbidity: 'Comorbidity',
+  LabResult: 'LabResult',
+  VascularAccess: 'VascularAccess',
+  CaseSelection: 'CaseSelection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -224,6 +230,12 @@ export const CaseEventScalarFieldEnum = {
   label: 'label',
   value: 'value',
   unit: 'unit',
+  systolic: 'systolic',
+  diastolic: 'diastolic',
+  heartRate: 'heartRate',
+  spO2: 'spO2',
+  etco2: 'etco2',
+  temp: 'temp',
   metadataJson: 'metadataJson',
   source: 'source',
   idempotencyKey: 'idempotencyKey',
@@ -430,6 +442,91 @@ export const PostoperativeRecordScalarFieldEnum = {
 } as const
 
 export type PostoperativeRecordScalarFieldEnum = (typeof PostoperativeRecordScalarFieldEnum)[keyof typeof PostoperativeRecordScalarFieldEnum]
+
+
+export const PreopDiagnosisScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  code: 'code',
+  label: 'label',
+  system: 'system',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PreopDiagnosisScalarFieldEnum = (typeof PreopDiagnosisScalarFieldEnum)[keyof typeof PreopDiagnosisScalarFieldEnum]
+
+
+export const PreopProcedureScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  code: 'code',
+  group: 'group',
+  domain: 'domain',
+  description: 'description',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PreopProcedureScalarFieldEnum = (typeof PreopProcedureScalarFieldEnum)[keyof typeof PreopProcedureScalarFieldEnum]
+
+
+export const ComorbidityScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  label: 'label',
+  code: 'code',
+  system: 'system',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type ComorbidityScalarFieldEnum = (typeof ComorbidityScalarFieldEnum)[keyof typeof ComorbidityScalarFieldEnum]
+
+
+export const LabResultScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  test: 'test',
+  value: 'value',
+  unit: 'unit',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type LabResultScalarFieldEnum = (typeof LabResultScalarFieldEnum)[keyof typeof LabResultScalarFieldEnum]
+
+
+export const VascularAccessScalarFieldEnum = {
+  id: 'id',
+  intraopId: 'intraopId',
+  caseId: 'caseId',
+  site: 'site',
+  siteLabel: 'siteLabel',
+  size: 'size',
+  sizeUnit: 'sizeUnit',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type VascularAccessScalarFieldEnum = (typeof VascularAccessScalarFieldEnum)[keyof typeof VascularAccessScalarFieldEnum]
+
+
+export const CaseSelectionScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  category: 'category',
+  value: 'value',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type CaseSelectionScalarFieldEnum = (typeof CaseSelectionScalarFieldEnum)[keyof typeof CaseSelectionScalarFieldEnum]
 
 
 export const SortOrder = {

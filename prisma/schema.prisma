@@ -68,6 +68,7 @@ model Case {
   transfers     CaseTransfer[]
   lock          CaseLock?
   events        CaseEvent[]
+  selections    CaseSelection[]
 
   @@unique([userId, caseCode])
   @@index([status])
@@ -182,6 +183,13 @@ model CaseEvent {
   label          String?
   value          String?
   unit           String?
+  // Typed vital values (populated when type = "vital") so vitals are queryable as columns
+  systolic       Int?
+  diastolic      Int?
+  heartRate      Int?
+  spO2           Float?
+  etco2          Float?
+  temp           Float?
   metadataJson   Json?
   source         String   @default("mobile")
   idempotencyKey String   @unique
@@ -303,6 +311,12 @@ model PreoperativeAssessment {
 
   aiOptIn   Boolean @default(false)
 
+  // Normalised mirrors of the JSON arrays above (queryable; written best-effort)
+  diagnoses       PreopDiagnosis[]
+  procedureRows   PreopProcedure[]
+  comorbidityRows Comorbidity[]
+  labRows         LabResult[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -389,6 +403,9 @@ model IntraoperativeRecord {
   keyEvents      Json @default("[]")
 
   complications String?
+
+  // Normalised mirror of vascularAccesses JSON (queryable; written best-effort)
+  vascularAccessRows VascularAccess[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -555,4 +572,106 @@ enum Disposition {
   WARD
   PACU
   ICU
+}
+
+// ─── Normalised clinical rows (v1.2) ─────────────────────────────────────────
+// These mirror JSON arrays on the section records as queryable rows. They are
+// written best-effort alongside the JSON (which stays authoritative), so a sync
+// failure never blocks a clinical save. caseId is denormalised for research joins.
+
+model PreopDiagnosis {
+  id        String                 @id @default(cuid())
+  preopId   String
+  preop     PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
+  caseId    String
+  code      String?
+  label     String
+  system    String?
+  ordinal   Int                    @default(0)
+  createdAt DateTime               @default(now())
+
+  @@index([caseId])
+  @@index([preopId])
+  @@index([code])
+}
+
+model PreopProcedure {
+  id          String                 @id @default(cuid())
+  preopId     String
+  preop       PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
+  caseId      String
+  code        String?
+  group       String?
+  domain      String?
+  description String?
+  ordinal     Int                    @default(0)
+  createdAt   DateTime               @default(now())
+
+  @@index([caseId])
+  @@index([preopId])
+  @@index([code])
+}
+
+model Comorbidity {
+  id        String                 @id @default(cuid())
+  preopId   String
+  preop     PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
+  caseId    String
+  label     String
+  code      String?
+  system    String?
+  ordinal   Int                    @default(0)
+  createdAt DateTime               @default(now())
+
+  @@index([caseId])
+  @@index([preopId])
+  @@index([code])
+}
+
+model LabResult {
+  id        String                 @id @default(cuid())
+  preopId   String
+  preop     PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
+  caseId    String
+  test      String
+  value     String?
+  unit      String?
+  ordinal   Int                    @default(0)
+  createdAt DateTime               @default(now())
+
+  @@index([caseId])
+  @@index([preopId])
+  @@index([test])
+}
+
+model VascularAccess {
+  id        String               @id @default(cuid())
+  intraopId String
+  intraop   IntraoperativeRecord @relation(fields: [intraopId], references: [id], onDelete: Cascade)
+  caseId    String
+  site      String?
+  siteLabel String?
+  size      String?
+  sizeUnit  String?
+  ordinal   Int                  @default(0)
+  createdAt DateTime             @default(now())
+
+  @@index([caseId])
+  @@index([intraopId])
+}
+
+// Generic store for controlled-vocabulary multi-selects (positions, techniques,
+// airway devices/tools, ventilation modes, handover items).
+model CaseSelection {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  section   String   // "intraop" | "postop"
+  category  String   // "position" | "technique" | "airwayTool" | "airwayDevice" | "ventilationMode" | "handoverItem"
+  value     String
+  ordinal   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
+  @@index([category, value])
 }

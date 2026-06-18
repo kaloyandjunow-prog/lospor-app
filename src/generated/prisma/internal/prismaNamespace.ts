@@ -400,7 +400,13 @@ export const ModelName = {
   CustomTerm: 'CustomTerm',
   PreoperativeAssessment: 'PreoperativeAssessment',
   IntraoperativeRecord: 'IntraoperativeRecord',
-  PostoperativeRecord: 'PostoperativeRecord'
+  PostoperativeRecord: 'PostoperativeRecord',
+  PreopDiagnosis: 'PreopDiagnosis',
+  PreopProcedure: 'PreopProcedure',
+  Comorbidity: 'Comorbidity',
+  LabResult: 'LabResult',
+  VascularAccess: 'VascularAccess',
+  CaseSelection: 'CaseSelection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "icd11Alias" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord"
+    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "icd11Alias" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord" | "preopDiagnosis" | "preopProcedure" | "comorbidity" | "labResult" | "vascularAccess" | "caseSelection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1678,6 +1684,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PreopDiagnosis: {
+      payload: Prisma.$PreopDiagnosisPayload<ExtArgs>
+      fields: Prisma.PreopDiagnosisFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PreopDiagnosisFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PreopDiagnosisFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        findFirst: {
+          args: Prisma.PreopDiagnosisFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PreopDiagnosisFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        findMany: {
+          args: Prisma.PreopDiagnosisFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>[]
+        }
+        create: {
+          args: Prisma.PreopDiagnosisCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        createMany: {
+          args: Prisma.PreopDiagnosisCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PreopDiagnosisCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>[]
+        }
+        delete: {
+          args: Prisma.PreopDiagnosisDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        update: {
+          args: Prisma.PreopDiagnosisUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        deleteMany: {
+          args: Prisma.PreopDiagnosisDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PreopDiagnosisUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PreopDiagnosisUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>[]
+        }
+        upsert: {
+          args: Prisma.PreopDiagnosisUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopDiagnosisPayload>
+        }
+        aggregate: {
+          args: Prisma.PreopDiagnosisAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePreopDiagnosis>
+        }
+        groupBy: {
+          args: Prisma.PreopDiagnosisGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PreopDiagnosisGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PreopDiagnosisCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PreopDiagnosisCountAggregateOutputType> | number
+        }
+      }
+    }
+    PreopProcedure: {
+      payload: Prisma.$PreopProcedurePayload<ExtArgs>
+      fields: Prisma.PreopProcedureFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PreopProcedureFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PreopProcedureFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        findFirst: {
+          args: Prisma.PreopProcedureFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PreopProcedureFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        findMany: {
+          args: Prisma.PreopProcedureFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>[]
+        }
+        create: {
+          args: Prisma.PreopProcedureCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        createMany: {
+          args: Prisma.PreopProcedureCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PreopProcedureCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>[]
+        }
+        delete: {
+          args: Prisma.PreopProcedureDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        update: {
+          args: Prisma.PreopProcedureUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        deleteMany: {
+          args: Prisma.PreopProcedureDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PreopProcedureUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PreopProcedureUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>[]
+        }
+        upsert: {
+          args: Prisma.PreopProcedureUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PreopProcedurePayload>
+        }
+        aggregate: {
+          args: Prisma.PreopProcedureAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePreopProcedure>
+        }
+        groupBy: {
+          args: Prisma.PreopProcedureGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PreopProcedureGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PreopProcedureCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PreopProcedureCountAggregateOutputType> | number
+        }
+      }
+    }
+    Comorbidity: {
+      payload: Prisma.$ComorbidityPayload<ExtArgs>
+      fields: Prisma.ComorbidityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ComorbidityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ComorbidityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        findFirst: {
+          args: Prisma.ComorbidityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ComorbidityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        findMany: {
+          args: Prisma.ComorbidityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>[]
+        }
+        create: {
+          args: Prisma.ComorbidityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        createMany: {
+          args: Prisma.ComorbidityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ComorbidityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>[]
+        }
+        delete: {
+          args: Prisma.ComorbidityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        update: {
+          args: Prisma.ComorbidityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        deleteMany: {
+          args: Prisma.ComorbidityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ComorbidityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ComorbidityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>[]
+        }
+        upsert: {
+          args: Prisma.ComorbidityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ComorbidityPayload>
+        }
+        aggregate: {
+          args: Prisma.ComorbidityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateComorbidity>
+        }
+        groupBy: {
+          args: Prisma.ComorbidityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ComorbidityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ComorbidityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ComorbidityCountAggregateOutputType> | number
+        }
+      }
+    }
+    LabResult: {
+      payload: Prisma.$LabResultPayload<ExtArgs>
+      fields: Prisma.LabResultFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LabResultFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LabResultFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        findFirst: {
+          args: Prisma.LabResultFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LabResultFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        findMany: {
+          args: Prisma.LabResultFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>[]
+        }
+        create: {
+          args: Prisma.LabResultCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        createMany: {
+          args: Prisma.LabResultCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LabResultCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>[]
+        }
+        delete: {
+          args: Prisma.LabResultDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        update: {
+          args: Prisma.LabResultUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        deleteMany: {
+          args: Prisma.LabResultDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LabResultUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LabResultUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>[]
+        }
+        upsert: {
+          args: Prisma.LabResultUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabResultPayload>
+        }
+        aggregate: {
+          args: Prisma.LabResultAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLabResult>
+        }
+        groupBy: {
+          args: Prisma.LabResultGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LabResultGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LabResultCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LabResultCountAggregateOutputType> | number
+        }
+      }
+    }
+    VascularAccess: {
+      payload: Prisma.$VascularAccessPayload<ExtArgs>
+      fields: Prisma.VascularAccessFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VascularAccessFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VascularAccessFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        findFirst: {
+          args: Prisma.VascularAccessFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VascularAccessFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        findMany: {
+          args: Prisma.VascularAccessFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>[]
+        }
+        create: {
+          args: Prisma.VascularAccessCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        createMany: {
+          args: Prisma.VascularAccessCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VascularAccessCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>[]
+        }
+        delete: {
+          args: Prisma.VascularAccessDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        update: {
+          args: Prisma.VascularAccessUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        deleteMany: {
+          args: Prisma.VascularAccessDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VascularAccessUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VascularAccessUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>[]
+        }
+        upsert: {
+          args: Prisma.VascularAccessUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VascularAccessPayload>
+        }
+        aggregate: {
+          args: Prisma.VascularAccessAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVascularAccess>
+        }
+        groupBy: {
+          args: Prisma.VascularAccessGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VascularAccessGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VascularAccessCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VascularAccessCountAggregateOutputType> | number
+        }
+      }
+    }
+    CaseSelection: {
+      payload: Prisma.$CaseSelectionPayload<ExtArgs>
+      fields: Prisma.CaseSelectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CaseSelectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CaseSelectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        findFirst: {
+          args: Prisma.CaseSelectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CaseSelectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        findMany: {
+          args: Prisma.CaseSelectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>[]
+        }
+        create: {
+          args: Prisma.CaseSelectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        createMany: {
+          args: Prisma.CaseSelectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CaseSelectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>[]
+        }
+        delete: {
+          args: Prisma.CaseSelectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        update: {
+          args: Prisma.CaseSelectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.CaseSelectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CaseSelectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CaseSelectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.CaseSelectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSelectionPayload>
+        }
+        aggregate: {
+          args: Prisma.CaseSelectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCaseSelection>
+        }
+        groupBy: {
+          args: Prisma.CaseSelectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseSelectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CaseSelectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseSelectionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1855,6 +2305,12 @@ export const CaseEventScalarFieldEnum = {
   label: 'label',
   value: 'value',
   unit: 'unit',
+  systolic: 'systolic',
+  diastolic: 'diastolic',
+  heartRate: 'heartRate',
+  spO2: 'spO2',
+  etco2: 'etco2',
+  temp: 'temp',
   metadataJson: 'metadataJson',
   source: 'source',
   idempotencyKey: 'idempotencyKey',
@@ -2063,6 +2519,91 @@ export const PostoperativeRecordScalarFieldEnum = {
 export type PostoperativeRecordScalarFieldEnum = (typeof PostoperativeRecordScalarFieldEnum)[keyof typeof PostoperativeRecordScalarFieldEnum]
 
 
+export const PreopDiagnosisScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  code: 'code',
+  label: 'label',
+  system: 'system',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PreopDiagnosisScalarFieldEnum = (typeof PreopDiagnosisScalarFieldEnum)[keyof typeof PreopDiagnosisScalarFieldEnum]
+
+
+export const PreopProcedureScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  code: 'code',
+  group: 'group',
+  domain: 'domain',
+  description: 'description',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PreopProcedureScalarFieldEnum = (typeof PreopProcedureScalarFieldEnum)[keyof typeof PreopProcedureScalarFieldEnum]
+
+
+export const ComorbidityScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  label: 'label',
+  code: 'code',
+  system: 'system',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type ComorbidityScalarFieldEnum = (typeof ComorbidityScalarFieldEnum)[keyof typeof ComorbidityScalarFieldEnum]
+
+
+export const LabResultScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  test: 'test',
+  value: 'value',
+  unit: 'unit',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type LabResultScalarFieldEnum = (typeof LabResultScalarFieldEnum)[keyof typeof LabResultScalarFieldEnum]
+
+
+export const VascularAccessScalarFieldEnum = {
+  id: 'id',
+  intraopId: 'intraopId',
+  caseId: 'caseId',
+  site: 'site',
+  siteLabel: 'siteLabel',
+  size: 'size',
+  sizeUnit: 'sizeUnit',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type VascularAccessScalarFieldEnum = (typeof VascularAccessScalarFieldEnum)[keyof typeof VascularAccessScalarFieldEnum]
+
+
+export const CaseSelectionScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  category: 'category',
+  value: 'value',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type CaseSelectionScalarFieldEnum = (typeof CaseSelectionScalarFieldEnum)[keyof typeof CaseSelectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2216,6 +2757,20 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -2240,20 +2795,6 @@ export type EnumSexFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Sex[]'
  */
 export type ListEnumSexFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Sex[]'>
-    
-
-
-/**
- * Reference to a field of type 'Float'
- */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-/**
- * Reference to a field of type 'Float[]'
- */
-export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 
@@ -2572,6 +3113,12 @@ export type GlobalOmitConfig = {
   preoperativeAssessment?: Prisma.PreoperativeAssessmentOmit
   intraoperativeRecord?: Prisma.IntraoperativeRecordOmit
   postoperativeRecord?: Prisma.PostoperativeRecordOmit
+  preopDiagnosis?: Prisma.PreopDiagnosisOmit
+  preopProcedure?: Prisma.PreopProcedureOmit
+  comorbidity?: Prisma.ComorbidityOmit
+  labResult?: Prisma.LabResultOmit
+  vascularAccess?: Prisma.VascularAccessOmit
+  caseSelection?: Prisma.CaseSelectionOmit
 }
 
 /* Types for Logging */

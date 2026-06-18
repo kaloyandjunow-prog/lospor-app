@@ -28,10 +28,22 @@ export type AggregateCaseEvent = {
 
 export type CaseEventAvgAggregateOutputType = {
   version: number | null
+  systolic: number | null
+  diastolic: number | null
+  heartRate: number | null
+  spO2: number | null
+  etco2: number | null
+  temp: number | null
 }
 
 export type CaseEventSumAggregateOutputType = {
   version: number | null
+  systolic: number | null
+  diastolic: number | null
+  heartRate: number | null
+  spO2: number | null
+  etco2: number | null
+  temp: number | null
 }
 
 export type CaseEventMinAggregateOutputType = {
@@ -46,6 +58,12 @@ export type CaseEventMinAggregateOutputType = {
   label: string | null
   value: string | null
   unit: string | null
+  systolic: number | null
+  diastolic: number | null
+  heartRate: number | null
+  spO2: number | null
+  etco2: number | null
+  temp: number | null
   source: string | null
   idempotencyKey: string | null
   createdAt: Date | null
@@ -64,6 +82,12 @@ export type CaseEventMaxAggregateOutputType = {
   label: string | null
   value: string | null
   unit: string | null
+  systolic: number | null
+  diastolic: number | null
+  heartRate: number | null
+  spO2: number | null
+  etco2: number | null
+  temp: number | null
   source: string | null
   idempotencyKey: string | null
   createdAt: Date | null
@@ -82,6 +106,12 @@ export type CaseEventCountAggregateOutputType = {
   label: number
   value: number
   unit: number
+  systolic: number
+  diastolic: number
+  heartRate: number
+  spO2: number
+  etco2: number
+  temp: number
   metadataJson: number
   source: number
   idempotencyKey: number
@@ -93,10 +123,22 @@ export type CaseEventCountAggregateOutputType = {
 
 export type CaseEventAvgAggregateInputType = {
   version?: true
+  systolic?: true
+  diastolic?: true
+  heartRate?: true
+  spO2?: true
+  etco2?: true
+  temp?: true
 }
 
 export type CaseEventSumAggregateInputType = {
   version?: true
+  systolic?: true
+  diastolic?: true
+  heartRate?: true
+  spO2?: true
+  etco2?: true
+  temp?: true
 }
 
 export type CaseEventMinAggregateInputType = {
@@ -111,6 +153,12 @@ export type CaseEventMinAggregateInputType = {
   label?: true
   value?: true
   unit?: true
+  systolic?: true
+  diastolic?: true
+  heartRate?: true
+  spO2?: true
+  etco2?: true
+  temp?: true
   source?: true
   idempotencyKey?: true
   createdAt?: true
@@ -129,6 +177,12 @@ export type CaseEventMaxAggregateInputType = {
   label?: true
   value?: true
   unit?: true
+  systolic?: true
+  diastolic?: true
+  heartRate?: true
+  spO2?: true
+  etco2?: true
+  temp?: true
   source?: true
   idempotencyKey?: true
   createdAt?: true
@@ -147,6 +201,12 @@ export type CaseEventCountAggregateInputType = {
   label?: true
   value?: true
   unit?: true
+  systolic?: true
+  diastolic?: true
+  heartRate?: true
+  spO2?: true
+  etco2?: true
+  temp?: true
   metadataJson?: true
   source?: true
   idempotencyKey?: true
@@ -253,6 +313,12 @@ export type CaseEventGroupByOutputType = {
   label: string | null
   value: string | null
   unit: string | null
+  systolic: number | null
+  diastolic: number | null
+  heartRate: number | null
+  spO2: number | null
+  etco2: number | null
+  temp: number | null
   metadataJson: runtime.JsonValue | null
   source: string
   idempotencyKey: string
@@ -295,6 +361,12 @@ export type CaseEventWhereInput = {
   label?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   value?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   unit?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  systolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  diastolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  heartRate?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
@@ -315,6 +387,12 @@ export type CaseEventOrderByWithRelationInput = {
   label?: Prisma.SortOrderInput | Prisma.SortOrder
   value?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
+  systolic?: Prisma.SortOrderInput | Prisma.SortOrder
+  diastolic?: Prisma.SortOrderInput | Prisma.SortOrder
+  heartRate?: Prisma.SortOrderInput | Prisma.SortOrder
+  spO2?: Prisma.SortOrderInput | Prisma.SortOrder
+  etco2?: Prisma.SortOrderInput | Prisma.SortOrder
+  temp?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -339,6 +417,12 @@ export type CaseEventWhereUniqueInput = Prisma.AtLeast<{
   label?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   value?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   unit?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  systolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  diastolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  heartRate?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   createdAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
@@ -358,6 +442,12 @@ export type CaseEventOrderByWithAggregationInput = {
   label?: Prisma.SortOrderInput | Prisma.SortOrder
   value?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
+  systolic?: Prisma.SortOrderInput | Prisma.SortOrder
+  diastolic?: Prisma.SortOrderInput | Prisma.SortOrder
+  heartRate?: Prisma.SortOrderInput | Prisma.SortOrder
+  spO2?: Prisma.SortOrderInput | Prisma.SortOrder
+  etco2?: Prisma.SortOrderInput | Prisma.SortOrder
+  temp?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -385,6 +475,12 @@ export type CaseEventScalarWhereWithAggregatesInput = {
   label?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   value?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   unit?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  systolic?: Prisma.IntNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  diastolic?: Prisma.IntNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  heartRate?: Prisma.IntNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  spO2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  etco2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  temp?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   metadataJson?: Prisma.JsonNullableWithAggregatesFilter<"CaseEvent">
   source?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
@@ -403,6 +499,12 @@ export type CaseEventCreateInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -423,6 +525,12 @@ export type CaseEventUncheckedCreateInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -441,6 +549,12 @@ export type CaseEventUpdateInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -461,6 +575,12 @@ export type CaseEventUncheckedUpdateInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -480,6 +600,12 @@ export type CaseEventCreateManyInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -498,6 +624,12 @@ export type CaseEventUpdateManyMutationInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -517,6 +649,12 @@ export type CaseEventUncheckedUpdateManyInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -546,6 +684,12 @@ export type CaseEventCountOrderByAggregateInput = {
   label?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  systolic?: Prisma.SortOrder
+  diastolic?: Prisma.SortOrder
+  heartRate?: Prisma.SortOrder
+  spO2?: Prisma.SortOrder
+  etco2?: Prisma.SortOrder
+  temp?: Prisma.SortOrder
   metadataJson?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -555,6 +699,12 @@ export type CaseEventCountOrderByAggregateInput = {
 
 export type CaseEventAvgOrderByAggregateInput = {
   version?: Prisma.SortOrder
+  systolic?: Prisma.SortOrder
+  diastolic?: Prisma.SortOrder
+  heartRate?: Prisma.SortOrder
+  spO2?: Prisma.SortOrder
+  etco2?: Prisma.SortOrder
+  temp?: Prisma.SortOrder
 }
 
 export type CaseEventMaxOrderByAggregateInput = {
@@ -569,6 +719,12 @@ export type CaseEventMaxOrderByAggregateInput = {
   label?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  systolic?: Prisma.SortOrder
+  diastolic?: Prisma.SortOrder
+  heartRate?: Prisma.SortOrder
+  spO2?: Prisma.SortOrder
+  etco2?: Prisma.SortOrder
+  temp?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -587,6 +743,12 @@ export type CaseEventMinOrderByAggregateInput = {
   label?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  systolic?: Prisma.SortOrder
+  diastolic?: Prisma.SortOrder
+  heartRate?: Prisma.SortOrder
+  spO2?: Prisma.SortOrder
+  etco2?: Prisma.SortOrder
+  temp?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -595,6 +757,12 @@ export type CaseEventMinOrderByAggregateInput = {
 
 export type CaseEventSumOrderByAggregateInput = {
   version?: Prisma.SortOrder
+  systolic?: Prisma.SortOrder
+  diastolic?: Prisma.SortOrder
+  heartRate?: Prisma.SortOrder
+  spO2?: Prisma.SortOrder
+  etco2?: Prisma.SortOrder
+  temp?: Prisma.SortOrder
 }
 
 export type CaseEventCreateNestedManyWithoutCaseInput = {
@@ -639,6 +807,22 @@ export type CaseEventUncheckedUpdateManyWithoutCaseNestedInput = {
   deleteMany?: Prisma.CaseEventScalarWhereInput | Prisma.CaseEventScalarWhereInput[]
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type CaseEventCreateWithoutCaseInput = {
   id?: string
   userId?: string | null
@@ -650,6 +834,12 @@ export type CaseEventCreateWithoutCaseInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -668,6 +858,12 @@ export type CaseEventUncheckedCreateWithoutCaseInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -716,6 +912,12 @@ export type CaseEventScalarWhereInput = {
   label?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   value?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   unit?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  systolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  diastolic?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  heartRate?: Prisma.IntNullableFilter<"CaseEvent"> | number | null
+  spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
@@ -734,6 +936,12 @@ export type CaseEventCreateManyCaseInput = {
   label?: string | null
   value?: string | null
   unit?: string | null
+  systolic?: number | null
+  diastolic?: number | null
+  heartRate?: number | null
+  spO2?: number | null
+  etco2?: number | null
+  temp?: number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -752,6 +960,12 @@ export type CaseEventUpdateWithoutCaseInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -770,6 +984,12 @@ export type CaseEventUncheckedUpdateWithoutCaseInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -788,6 +1008,12 @@ export type CaseEventUncheckedUpdateManyWithoutCaseInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  systolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  diastolic?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  heartRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -809,6 +1035,12 @@ export type CaseEventSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   label?: boolean
   value?: boolean
   unit?: boolean
+  systolic?: boolean
+  diastolic?: boolean
+  heartRate?: boolean
+  spO2?: boolean
+  etco2?: boolean
+  temp?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -829,6 +1061,12 @@ export type CaseEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   label?: boolean
   value?: boolean
   unit?: boolean
+  systolic?: boolean
+  diastolic?: boolean
+  heartRate?: boolean
+  spO2?: boolean
+  etco2?: boolean
+  temp?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -849,6 +1087,12 @@ export type CaseEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   label?: boolean
   value?: boolean
   unit?: boolean
+  systolic?: boolean
+  diastolic?: boolean
+  heartRate?: boolean
+  spO2?: boolean
+  etco2?: boolean
+  temp?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -869,6 +1113,12 @@ export type CaseEventSelectScalar = {
   label?: boolean
   value?: boolean
   unit?: boolean
+  systolic?: boolean
+  diastolic?: boolean
+  heartRate?: boolean
+  spO2?: boolean
+  etco2?: boolean
+  temp?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -876,7 +1126,7 @@ export type CaseEventSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "metadataJson" | "source" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
+export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "systolic" | "diastolic" | "heartRate" | "spO2" | "etco2" | "temp" | "metadataJson" | "source" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
 export type CaseEventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -904,6 +1154,12 @@ export type $CaseEventPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     label: string | null
     value: string | null
     unit: string | null
+    systolic: number | null
+    diastolic: number | null
+    heartRate: number | null
+    spO2: number | null
+    etco2: number | null
+    temp: number | null
     metadataJson: runtime.JsonValue | null
     source: string
     idempotencyKey: string
@@ -1344,6 +1600,12 @@ export interface CaseEventFieldRefs {
   readonly label: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly value: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly unit: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly systolic: Prisma.FieldRef<"CaseEvent", 'Int'>
+  readonly diastolic: Prisma.FieldRef<"CaseEvent", 'Int'>
+  readonly heartRate: Prisma.FieldRef<"CaseEvent", 'Int'>
+  readonly spO2: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly etco2: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly temp: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly metadataJson: Prisma.FieldRef<"CaseEvent", 'Json'>
   readonly source: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly idempotencyKey: Prisma.FieldRef<"CaseEvent", 'String'>

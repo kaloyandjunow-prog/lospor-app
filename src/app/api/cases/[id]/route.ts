@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit"
 import caseEmitter from "@/lib/caseEmitter"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkPII } from "@/lib/pii-check"
+import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 
 const CORS = {
   "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
@@ -248,6 +249,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     logAudit(userId, "CASE_UPDATE", id, finalStatus ? { from: existing.status, to: finalStatus } : undefined)
+    // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
+    syncCaseRelationalSafe(prisma, id)
     caseEmitter.emit(id, {
       type: "case_updated",
       sections: {
