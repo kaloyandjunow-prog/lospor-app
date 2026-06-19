@@ -34,7 +34,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Written best-effort after each PATCH — never blocks a clinical save.
 
 **Finalisation snapshot (Theme E)**
-- New `CaseSnapshot` table: immutable full-case snapshot written on COMPLETE transition.
+- New `CaseSnapshot` table: full-case snapshot written on COMPLETE transition (one row per case, updated on re-finalization).
 - Includes schema version (`2.0.0`) so published datasets can cite the exact structure.
 
 **Relational validator (Theme A2)**

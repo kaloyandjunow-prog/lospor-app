@@ -13,7 +13,7 @@ import { writeFieldDiffsSafe, writeSnapshotSafe } from "@/lib/case-audit"
 const CORS = {
   "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-updated-at",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-updated-at, x-lospor-intraop-updated-at, x-lospor-force-update",
   "Access-Control-Max-Age":       "86400",
 }
 

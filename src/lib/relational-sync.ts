@@ -158,13 +158,22 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
 
   if (c.preop) {
     const p = c.preop
-    // Parse currentMedications: can be string (legacy) or JSON array
+    // Parse currentMedications: JSON array, or legacy plain-text (comma/newline separated)
     let medJson: unknown = []
-    try {
-      if (typeof p.currentMedications === "string" && p.currentMedications.trim().startsWith("[")) {
-        medJson = JSON.parse(p.currentMedications)
+    const rawMeds = p.currentMedications
+    if (typeof rawMeds === "string" && rawMeds.trim()) {
+      const trimmed = rawMeds.trim()
+      if (trimmed.startsWith("[")) {
+        try { medJson = JSON.parse(trimmed) } catch { /* leave empty */ }
+      } else {
+        // Legacy plain text: split on commas or newlines → each item becomes a nameRaw entry
+        medJson = trimmed
+          .split(/[,\n]+/)
+          .map(s => s.trim())
+          .filter(Boolean)
+          .map(s => ({ label: s }))
       }
-    } catch { /* leave empty */ }
+    }
 
     const labData = await labRowsWithLoinc(p.id, caseId, p.labResults, loincMap)
 

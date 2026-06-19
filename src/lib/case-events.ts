@@ -32,6 +32,8 @@ export type LogEvent = {
   volume?: string
   label?: string
   value?: string
+  atcCode?: string
+  drugRoute?: string
 }
 
 // ─── Projection (moved verbatim from the events route) ───────────────────────
@@ -183,6 +185,8 @@ function buildRow(
     metadataJson:   ev as object,
     source,
     idempotencyKey,
+    atcCode:        ev.atcCode ?? null,
+    drugRoute:      ev.drugRoute ?? null,
   }
 }
 

@@ -157,12 +157,14 @@ async function seedIcd10Concepts(): Promise<Map<string, string>> {
 // ── Step 3: ICD-10CM→ICD-10 mappings + synonyms ──────────────────────────────
 
 async function seedIcd10CmSynonyms(icd10ConceptIds: Map<string, string>) {
-  // First: build ICD-10CM concept_id → ICD-10 code map via CONCEPT_RELATIONSHIP.csv
-  const relFile = path.join(VOCAB_DIR, "CONCEPT_RELATIONSHIP.csv")
-  console.log("Building ICD-10CM→ICD-10 mapping from CONCEPT_RELATIONSHIP.csv...")
+  // Build ICD-10CM concept_id → ICD-10 code via code-prefix matching.
+  // Athena "Maps to" only points to SNOMED (standard), not cross-source-vocab.
+  // ICD-10CM codes are extensions of ICD-10: e.g. J18.90 → J18.9, A00.01 → A00.0
+  const icd10CodeSet = new Set(icd10ConceptIds.values())
+  console.log("Building ICD-10CM→ICD-10 mapping by code-prefix from CONCEPT.csv...")
   const cm10Map = new Map<string, string>() // CM concept_id → ICD-10 code
 
-  const rl1 = csvStream(relFile)
+  const rl1 = csvStream(path.join(VOCAB_DIR, "CONCEPT.csv"))
   let headers: string[] = []
   let lineNo = 0
 
@@ -173,11 +175,18 @@ async function seedIcd10CmSynonyms(icd10ConceptIds: Map<string, string>) {
     const obj: Record<string, string> = {}
     headers.forEach((h, i) => { obj[h] = cols[i] ?? "" })
 
-    if (obj.relationship_id !== "Maps to") continue
+    if (obj.vocabulary_id !== "ICD10CM") continue
     if (obj.invalid_reason) continue
-    const targetCode = icd10ConceptIds.get(obj.concept_id_2)
-    if (!targetCode) continue
-    cm10Map.set(obj.concept_id_1, targetCode)
+
+    const cmCode = obj.concept_code
+    // Try progressively shorter prefixes until an ICD-10 code matches
+    for (let len = cmCode.length; len >= 3; len--) {
+      const prefix = cmCode.slice(0, len)
+      if (icd10CodeSet.has(prefix)) {
+        cm10Map.set(obj.concept_id, prefix)
+        break
+      }
+    }
   }
   console.log(`  Mappings: ${cm10Map.size} ICD-10CM→ICD-10 pairs.`)
 
@@ -264,7 +273,8 @@ async function seedBgLabels() {
 
   let xlsx: any
   try {
-    xlsx = await import("xlsx")
+    const m = await import("xlsx")
+    xlsx = (m as any).default ?? m
   } catch {
     console.warn("  'xlsx' package not found. Run: npm install xlsx --save-dev")
     console.warn("  Skipping BG label seeding.")
