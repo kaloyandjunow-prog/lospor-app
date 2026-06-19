@@ -535,7 +535,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
                   searchUrl={`/api/search/icd10?locale=${locale}`}
-                  renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
+                  renderSuggestion={item => ({ label: `${item.code} — ${locale === "bg" ? (item.descriptionBg || item.description) : item.description}`, sub: item.code })}
                   placeholder={t("preop.diagnosisPlaceholder")}
                 />
               </div>
@@ -604,7 +604,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
               value={(field.value ?? []) as Tag[]}
               onChange={field.onChange}
               searchUrl={`/api/search/icd10?locale=${locale}`}
-              renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
+              renderSuggestion={item => ({ label: `${item.code} — ${locale === "bg" ? (item.descriptionBg || item.description) : item.description}`, sub: item.code })}
               placeholder={t("preop.historyPlaceholder")}
             />
             <ComorbiditiesBySystem
