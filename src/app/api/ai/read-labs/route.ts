@@ -17,7 +17,7 @@ const LIBRARY: { name: string; unit: string }[] = [
   { name: "Platelets",                  unit: "×10⁹/L" },
   { name: "MCV",                        unit: "fL" },
   { name: "MCH",                        unit: "pg" },
-  { name: "MCHC",                       unit: "g/dL" },
+  { name: "MCHC",                       unit: "g/L" },
   { name: "Neutrophils",                unit: "%" },
   { name: "Lymphocytes",                unit: "%" },
   { name: "Monocytes",                  unit: "%" },
@@ -109,6 +109,7 @@ INSTRUCTIONS:
 5. Convert the numeric value to the canonical unit shown in the library if the report uses a different unit:
    - Haemoglobin (Hb): g/dL × 10 → g/L (e.g. 13.5 g/dL → 135 g/L)
    - Haematocrit (Hct): decimal ratio × 100 → % (e.g. 0.42 → 42)
+   - MCHC: g/dL × 10 → g/L (e.g. 34 g/dL → 340 g/L)
    - Creatinine: mg/dL × 88.4 → μmol/L
    - Glucose: mg/dL ÷ 18.0 → mmol/L
    - Urea (BUN): BUN mg/dL ÷ 2.8 → mmol/L
@@ -159,6 +160,10 @@ function normaliseValue(name: string, raw: string): string {
     case "Calcium (Ca²⁺)":
       // mg/dL range (5–15) → mmol/L
       if (n >= 5 && n <= 15) return String(Math.round(n * 0.25 * 100) / 100)
+      break
+    case "MCHC":
+      // g/dL range (20–40) → g/L (×10)
+      if (n >= 20 && n <= 40) return String(Math.round(n * 10))
       break
   }
   return raw

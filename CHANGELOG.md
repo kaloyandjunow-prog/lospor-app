@@ -5,6 +5,50 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0] — 2026-06-19
+
+### Added — Database Optimization (research-grade)
+
+**ICD-10 migration (replaces ICD-11)**
+- Removed live WHO ICD-11 API dependency (`who-icd.ts`, `/api/search/icd11`), all ICD-11 cache tables (`Icd10BgCode`, `Icd11Code`, `Icd11Alias`), and Mistral diagnosis-translation.
+- New `Icd10Code` table (WHO ICD-10 + official BG MZ labels) and `Icd10Synonym` table (ICD-10CM search synonyms from Athena).
+- `/api/search/icd10` now performs local DB full-text search — fast, offline, no external dependency.
+- Diagnosis and comorbidity search in web PreopForm and mobile updated to ICD-10.
+- Body-system classification updated to ICD-10 only (`icd-categories.ts`).
+- Comorbidities gain `icd10Code` column (Gap 2) — comorbidities are now coded identically to diagnoses.
+
+**LOINC-coded labs (Theme B)**
+- `LabResult` gains `valueNum Float`, `unitCanon`, `loincCode`, `referenceLow`, `referenceHigh`, `abnormalFlag`, `takenAt`, `source`.
+- New `LabLoinc` table: 67 entries mapping canonical lab names to LOINC codes and reference ranges.
+- `relational-sync.ts` populates LOINC fields and computes `abnormalFlag` automatically on each case save.
+- MCHC canonical unit corrected from g/dL to g/L (SI); Mistral prompt and server normaliser updated.
+
+**ATC drug coding (Theme C)**
+- New `Atc` table: full ATC classification tree seeded from Athena (~6,300 codes, 5 levels).
+- New `Drug` table: Bulgarian drug registry seeded from `drugs.json`.
+- `CaseEvent` (drug events) gains `atcCode`, `drugId`, `drugRoute` columns.
+- New `Medication` table: preop medications as coded rows alongside legacy `currentMedications` JSON.
+
+**Per-field audit log (Theme D)**
+- New `CaseFieldChange` table: records field-level diffs on every preop/postop save (section, field, oldValue, newValue, userId, timestamp).
+- Written best-effort after each PATCH — never blocks a clinical save.
+
+**Finalisation snapshot (Theme E)**
+- New `CaseSnapshot` table: immutable full-case snapshot written on COMPLETE transition.
+- Includes schema version (`2.0.0`) so published datasets can cite the exact structure.
+
+**Relational validator (Theme A2)**
+- New `POST /api/admin/validate-relational` endpoint (ADMIN only): re-derives all relational rows from authoritative JSON, detects and repairs drift. Accepts `?caseId=` for single-case repair.
+
+**Vocabulary seed scripts**
+- `scripts/seed-vocabularies.ts`: streams Athena CSVs from local `athena/` folder to seed `Icd10Code`, `Icd10Synonym`, `Atc`, and `Drug` tables. Idempotent.
+- `scripts/seed-lab-loinc.ts`: seeds `LabLoinc` table with all 67 LOINC codes.
+
+### Migration
+- `20260619100000_v2_database_optimization` — drops 3 ICD-11 tables, adds 8 new tables, extends `LabResult`/`Comorbidity`/`CaseEvent` with nullable research columns.
+
+---
+
 ## [1.2.0] — 2026-06-18
 
 ### Added — relational clinical data (JSON normalisation)

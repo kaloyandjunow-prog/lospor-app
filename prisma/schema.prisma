@@ -69,6 +69,8 @@ model Case {
   lock          CaseLock?
   events        CaseEvent[]
   selections    CaseSelection[]
+  fieldChanges  CaseFieldChange[]
+  snapshot      CaseSnapshot?
 
   @@unique([userId, caseCode])
   @@index([status])
@@ -133,22 +135,77 @@ enum RequestStatus {
   REJECTED
 }
 
-model Icd10BgCode {
-  code  String @id
-  label String
+// ICD-10 vocabulary (seeded from WHO ICD-10 + official BG MZ labels)
+model Icd10Code {
+  code     String         @id   // e.g. "I21"
+  labelEn  String
+  labelBg  String?
+  synonyms Icd10Synonym[]
 }
 
-model Icd11Code {
-  code    String  @id   // e.g. "BA41.Z"
-  labelEn String        // English from WHO API
-  labelBg String?       // Bulgarian (null until first BG search for this code)
+model Icd10Synonym {
+  id        String    @id @default(cuid())
+  icd10Code String
+  icd10     Icd10Code @relation(fields: [icd10Code], references: [code], onDelete: Cascade)
+  synonym   String
+  @@index([icd10Code])
 }
 
-model Icd11Alias {
-  id        String   @id @default(cuid())
-  bgTerm    String   @unique               // Cyrillic search term as entered
-  enTerm    String                         // Translated English equivalent
-  createdAt DateTime @default(now())
+// LOINC codes for the 67-test canonical lab library (seeded once, not full LOINC import)
+model LabLoinc {
+  name          String  @id   // exact name from lab library
+  loincCode     String
+  unitCanon     String
+  referenceLow  Float?
+  referenceHigh Float?
+}
+
+// ATC drug classification tree (seeded from Athena CONCEPT.csv, vocab ATC)
+model Atc {
+  code       String  @id   // e.g. "N01AB"
+  name       String
+  level      Int           // 1-5
+  parentCode String?
+  @@index([parentCode])
+  @@index([level])
+}
+
+// Drug registry (seeded from drugs.json, searchable by name/INN/ATC)
+model Drug {
+  id       String  @id @default(cuid())
+  name     String
+  inn      String?
+  atcCode  String?
+  form     String?
+  strength String?
+  @@index([name])
+  @@index([inn])
+  @@index([atcCode])
+}
+
+// Per-field preop/postop audit log (Theme D)
+model CaseFieldChange {
+  id       String   @id @default(cuid())
+  caseId   String
+  case     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  section  String   // "preop" | "postop"
+  field    String
+  oldValue String?
+  newValue String?
+  userId   String
+  at       DateTime @default(now())
+  @@index([caseId])
+  @@index([caseId, section])
+}
+
+// Immutable snapshot written on finalization (Theme E)
+model CaseSnapshot {
+  id            String   @id @default(cuid())
+  caseId        String   @unique
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  schemaVersion String   @default("2.0.0")
+  snapshotJson  Json
+  finalizedAt   DateTime @default(now())
 }
 
 model RevokedToken {
@@ -190,6 +247,10 @@ model CaseEvent {
   spO2           Float?
   etco2          Float?
   temp           Float?
+  // Coded drug fields (populated when type = "drug")
+  atcCode        String?
+  drugId         String?
+  drugRoute      String?
   metadataJson   Json?
   source         String   @default("mobile")
   idempotencyKey String   @unique
@@ -316,6 +377,7 @@ model PreoperativeAssessment {
   procedureRows   PreopProcedure[]
   comorbidityRows Comorbidity[]
   labRows         LabResult[]
+  medications     Medication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -619,6 +681,7 @@ model Comorbidity {
   caseId    String
   label     String
   code      String?
+  icd10Code String?   // ICD-10 code (Gap 2: comorbidities coded same as diagnoses)
   system    String?
   ordinal   Int                    @default(0)
   createdAt DateTime               @default(now())
@@ -626,22 +689,53 @@ model Comorbidity {
   @@index([caseId])
   @@index([preopId])
   @@index([code])
+  @@index([icd10Code])
 }
 
 model LabResult {
+  id            String                 @id @default(cuid())
+  preopId       String
+  preop         PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
+  caseId        String
+  test          String
+  value         String?
+  valueNum      Float?    // parsed numeric value in canonical unit
+  unit          String?
+  unitCanon     String?   // canonical unit from LabLoinc
+  loincCode     String?   // LOINC code for this test
+  referenceLow  Float?
+  referenceHigh Float?
+  abnormalFlag  String?   // "low" | "normal" | "high" | "critical"
+  takenAt       DateTime?
+  source        String?   // "manual" | "ai-scan" | "import"
+  ordinal       Int                    @default(0)
+  createdAt     DateTime               @default(now())
+
+  @@index([caseId])
+  @@index([preopId])
+  @@index([test])
+  @@index([loincCode])
+}
+
+// Preop medications as coded rows (Theme C3; currentMedications JSON kept for backwards compat)
+model Medication {
   id        String                 @id @default(cuid())
   preopId   String
   preop     PreoperativeAssessment @relation(fields: [preopId], references: [id], onDelete: Cascade)
   caseId    String
-  test      String
-  value     String?
-  unit      String?
+  drugId    String?   // FK to Drug if matched
+  nameRaw   String    // raw label as entered
+  inn       String?
+  atcCode   String?
+  dose      String?
+  route     String?
+  frequency String?
   ordinal   Int                    @default(0)
   createdAt DateTime               @default(now())
 
   @@index([caseId])
   @@index([preopId])
-  @@index([test])
+  @@index([atcCode])
 }
 
 model VascularAccess {

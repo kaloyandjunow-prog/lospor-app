@@ -40,6 +40,7 @@ export type ComorbidityMinAggregateOutputType = {
   caseId: string | null
   label: string | null
   code: string | null
+  icd10Code: string | null
   system: string | null
   ordinal: number | null
   createdAt: Date | null
@@ -51,6 +52,7 @@ export type ComorbidityMaxAggregateOutputType = {
   caseId: string | null
   label: string | null
   code: string | null
+  icd10Code: string | null
   system: string | null
   ordinal: number | null
   createdAt: Date | null
@@ -62,6 +64,7 @@ export type ComorbidityCountAggregateOutputType = {
   caseId: number
   label: number
   code: number
+  icd10Code: number
   system: number
   ordinal: number
   createdAt: number
@@ -83,6 +86,7 @@ export type ComorbidityMinAggregateInputType = {
   caseId?: true
   label?: true
   code?: true
+  icd10Code?: true
   system?: true
   ordinal?: true
   createdAt?: true
@@ -94,6 +98,7 @@ export type ComorbidityMaxAggregateInputType = {
   caseId?: true
   label?: true
   code?: true
+  icd10Code?: true
   system?: true
   ordinal?: true
   createdAt?: true
@@ -105,6 +110,7 @@ export type ComorbidityCountAggregateInputType = {
   caseId?: true
   label?: true
   code?: true
+  icd10Code?: true
   system?: true
   ordinal?: true
   createdAt?: true
@@ -203,6 +209,7 @@ export type ComorbidityGroupByOutputType = {
   caseId: string
   label: string
   code: string | null
+  icd10Code: string | null
   system: string | null
   ordinal: number
   createdAt: Date
@@ -237,6 +244,7 @@ export type ComorbidityWhereInput = {
   caseId?: Prisma.StringFilter<"Comorbidity"> | string
   label?: Prisma.StringFilter<"Comorbidity"> | string
   code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
+  icd10Code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   system?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   ordinal?: Prisma.IntFilter<"Comorbidity"> | number
   createdAt?: Prisma.DateTimeFilter<"Comorbidity"> | Date | string
@@ -249,6 +257,7 @@ export type ComorbidityOrderByWithRelationInput = {
   caseId?: Prisma.SortOrder
   label?: Prisma.SortOrder
   code?: Prisma.SortOrderInput | Prisma.SortOrder
+  icd10Code?: Prisma.SortOrderInput | Prisma.SortOrder
   system?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -264,6 +273,7 @@ export type ComorbidityWhereUniqueInput = Prisma.AtLeast<{
   caseId?: Prisma.StringFilter<"Comorbidity"> | string
   label?: Prisma.StringFilter<"Comorbidity"> | string
   code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
+  icd10Code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   system?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   ordinal?: Prisma.IntFilter<"Comorbidity"> | number
   createdAt?: Prisma.DateTimeFilter<"Comorbidity"> | Date | string
@@ -276,6 +286,7 @@ export type ComorbidityOrderByWithAggregationInput = {
   caseId?: Prisma.SortOrder
   label?: Prisma.SortOrder
   code?: Prisma.SortOrderInput | Prisma.SortOrder
+  icd10Code?: Prisma.SortOrderInput | Prisma.SortOrder
   system?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -295,6 +306,7 @@ export type ComorbidityScalarWhereWithAggregatesInput = {
   caseId?: Prisma.StringWithAggregatesFilter<"Comorbidity"> | string
   label?: Prisma.StringWithAggregatesFilter<"Comorbidity"> | string
   code?: Prisma.StringNullableWithAggregatesFilter<"Comorbidity"> | string | null
+  icd10Code?: Prisma.StringNullableWithAggregatesFilter<"Comorbidity"> | string | null
   system?: Prisma.StringNullableWithAggregatesFilter<"Comorbidity"> | string | null
   ordinal?: Prisma.IntWithAggregatesFilter<"Comorbidity"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Comorbidity"> | Date | string
@@ -305,6 +317,7 @@ export type ComorbidityCreateInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -317,6 +330,7 @@ export type ComorbidityUncheckedCreateInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -327,6 +341,7 @@ export type ComorbidityUpdateInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -339,6 +354,7 @@ export type ComorbidityUncheckedUpdateInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -350,6 +366,7 @@ export type ComorbidityCreateManyInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -360,6 +377,7 @@ export type ComorbidityUpdateManyMutationInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -371,6 +389,7 @@ export type ComorbidityUncheckedUpdateManyInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -392,6 +411,7 @@ export type ComorbidityCountOrderByAggregateInput = {
   caseId?: Prisma.SortOrder
   label?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  icd10Code?: Prisma.SortOrder
   system?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -407,6 +427,7 @@ export type ComorbidityMaxOrderByAggregateInput = {
   caseId?: Prisma.SortOrder
   label?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  icd10Code?: Prisma.SortOrder
   system?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -418,6 +439,7 @@ export type ComorbidityMinOrderByAggregateInput = {
   caseId?: Prisma.SortOrder
   label?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  icd10Code?: Prisma.SortOrder
   system?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -474,6 +496,7 @@ export type ComorbidityCreateWithoutPreopInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -484,6 +507,7 @@ export type ComorbidityUncheckedCreateWithoutPreopInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -524,6 +548,7 @@ export type ComorbidityScalarWhereInput = {
   caseId?: Prisma.StringFilter<"Comorbidity"> | string
   label?: Prisma.StringFilter<"Comorbidity"> | string
   code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
+  icd10Code?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   system?: Prisma.StringNullableFilter<"Comorbidity"> | string | null
   ordinal?: Prisma.IntFilter<"Comorbidity"> | number
   createdAt?: Prisma.DateTimeFilter<"Comorbidity"> | Date | string
@@ -534,6 +559,7 @@ export type ComorbidityCreateManyPreopInput = {
   caseId: string
   label: string
   code?: string | null
+  icd10Code?: string | null
   system?: string | null
   ordinal?: number
   createdAt?: Date | string
@@ -544,6 +570,7 @@ export type ComorbidityUpdateWithoutPreopInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -554,6 +581,7 @@ export type ComorbidityUncheckedUpdateWithoutPreopInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -564,6 +592,7 @@ export type ComorbidityUncheckedUpdateManyWithoutPreopInput = {
   caseId?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icd10Code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   system?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -577,6 +606,7 @@ export type ComorbiditySelect<ExtArgs extends runtime.Types.Extensions.InternalA
   caseId?: boolean
   label?: boolean
   code?: boolean
+  icd10Code?: boolean
   system?: boolean
   ordinal?: boolean
   createdAt?: boolean
@@ -589,6 +619,7 @@ export type ComorbiditySelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   caseId?: boolean
   label?: boolean
   code?: boolean
+  icd10Code?: boolean
   system?: boolean
   ordinal?: boolean
   createdAt?: boolean
@@ -601,6 +632,7 @@ export type ComorbiditySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   caseId?: boolean
   label?: boolean
   code?: boolean
+  icd10Code?: boolean
   system?: boolean
   ordinal?: boolean
   createdAt?: boolean
@@ -613,12 +645,13 @@ export type ComorbiditySelectScalar = {
   caseId?: boolean
   label?: boolean
   code?: boolean
+  icd10Code?: boolean
   system?: boolean
   ordinal?: boolean
   createdAt?: boolean
 }
 
-export type ComorbidityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "label" | "code" | "system" | "ordinal" | "createdAt", ExtArgs["result"]["comorbidity"]>
+export type ComorbidityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "label" | "code" | "icd10Code" | "system" | "ordinal" | "createdAt", ExtArgs["result"]["comorbidity"]>
 export type ComorbidityInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
 }
@@ -640,6 +673,7 @@ export type $ComorbidityPayload<ExtArgs extends runtime.Types.Extensions.Interna
     caseId: string
     label: string
     code: string | null
+    icd10Code: string | null
     system: string | null
     ordinal: number
     createdAt: Date
@@ -1072,6 +1106,7 @@ export interface ComorbidityFieldRefs {
   readonly caseId: Prisma.FieldRef<"Comorbidity", 'String'>
   readonly label: Prisma.FieldRef<"Comorbidity", 'String'>
   readonly code: Prisma.FieldRef<"Comorbidity", 'String'>
+  readonly icd10Code: Prisma.FieldRef<"Comorbidity", 'String'>
   readonly system: Prisma.FieldRef<"Comorbidity", 'String'>
   readonly ordinal: Prisma.FieldRef<"Comorbidity", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Comorbidity", 'DateTime'>

@@ -390,9 +390,13 @@ export const ModelName = {
   CaseLock: 'CaseLock',
   CaseTransfer: 'CaseTransfer',
   RoleRequest: 'RoleRequest',
-  Icd10BgCode: 'Icd10BgCode',
-  Icd11Code: 'Icd11Code',
-  Icd11Alias: 'Icd11Alias',
+  Icd10Code: 'Icd10Code',
+  Icd10Synonym: 'Icd10Synonym',
+  LabLoinc: 'LabLoinc',
+  Atc: 'Atc',
+  Drug: 'Drug',
+  CaseFieldChange: 'CaseFieldChange',
+  CaseSnapshot: 'CaseSnapshot',
   RevokedToken: 'RevokedToken',
   RateLimit: 'RateLimit',
   CaseEvent: 'CaseEvent',
@@ -405,6 +409,7 @@ export const ModelName = {
   PreopProcedure: 'PreopProcedure',
   Comorbidity: 'Comorbidity',
   LabResult: 'LabResult',
+  Medication: 'Medication',
   VascularAccess: 'VascularAccess',
   CaseSelection: 'CaseSelection'
 } as const
@@ -422,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10BgCode" | "icd11Code" | "icd11Alias" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord" | "preopDiagnosis" | "preopProcedure" | "comorbidity" | "labResult" | "vascularAccess" | "caseSelection"
+    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10Code" | "icd10Synonym" | "labLoinc" | "atc" | "drug" | "caseFieldChange" | "caseSnapshot" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord" | "preopDiagnosis" | "preopProcedure" | "comorbidity" | "labResult" | "medication" | "vascularAccess" | "caseSelection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -870,225 +875,521 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    Icd10BgCode: {
-      payload: Prisma.$Icd10BgCodePayload<ExtArgs>
-      fields: Prisma.Icd10BgCodeFieldRefs
+    Icd10Code: {
+      payload: Prisma.$Icd10CodePayload<ExtArgs>
+      fields: Prisma.Icd10CodeFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.Icd10BgCodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload> | null
+          args: Prisma.Icd10CodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.Icd10BgCodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         findFirst: {
-          args: Prisma.Icd10BgCodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload> | null
+          args: Prisma.Icd10CodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.Icd10BgCodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         findMany: {
-          args: Prisma.Icd10BgCodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>[]
+          args: Prisma.Icd10CodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>[]
         }
         create: {
-          args: Prisma.Icd10BgCodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         createMany: {
-          args: Prisma.Icd10BgCodeCreateManyArgs<ExtArgs>
+          args: Prisma.Icd10CodeCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.Icd10BgCodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>[]
+          args: Prisma.Icd10CodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>[]
         }
         delete: {
-          args: Prisma.Icd10BgCodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         update: {
-          args: Prisma.Icd10BgCodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         deleteMany: {
-          args: Prisma.Icd10BgCodeDeleteManyArgs<ExtArgs>
+          args: Prisma.Icd10CodeDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.Icd10BgCodeUpdateManyArgs<ExtArgs>
+          args: Prisma.Icd10CodeUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.Icd10BgCodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>[]
+          args: Prisma.Icd10CodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>[]
         }
         upsert: {
-          args: Prisma.Icd10BgCodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10BgCodePayload>
+          args: Prisma.Icd10CodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10CodePayload>
         }
         aggregate: {
-          args: Prisma.Icd10BgCodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd10BgCode>
+          args: Prisma.Icd10CodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd10Code>
         }
         groupBy: {
-          args: Prisma.Icd10BgCodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd10BgCodeGroupByOutputType>[]
+          args: Prisma.Icd10CodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd10CodeGroupByOutputType>[]
         }
         count: {
-          args: Prisma.Icd10BgCodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd10BgCodeCountAggregateOutputType> | number
+          args: Prisma.Icd10CodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd10CodeCountAggregateOutputType> | number
         }
       }
     }
-    Icd11Code: {
-      payload: Prisma.$Icd11CodePayload<ExtArgs>
-      fields: Prisma.Icd11CodeFieldRefs
+    Icd10Synonym: {
+      payload: Prisma.$Icd10SynonymPayload<ExtArgs>
+      fields: Prisma.Icd10SynonymFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.Icd11CodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload> | null
+          args: Prisma.Icd10SynonymFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.Icd11CodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         findFirst: {
-          args: Prisma.Icd11CodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload> | null
+          args: Prisma.Icd10SynonymFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.Icd11CodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         findMany: {
-          args: Prisma.Icd11CodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>[]
+          args: Prisma.Icd10SynonymFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>[]
         }
         create: {
-          args: Prisma.Icd11CodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         createMany: {
-          args: Prisma.Icd11CodeCreateManyArgs<ExtArgs>
+          args: Prisma.Icd10SynonymCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.Icd11CodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>[]
+          args: Prisma.Icd10SynonymCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>[]
         }
         delete: {
-          args: Prisma.Icd11CodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         update: {
-          args: Prisma.Icd11CodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         deleteMany: {
-          args: Prisma.Icd11CodeDeleteManyArgs<ExtArgs>
+          args: Prisma.Icd10SynonymDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.Icd11CodeUpdateManyArgs<ExtArgs>
+          args: Prisma.Icd10SynonymUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.Icd11CodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>[]
+          args: Prisma.Icd10SynonymUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>[]
         }
         upsert: {
-          args: Prisma.Icd11CodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11CodePayload>
+          args: Prisma.Icd10SynonymUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd10SynonymPayload>
         }
         aggregate: {
-          args: Prisma.Icd11CodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd11Code>
+          args: Prisma.Icd10SynonymAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd10Synonym>
         }
         groupBy: {
-          args: Prisma.Icd11CodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd11CodeGroupByOutputType>[]
+          args: Prisma.Icd10SynonymGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd10SynonymGroupByOutputType>[]
         }
         count: {
-          args: Prisma.Icd11CodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd11CodeCountAggregateOutputType> | number
+          args: Prisma.Icd10SynonymCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Icd10SynonymCountAggregateOutputType> | number
         }
       }
     }
-    Icd11Alias: {
-      payload: Prisma.$Icd11AliasPayload<ExtArgs>
-      fields: Prisma.Icd11AliasFieldRefs
+    LabLoinc: {
+      payload: Prisma.$LabLoincPayload<ExtArgs>
+      fields: Prisma.LabLoincFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.Icd11AliasFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload> | null
+          args: Prisma.LabLoincFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.Icd11AliasFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         findFirst: {
-          args: Prisma.Icd11AliasFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload> | null
+          args: Prisma.LabLoincFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.Icd11AliasFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         findMany: {
-          args: Prisma.Icd11AliasFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+          args: Prisma.LabLoincFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>[]
         }
         create: {
-          args: Prisma.Icd11AliasCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         createMany: {
-          args: Prisma.Icd11AliasCreateManyArgs<ExtArgs>
+          args: Prisma.LabLoincCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.Icd11AliasCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+          args: Prisma.LabLoincCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>[]
         }
         delete: {
-          args: Prisma.Icd11AliasDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         update: {
-          args: Prisma.Icd11AliasUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         deleteMany: {
-          args: Prisma.Icd11AliasDeleteManyArgs<ExtArgs>
+          args: Prisma.LabLoincDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.Icd11AliasUpdateManyArgs<ExtArgs>
+          args: Prisma.LabLoincUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.Icd11AliasUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>[]
+          args: Prisma.LabLoincUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>[]
         }
         upsert: {
-          args: Prisma.Icd11AliasUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$Icd11AliasPayload>
+          args: Prisma.LabLoincUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LabLoincPayload>
         }
         aggregate: {
-          args: Prisma.Icd11AliasAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateIcd11Alias>
+          args: Prisma.LabLoincAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLabLoinc>
         }
         groupBy: {
-          args: Prisma.Icd11AliasGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd11AliasGroupByOutputType>[]
+          args: Prisma.LabLoincGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LabLoincGroupByOutputType>[]
         }
         count: {
-          args: Prisma.Icd11AliasCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.Icd11AliasCountAggregateOutputType> | number
+          args: Prisma.LabLoincCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LabLoincCountAggregateOutputType> | number
+        }
+      }
+    }
+    Atc: {
+      payload: Prisma.$AtcPayload<ExtArgs>
+      fields: Prisma.AtcFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AtcFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AtcFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        findFirst: {
+          args: Prisma.AtcFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AtcFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        findMany: {
+          args: Prisma.AtcFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>[]
+        }
+        create: {
+          args: Prisma.AtcCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        createMany: {
+          args: Prisma.AtcCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AtcCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>[]
+        }
+        delete: {
+          args: Prisma.AtcDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        update: {
+          args: Prisma.AtcUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        deleteMany: {
+          args: Prisma.AtcDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AtcUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AtcUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>[]
+        }
+        upsert: {
+          args: Prisma.AtcUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AtcPayload>
+        }
+        aggregate: {
+          args: Prisma.AtcAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAtc>
+        }
+        groupBy: {
+          args: Prisma.AtcGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AtcGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AtcCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AtcCountAggregateOutputType> | number
+        }
+      }
+    }
+    Drug: {
+      payload: Prisma.$DrugPayload<ExtArgs>
+      fields: Prisma.DrugFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        findMany: {
+          args: Prisma.DrugFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>[]
+        }
+        create: {
+          args: Prisma.DrugCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        createMany: {
+          args: Prisma.DrugCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        update: {
+          args: Prisma.DrugUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrug>
+        }
+        groupBy: {
+          args: Prisma.DrugGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugCountAggregateOutputType> | number
+        }
+      }
+    }
+    CaseFieldChange: {
+      payload: Prisma.$CaseFieldChangePayload<ExtArgs>
+      fields: Prisma.CaseFieldChangeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CaseFieldChangeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CaseFieldChangeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        findFirst: {
+          args: Prisma.CaseFieldChangeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CaseFieldChangeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        findMany: {
+          args: Prisma.CaseFieldChangeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>[]
+        }
+        create: {
+          args: Prisma.CaseFieldChangeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        createMany: {
+          args: Prisma.CaseFieldChangeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CaseFieldChangeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>[]
+        }
+        delete: {
+          args: Prisma.CaseFieldChangeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        update: {
+          args: Prisma.CaseFieldChangeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        deleteMany: {
+          args: Prisma.CaseFieldChangeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CaseFieldChangeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CaseFieldChangeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>[]
+        }
+        upsert: {
+          args: Prisma.CaseFieldChangeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseFieldChangePayload>
+        }
+        aggregate: {
+          args: Prisma.CaseFieldChangeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCaseFieldChange>
+        }
+        groupBy: {
+          args: Prisma.CaseFieldChangeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseFieldChangeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CaseFieldChangeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseFieldChangeCountAggregateOutputType> | number
+        }
+      }
+    }
+    CaseSnapshot: {
+      payload: Prisma.$CaseSnapshotPayload<ExtArgs>
+      fields: Prisma.CaseSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CaseSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CaseSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.CaseSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CaseSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.CaseSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.CaseSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.CaseSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CaseSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.CaseSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        update: {
+          args: Prisma.CaseSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.CaseSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CaseSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CaseSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.CaseSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.CaseSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCaseSnapshot>
+        }
+        groupBy: {
+          args: Prisma.CaseSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CaseSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseSnapshotCountAggregateOutputType> | number
         }
       }
     }
@@ -1980,6 +2281,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Medication: {
+      payload: Prisma.$MedicationPayload<ExtArgs>
+      fields: Prisma.MedicationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        findMany: {
+          args: Prisma.MedicationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>[]
+        }
+        create: {
+          args: Prisma.MedicationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        createMany: {
+          args: Prisma.MedicationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        update: {
+          args: Prisma.MedicationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicationPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedication>
+        }
+        groupBy: {
+          args: Prisma.MedicationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicationCountAggregateOutputType> | number
+        }
+      }
+    }
     VascularAccess: {
       payload: Prisma.$VascularAccessPayload<ExtArgs>
       fields: Prisma.VascularAccessFieldRefs
@@ -2248,31 +2623,80 @@ export const RoleRequestScalarFieldEnum = {
 export type RoleRequestScalarFieldEnum = (typeof RoleRequestScalarFieldEnum)[keyof typeof RoleRequestScalarFieldEnum]
 
 
-export const Icd10BgCodeScalarFieldEnum = {
-  code: 'code',
-  label: 'label'
-} as const
-
-export type Icd10BgCodeScalarFieldEnum = (typeof Icd10BgCodeScalarFieldEnum)[keyof typeof Icd10BgCodeScalarFieldEnum]
-
-
-export const Icd11CodeScalarFieldEnum = {
+export const Icd10CodeScalarFieldEnum = {
   code: 'code',
   labelEn: 'labelEn',
   labelBg: 'labelBg'
 } as const
 
-export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
+export type Icd10CodeScalarFieldEnum = (typeof Icd10CodeScalarFieldEnum)[keyof typeof Icd10CodeScalarFieldEnum]
 
 
-export const Icd11AliasScalarFieldEnum = {
+export const Icd10SynonymScalarFieldEnum = {
   id: 'id',
-  bgTerm: 'bgTerm',
-  enTerm: 'enTerm',
-  createdAt: 'createdAt'
+  icd10Code: 'icd10Code',
+  synonym: 'synonym'
 } as const
 
-export type Icd11AliasScalarFieldEnum = (typeof Icd11AliasScalarFieldEnum)[keyof typeof Icd11AliasScalarFieldEnum]
+export type Icd10SynonymScalarFieldEnum = (typeof Icd10SynonymScalarFieldEnum)[keyof typeof Icd10SynonymScalarFieldEnum]
+
+
+export const LabLoincScalarFieldEnum = {
+  name: 'name',
+  loincCode: 'loincCode',
+  unitCanon: 'unitCanon',
+  referenceLow: 'referenceLow',
+  referenceHigh: 'referenceHigh'
+} as const
+
+export type LabLoincScalarFieldEnum = (typeof LabLoincScalarFieldEnum)[keyof typeof LabLoincScalarFieldEnum]
+
+
+export const AtcScalarFieldEnum = {
+  code: 'code',
+  name: 'name',
+  level: 'level',
+  parentCode: 'parentCode'
+} as const
+
+export type AtcScalarFieldEnum = (typeof AtcScalarFieldEnum)[keyof typeof AtcScalarFieldEnum]
+
+
+export const DrugScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  form: 'form',
+  strength: 'strength'
+} as const
+
+export type DrugScalarFieldEnum = (typeof DrugScalarFieldEnum)[keyof typeof DrugScalarFieldEnum]
+
+
+export const CaseFieldChangeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  field: 'field',
+  oldValue: 'oldValue',
+  newValue: 'newValue',
+  userId: 'userId',
+  at: 'at'
+} as const
+
+export type CaseFieldChangeScalarFieldEnum = (typeof CaseFieldChangeScalarFieldEnum)[keyof typeof CaseFieldChangeScalarFieldEnum]
+
+
+export const CaseSnapshotScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  schemaVersion: 'schemaVersion',
+  snapshotJson: 'snapshotJson',
+  finalizedAt: 'finalizedAt'
+} as const
+
+export type CaseSnapshotScalarFieldEnum = (typeof CaseSnapshotScalarFieldEnum)[keyof typeof CaseSnapshotScalarFieldEnum]
 
 
 export const RevokedTokenScalarFieldEnum = {
@@ -2311,6 +2735,9 @@ export const CaseEventScalarFieldEnum = {
   spO2: 'spO2',
   etco2: 'etco2',
   temp: 'temp',
+  atcCode: 'atcCode',
+  drugId: 'drugId',
+  drugRoute: 'drugRoute',
   metadataJson: 'metadataJson',
   source: 'source',
   idempotencyKey: 'idempotencyKey',
@@ -2554,6 +2981,7 @@ export const ComorbidityScalarFieldEnum = {
   caseId: 'caseId',
   label: 'label',
   code: 'code',
+  icd10Code: 'icd10Code',
   system: 'system',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
@@ -2568,12 +2996,38 @@ export const LabResultScalarFieldEnum = {
   caseId: 'caseId',
   test: 'test',
   value: 'value',
+  valueNum: 'valueNum',
   unit: 'unit',
+  unitCanon: 'unitCanon',
+  loincCode: 'loincCode',
+  referenceLow: 'referenceLow',
+  referenceHigh: 'referenceHigh',
+  abnormalFlag: 'abnormalFlag',
+  takenAt: 'takenAt',
+  source: 'source',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
 
 export type LabResultScalarFieldEnum = (typeof LabResultScalarFieldEnum)[keyof typeof LabResultScalarFieldEnum]
+
+
+export const MedicationScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  drugId: 'drugId',
+  nameRaw: 'nameRaw',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  dose: 'dose',
+  route: 'route',
+  frequency: 'frequency',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type MedicationScalarFieldEnum = (typeof MedicationScalarFieldEnum)[keyof typeof MedicationScalarFieldEnum]
 
 
 export const VascularAccessScalarFieldEnum = {
@@ -2612,19 +3066,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2743,20 +3197,6 @@ export type ListEnumRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2767,6 +3207,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -3102,9 +3556,13 @@ export type GlobalOmitConfig = {
   caseLock?: Prisma.CaseLockOmit
   caseTransfer?: Prisma.CaseTransferOmit
   roleRequest?: Prisma.RoleRequestOmit
-  icd10BgCode?: Prisma.Icd10BgCodeOmit
-  icd11Code?: Prisma.Icd11CodeOmit
-  icd11Alias?: Prisma.Icd11AliasOmit
+  icd10Code?: Prisma.Icd10CodeOmit
+  icd10Synonym?: Prisma.Icd10SynonymOmit
+  labLoinc?: Prisma.LabLoincOmit
+  atc?: Prisma.AtcOmit
+  drug?: Prisma.DrugOmit
+  caseFieldChange?: Prisma.CaseFieldChangeOmit
+  caseSnapshot?: Prisma.CaseSnapshotOmit
   revokedToken?: Prisma.RevokedTokenOmit
   rateLimit?: Prisma.RateLimitOmit
   caseEvent?: Prisma.CaseEventOmit
@@ -3117,6 +3575,7 @@ export type GlobalOmitConfig = {
   preopProcedure?: Prisma.PreopProcedureOmit
   comorbidity?: Prisma.ComorbidityOmit
   labResult?: Prisma.LabResultOmit
+  medication?: Prisma.MedicationOmit
   vascularAccess?: Prisma.VascularAccessOmit
   caseSelection?: Prisma.CaseSelectionOmit
 }

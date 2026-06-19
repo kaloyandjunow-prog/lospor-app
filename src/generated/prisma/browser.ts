@@ -48,20 +48,40 @@ export type CaseTransfer = Prisma.CaseTransferModel
  */
 export type RoleRequest = Prisma.RoleRequestModel
 /**
- * Model Icd10BgCode
+ * Model Icd10Code
  * 
  */
-export type Icd10BgCode = Prisma.Icd10BgCodeModel
+export type Icd10Code = Prisma.Icd10CodeModel
 /**
- * Model Icd11Code
+ * Model Icd10Synonym
  * 
  */
-export type Icd11Code = Prisma.Icd11CodeModel
+export type Icd10Synonym = Prisma.Icd10SynonymModel
 /**
- * Model Icd11Alias
+ * Model LabLoinc
  * 
  */
-export type Icd11Alias = Prisma.Icd11AliasModel
+export type LabLoinc = Prisma.LabLoincModel
+/**
+ * Model Atc
+ * 
+ */
+export type Atc = Prisma.AtcModel
+/**
+ * Model Drug
+ * 
+ */
+export type Drug = Prisma.DrugModel
+/**
+ * Model CaseFieldChange
+ * 
+ */
+export type CaseFieldChange = Prisma.CaseFieldChangeModel
+/**
+ * Model CaseSnapshot
+ * 
+ */
+export type CaseSnapshot = Prisma.CaseSnapshotModel
 /**
  * Model RevokedToken
  * 
@@ -122,6 +142,11 @@ export type Comorbidity = Prisma.ComorbidityModel
  * 
  */
 export type LabResult = Prisma.LabResultModel
+/**
+ * Model Medication
+ * 
+ */
+export type Medication = Prisma.MedicationModel
 /**
  * Model VascularAccess
  * 

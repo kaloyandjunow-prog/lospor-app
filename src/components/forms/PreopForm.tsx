@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { calcBMI, calcIBW, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
-import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd11-categories"
+import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd-categories"
 import { ChevronRight, AlertCircle, Lightbulb, X } from "lucide-react"
 import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
@@ -534,7 +534,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                 <TagInput
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
-                  searchUrl={`/api/search/icd11?locale=${locale}`}
+                  searchUrl={`/api/search/icd10?locale=${locale}`}
                   renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
                   placeholder={t("preop.diagnosisPlaceholder")}
                 />
@@ -603,7 +603,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <TagInput
               value={(field.value ?? []) as Tag[]}
               onChange={field.onChange}
-              searchUrl="/api/search/icd11"
+              searchUrl="/api/search/icd10"
               renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
               placeholder={t("preop.historyPlaceholder")}
             />

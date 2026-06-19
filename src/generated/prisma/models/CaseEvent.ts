@@ -64,6 +64,9 @@ export type CaseEventMinAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  atcCode: string | null
+  drugId: string | null
+  drugRoute: string | null
   source: string | null
   idempotencyKey: string | null
   createdAt: Date | null
@@ -88,6 +91,9 @@ export type CaseEventMaxAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  atcCode: string | null
+  drugId: string | null
+  drugRoute: string | null
   source: string | null
   idempotencyKey: string | null
   createdAt: Date | null
@@ -112,6 +118,9 @@ export type CaseEventCountAggregateOutputType = {
   spO2: number
   etco2: number
   temp: number
+  atcCode: number
+  drugId: number
+  drugRoute: number
   metadataJson: number
   source: number
   idempotencyKey: number
@@ -159,6 +168,9 @@ export type CaseEventMinAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  atcCode?: true
+  drugId?: true
+  drugRoute?: true
   source?: true
   idempotencyKey?: true
   createdAt?: true
@@ -183,6 +195,9 @@ export type CaseEventMaxAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  atcCode?: true
+  drugId?: true
+  drugRoute?: true
   source?: true
   idempotencyKey?: true
   createdAt?: true
@@ -207,6 +222,9 @@ export type CaseEventCountAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  atcCode?: true
+  drugId?: true
+  drugRoute?: true
   metadataJson?: true
   source?: true
   idempotencyKey?: true
@@ -319,6 +337,9 @@ export type CaseEventGroupByOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  atcCode: string | null
+  drugId: string | null
+  drugRoute: string | null
   metadataJson: runtime.JsonValue | null
   source: string
   idempotencyKey: string
@@ -367,6 +388,9 @@ export type CaseEventWhereInput = {
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
@@ -393,6 +417,9 @@ export type CaseEventOrderByWithRelationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   etco2?: Prisma.SortOrderInput | Prisma.SortOrder
   temp?: Prisma.SortOrderInput | Prisma.SortOrder
+  atcCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugId?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugRoute?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -423,6 +450,9 @@ export type CaseEventWhereUniqueInput = Prisma.AtLeast<{
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   createdAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
@@ -448,6 +478,9 @@ export type CaseEventOrderByWithAggregationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   etco2?: Prisma.SortOrderInput | Prisma.SortOrder
   temp?: Prisma.SortOrderInput | Prisma.SortOrder
+  atcCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugId?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugRoute?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -481,6 +514,9 @@ export type CaseEventScalarWhereWithAggregatesInput = {
   spO2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  atcCode?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  drugId?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  drugRoute?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableWithAggregatesFilter<"CaseEvent">
   source?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
@@ -505,6 +541,9 @@ export type CaseEventCreateInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -531,6 +570,9 @@ export type CaseEventUncheckedCreateInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -555,6 +597,9 @@ export type CaseEventUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -581,6 +626,9 @@ export type CaseEventUncheckedUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -606,6 +654,9 @@ export type CaseEventCreateManyInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -630,6 +681,9 @@ export type CaseEventUpdateManyMutationInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -655,6 +709,9 @@ export type CaseEventUncheckedUpdateManyInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -690,6 +747,9 @@ export type CaseEventCountOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  atcCode?: Prisma.SortOrder
+  drugId?: Prisma.SortOrder
+  drugRoute?: Prisma.SortOrder
   metadataJson?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -725,6 +785,9 @@ export type CaseEventMaxOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  atcCode?: Prisma.SortOrder
+  drugId?: Prisma.SortOrder
+  drugRoute?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -749,6 +812,9 @@ export type CaseEventMinOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  atcCode?: Prisma.SortOrder
+  drugId?: Prisma.SortOrder
+  drugRoute?: Prisma.SortOrder
   source?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -815,14 +881,6 @@ export type NullableIntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type NullableFloatFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CaseEventCreateWithoutCaseInput = {
   id?: string
   userId?: string | null
@@ -840,6 +898,9 @@ export type CaseEventCreateWithoutCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -864,6 +925,9 @@ export type CaseEventUncheckedCreateWithoutCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -918,6 +982,9 @@ export type CaseEventScalarWhereInput = {
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
@@ -942,6 +1009,9 @@ export type CaseEventCreateManyCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  atcCode?: string | null
+  drugId?: string | null
+  drugRoute?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
   idempotencyKey: string
@@ -966,6 +1036,9 @@ export type CaseEventUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -990,6 +1063,9 @@ export type CaseEventUncheckedUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1014,6 +1090,9 @@ export type CaseEventUncheckedUpdateManyWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1041,6 +1120,9 @@ export type CaseEventSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  atcCode?: boolean
+  drugId?: boolean
+  drugRoute?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -1067,6 +1149,9 @@ export type CaseEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  atcCode?: boolean
+  drugId?: boolean
+  drugRoute?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -1093,6 +1178,9 @@ export type CaseEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  atcCode?: boolean
+  drugId?: boolean
+  drugRoute?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -1119,6 +1207,9 @@ export type CaseEventSelectScalar = {
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  atcCode?: boolean
+  drugId?: boolean
+  drugRoute?: boolean
   metadataJson?: boolean
   source?: boolean
   idempotencyKey?: boolean
@@ -1126,7 +1217,7 @@ export type CaseEventSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "systolic" | "diastolic" | "heartRate" | "spO2" | "etco2" | "temp" | "metadataJson" | "source" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
+export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "systolic" | "diastolic" | "heartRate" | "spO2" | "etco2" | "temp" | "atcCode" | "drugId" | "drugRoute" | "metadataJson" | "source" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
 export type CaseEventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -1160,6 +1251,9 @@ export type $CaseEventPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     spO2: number | null
     etco2: number | null
     temp: number | null
+    atcCode: string | null
+    drugId: string | null
+    drugRoute: string | null
     metadataJson: runtime.JsonValue | null
     source: string
     idempotencyKey: string
@@ -1606,6 +1700,9 @@ export interface CaseEventFieldRefs {
   readonly spO2: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly etco2: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly temp: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly atcCode: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly drugId: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly drugRoute: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly metadataJson: Prisma.FieldRef<"CaseEvent", 'Json'>
   readonly source: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly idempotencyKey: Prisma.FieldRef<"CaseEvent", 'String'>

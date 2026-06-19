@@ -57,9 +57,13 @@ export const ModelName = {
   CaseLock: 'CaseLock',
   CaseTransfer: 'CaseTransfer',
   RoleRequest: 'RoleRequest',
-  Icd10BgCode: 'Icd10BgCode',
-  Icd11Code: 'Icd11Code',
-  Icd11Alias: 'Icd11Alias',
+  Icd10Code: 'Icd10Code',
+  Icd10Synonym: 'Icd10Synonym',
+  LabLoinc: 'LabLoinc',
+  Atc: 'Atc',
+  Drug: 'Drug',
+  CaseFieldChange: 'CaseFieldChange',
+  CaseSnapshot: 'CaseSnapshot',
   RevokedToken: 'RevokedToken',
   RateLimit: 'RateLimit',
   CaseEvent: 'CaseEvent',
@@ -72,6 +76,7 @@ export const ModelName = {
   PreopProcedure: 'PreopProcedure',
   Comorbidity: 'Comorbidity',
   LabResult: 'LabResult',
+  Medication: 'Medication',
   VascularAccess: 'VascularAccess',
   CaseSelection: 'CaseSelection'
 } as const
@@ -173,31 +178,80 @@ export const RoleRequestScalarFieldEnum = {
 export type RoleRequestScalarFieldEnum = (typeof RoleRequestScalarFieldEnum)[keyof typeof RoleRequestScalarFieldEnum]
 
 
-export const Icd10BgCodeScalarFieldEnum = {
-  code: 'code',
-  label: 'label'
-} as const
-
-export type Icd10BgCodeScalarFieldEnum = (typeof Icd10BgCodeScalarFieldEnum)[keyof typeof Icd10BgCodeScalarFieldEnum]
-
-
-export const Icd11CodeScalarFieldEnum = {
+export const Icd10CodeScalarFieldEnum = {
   code: 'code',
   labelEn: 'labelEn',
   labelBg: 'labelBg'
 } as const
 
-export type Icd11CodeScalarFieldEnum = (typeof Icd11CodeScalarFieldEnum)[keyof typeof Icd11CodeScalarFieldEnum]
+export type Icd10CodeScalarFieldEnum = (typeof Icd10CodeScalarFieldEnum)[keyof typeof Icd10CodeScalarFieldEnum]
 
 
-export const Icd11AliasScalarFieldEnum = {
+export const Icd10SynonymScalarFieldEnum = {
   id: 'id',
-  bgTerm: 'bgTerm',
-  enTerm: 'enTerm',
-  createdAt: 'createdAt'
+  icd10Code: 'icd10Code',
+  synonym: 'synonym'
 } as const
 
-export type Icd11AliasScalarFieldEnum = (typeof Icd11AliasScalarFieldEnum)[keyof typeof Icd11AliasScalarFieldEnum]
+export type Icd10SynonymScalarFieldEnum = (typeof Icd10SynonymScalarFieldEnum)[keyof typeof Icd10SynonymScalarFieldEnum]
+
+
+export const LabLoincScalarFieldEnum = {
+  name: 'name',
+  loincCode: 'loincCode',
+  unitCanon: 'unitCanon',
+  referenceLow: 'referenceLow',
+  referenceHigh: 'referenceHigh'
+} as const
+
+export type LabLoincScalarFieldEnum = (typeof LabLoincScalarFieldEnum)[keyof typeof LabLoincScalarFieldEnum]
+
+
+export const AtcScalarFieldEnum = {
+  code: 'code',
+  name: 'name',
+  level: 'level',
+  parentCode: 'parentCode'
+} as const
+
+export type AtcScalarFieldEnum = (typeof AtcScalarFieldEnum)[keyof typeof AtcScalarFieldEnum]
+
+
+export const DrugScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  form: 'form',
+  strength: 'strength'
+} as const
+
+export type DrugScalarFieldEnum = (typeof DrugScalarFieldEnum)[keyof typeof DrugScalarFieldEnum]
+
+
+export const CaseFieldChangeScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  field: 'field',
+  oldValue: 'oldValue',
+  newValue: 'newValue',
+  userId: 'userId',
+  at: 'at'
+} as const
+
+export type CaseFieldChangeScalarFieldEnum = (typeof CaseFieldChangeScalarFieldEnum)[keyof typeof CaseFieldChangeScalarFieldEnum]
+
+
+export const CaseSnapshotScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  schemaVersion: 'schemaVersion',
+  snapshotJson: 'snapshotJson',
+  finalizedAt: 'finalizedAt'
+} as const
+
+export type CaseSnapshotScalarFieldEnum = (typeof CaseSnapshotScalarFieldEnum)[keyof typeof CaseSnapshotScalarFieldEnum]
 
 
 export const RevokedTokenScalarFieldEnum = {
@@ -236,6 +290,9 @@ export const CaseEventScalarFieldEnum = {
   spO2: 'spO2',
   etco2: 'etco2',
   temp: 'temp',
+  atcCode: 'atcCode',
+  drugId: 'drugId',
+  drugRoute: 'drugRoute',
   metadataJson: 'metadataJson',
   source: 'source',
   idempotencyKey: 'idempotencyKey',
@@ -479,6 +536,7 @@ export const ComorbidityScalarFieldEnum = {
   caseId: 'caseId',
   label: 'label',
   code: 'code',
+  icd10Code: 'icd10Code',
   system: 'system',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
@@ -493,12 +551,38 @@ export const LabResultScalarFieldEnum = {
   caseId: 'caseId',
   test: 'test',
   value: 'value',
+  valueNum: 'valueNum',
   unit: 'unit',
+  unitCanon: 'unitCanon',
+  loincCode: 'loincCode',
+  referenceLow: 'referenceLow',
+  referenceHigh: 'referenceHigh',
+  abnormalFlag: 'abnormalFlag',
+  takenAt: 'takenAt',
+  source: 'source',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
 
 export type LabResultScalarFieldEnum = (typeof LabResultScalarFieldEnum)[keyof typeof LabResultScalarFieldEnum]
+
+
+export const MedicationScalarFieldEnum = {
+  id: 'id',
+  preopId: 'preopId',
+  caseId: 'caseId',
+  drugId: 'drugId',
+  nameRaw: 'nameRaw',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  dose: 'dose',
+  route: 'route',
+  frequency: 'frequency',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type MedicationScalarFieldEnum = (typeof MedicationScalarFieldEnum)[keyof typeof MedicationScalarFieldEnum]
 
 
 export const VascularAccessScalarFieldEnum = {
@@ -537,19 +621,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
