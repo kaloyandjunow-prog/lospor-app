@@ -16,7 +16,7 @@ import "dotenv/config"
 import fs from "fs"
 import path from "path"
 import readline from "readline"
-import { PrismaClient } from "../src/generated/prisma/client"
+import { PrismaClient, Prisma } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
@@ -53,6 +53,29 @@ async function batchInsert<T>(rows: T[], fn: (batch: T[]) => Promise<void>) {
   }
 }
 
+// Bulk upsert via a single multi-row INSERT ... ON CONFLICT statement per batch,
+// instead of one upsert() round trip per row (which is ruinously slow over a
+// pooled connection with real network latency).
+async function bulkUpsert(
+  table: string,
+  idColumn: string,
+  columns: string[],
+  rows: Record<string, unknown>[],
+) {
+  if (!rows.length) return
+  const allCols = [idColumn, ...columns]
+  const updateClause = columns.map(c => `"${c}" = excluded."${c}"`).join(", ")
+  const values = Prisma.join(
+    rows.map(r => Prisma.sql`(${Prisma.join(allCols.map(c => r[c] ?? null))})`),
+  )
+  const colList = allCols.map(c => `"${c}"`).join(", ")
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO "${Prisma.raw(table)}" (${Prisma.raw(colList)})
+    VALUES ${values}
+    ON CONFLICT ("${Prisma.raw(idColumn)}") DO UPDATE SET ${Prisma.raw(updateClause)}
+  `)
+}
+
 // ── Step 1: ATC from CONCEPT.csv ──────────────────────────────────────────────
 
 async function seedAtc() {
@@ -85,22 +108,14 @@ async function seedAtc() {
     })
 
     if (rows.length >= BATCH * 10) {
-      await batchInsert(rows, async batch => {
-        for (const r of batch) {
-          await prisma.atc.upsert({ where: { code: r.code }, update: { name: r.name, level: r.level }, create: r })
-        }
-      })
+      await batchInsert(rows, batch => bulkUpsert("Atc", "code", ["name", "level", "parentCode"], batch))
       count += rows.length
       rows = []
       process.stdout.write(`\r  ATC: ${count} codes...`)
     }
   }
   if (rows.length) {
-    await batchInsert(rows, async batch => {
-      for (const r of batch) {
-        await prisma.atc.upsert({ where: { code: r.code }, update: { name: r.name, level: r.level }, create: r })
-      }
-    })
+    await batchInsert(rows, batch => bulkUpsert("Atc", "code", ["name", "level", "parentCode"], batch))
     count += rows.length
   }
   console.log(`\n  ATC done: ${count} codes.`)
@@ -132,22 +147,14 @@ async function seedIcd10Concepts(): Promise<Map<string, string>> {
     rows.push({ code: obj.concept_code, labelEn: obj.concept_name })
 
     if (rows.length >= BATCH * 10) {
-      await batchInsert(rows, async batch => {
-        for (const r of batch) {
-          await prisma.icd10Code.upsert({ where: { code: r.code }, update: { labelEn: r.labelEn }, create: r })
-        }
-      })
+      await batchInsert(rows, batch => bulkUpsert("Icd10Code", "code", ["labelEn"], batch))
       count += rows.length
       rows = []
       process.stdout.write(`\r  ICD-10: ${count} codes...`)
     }
   }
   if (rows.length) {
-    await batchInsert(rows, async batch => {
-      for (const r of batch) {
-        await prisma.icd10Code.upsert({ where: { code: r.code }, update: { labelEn: r.labelEn }, create: r })
-      }
-    })
+    await batchInsert(rows, batch => bulkUpsert("Icd10Code", "code", ["labelEn"], batch))
     count += rows.length
   }
   console.log(`\n  ICD-10 done: ${count} codes. Concept→code map: ${conceptIdToCode.size} entries.`)
@@ -298,15 +305,25 @@ async function seedBgLabels() {
 
   console.log(`  Detected columns: code="${codeKey}", bg_label="${bgKey}"`)
 
-  let updated = 0
+  const pairs: { code: string; labelBg: string }[] = []
   for (const row of rows) {
     const code   = String(row[codeKey] ?? "").trim().toUpperCase()
     const labelBg = String(row[bgKey] ?? "").trim()
     if (!code || !labelBg) continue
-    const res = await prisma.icd10Code.updateMany({ where: { code }, data: { labelBg } })
-    updated += res.count
-    if (updated % 500 === 0) process.stdout.write(`\r  BG labels: ${updated}...`)
+    pairs.push({ code, labelBg })
   }
+
+  let updated = 0
+  await batchInsert(pairs, async batch => {
+    const values = Prisma.join(batch.map(p => Prisma.sql`(${p.code}, ${p.labelBg})`))
+    const res: any = await prisma.$executeRaw(Prisma.sql`
+      UPDATE "Icd10Code" AS i SET "labelBg" = v.label_bg
+      FROM (VALUES ${values}) AS v(code, label_bg)
+      WHERE i.code = v.code
+    `)
+    updated += typeof res === "number" ? res : batch.length
+    process.stdout.write(`\r  BG labels: ${updated}...`)
+  })
   console.log(`\n  BG labels done: ${updated} codes updated.`)
 }
 
@@ -318,19 +335,16 @@ async function seedDrugs() {
   console.log("Seeding Drug table from drugs.json...")
 
   const drugs: { name: string; inn: string; form: string; strength: string; atc: string }[] = JSON.parse(fs.readFileSync(drugFile, "utf8"))
-  let count = 0
-  await batchInsert(drugs, async batch => {
-    for (const d of batch) {
-      const atcCode = d.atc?.trim() || null
-      await prisma.drug.upsert({
-        where:  { id: `drug-${d.name.slice(0, 80)}` },
-        update: { inn: d.inn || null, atcCode, form: d.form || null, strength: d.strength || null },
-        create: { id: `drug-${d.name.slice(0, 80)}`, name: d.name, inn: d.inn || null, atcCode, form: d.form || null, strength: d.strength || null },
-      })
-      count++
-    }
-  })
-  console.log(`  Drugs done: ${count} rows.`)
+  const rows = drugs.map(d => ({
+    id: `drug-${d.name.slice(0, 80)}`,
+    name: d.name,
+    inn: d.inn || null,
+    atcCode: d.atc?.trim() || null,
+    form: d.form || null,
+    strength: d.strength || null,
+  }))
+  await batchInsert(rows, batch => bulkUpsert("Drug", "id", ["name", "inn", "atcCode", "form", "strength"], batch))
+  console.log(`  Drugs done: ${rows.length} rows.`)
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
