@@ -11,11 +11,11 @@ LOSPOR is a free, open-source **personal anaesthetic case log** for learning, po
 
 ## What LOSPOR is and isn't
 
-**Is:** A personal log for anaesthesiologists to record anonymised cases, track learning, and generate a printable case summary.
+**Is:** A personal log for anaesthesiologists to record de-identified perioperative cases, track learning, and generate a printable case summary.
 
 **Is not:** A clinical record system, a patient management tool, or a certified medical device.
 
-Patient identity is never stored. Each case uses an anonymised case code only. The printable protocol has blank fields for patient identity — filled in by hand after printing.
+Patient identity is never stored. Each case uses an internal case code only. The printable protocol has blank fields for patient identity — filled in by hand after printing. LOSPOR avoids direct patient identifiers, but clinical registry data should be treated as de-identified/pseudonymised rather than absolutely anonymised.
 
 ## Medical Disclaimer
 
@@ -23,7 +23,7 @@ LOSPOR is intended for perioperative documentation, research, and workflow suppo
 
 ## Features
 
-- Preoperative assessment — demographics, ICD-11 diagnosis, airway evaluation, risk scores (ASA/RCRI/Apfel/STOP-BANG), vitals, labs (100+ tests with reference ranges and AI image scan)
+- Preoperative assessment — demographics, ICD-10 diagnosis/comorbidity coding, airway evaluation, risk scores (ASA/RCRI/Apfel/STOP-BANG), vitals, labs with LOINC/numeric mirrors and AI image scan
 - Intraoperative timetable — live vital signs graph, drug boluses, infusions, volatile agents, IV fluids on a shared timeline
 - Postoperative recovery — Aldrete score, disposition, handover instructions
 - 30-minute review window — after submitting postop the case stays open for 30 minutes; navigate back to any step to correct data; timer persists across page reloads
@@ -69,8 +69,7 @@ See [.env.example](.env.example) for all required variables.
 | MISTRAL_API_KEY | Optional | AI advisor and lab scan — Mistral La Plateforme (EU), free tier available |
 | MISTRAL_API_BASE | Optional | Override Mistral API endpoint (default: `https://api.mistral.ai/v1`) |
 | MISTRAL_MODEL | Optional | Override model for AI advisor (default: `open-mistral-7b`) |
-| WHO_ICD_CLIENT_ID | Optional | WHO ICD-11 API (free at icd.who.int/icdapi) |
-| WHO_ICD_CLIENT_SECRET | Optional | WHO ICD-11 API secret |
+| CORS_ALLOW_ORIGIN | Required in production | Explicit browser/PWA origin allowlist |
 
 ## Tech stack
 

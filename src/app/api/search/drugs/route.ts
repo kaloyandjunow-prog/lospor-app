@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { prisma } from "@/lib/prisma"
 import fs from "fs"
 import path from "path"
 
@@ -19,6 +20,29 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim().toLowerCase()
   if (!q || q.length < 2) return NextResponse.json([])
 
+  const dbRows = await prisma.drug.findMany({
+    where: {
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { inn:  { contains: q, mode: "insensitive" } },
+      ],
+    },
+    orderBy: [{ name: "asc" }],
+    take: 20,
+  })
+  if (dbRows.length > 0) {
+    return NextResponse.json(dbRows.slice(0, 10).map(d => ({
+      id: d.id,
+      name: d.name,
+      inn: d.inn ?? "",
+      form: d.form ?? "",
+      strength: d.strength ?? "",
+      atc: d.atcCode ?? "",
+      atcCode: d.atcCode ?? "",
+    })))
+  }
+
+  // Fallback for development databases before the Drug seed has run.
   const data    = loadData()
   const results: (Entry & { _score: number })[] = []
 

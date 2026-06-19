@@ -3,17 +3,14 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/generated/prisma/client"
 import caseEmitter from "@/lib/caseEmitter"
-import { checkPII } from "@/lib/pii-check"
+import { checkEventPII } from "@/lib/clinical-pii"
 import { logAudit } from "@/lib/audit"
 import { addEvent, reconcileFullLog, rebuildProjection, type LogEvent } from "@/lib/case-events"
+import { canAccessCase } from "@/lib/access-control"
+import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age":       "86400",
-}
+const CORS = corsHeaders("POST, PUT, OPTIONS")
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
@@ -36,10 +33,7 @@ const eventSchema = z.object({
 // Free-text fields a user can type — these get the same PII guard as the rest of
 // the clinical write paths. Vitals/numbers are not user prose, so they're skipped.
 function piiForEvent(ev: { name?: unknown; label?: unknown }): string | null {
-  return checkPII({
-    name:  typeof ev.name === "string" ? ev.name : null,
-    label: typeof ev.label === "string" ? ev.label : null,
-  })
+  return checkEventPII(ev)
 }
 
 const ALLOWED_SOURCES = new Set(["web", "mobile", "ai", "import"])
@@ -66,12 +60,7 @@ async function authorize(req: NextRequest, id: string) {
   })
   if (!existing) return { error: "Not found", status: 404 as const }
 
-  const isAdmin = user.role === "ADMIN"
-  // Explicit null guard: a HOD with no institution must never match all cases
-  const isHOD   = user.role === "HEAD_OF_DEPT" &&
-    !!user.institutionId &&
-    existing.user?.institutionId === user.institutionId
-  if (existing.userId !== user.id && !isAdmin && !isHOD) {
+  if (!canAccessCase(user, existing)) {
     return { error: "Forbidden", status: 403 as const }
   }
 

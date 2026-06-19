@@ -4,16 +4,13 @@ import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
-import { checkPII } from "@/lib/pii-check"
+import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
+import { caseWhereForUser } from "@/lib/access-control"
+import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age":       "86400",
-}
+const CORS = corsHeaders()
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
@@ -48,12 +45,7 @@ export async function POST(req: NextRequest) {
     const intraop = body.intraop ? intraopSchema.parse(body.intraop) : undefined
     const postop  = body.postop  ? postopSchema.parse(body.postop)   : undefined
 
-    const piiError = checkPII({
-      teamNotes:              preop.teamNotes as string | null,
-      difficultAirwayNotes:  preop.difficultAirwayNotes as string | null,
-      familyAnesthesiaDetails: preop.familyAnesthesiaDetails as string | null,
-      complications:         intraop?.complications as string | null,
-    })
+    const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes: body.notes })
     if (piiError) {
       logAudit(userId, "PII_BLOCKED", "new", { error: piiError })
       return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
@@ -106,10 +98,7 @@ export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const where =
-    user.role === "ADMIN" ? {}
-    : user.role === "HEAD_OF_DEPT" && user.institutionId ? { user: { institutionId: user.institutionId } }
-    : { userId: user.id }
+  const where = caseWhereForUser(user)
 
   // Item 28: Pagination — accept optional ?skip and ?take; cap take at 200 per request
   const url = new URL(req.url)

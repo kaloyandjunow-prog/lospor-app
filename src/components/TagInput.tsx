@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
-export type Tag = { label: string; sub?: string }
+export type Tag = { label: string; sub?: string; code?: string; system?: string; labelEn?: string; labelBg?: string }
 
 interface Props {
   value: Tag[]

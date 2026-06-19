@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   // Merge + deduplicate by code, preserving priority order
   const seen = new Set<string>()
-  const results: { code: string; description: string; descriptionBg?: string }[] = []
+  const results: { code: string; description: string; descriptionBg?: string; display: string; system: string }[] = []
 
   const add = (row: { code: string; labelEn: string; labelBg?: string | null }) => {
     if (seen.has(row.code)) return
@@ -46,6 +46,8 @@ export async function GET(req: NextRequest) {
       code: row.code,
       description: row.labelEn,
       ...(row.labelBg ? { descriptionBg: row.labelBg } : {}),
+      display: `${row.code} — ${useBg && row.labelBg ? row.labelBg : row.labelEn}`,
+      system: "ICD-10",
     })
   }
 

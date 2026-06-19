@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { rateLimit } from "@/lib/rate-limit"
+import { checkPII } from "@/lib/pii-check"
 
 const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
   "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age":       "86400",
@@ -57,6 +58,10 @@ export async function POST(req: NextRequest) {
 
   const { term, termType } = await req.json()
   if (!term?.trim() || !termType) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+  const piiError = checkPII({ term: term.trim() })
+  if (piiError) {
+    return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+  }
 
   const institutionId = user.institutionId
 

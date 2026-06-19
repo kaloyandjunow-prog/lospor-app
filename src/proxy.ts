@@ -7,7 +7,7 @@ import { authConfig } from "@/lib/auth.config"
 // don't each need their own OPTIONS export. Bearer-token APIs require a
 // preflight because Authorization is a non-simple header.
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   // x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
   // x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.

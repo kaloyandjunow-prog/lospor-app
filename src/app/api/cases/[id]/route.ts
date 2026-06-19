@@ -6,16 +6,13 @@ import { z } from "zod"
 import { logAudit } from "@/lib/audit"
 import caseEmitter from "@/lib/caseEmitter"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
-import { checkPII } from "@/lib/pii-check"
+import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { writeFieldDiffsSafe, writeSnapshotSafe } from "@/lib/case-audit"
+import { canAccessCase, caseWhereForUser } from "@/lib/access-control"
+import { corsHeaders } from "@/lib/cors"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-updated-at, x-lospor-intraop-updated-at, x-lospor-force-update",
-  "Access-Control-Max-Age":       "86400",
-}
+const CORS = corsHeaders()
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
@@ -35,11 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const userId = user.id
 
   const { id } = await params
-  const where = user.role === "ADMIN"
-    ? { id }
-    : user.role === "HEAD_OF_DEPT"
-      ? { id, user: { institutionId: user.institutionId } }
-      : { id, userId }
+  const where = caseWhereForUser(user, id)
 
   const record = await prisma.case.findFirst({
     where,
@@ -67,12 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  const isAdmin = user.role === "ADMIN"
-  // Explicit null guards: a HOD with no institution must never match all cases
-  const isHOD   = user.role === "HEAD_OF_DEPT" &&
-    !!user.institutionId &&
-    user.institutionId === existing.user?.institutionId
-  if (existing.userId !== userId && !isAdmin && !isHOD)
+  if (!canAccessCase(user, existing))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
 
@@ -115,13 +103,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }, { status: 409 })
     }
 
-    const piiError = checkPII({
-      teamNotes:              preop?.teamNotes as string | null,
-      difficultAirwayNotes:  preop?.difficultAirwayNotes as string | null,
-      familyAnesthesiaDetails: preop?.familyAnesthesiaDetails as string | null,
-      complications:         intraop?.complications as string | null,
-      notes:                 notes ?? null,
-    })
+    const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes })
     if (piiError) {
       logAudit(userId, "PII_BLOCKED", id, { error: piiError })
       return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })

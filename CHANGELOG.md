@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.1] — 2026-06-19
+
+### Changed — Release Hardening
+- Centralized role-access logic so `HEAD_OF_DEPT` users without an institution fall back to their own cases instead of matching null-institution records.
+- Expanded the server-side PII gate across the major clinical free-text fields, including airway notes, blood product notes, medication/allergy text, premedication text, physical exam report, intraoperative complications, and postoperative disposition notes.
+- Production CORS now fails closed on Vercel when `CORS_ALLOW_ORIGIN` is not configured.
+- Bulgarian ICD-10 diagnosis/comorbidity search now stores code-first tags with English/Bulgarian label snapshots and uses `labelBg` for Bulgarian UI display.
+- Documentation language now consistently describes LOSPOR data as de-identified/pseudonymised with no direct patient identifiers, not absolutely anonymised.
+- OMOP wording clarified as a partial/OMOP-inspired research export until full concept mapping is complete.
+
 ## [2.0.0] — 2026-06-19
 
 ### Added — Database Optimization (research-grade)
@@ -324,3 +334,4 @@ This is the first stable, publicly tagged release of LOSPOR. It consolidates all
 ## [0.1.0] — 2026-04-01
 
 Initial release. Preoperative, intraoperative, and postoperative data entry. PDF export. ICD-11 search. AI advisor. Guided tour. Dark mode. Bilingual (English / Bulgarian).
+
