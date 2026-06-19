@@ -6,7 +6,21 @@ import { mapCasesToOmop } from "@/lib/omop-mapper"
 
 const CASE_SELECT = {
   id: true, caseCode: true, createdAt: true, status: true,
+  institutionId: true,
   user: { select: { institution: { select: { name: true } } } },
+  events: {
+    where: { status: "active", type: "drug" },
+    select: {
+      type: true,
+      timestamp: true,
+      label: true,
+      value: true,
+      unit: true,
+      atcCode: true,
+      drugId: true,
+      metadataJson: true,
+    },
+  },
   preop: {
     select: {
       ageYears: true, sex: true, heightCm: true, weightKg: true,
@@ -17,6 +31,11 @@ const CASE_SELECT = {
       allergies: true, allergyDetails: true, smoking: true, substanceAbuse: true,
       currentMedications: true, rcriScore: true, apfelScore: true, stopBangScore: true,
       difficultAirwayHistory: true, mallampati: true, labResults: true,
+      labRows: {
+        select: {
+          test: true, valueNum: true, value: true, unitCanon: true, loincCode: true, abnormalFlag: true,
+        },
+      },
     },
   },
   intraop: {

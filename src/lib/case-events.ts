@@ -33,6 +33,7 @@ export type LogEvent = {
   label?: string
   value?: string
   atcCode?: string
+  drugId?: string
   drugRoute?: string
 }
 
@@ -186,6 +187,7 @@ function buildRow(
     source,
     idempotencyKey,
     atcCode:        ev.atcCode ?? null,
+    drugId:         ev.drugId ?? null,
     drugRoute:      ev.drugRoute ?? null,
   }
 }

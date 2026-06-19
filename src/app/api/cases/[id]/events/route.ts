@@ -103,6 +103,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
   }
 
+  // Resolve Drug.id from ATC code when a drug event arrives without one
+  if (event.type === "drug" && event.atcCode && !event.drugId) {
+    const drug = await prisma.drug.findFirst({ where: { atcCode: event.atcCode }, select: { id: true } })
+    if (drug) (event as any).drugId = drug.id
+  }
+
   const source = sourceFrom(req)
 
   for (let attempt = 0; ; attempt++) {

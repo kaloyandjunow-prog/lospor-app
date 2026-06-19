@@ -603,7 +603,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <TagInput
               value={(field.value ?? []) as Tag[]}
               onChange={field.onChange}
-              searchUrl="/api/search/icd10"
+              searchUrl={`/api/search/icd10?locale=${locale}`}
               renderSuggestion={item => ({ label: `${item.code} — ${item.description}`, sub: item.code })}
               placeholder={t("preop.historyPlaceholder")}
             />

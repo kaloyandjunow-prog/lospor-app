@@ -1,10 +1,14 @@
 /**
- * OMOP CDM v5.4 mapper — Option A (export-only, no schema changes)
+ * OMOP CDM v5.4 mapper — v2.1
  *
- * Concept IDs are 0 where LOSPOR does not yet have standard vocabulary mapping
- * (i.e. where only source values are available). LOINC-mapped vitals and
- * standard ASA/airway observation concepts are included where a reliable
- * mapping exists.
+ * Improvements in v2.1:
+ * - Drug exposure now reads from CaseEvent rows (type="drug") instead of keyEvents.log
+ * - Lab measurements now exported from LabResult rows (LOINC-coded, canonical units)
+ * - care_site_source_value now uses Case.institutionId when available
+ * - source_version updated to 2.1.0
+ *
+ * Concept IDs remain 0 where LOSPOR does not have OMOP standard vocabulary mapping
+ * (vitals and their LOINC codes are the exception — those have real concept_ids).
  */
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,6 +91,7 @@ interface OmopDrug {
   drug_exposure_start_date: string | null
   drug_type_concept_id: number
   drug_source_value: string | null
+  drug_source_concept_id: string | null
   dose_value: number | null
   dose_unit_source_value: string | null
   route_source_value: string | null
@@ -135,7 +140,18 @@ type CaseRow = {
   caseCode: string | null
   createdAt: Date
   status: string
+  institutionId?: string | null
   user?: { institution?: { name: string | null } | null } | null
+  events?: {
+    type: string
+    timestamp: Date
+    label: string | null
+    value: string | null
+    unit: string | null
+    atcCode: string | null
+    drugId: string | null
+    metadataJson: unknown
+  }[]
   preop?: {
     ageYears: number | null
     sex: string
@@ -166,6 +182,14 @@ type CaseRow = {
     difficultAirwayHistory: boolean
     mallampati: string | null
     labResults: unknown
+    labRows?: {
+      test: string
+      valueNum: number | null
+      value: string | null
+      unitCanon: string | null
+      loincCode: string | null
+      abnormalFlag: string | null
+    }[]
   } | null
   intraop?: {
     startTime: Date
@@ -207,6 +231,9 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
     const startDate = isoDate(c.intraop?.startTime ?? c.createdAt)
     const endDate   = isoDate(c.intraop?.endTime ?? c.intraop?.startTime ?? c.createdAt)
 
+    // care_site: prefer case-level institutionId (populated from v2.1+), fall back to user institution
+    const careSite = c.institutionId ?? c.user?.institution?.name ?? null
+
     // ── VISIT_OCCURRENCE ─────────────────────────────────────────────────────
     visits.push({
       visit_occurrence_id:   visitId,
@@ -216,7 +243,7 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
       visit_end_date:        endDate,
       visit_type_concept_id: 32817, // EHR
       visit_source_value:    c.caseCode,
-      care_site_source_value: c.user?.institution?.name ?? null,
+      care_site_source_value: careSite,
     })
 
     const preop = c.preop
@@ -247,6 +274,26 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
           unit_source_value:         cfg.unit,
           measurement_source_value:  `LOINC:${cfg.loinc}`,
           visit_occurrence_id:       visitId,
+        })
+      }
+
+      // ── Lab results from LabResult rows → MEASUREMENT ────────────────────
+      // v2.1: use SQL LabResult rows (LOINC-coded) instead of raw JSON
+      const labRows = preop.labRows ?? []
+      for (const lab of labRows) {
+        if (lab.valueNum == null) continue
+        measurements.push({
+          measurement_id:              nextId(),
+          person_id:                   personId,
+          measurement_concept_id:      0,
+          measurement_date:            vitDate,
+          measurement_datetime:        vitDate,
+          measurement_type_concept_id: 32817,
+          value_as_number:             lab.valueNum,
+          unit_concept_id:             0,
+          unit_source_value:           lab.unitCanon ?? null,
+          measurement_source_value:    lab.loincCode ? `LOINC:${lab.loincCode}` : `LAB:${lab.test}`,
+          visit_occurrence_id:         visitId,
         })
       }
 
@@ -377,64 +424,27 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
         })
       }
 
-      // ── Drug events from keyEvents.log → DRUG_EXPOSURE ─────────────────
-      const kev = (c.intraop.keyEvents as any) ?? {}
-      const logEvents: any[] = Array.isArray(kev.log) ? kev.log : []
-      for (const ev of logEvents) {
-        if (ev.type === "drug" && ev.name) {
-          drugs.push({
-            drug_exposure_id:           nextId(),
-            person_id:                  personId,
-            drug_concept_id:            0,
-            drug_exposure_start_date:   isoDate(ev.ts),
-            drug_type_concept_id:       32817,
-            drug_source_value:          ev.name,
-            dose_value:                 ev.dose != null ? parseFloat(String(ev.dose)) || null : null,
-            dose_unit_source_value:     ev.unit ?? null,
-            route_source_value:         "IV",
-            visit_occurrence_id:        visitId,
-          })
-        }
-        if ((ev.type === "clinical_event" || ev.type === "event") && ev.label) {
-          observations.push({
-            observation_id:           nextId(),
-            person_id:                personId,
-            observation_concept_id:   0,
-            observation_date:         isoDate(ev.ts),
-            observation_type_concept_id: 32817,
-            value_as_string:          ev.label,
-            observation_source_value: "CLINICAL_EVENT",
-            visit_occurrence_id:      visitId,
-          })
-        }
-        if (ev.type === "vital") {
-          const vDate = isoDate(ev.ts)
-          const vitals: [keyof typeof VITAL_CONCEPTS, number | null | undefined][] = [
-            ["systolic",  ev.systolic],
-            ["diastolic", ev.diastolic],
-            ["heartRate", ev.heartRate],
-            ["spO2",      ev.spO2],
-            ["etco2",     ev.etco2],
-            ["temp",      ev.temp],
-          ]
-          for (const [key, val] of vitals) {
-            if (val == null) continue
-            const cfg = VITAL_CONCEPTS[key]
-            measurements.push({
-              measurement_id:              nextId(),
-              person_id:                   personId,
-              measurement_concept_id:      cfg.concept_id,
-              measurement_date:            vDate,
-              measurement_datetime:        ev.ts ?? vDate,
-              measurement_type_concept_id: 32817,
-              value_as_number:             val,
-              unit_concept_id:             0,
-              unit_source_value:           cfg.unit,
-              measurement_source_value:    `LOINC:${cfg.loinc}`,
-              visit_occurrence_id:         visitId,
-            })
-          }
-        }
+      // ── Drug events from CaseEvent rows → DRUG_EXPOSURE ─────────────────
+      // v2.1: read from SQL CaseEvent rows (type="drug", status="active")
+      // instead of parsing the legacy keyEvents.log JSON blob
+      const drugEvents = c.events ?? []
+      for (const ev of drugEvents) {
+        if (ev.type !== "drug") continue
+        const meta = (ev.metadataJson ?? {}) as any
+        const dose = meta.dose != null ? parseFloat(String(meta.dose)) || null : null
+        drugs.push({
+          drug_exposure_id:           nextId(),
+          person_id:                  personId,
+          drug_concept_id:            0,
+          drug_exposure_start_date:   isoDate(ev.timestamp),
+          drug_type_concept_id:       32817,
+          drug_source_value:          meta.name ?? ev.label ?? null,
+          drug_source_concept_id:     ev.atcCode ? `ATC:${ev.atcCode}` : null,
+          dose_value:                 dose,
+          dose_unit_source_value:     ev.unit ?? meta.unit ?? null,
+          route_source_value:         meta.drugRoute ?? "IV",
+          visit_occurrence_id:        visitId,
+        })
       }
 
       // Fluid totals as observations
@@ -460,9 +470,9 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
       omop_cdm_version: "5.4",
       generated_at: new Date().toISOString(),
       source: "LOSPOR",
-      source_version: "1.0.0",
+      source_version: "2.1.0",
       case_count: cases.length,
-      note: "concept_id = 0 where LOSPOR does not yet have standard OMOP vocabulary mapping. person_id is a deterministic anonymised hash of the internal case ID — no patient identifiers are stored or exported.",
+      note: "concept_id = 0 where LOSPOR does not yet have standard OMOP vocabulary mapping. person_id is a deterministic anonymised hash of the internal case ID — no patient identifiers are stored or exported. Drug exposure reads from the CaseEvent event log (type=drug, status=active). Lab measurements include LOINC-coded results from the LabResult table.",
     },
     visit_occurrence:      visits,
     condition_occurrence:  conditions,

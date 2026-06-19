@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
           data: {
             userId,
             status,
+            institutionId: user.institutionId ?? null,
             caseCode: await generateCaseCode(userId),
             preop: { create: mapPreop(preop) },
             ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),

@@ -175,6 +175,7 @@ export type InstitutionWhereInput = {
   city?: Prisma.StringFilter<"Institution"> | string
   country?: Prisma.StringFilter<"Institution"> | string
   users?: Prisma.UserListRelationFilter
+  cases?: Prisma.CaseListRelationFilter
 }
 
 export type InstitutionOrderByWithRelationInput = {
@@ -183,6 +184,7 @@ export type InstitutionOrderByWithRelationInput = {
   city?: Prisma.SortOrder
   country?: Prisma.SortOrder
   users?: Prisma.UserOrderByRelationAggregateInput
+  cases?: Prisma.CaseOrderByRelationAggregateInput
 }
 
 export type InstitutionWhereUniqueInput = Prisma.AtLeast<{
@@ -194,6 +196,7 @@ export type InstitutionWhereUniqueInput = Prisma.AtLeast<{
   city?: Prisma.StringFilter<"Institution"> | string
   country?: Prisma.StringFilter<"Institution"> | string
   users?: Prisma.UserListRelationFilter
+  cases?: Prisma.CaseListRelationFilter
 }, "id">
 
 export type InstitutionOrderByWithAggregationInput = {
@@ -222,6 +225,7 @@ export type InstitutionCreateInput = {
   city: string
   country?: string
   users?: Prisma.UserCreateNestedManyWithoutInstitutionInput
+  cases?: Prisma.CaseCreateNestedManyWithoutInstitutionInput
 }
 
 export type InstitutionUncheckedCreateInput = {
@@ -230,6 +234,7 @@ export type InstitutionUncheckedCreateInput = {
   city: string
   country?: string
   users?: Prisma.UserUncheckedCreateNestedManyWithoutInstitutionInput
+  cases?: Prisma.CaseUncheckedCreateNestedManyWithoutInstitutionInput
 }
 
 export type InstitutionUpdateInput = {
@@ -238,6 +243,7 @@ export type InstitutionUpdateInput = {
   city?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.UserUpdateManyWithoutInstitutionNestedInput
+  cases?: Prisma.CaseUpdateManyWithoutInstitutionNestedInput
 }
 
 export type InstitutionUncheckedUpdateInput = {
@@ -246,6 +252,7 @@ export type InstitutionUncheckedUpdateInput = {
   city?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   users?: Prisma.UserUncheckedUpdateManyWithoutInstitutionNestedInput
+  cases?: Prisma.CaseUncheckedUpdateManyWithoutInstitutionNestedInput
 }
 
 export type InstitutionCreateManyInput = {
@@ -311,11 +318,28 @@ export type InstitutionUpdateOneWithoutUsersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.InstitutionUpdateToOneWithWhereWithoutUsersInput, Prisma.InstitutionUpdateWithoutUsersInput>, Prisma.InstitutionUncheckedUpdateWithoutUsersInput>
 }
 
+export type InstitutionCreateNestedOneWithoutCasesInput = {
+  create?: Prisma.XOR<Prisma.InstitutionCreateWithoutCasesInput, Prisma.InstitutionUncheckedCreateWithoutCasesInput>
+  connectOrCreate?: Prisma.InstitutionCreateOrConnectWithoutCasesInput
+  connect?: Prisma.InstitutionWhereUniqueInput
+}
+
+export type InstitutionUpdateOneWithoutCasesNestedInput = {
+  create?: Prisma.XOR<Prisma.InstitutionCreateWithoutCasesInput, Prisma.InstitutionUncheckedCreateWithoutCasesInput>
+  connectOrCreate?: Prisma.InstitutionCreateOrConnectWithoutCasesInput
+  upsert?: Prisma.InstitutionUpsertWithoutCasesInput
+  disconnect?: Prisma.InstitutionWhereInput | boolean
+  delete?: Prisma.InstitutionWhereInput | boolean
+  connect?: Prisma.InstitutionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.InstitutionUpdateToOneWithWhereWithoutCasesInput, Prisma.InstitutionUpdateWithoutCasesInput>, Prisma.InstitutionUncheckedUpdateWithoutCasesInput>
+}
+
 export type InstitutionCreateWithoutUsersInput = {
   id?: string
   name: string
   city: string
   country?: string
+  cases?: Prisma.CaseCreateNestedManyWithoutInstitutionInput
 }
 
 export type InstitutionUncheckedCreateWithoutUsersInput = {
@@ -323,6 +347,7 @@ export type InstitutionUncheckedCreateWithoutUsersInput = {
   name: string
   city: string
   country?: string
+  cases?: Prisma.CaseUncheckedCreateNestedManyWithoutInstitutionInput
 }
 
 export type InstitutionCreateOrConnectWithoutUsersInput = {
@@ -346,6 +371,7 @@ export type InstitutionUpdateWithoutUsersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   city?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
+  cases?: Prisma.CaseUpdateManyWithoutInstitutionNestedInput
 }
 
 export type InstitutionUncheckedUpdateWithoutUsersInput = {
@@ -353,6 +379,55 @@ export type InstitutionUncheckedUpdateWithoutUsersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   city?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
+  cases?: Prisma.CaseUncheckedUpdateManyWithoutInstitutionNestedInput
+}
+
+export type InstitutionCreateWithoutCasesInput = {
+  id?: string
+  name: string
+  city: string
+  country?: string
+  users?: Prisma.UserCreateNestedManyWithoutInstitutionInput
+}
+
+export type InstitutionUncheckedCreateWithoutCasesInput = {
+  id?: string
+  name: string
+  city: string
+  country?: string
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutInstitutionInput
+}
+
+export type InstitutionCreateOrConnectWithoutCasesInput = {
+  where: Prisma.InstitutionWhereUniqueInput
+  create: Prisma.XOR<Prisma.InstitutionCreateWithoutCasesInput, Prisma.InstitutionUncheckedCreateWithoutCasesInput>
+}
+
+export type InstitutionUpsertWithoutCasesInput = {
+  update: Prisma.XOR<Prisma.InstitutionUpdateWithoutCasesInput, Prisma.InstitutionUncheckedUpdateWithoutCasesInput>
+  create: Prisma.XOR<Prisma.InstitutionCreateWithoutCasesInput, Prisma.InstitutionUncheckedCreateWithoutCasesInput>
+  where?: Prisma.InstitutionWhereInput
+}
+
+export type InstitutionUpdateToOneWithWhereWithoutCasesInput = {
+  where?: Prisma.InstitutionWhereInput
+  data: Prisma.XOR<Prisma.InstitutionUpdateWithoutCasesInput, Prisma.InstitutionUncheckedUpdateWithoutCasesInput>
+}
+
+export type InstitutionUpdateWithoutCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.UserUpdateManyWithoutInstitutionNestedInput
+}
+
+export type InstitutionUncheckedUpdateWithoutCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  users?: Prisma.UserUncheckedUpdateManyWithoutInstitutionNestedInput
 }
 
 
@@ -362,10 +437,12 @@ export type InstitutionUncheckedUpdateWithoutUsersInput = {
 
 export type InstitutionCountOutputType = {
   users: number
+  cases: number
 }
 
 export type InstitutionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | InstitutionCountOutputTypeCountUsersArgs
+  cases?: boolean | InstitutionCountOutputTypeCountCasesArgs
 }
 
 /**
@@ -385,6 +462,13 @@ export type InstitutionCountOutputTypeCountUsersArgs<ExtArgs extends runtime.Typ
   where?: Prisma.UserWhereInput
 }
 
+/**
+ * InstitutionCountOutputType without action
+ */
+export type InstitutionCountOutputTypeCountCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CaseWhereInput
+}
+
 
 export type InstitutionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -392,6 +476,7 @@ export type InstitutionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   city?: boolean
   country?: boolean
   users?: boolean | Prisma.Institution$usersArgs<ExtArgs>
+  cases?: boolean | Prisma.Institution$casesArgs<ExtArgs>
   _count?: boolean | Prisma.InstitutionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["institution"]>
 
@@ -419,6 +504,7 @@ export type InstitutionSelectScalar = {
 export type InstitutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "city" | "country", ExtArgs["result"]["institution"]>
 export type InstitutionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | Prisma.Institution$usersArgs<ExtArgs>
+  cases?: boolean | Prisma.Institution$casesArgs<ExtArgs>
   _count?: boolean | Prisma.InstitutionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type InstitutionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -428,6 +514,7 @@ export type $InstitutionPayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "Institution"
   objects: {
     users: Prisma.$UserPayload<ExtArgs>[]
+    cases: Prisma.$CasePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -829,6 +916,7 @@ readonly fields: InstitutionFieldRefs;
 export interface Prisma__InstitutionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   users<T extends Prisma.Institution$usersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Institution$usersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  cases<T extends Prisma.Institution$casesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Institution$casesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1276,6 +1364,30 @@ export type Institution$usersArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
+}
+
+/**
+ * Institution.cases
+ */
+export type Institution$casesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Case
+   */
+  select?: Prisma.CaseSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Case
+   */
+  omit?: Prisma.CaseOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CaseInclude<ExtArgs> | null
+  where?: Prisma.CaseWhereInput
+  orderBy?: Prisma.CaseOrderByWithRelationInput | Prisma.CaseOrderByWithRelationInput[]
+  cursor?: Prisma.CaseWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CaseScalarFieldEnum | Prisma.CaseScalarFieldEnum[]
 }
 
 /**
