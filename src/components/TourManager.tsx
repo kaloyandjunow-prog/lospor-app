@@ -4,10 +4,11 @@ import { useEffect, useRef, useCallback, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useLocale } from "next-intl"
 import { TourContext, type TourId } from "@/context/TourContext"
+import type { Driver, Side, Alignment } from "driver.js"
 
 type StepDef = {
   element?: string
-  popover: { title: string; description: string; side?: any; align?: any }
+  popover: { title: string; description: string; side?: Side; align?: Alignment }
 }
 
 const TOURS: Record<TourId, { en: StepDef[]; bg: StepDef[] }> = {
@@ -36,7 +37,7 @@ const TOURS: Record<TourId, { en: StepDef[]; bg: StepDef[] }> = {
     en: [
       { popover: { title: "Preoperative Assessment 📋", description: "This form captures all pre-anaesthesia information about the patient. Let's walk through the key sections." } },
       { element: "[data-tour='preop-demographics']", popover: { title: "Patient demographics",  description: "Age, sex, height, weight, and BMI. IBW and ABW are calculated automatically — important for drug dosing.", side: "right" } },
-      { element: "[data-tour='preop-diagnosis']",    popover: { title: "Diagnosis & procedure", description: "Enter the working diagnosis and planned procedure. You can search ICD-11 codes or type freely.", side: "right" } },
+      { element: "[data-tour='preop-diagnosis']",    popover: { title: "Diagnosis & procedure", description: "Enter the working diagnosis and planned procedure. You can search ICD-10 codes or type freely.", side: "right" } },
       { element: "[data-tour='preop-airway']",       popover: { title: "Airway assessment",     description: "Mallampati class, mouth opening, thyromental distance, neck mobility. Flag difficult airway history if relevant.", side: "right" } },
       { element: "[data-tour='preop-scores']",       popover: { title: "Risk scores",           description: "ASA classification is required. RCRI, Apfel, and STOP-BANG scores calculate automatically from the answers you fill in.", side: "right" } },
       { element: "[data-tour='preop-submit']",       popover: { title: "Save & continue →",     description: "All set! Click this button to save the preoperative assessment and move to intraoperative recording.", side: "top" } },
@@ -44,7 +45,7 @@ const TOURS: Record<TourId, { en: StepDef[]; bg: StepDef[] }> = {
     bg: [
       { popover: { title: "Предоперативна оценка 📋", description: "Тази форма събира цялата предоперативна информация за пациента. Нека разгледаме основните секции." } },
       { element: "[data-tour='preop-demographics']", popover: { title: "Демографски данни",     description: "Възраст, пол, ръст, тегло и ИТМ. ИТТ и ИКТ се изчисляват автоматично — важно за дозиране на медикаменти.", side: "right" } },
-      { element: "[data-tour='preop-diagnosis']",    popover: { title: "Диагноза и интервенция", description: "Въведете диагнозата и планираната интервенция. Можете да търсите ICD-11 кодове или да въведете свободен текст.", side: "right" } },
+      { element: "[data-tour='preop-diagnosis']",    popover: { title: "Диагноза и интервенция", description: "Въведете диагнозата и планираната интервенция. Можете да търсите ICD-10 кодове или да въведете свободен текст.", side: "right" } },
       { element: "[data-tour='preop-airway']",       popover: { title: "Оценка на дихателния път", description: "Клас по Mallampati, разстояние между резците, тиромандибулярно разстояние и подвижност на шията.", side: "right" } },
       { element: "[data-tour='preop-scores']",       popover: { title: "Рискови скали",          description: "ASA класификацията е задължителна. RCRI, Apfel и STOP-BANG се изчисляват автоматично.", side: "right" } },
       { element: "[data-tour='preop-submit']",       popover: { title: "Запази и продължи →",    description: "Готово! Натиснете тук, за да запазите предоперативната оценка и преминете към интраоперативния запис.", side: "top" } },
@@ -112,7 +113,7 @@ const STEP_TOUR: TourId[] = ["preop", "intraop", "postop", "summary"]
 export function TourManager({ children }: { children: React.ReactNode }) {
   const locale    = useLocale()
   const pathname  = usePathname()
-  const driverRef = useRef<any>(null)
+  const driverRef = useRef<Driver | null>(null)
   const [currentFormStep, setCurrentFormStep] = useState<number | null>(null)
 
   const startTour = useCallback(async (tourId: TourId = "dashboard") => {

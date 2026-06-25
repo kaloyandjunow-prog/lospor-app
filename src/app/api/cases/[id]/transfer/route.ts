@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { caseWhereForUser } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
 import { z } from "zod"
@@ -18,7 +19,7 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
-// POST — initiate a transfer
+// POST - initiate a transfer
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -37,19 +38,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Only HOD and admin can assign cases" }, { status: 403 })
   }
 
-  const caseRecord = await prisma.case.findFirst({
-    where: isAdmin ? { id: caseId }
-      // Explicit null guard: a HOD with no institution falls back to owner-only.
-      : (isHOD && user.institutionId) ? { id: caseId, user: { institutionId: user.institutionId } }
-      : { id: caseId, userId: user.id },
-  })
+  // Same ownership/HOD/admin scoping as every other case route - who can
+  // initiate a transfer at all (isHOD/isAdmin, checked above) is a separate
+  // transfer-specific rule layered on top of this shared visibility scope.
+  const caseRecord = await prisma.case.findFirst({ where: caseWhereForUser(user, caseId) })
   if (!caseRecord) return NextResponse.json({ error: "Case not found" }, { status: 404 })
 
   // Fix 3: Reject transfers to deleted accounts
   const recipient = await prisma.user.findUnique({ where: { id: toUserId, deletedAt: null } })
   if (!recipient) return NextResponse.json({ error: "Recipient not found" }, { status: 400 })
 
-  // Fix 4: ADMIN can cross-institution; HOD cannot — must be same institution as recipient
+  // Fix 4: ADMIN can cross-institution; HOD cannot - must be same institution as recipient
   if (!isAdmin && recipient.institutionId !== user.institutionId) {
     return NextResponse.json({ error: "Recipient must be in your institution" }, { status: 403 })
   }
@@ -59,41 +58,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data:  { status: "DECLINED", resolvedAt: new Date() },
   })
 
-  if (isHOD || isAdmin) {
-    const [transfer] = await prisma.$transaction([
-      prisma.caseTransfer.create({
-        data: {
-          caseId,
-          fromUserId:  caseRecord.userId,
-          toUserId,
-          initiatedBy: user.id,
-          status:      "ACCEPTED",
-          resolvedAt:  new Date(),
-        },
-      }),
-      prisma.case.update({
-        where: { id: caseId },
-        data:  { userId: toUserId },
-      }),
-    ])
-    logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true })
-    return NextResponse.json({ instant: true, transfer })
-  }
-
-  const transfer = await prisma.caseTransfer.create({
-    data: {
-      caseId,
-      fromUserId:  user.id,
-      toUserId,
-      initiatedBy: user.id,
-      status:      "PENDING",
-    },
-  })
-  logAudit(user.id, "CASE_TRANSFER_INITIATE", caseId, { toUserId })
-  return NextResponse.json({ instant: false, transfer })
+  const [transfer] = await prisma.$transaction([
+    prisma.caseTransfer.create({
+      data: {
+        caseId,
+        fromUserId:  caseRecord.userId,
+        toUserId,
+        initiatedBy: user.id,
+        status:      "ACCEPTED",
+        resolvedAt:  new Date(),
+      },
+    }),
+    prisma.case.update({
+      where: { id: caseId },
+      data:  { userId: toUserId },
+    }),
+  ])
+  logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true })
+  return NextResponse.json({ instant: true, transfer })
 }
 
-// PATCH — recipient accepts or declines
+// PATCH - recipient accepts or declines
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

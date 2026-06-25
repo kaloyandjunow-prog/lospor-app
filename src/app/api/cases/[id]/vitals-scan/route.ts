@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { canAccessCase } from "@/lib/access-control"
+import { prisma } from "@/lib/prisma"
 import { rateLimit } from "@/lib/rate-limit"
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY ?? ""
@@ -28,6 +30,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params
   if (!id) return NextResponse.json({ error: "Bad request" }, { status: 400 })
+
+  const existing = await prisma.case.findUnique({
+    where: { id },
+    select: {
+      userId: true,
+      user: { select: { institutionId: true } },
+    },
+  })
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  if (!canAccessCase(user, existing)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   let image: string
   let mimeType = "image/jpeg"

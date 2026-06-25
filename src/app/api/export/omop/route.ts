@@ -1,23 +1,103 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
-import { CaseStatus } from "@/generated/prisma/client"
+import { CaseStatus, Prisma } from "@/generated/prisma/client"
 import { mapCasesToOmop } from "@/lib/omop-mapper"
+import { redactText, deepRedactPII } from "@/lib/pii-check"
+
+type ExportRow = Prisma.CaseGetPayload<{ select: typeof CASE_SELECT }>
+
+// Redacts the free-text fields this export actually selects — scalar String
+// fields a clinician can type into directly, plus the freeform keyEvents
+// JSON blob and each CaseEvent's label/value. Coded fields (comorbidities,
+// diagnosesJson, proceduresJson, labRows) are left untouched: they're
+// structured vocabulary entries, and blanket-redacting them would corrupt
+// legitimate two-word diagnosis/institution labels via the name-pattern check.
+function redactExportRow(c: ExportRow) {
+  return {
+    ...c,
+    preop: c.preop ? {
+      ...c.preop,
+      diagnosis: c.preop.diagnosis ? redactText(c.preop.diagnosis) : c.preop.diagnosis,
+      plannedProcedure: c.preop.plannedProcedure ? redactText(c.preop.plannedProcedure) : c.preop.plannedProcedure,
+      allergyDetails: c.preop.allergyDetails ? redactText(c.preop.allergyDetails) : c.preop.allergyDetails,
+      currentMedications: c.preop.currentMedications ? redactText(c.preop.currentMedications) : c.preop.currentMedications,
+      medications: c.preop.medications.map(row => ({
+        ...row,
+        nameRaw: row.nameRaw ? redactText(row.nameRaw) : row.nameRaw,
+      })),
+    } : c.preop,
+    events: (c.events ?? []).map(e => ({
+      ...e,
+      label: e.label ? redactText(e.label) : e.label,
+      value: e.value ? redactText(e.value) : e.value,
+    })),
+    complications: (c.complications ?? []).map(comp => ({
+      ...comp,
+      note: comp.note ? redactText(comp.note) : comp.note,
+    })),
+    intraop: c.intraop ? {
+      ...c.intraop,
+      complications: c.intraop.complications ? redactText(c.intraop.complications) : c.intraop.complications,
+      premedicationEvening: c.intraop.premedicationEvening ? redactText(c.intraop.premedicationEvening) : c.intraop.premedicationEvening,
+      premedicationMorning: c.intraop.premedicationMorning ? redactText(c.intraop.premedicationMorning) : c.intraop.premedicationMorning,
+      keyEvents: deepRedactPII(c.intraop.keyEvents),
+      premedicationRows: c.intraop.premedicationRows.map(row => ({
+        ...row,
+        nameRaw: row.nameRaw ? redactText(row.nameRaw) : row.nameRaw,
+      })),
+    } : c.intraop,
+  }
+}
 
 const CASE_SELECT = {
   id: true, caseCode: true, createdAt: true, status: true,
   institutionId: true,
   user: { select: { institution: { select: { name: true } } } },
+  fieldStatuses: {
+    select: { section: true, fieldKey: true, presence: true },
+  },
+  selections: {
+    select: { section: true, category: true, value: true, ordinal: true },
+    orderBy: [{ section: "asc" }, { category: "asc" }, { ordinal: "asc" }],
+  },
+  complications: {
+    select: { section: true, label: true, note: true, timestamp: true, source: true, ordinal: true },
+    orderBy: [{ section: "asc" }, { ordinal: "asc" }],
+  },
   events: {
-    where: { status: "active", type: "drug" },
+    where: { status: "active" },
     select: {
       type: true,
       timestamp: true,
       label: true,
       value: true,
       unit: true,
+      systolic: true,
+      diastolic: true,
+      heartRate: true,
+      spO2: true,
+      etco2: true,
+      temp: true,
+      bgl: true,
+      bglLoincCode: true,
+      bglUnitCanon: true,
+      fgfLitersPerMin: true,
+      carrierGas: true,
+      fio2Percent: true,
+      fiAirPercent: true,
+      fiN2OPercent: true,
       atcCode: true,
       drugId: true,
+      inn: true,
+      drugRoute: true,
+      rate: true,
+      concentration: true,
+      volume: true,
+      fluidCategory: true,
+      agentPercent: true,
+      clinicalEventCode: true,
       metadataJson: true,
     },
   },
@@ -34,7 +114,36 @@ const CASE_SELECT = {
       labRows: {
         select: {
           test: true, valueNum: true, value: true, unitCanon: true, loincCode: true, abnormalFlag: true,
+          standardConceptId: true, mappingStatus: true,
         },
+      },
+      diagnoses: {
+        select: {
+          code: true, label: true, labelEn: true, labelBg: true,
+          sourceVocabulary: true, sourceCode: true, standardConceptId: true, mappingStatus: true, ordinal: true,
+        },
+        orderBy: { ordinal: "asc" },
+      },
+      procedureRows: {
+        select: {
+          code: true, group: true, domain: true, description: true,
+          sourceVocabulary: true, sourceCode: true, standardConceptId: true, mappingStatus: true, ordinal: true,
+        },
+        orderBy: { ordinal: "asc" },
+      },
+      comorbidityRows: {
+        select: {
+          label: true, labelEn: true, labelBg: true, code: true, icd10Code: true,
+          sourceVocabulary: true, sourceCode: true, standardConceptId: true, mappingStatus: true, ordinal: true,
+        },
+        orderBy: { ordinal: "asc" },
+      },
+      medications: {
+        select: {
+          kind: true, nameRaw: true, inn: true, atcCode: true, dose: true, route: true,
+          sourceVocabulary: true, sourceCode: true, standardConceptId: true, mappingStatus: true, ordinal: true,
+        },
+        orderBy: [{ kind: "asc" }, { ordinal: "asc" }],
       },
     },
   },
@@ -44,19 +153,33 @@ const CASE_SELECT = {
       techniques: true, keyEvents: true, airwayDevice: true,
       crystalloidsMl: true, colloidsMl: true, bloodMl: true, urineMl: true,
       complications: true, premedicationEvening: true, premedicationMorning: true,
+      vascularAccessRows: {
+        select: { site: true, siteLabel: true, size: true, sizeUnit: true, depthCm: true, lumens: true, preexisting: true, ordinal: true },
+        orderBy: { ordinal: "asc" },
+      },
+      premedicationRows: {
+        select: {
+          phase: true, nameRaw: true, inn: true, atcCode: true, dose: true, route: true,
+          sourceVocabulary: true, sourceCode: true, standardConceptId: true, mappingStatus: true, ordinal: true,
+        },
+        orderBy: [{ phase: "asc" }, { ordinal: "asc" }],
+      },
     },
   },
   postop: {
     select: {
+      aldreteActivity: true, aldreteRespiration: true, aldreteCirculation: true, aldreteConsciousness: true, aldreteSpO2: true,
       aldreteTotal: true, painScoreNRS: true, ponv: true, disposition: true,
+      recoveryBpSystolic: true, recoveryBpDiastolic: true, recoveryHeartRate: true, recoverySpO2: true, temperatureCelsius: true,
+      complications: true,
     },
   },
-} as const
+} satisfies Prisma.CaseSelect
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "Admin access required" }, { status: 403 })
+  if (!requireRole(user, ["ADMIN"])) return NextResponse.json({ error: "Admin access required" }, { status: 403 })
 
   const caseId  = req.nextUrl.searchParams.get("caseId")
   const format  = req.nextUrl.searchParams.get("format") ?? "json"   // "json" | "csv"
@@ -76,7 +199,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Case not found" }, { status: 404 })
   }
 
-  const bundle = mapCasesToOmop(cases as any)
+  const bundle = mapCasesToOmop(cases.map(redactExportRow))
 
   if (format === "csv") {
     const csv = bundleToCsv(bundle)
@@ -98,14 +221,35 @@ export async function GET(req: NextRequest) {
 /** Flatten the OMOP bundle to a simple newline-delimited multi-table CSV */
 function bundleToCsv(bundle: ReturnType<typeof mapCasesToOmop>): string {
   const sections: string[] = []
+  const metadataRows = [
+    ["omop_cdm_version", bundle.metadata.omop_cdm_version],
+    ["generated_at", bundle.metadata.generated_at],
+    ["source", bundle.metadata.source],
+    ["source_version", bundle.metadata.source_version],
+    ["schema_version", bundle.metadata.schema_version],
+    ["concept_map_version", bundle.metadata.concept_map_version],
+    ["case_count", String(bundle.metadata.case_count)],
+    ["mapping_summary", JSON.stringify(bundle.metadata.mapping_summary)],
+    ["table_counts", JSON.stringify(bundle.metadata.table_counts)],
+    ["deidentification", JSON.stringify(bundle.metadata.deidentification)],
+    ["note", bundle.metadata.note],
+  ].map(([key, value]) => ({ key, value }))
+  const warningRows = bundle.metadata.quality_warnings.map(w => ({
+    code: w.code,
+    severity: w.severity,
+    count: w.count ?? "",
+    message: w.message,
+  }))
 
   const tables: [string, Record<string, unknown>[]][] = [
-    ["visit_occurrence",     bundle.visit_occurrence     as any],
-    ["condition_occurrence", bundle.condition_occurrence as any],
-    ["drug_exposure",        bundle.drug_exposure        as any],
-    ["measurement",          bundle.measurement          as any],
-    ["procedure_occurrence", bundle.procedure_occurrence as any],
-    ["observation",          bundle.observation          as any],
+    ["metadata",             metadataRows],
+    ["quality_warnings",     warningRows],
+    ["visit_occurrence",     bundle.visit_occurrence     as unknown as Record<string, unknown>[]],
+    ["condition_occurrence", bundle.condition_occurrence as unknown as Record<string, unknown>[]],
+    ["drug_exposure",        bundle.drug_exposure        as unknown as Record<string, unknown>[]],
+    ["measurement",          bundle.measurement          as unknown as Record<string, unknown>[]],
+    ["procedure_occurrence", bundle.procedure_occurrence as unknown as Record<string, unknown>[]],
+    ["observation",          bundle.observation          as unknown as Record<string, unknown>[]],
   ]
 
   for (const [tableName, rows] of tables) {
@@ -116,7 +260,7 @@ function bundleToCsv(bundle: ReturnType<typeof mapCasesToOmop>): string {
     for (const row of rows) {
       sections.push(
         headers.map(h => {
-          const v = (row as any)[h]
+          const v = row[h]
           if (v == null) return ""
           const s = String(v)
           return s.includes(",") || s.includes('"') || s.includes("\n")

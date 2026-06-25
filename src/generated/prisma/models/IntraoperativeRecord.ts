@@ -30,14 +30,11 @@ export type IntraoperativeRecordAvgAggregateOutputType = {
   durationMinutes: number | null
   tubeSize: number | null
   peepCmH2O: number | null
+  lmaSize: number | null
+  oralTubeSize: number | null
+  nasalTubeSize: number | null
   dltSize: number | null
   endobronchialSize: number | null
-  n2oPercent: number | null
-  o2Percent: number | null
-  n2oLitersPerMin: number | null
-  o2LitersPerMin: number | null
-  fgfLitersPerMin: number | null
-  fio2Percent: number | null
   crystalloidsMl: number | null
   colloidsMl: number | null
   bloodMl: number | null
@@ -48,14 +45,11 @@ export type IntraoperativeRecordSumAggregateOutputType = {
   durationMinutes: number | null
   tubeSize: number | null
   peepCmH2O: number | null
+  lmaSize: number | null
+  oralTubeSize: number | null
+  nasalTubeSize: number | null
   dltSize: number | null
   endobronchialSize: number | null
-  n2oPercent: number | null
-  o2Percent: number | null
-  n2oLitersPerMin: number | null
-  o2LitersPerMin: number | null
-  fgfLitersPerMin: number | null
-  fio2Percent: number | null
   crystalloidsMl: number | null
   colloidsMl: number | null
   bloodMl: number | null
@@ -78,18 +72,16 @@ export type IntraoperativeRecordMinAggregateOutputType = {
   fob: boolean | null
   airwayNotes: string | null
   cormackLehane: $Enums.CormackLehane | null
+  lmaSize: number | null
+  oralTubeSize: number | null
+  oralCuffed: boolean | null
+  nasalTubeSize: number | null
+  nasalCuffed: boolean | null
   dltType: string | null
   dltSide: string | null
   dltSize: number | null
   endobronchialSize: number | null
   volatileAgent: $Enums.VolatileAgent | null
-  n2oPercent: number | null
-  o2Percent: number | null
-  n2oLitersPerMin: number | null
-  o2LitersPerMin: number | null
-  fgfLitersPerMin: number | null
-  carrierGas: string | null
-  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -140,18 +132,16 @@ export type IntraoperativeRecordMaxAggregateOutputType = {
   fob: boolean | null
   airwayNotes: string | null
   cormackLehane: $Enums.CormackLehane | null
+  lmaSize: number | null
+  oralTubeSize: number | null
+  oralCuffed: boolean | null
+  nasalTubeSize: number | null
+  nasalCuffed: boolean | null
   dltType: string | null
   dltSide: string | null
   dltSize: number | null
   endobronchialSize: number | null
   volatileAgent: $Enums.VolatileAgent | null
-  n2oPercent: number | null
-  o2Percent: number | null
-  n2oLitersPerMin: number | null
-  o2LitersPerMin: number | null
-  fgfLitersPerMin: number | null
-  carrierGas: string | null
-  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -207,18 +197,16 @@ export type IntraoperativeRecordCountAggregateOutputType = {
   cormackLehane: number
   airwayDevices: number
   ventilationModes: number
+  lmaSize: number
+  oralTubeSize: number
+  oralCuffed: number
+  nasalTubeSize: number
+  nasalCuffed: number
   dltType: number
   dltSide: number
   dltSize: number
   endobronchialSize: number
   volatileAgent: number
-  n2oPercent: number
-  o2Percent: number
-  n2oLitersPerMin: number
-  o2LitersPerMin: number
-  fgfLitersPerMin: number
-  carrierGas: number
-  fio2Percent: number
   plexusBlock: number
   cvkSite: number
   arterialLineSite: number
@@ -263,14 +251,11 @@ export type IntraoperativeRecordAvgAggregateInputType = {
   durationMinutes?: true
   tubeSize?: true
   peepCmH2O?: true
+  lmaSize?: true
+  oralTubeSize?: true
+  nasalTubeSize?: true
   dltSize?: true
   endobronchialSize?: true
-  n2oPercent?: true
-  o2Percent?: true
-  n2oLitersPerMin?: true
-  o2LitersPerMin?: true
-  fgfLitersPerMin?: true
-  fio2Percent?: true
   crystalloidsMl?: true
   colloidsMl?: true
   bloodMl?: true
@@ -281,14 +266,11 @@ export type IntraoperativeRecordSumAggregateInputType = {
   durationMinutes?: true
   tubeSize?: true
   peepCmH2O?: true
+  lmaSize?: true
+  oralTubeSize?: true
+  nasalTubeSize?: true
   dltSize?: true
   endobronchialSize?: true
-  n2oPercent?: true
-  o2Percent?: true
-  n2oLitersPerMin?: true
-  o2LitersPerMin?: true
-  fgfLitersPerMin?: true
-  fio2Percent?: true
   crystalloidsMl?: true
   colloidsMl?: true
   bloodMl?: true
@@ -311,18 +293,16 @@ export type IntraoperativeRecordMinAggregateInputType = {
   fob?: true
   airwayNotes?: true
   cormackLehane?: true
+  lmaSize?: true
+  oralTubeSize?: true
+  oralCuffed?: true
+  nasalTubeSize?: true
+  nasalCuffed?: true
   dltType?: true
   dltSide?: true
   dltSize?: true
   endobronchialSize?: true
   volatileAgent?: true
-  n2oPercent?: true
-  o2Percent?: true
-  n2oLitersPerMin?: true
-  o2LitersPerMin?: true
-  fgfLitersPerMin?: true
-  carrierGas?: true
-  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -373,18 +353,16 @@ export type IntraoperativeRecordMaxAggregateInputType = {
   fob?: true
   airwayNotes?: true
   cormackLehane?: true
+  lmaSize?: true
+  oralTubeSize?: true
+  oralCuffed?: true
+  nasalTubeSize?: true
+  nasalCuffed?: true
   dltType?: true
   dltSide?: true
   dltSize?: true
   endobronchialSize?: true
   volatileAgent?: true
-  n2oPercent?: true
-  o2Percent?: true
-  n2oLitersPerMin?: true
-  o2LitersPerMin?: true
-  fgfLitersPerMin?: true
-  carrierGas?: true
-  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -440,18 +418,16 @@ export type IntraoperativeRecordCountAggregateInputType = {
   cormackLehane?: true
   airwayDevices?: true
   ventilationModes?: true
+  lmaSize?: true
+  oralTubeSize?: true
+  oralCuffed?: true
+  nasalTubeSize?: true
+  nasalCuffed?: true
   dltType?: true
   dltSide?: true
   dltSize?: true
   endobronchialSize?: true
   volatileAgent?: true
-  n2oPercent?: true
-  o2Percent?: true
-  n2oLitersPerMin?: true
-  o2LitersPerMin?: true
-  fgfLitersPerMin?: true
-  carrierGas?: true
-  fio2Percent?: true
   plexusBlock?: true
   cvkSite?: true
   arterialLineSite?: true
@@ -598,18 +574,16 @@ export type IntraoperativeRecordGroupByOutputType = {
   cormackLehane: $Enums.CormackLehane | null
   airwayDevices: runtime.JsonValue
   ventilationModes: runtime.JsonValue
+  lmaSize: number | null
+  oralTubeSize: number | null
+  oralCuffed: boolean | null
+  nasalTubeSize: number | null
+  nasalCuffed: boolean | null
   dltType: string | null
   dltSide: string | null
   dltSize: number | null
   endobronchialSize: number | null
   volatileAgent: $Enums.VolatileAgent | null
-  n2oPercent: number | null
-  o2Percent: number | null
-  n2oLitersPerMin: number | null
-  o2LitersPerMin: number | null
-  fgfLitersPerMin: number | null
-  carrierGas: string | null
-  fio2Percent: number | null
   plexusBlock: $Enums.PlexusBlock | null
   cvkSite: $Enums.CVKSite | null
   arterialLineSite: $Enums.ArterialLineSite | null
@@ -692,18 +666,16 @@ export type IntraoperativeRecordWhereInput = {
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"IntraoperativeRecord"> | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonFilter<"IntraoperativeRecord">
   ventilationModes?: Prisma.JsonFilter<"IntraoperativeRecord">
+  lmaSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  oralTubeSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  oralCuffed?: Prisma.BoolNullableFilter<"IntraoperativeRecord"> | boolean | null
+  nasalTubeSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  nasalCuffed?: Prisma.BoolNullableFilter<"IntraoperativeRecord"> | boolean | null
   dltType?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   dltSide?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   dltSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   endobronchialSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   volatileAgent?: Prisma.EnumVolatileAgentNullableFilter<"IntraoperativeRecord"> | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  o2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  n2oLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  o2LitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  fgfLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  carrierGas?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
-  fio2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -742,6 +714,7 @@ export type IntraoperativeRecordWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   vascularAccessRows?: Prisma.VascularAccessListRelationFilter
+  premedicationRows?: Prisma.PremedicationAdministrationListRelationFilter
 }
 
 export type IntraoperativeRecordOrderByWithRelationInput = {
@@ -765,18 +738,16 @@ export type IntraoperativeRecordOrderByWithRelationInput = {
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
   airwayDevices?: Prisma.SortOrder
   ventilationModes?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  oralCuffed?: Prisma.SortOrderInput | Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  nasalCuffed?: Prisma.SortOrderInput | Prisma.SortOrder
   dltType?: Prisma.SortOrderInput | Prisma.SortOrder
   dltSide?: Prisma.SortOrderInput | Prisma.SortOrder
   dltSize?: Prisma.SortOrderInput | Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrderInput | Prisma.SortOrder
   volatileAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrderInput | Prisma.SortOrder
-  o2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   plexusBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   cvkSite?: Prisma.SortOrderInput | Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -815,6 +786,7 @@ export type IntraoperativeRecordOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
   vascularAccessRows?: Prisma.VascularAccessOrderByRelationAggregateInput
+  premedicationRows?: Prisma.PremedicationAdministrationOrderByRelationAggregateInput
 }
 
 export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
@@ -841,18 +813,16 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"IntraoperativeRecord"> | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonFilter<"IntraoperativeRecord">
   ventilationModes?: Prisma.JsonFilter<"IntraoperativeRecord">
+  lmaSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  oralTubeSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  oralCuffed?: Prisma.BoolNullableFilter<"IntraoperativeRecord"> | boolean | null
+  nasalTubeSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
+  nasalCuffed?: Prisma.BoolNullableFilter<"IntraoperativeRecord"> | boolean | null
   dltType?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   dltSide?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   dltSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   endobronchialSize?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   volatileAgent?: Prisma.EnumVolatileAgentNullableFilter<"IntraoperativeRecord"> | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  o2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  n2oLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  o2LitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  fgfLitersPerMin?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
-  carrierGas?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
-  fio2Percent?: Prisma.FloatNullableFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -891,6 +861,7 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   vascularAccessRows?: Prisma.VascularAccessListRelationFilter
+  premedicationRows?: Prisma.PremedicationAdministrationListRelationFilter
 }, "id" | "caseId">
 
 export type IntraoperativeRecordOrderByWithAggregationInput = {
@@ -914,18 +885,16 @@ export type IntraoperativeRecordOrderByWithAggregationInput = {
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
   airwayDevices?: Prisma.SortOrder
   ventilationModes?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  oralCuffed?: Prisma.SortOrderInput | Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  nasalCuffed?: Prisma.SortOrderInput | Prisma.SortOrder
   dltType?: Prisma.SortOrderInput | Prisma.SortOrder
   dltSide?: Prisma.SortOrderInput | Prisma.SortOrder
   dltSize?: Prisma.SortOrderInput | Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrderInput | Prisma.SortOrder
   volatileAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrderInput | Prisma.SortOrder
-  o2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
-  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
   plexusBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   cvkSite?: Prisma.SortOrderInput | Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -993,18 +962,16 @@ export type IntraoperativeRecordScalarWhereWithAggregatesInput = {
   cormackLehane?: Prisma.EnumCormackLehaneNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonWithAggregatesFilter<"IntraoperativeRecord">
   ventilationModes?: Prisma.JsonWithAggregatesFilter<"IntraoperativeRecord">
+  lmaSize?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
+  oralTubeSize?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
+  oralCuffed?: Prisma.BoolNullableWithAggregatesFilter<"IntraoperativeRecord"> | boolean | null
+  nasalTubeSize?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
+  nasalCuffed?: Prisma.BoolNullableWithAggregatesFilter<"IntraoperativeRecord"> | boolean | null
   dltType?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
   dltSide?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
   dltSize?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   endobronchialSize?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   volatileAgent?: Prisma.EnumVolatileAgentNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
-  o2Percent?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
-  n2oLitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
-  o2LitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
-  fgfLitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
-  carrierGas?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
-  fio2Percent?: Prisma.FloatNullableWithAggregatesFilter<"IntraoperativeRecord"> | number | null
   plexusBlock?: Prisma.EnumPlexusBlockNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.PlexusBlock | null
   cvkSite?: Prisma.EnumCVKSiteNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.CVKSite | null
   arterialLineSite?: Prisma.EnumArterialLineSiteNullableWithAggregatesFilter<"IntraoperativeRecord"> | $Enums.ArterialLineSite | null
@@ -1063,18 +1030,16 @@ export type IntraoperativeRecordCreateInput = {
   cormackLehane?: $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
   dltType?: string | null
   dltSide?: string | null
   dltSize?: number | null
   endobronchialSize?: number | null
   volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1113,6 +1078,7 @@ export type IntraoperativeRecordCreateInput = {
   updatedAt?: Date | string
   case: Prisma.CaseCreateNestedOneWithoutIntraopInput
   vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
+  premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
 }
 
 export type IntraoperativeRecordUncheckedCreateInput = {
@@ -1136,18 +1102,16 @@ export type IntraoperativeRecordUncheckedCreateInput = {
   cormackLehane?: $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
   dltType?: string | null
   dltSide?: string | null
   dltSize?: number | null
   endobronchialSize?: number | null
   volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1185,6 +1149,7 @@ export type IntraoperativeRecordUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
 }
 
 export type IntraoperativeRecordUpdateInput = {
@@ -1207,18 +1172,16 @@ export type IntraoperativeRecordUpdateInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1257,6 +1220,7 @@ export type IntraoperativeRecordUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
   vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
+  premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
 }
 
 export type IntraoperativeRecordUncheckedUpdateInput = {
@@ -1280,18 +1244,16 @@ export type IntraoperativeRecordUncheckedUpdateInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1329,6 +1291,7 @@ export type IntraoperativeRecordUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
 }
 
 export type IntraoperativeRecordCreateManyInput = {
@@ -1352,18 +1315,16 @@ export type IntraoperativeRecordCreateManyInput = {
   cormackLehane?: $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
   dltType?: string | null
   dltSide?: string | null
   dltSize?: number | null
   endobronchialSize?: number | null
   volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1422,18 +1383,16 @@ export type IntraoperativeRecordUpdateManyMutationInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1493,18 +1452,16 @@ export type IntraoperativeRecordUncheckedUpdateManyInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -1569,18 +1526,16 @@ export type IntraoperativeRecordCountOrderByAggregateInput = {
   cormackLehane?: Prisma.SortOrder
   airwayDevices?: Prisma.SortOrder
   ventilationModes?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrder
+  oralCuffed?: Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrder
+  nasalCuffed?: Prisma.SortOrder
   dltType?: Prisma.SortOrder
   dltSide?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrder
   volatileAgent?: Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrder
-  o2Percent?: Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrder
-  carrierGas?: Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1623,14 +1578,11 @@ export type IntraoperativeRecordAvgOrderByAggregateInput = {
   durationMinutes?: Prisma.SortOrder
   tubeSize?: Prisma.SortOrder
   peepCmH2O?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrder
-  o2Percent?: Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrder
   crystalloidsMl?: Prisma.SortOrder
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
@@ -1653,18 +1605,16 @@ export type IntraoperativeRecordMaxOrderByAggregateInput = {
   fob?: Prisma.SortOrder
   airwayNotes?: Prisma.SortOrder
   cormackLehane?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrder
+  oralCuffed?: Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrder
+  nasalCuffed?: Prisma.SortOrder
   dltType?: Prisma.SortOrder
   dltSide?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrder
   volatileAgent?: Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrder
-  o2Percent?: Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrder
-  carrierGas?: Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1715,18 +1665,16 @@ export type IntraoperativeRecordMinOrderByAggregateInput = {
   fob?: Prisma.SortOrder
   airwayNotes?: Prisma.SortOrder
   cormackLehane?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrder
+  oralCuffed?: Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrder
+  nasalCuffed?: Prisma.SortOrder
   dltType?: Prisma.SortOrder
   dltSide?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrder
   volatileAgent?: Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrder
-  o2Percent?: Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrder
-  carrierGas?: Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrder
   plexusBlock?: Prisma.SortOrder
   cvkSite?: Prisma.SortOrder
   arterialLineSite?: Prisma.SortOrder
@@ -1765,14 +1713,11 @@ export type IntraoperativeRecordSumOrderByAggregateInput = {
   durationMinutes?: Prisma.SortOrder
   tubeSize?: Prisma.SortOrder
   peepCmH2O?: Prisma.SortOrder
+  lmaSize?: Prisma.SortOrder
+  oralTubeSize?: Prisma.SortOrder
+  nasalTubeSize?: Prisma.SortOrder
   dltSize?: Prisma.SortOrder
   endobronchialSize?: Prisma.SortOrder
-  n2oPercent?: Prisma.SortOrder
-  o2Percent?: Prisma.SortOrder
-  n2oLitersPerMin?: Prisma.SortOrder
-  o2LitersPerMin?: Prisma.SortOrder
-  fgfLitersPerMin?: Prisma.SortOrder
-  fio2Percent?: Prisma.SortOrder
   crystalloidsMl?: Prisma.SortOrder
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
@@ -1854,6 +1799,20 @@ export type IntraoperativeRecordUpdateOneRequiredWithoutVascularAccessRowsNested
   update?: Prisma.XOR<Prisma.XOR<Prisma.IntraoperativeRecordUpdateToOneWithWhereWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUpdateWithoutVascularAccessRowsInput>, Prisma.IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput>
 }
 
+export type IntraoperativeRecordCreateNestedOneWithoutPremedicationRowsInput = {
+  create?: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput>
+  connectOrCreate?: Prisma.IntraoperativeRecordCreateOrConnectWithoutPremedicationRowsInput
+  connect?: Prisma.IntraoperativeRecordWhereUniqueInput
+}
+
+export type IntraoperativeRecordUpdateOneRequiredWithoutPremedicationRowsNestedInput = {
+  create?: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput>
+  connectOrCreate?: Prisma.IntraoperativeRecordCreateOrConnectWithoutPremedicationRowsInput
+  upsert?: Prisma.IntraoperativeRecordUpsertWithoutPremedicationRowsInput
+  connect?: Prisma.IntraoperativeRecordWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.IntraoperativeRecordUpdateToOneWithWhereWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUpdateWithoutPremedicationRowsInput>, Prisma.IntraoperativeRecordUncheckedUpdateWithoutPremedicationRowsInput>
+}
+
 export type IntraoperativeRecordCreateWithoutCaseInput = {
   id?: string
   monthYear?: string | null
@@ -1874,18 +1833,16 @@ export type IntraoperativeRecordCreateWithoutCaseInput = {
   cormackLehane?: $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
   dltType?: string | null
   dltSide?: string | null
   dltSize?: number | null
   endobronchialSize?: number | null
   volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1923,6 +1880,7 @@ export type IntraoperativeRecordCreateWithoutCaseInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
+  premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
 }
 
 export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
@@ -1945,18 +1903,609 @@ export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
   cormackLehane?: $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
   dltType?: string | null
   dltSide?: string | null
   dltSize?: number | null
   endobronchialSize?: number | null
   volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
+  plexusBlock?: $Enums.PlexusBlock | null
+  cvkSite?: $Enums.CVKSite | null
+  arterialLineSite?: $Enums.ArterialLineSite | null
+  ecg?: boolean
+  urinaryCatheter?: boolean
+  stomachTube?: boolean
+  spO2Monitor?: boolean
+  invasiveBP?: boolean
+  cvpMonitor?: boolean
+  bglMonitor?: boolean
+  bloodGasMonitor?: boolean
+  neuroMonitor?: boolean
+  nbpMonitor?: boolean
+  etco2Monitor?: boolean
+  tempMonitor?: boolean
+  paCatheter?: boolean
+  tee?: boolean
+  bis?: boolean
+  entropyMonitor?: boolean
+  nirsMonitor?: boolean
+  evokedPotentials?: boolean
+  tofMonitor?: boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: string | null
+  premedicationMorning?: string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: number | null
+  colloidsMl?: number | null
+  bloodMl?: number | null
+  bloodProductsNote?: string | null
+  urineMl?: number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
+}
+
+export type IntraoperativeRecordCreateOrConnectWithoutCaseInput = {
+  where: Prisma.IntraoperativeRecordWhereUniqueInput
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput>
+}
+
+export type IntraoperativeRecordUpsertWithoutCaseInput = {
+  update: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutCaseInput>
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput>
+  where?: Prisma.IntraoperativeRecordWhereInput
+}
+
+export type IntraoperativeRecordUpdateToOneWithWhereWithoutCaseInput = {
+  where?: Prisma.IntraoperativeRecordWhereInput
+  data: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutCaseInput>
+}
+
+export type IntraoperativeRecordUpdateWithoutCaseInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
+  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
+  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
+  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
+  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
+  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
+  premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
+}
+
+export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
+  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
+  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
+  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
+  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
+  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
+}
+
+export type IntraoperativeRecordCreateWithoutVascularAccessRowsInput = {
+  id?: string
+  monthYear?: string | null
+  durationMinutes?: number | null
+  startTime: Date | string
+  endTime?: Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: $Enums.AirwayDevice | null
+  tubeSize?: number | null
+  cuffed?: boolean | null
+  peepCmH2O?: number | null
+  ippv?: boolean
+  jetVentilation?: boolean
+  fob?: boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: string | null
+  cormackLehane?: $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
+  dltType?: string | null
+  dltSide?: string | null
+  dltSize?: number | null
+  endobronchialSize?: number | null
+  volatileAgent?: $Enums.VolatileAgent | null
+  plexusBlock?: $Enums.PlexusBlock | null
+  cvkSite?: $Enums.CVKSite | null
+  arterialLineSite?: $Enums.ArterialLineSite | null
+  ecg?: boolean
+  urinaryCatheter?: boolean
+  stomachTube?: boolean
+  spO2Monitor?: boolean
+  invasiveBP?: boolean
+  cvpMonitor?: boolean
+  bglMonitor?: boolean
+  bloodGasMonitor?: boolean
+  neuroMonitor?: boolean
+  nbpMonitor?: boolean
+  etco2Monitor?: boolean
+  tempMonitor?: boolean
+  paCatheter?: boolean
+  tee?: boolean
+  bis?: boolean
+  entropyMonitor?: boolean
+  nirsMonitor?: boolean
+  evokedPotentials?: boolean
+  tofMonitor?: boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: string | null
+  premedicationMorning?: string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: number | null
+  colloidsMl?: number | null
+  bloodMl?: number | null
+  bloodProductsNote?: string | null
+  urineMl?: number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  case: Prisma.CaseCreateNestedOneWithoutIntraopInput
+  premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
+}
+
+export type IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput = {
+  id?: string
+  caseId: string
+  monthYear?: string | null
+  durationMinutes?: number | null
+  startTime: Date | string
+  endTime?: Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: $Enums.AirwayDevice | null
+  tubeSize?: number | null
+  cuffed?: boolean | null
+  peepCmH2O?: number | null
+  ippv?: boolean
+  jetVentilation?: boolean
+  fob?: boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: string | null
+  cormackLehane?: $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
+  dltType?: string | null
+  dltSide?: string | null
+  dltSize?: number | null
+  endobronchialSize?: number | null
+  volatileAgent?: $Enums.VolatileAgent | null
+  plexusBlock?: $Enums.PlexusBlock | null
+  cvkSite?: $Enums.CVKSite | null
+  arterialLineSite?: $Enums.ArterialLineSite | null
+  ecg?: boolean
+  urinaryCatheter?: boolean
+  stomachTube?: boolean
+  spO2Monitor?: boolean
+  invasiveBP?: boolean
+  cvpMonitor?: boolean
+  bglMonitor?: boolean
+  bloodGasMonitor?: boolean
+  neuroMonitor?: boolean
+  nbpMonitor?: boolean
+  etco2Monitor?: boolean
+  tempMonitor?: boolean
+  paCatheter?: boolean
+  tee?: boolean
+  bis?: boolean
+  entropyMonitor?: boolean
+  nirsMonitor?: boolean
+  evokedPotentials?: boolean
+  tofMonitor?: boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: string | null
+  premedicationMorning?: string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: number | null
+  colloidsMl?: number | null
+  bloodMl?: number | null
+  bloodProductsNote?: string | null
+  urineMl?: number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
+}
+
+export type IntraoperativeRecordCreateOrConnectWithoutVascularAccessRowsInput = {
+  where: Prisma.IntraoperativeRecordWhereUniqueInput
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput>
+}
+
+export type IntraoperativeRecordUpsertWithoutVascularAccessRowsInput = {
+  update: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput>
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput>
+  where?: Prisma.IntraoperativeRecordWhereInput
+}
+
+export type IntraoperativeRecordUpdateToOneWithWhereWithoutVascularAccessRowsInput = {
+  where?: Prisma.IntraoperativeRecordWhereInput
+  data: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput>
+}
+
+export type IntraoperativeRecordUpdateWithoutVascularAccessRowsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
+  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
+  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
+  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
+  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
+  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
+  premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
+}
+
+export type IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseId?: Prisma.StringFieldUpdateOperationsInput | string
+  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
+  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
+  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
+  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
+  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
+  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
+}
+
+export type IntraoperativeRecordCreateWithoutPremedicationRowsInput = {
+  id?: string
+  monthYear?: string | null
+  durationMinutes?: number | null
+  startTime: Date | string
+  endTime?: Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: $Enums.AirwayDevice | null
+  tubeSize?: number | null
+  cuffed?: boolean | null
+  peepCmH2O?: number | null
+  ippv?: boolean
+  jetVentilation?: boolean
+  fob?: boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: string | null
+  cormackLehane?: $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
+  dltType?: string | null
+  dltSide?: string | null
+  dltSize?: number | null
+  endobronchialSize?: number | null
+  volatileAgent?: $Enums.VolatileAgent | null
+  plexusBlock?: $Enums.PlexusBlock | null
+  cvkSite?: $Enums.CVKSite | null
+  arterialLineSite?: $Enums.ArterialLineSite | null
+  ecg?: boolean
+  urinaryCatheter?: boolean
+  stomachTube?: boolean
+  spO2Monitor?: boolean
+  invasiveBP?: boolean
+  cvpMonitor?: boolean
+  bglMonitor?: boolean
+  bloodGasMonitor?: boolean
+  neuroMonitor?: boolean
+  nbpMonitor?: boolean
+  etco2Monitor?: boolean
+  tempMonitor?: boolean
+  paCatheter?: boolean
+  tee?: boolean
+  bis?: boolean
+  entropyMonitor?: boolean
+  nirsMonitor?: boolean
+  evokedPotentials?: boolean
+  tofMonitor?: boolean
+  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  premedicationEvening?: string | null
+  premedicationMorning?: string | null
+  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  crystalloidsMl?: number | null
+  colloidsMl?: number | null
+  bloodMl?: number | null
+  bloodProductsNote?: string | null
+  urineMl?: number | null
+  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  complications?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  case: Prisma.CaseCreateNestedOneWithoutIntraopInput
+  vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
+}
+
+export type IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput = {
+  id?: string
+  caseId: string
+  monthYear?: string | null
+  durationMinutes?: number | null
+  startTime: Date | string
+  endTime?: Date | string | null
+  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayDevice?: $Enums.AirwayDevice | null
+  tubeSize?: number | null
+  cuffed?: boolean | null
+  peepCmH2O?: number | null
+  ippv?: boolean
+  jetVentilation?: boolean
+  fob?: boolean
+  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  airwayNotes?: string | null
+  cormackLehane?: $Enums.CormackLehane | null
+  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: number | null
+  oralTubeSize?: number | null
+  oralCuffed?: boolean | null
+  nasalTubeSize?: number | null
+  nasalCuffed?: boolean | null
+  dltType?: string | null
+  dltSide?: string | null
+  dltSize?: number | null
+  endobronchialSize?: number | null
+  volatileAgent?: $Enums.VolatileAgent | null
   plexusBlock?: $Enums.PlexusBlock | null
   cvkSite?: $Enums.CVKSite | null
   arterialLineSite?: $Enums.ArterialLineSite | null
@@ -1996,23 +2545,23 @@ export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
   vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
 }
 
-export type IntraoperativeRecordCreateOrConnectWithoutCaseInput = {
+export type IntraoperativeRecordCreateOrConnectWithoutPremedicationRowsInput = {
   where: Prisma.IntraoperativeRecordWhereUniqueInput
-  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput>
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput>
 }
 
-export type IntraoperativeRecordUpsertWithoutCaseInput = {
-  update: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutCaseInput>
-  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput>
+export type IntraoperativeRecordUpsertWithoutPremedicationRowsInput = {
+  update: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutPremedicationRowsInput>
+  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput>
   where?: Prisma.IntraoperativeRecordWhereInput
 }
 
-export type IntraoperativeRecordUpdateToOneWithWhereWithoutCaseInput = {
+export type IntraoperativeRecordUpdateToOneWithWhereWithoutPremedicationRowsInput = {
   where?: Prisma.IntraoperativeRecordWhereInput
-  data: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutCaseInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutCaseInput>
+  data: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutPremedicationRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutPremedicationRowsInput>
 }
 
-export type IntraoperativeRecordUpdateWithoutCaseInput = {
+export type IntraoperativeRecordUpdateWithoutPremedicationRowsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -2032,18 +2581,16 @@ export type IntraoperativeRecordUpdateWithoutCaseInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -2080,11 +2627,13 @@ export type IntraoperativeRecordUpdateWithoutCaseInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
   vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
 }
 
-export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
+export type IntraoperativeRecordUncheckedUpdateWithoutPremedicationRowsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseId?: Prisma.StringFieldUpdateOperationsInput | string
   monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2103,18 +2652,16 @@ export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
   airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lmaSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  oralCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  nasalTubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  nasalCuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
   cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
   arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
@@ -2154,306 +2701,6 @@ export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
   vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
 }
 
-export type IntraoperativeRecordCreateWithoutVascularAccessRowsInput = {
-  id?: string
-  monthYear?: string | null
-  durationMinutes?: number | null
-  startTime: Date | string
-  endTime?: Date | string | null
-  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayDevice?: $Enums.AirwayDevice | null
-  tubeSize?: number | null
-  cuffed?: boolean | null
-  peepCmH2O?: number | null
-  ippv?: boolean
-  jetVentilation?: boolean
-  fob?: boolean
-  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayNotes?: string | null
-  cormackLehane?: $Enums.CormackLehane | null
-  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  dltType?: string | null
-  dltSide?: string | null
-  dltSize?: number | null
-  endobronchialSize?: number | null
-  volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
-  plexusBlock?: $Enums.PlexusBlock | null
-  cvkSite?: $Enums.CVKSite | null
-  arterialLineSite?: $Enums.ArterialLineSite | null
-  ecg?: boolean
-  urinaryCatheter?: boolean
-  stomachTube?: boolean
-  spO2Monitor?: boolean
-  invasiveBP?: boolean
-  cvpMonitor?: boolean
-  bglMonitor?: boolean
-  bloodGasMonitor?: boolean
-  neuroMonitor?: boolean
-  nbpMonitor?: boolean
-  etco2Monitor?: boolean
-  tempMonitor?: boolean
-  paCatheter?: boolean
-  tee?: boolean
-  bis?: boolean
-  entropyMonitor?: boolean
-  nirsMonitor?: boolean
-  evokedPotentials?: boolean
-  tofMonitor?: boolean
-  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  premedicationEvening?: string | null
-  premedicationMorning?: string | null
-  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  crystalloidsMl?: number | null
-  colloidsMl?: number | null
-  bloodMl?: number | null
-  bloodProductsNote?: string | null
-  urineMl?: number | null
-  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  complications?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  case: Prisma.CaseCreateNestedOneWithoutIntraopInput
-}
-
-export type IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput = {
-  id?: string
-  caseId: string
-  monthYear?: string | null
-  durationMinutes?: number | null
-  startTime: Date | string
-  endTime?: Date | string | null
-  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayDevice?: $Enums.AirwayDevice | null
-  tubeSize?: number | null
-  cuffed?: boolean | null
-  peepCmH2O?: number | null
-  ippv?: boolean
-  jetVentilation?: boolean
-  fob?: boolean
-  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayNotes?: string | null
-  cormackLehane?: $Enums.CormackLehane | null
-  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  dltType?: string | null
-  dltSide?: string | null
-  dltSize?: number | null
-  endobronchialSize?: number | null
-  volatileAgent?: $Enums.VolatileAgent | null
-  n2oPercent?: number | null
-  o2Percent?: number | null
-  n2oLitersPerMin?: number | null
-  o2LitersPerMin?: number | null
-  fgfLitersPerMin?: number | null
-  carrierGas?: string | null
-  fio2Percent?: number | null
-  plexusBlock?: $Enums.PlexusBlock | null
-  cvkSite?: $Enums.CVKSite | null
-  arterialLineSite?: $Enums.ArterialLineSite | null
-  ecg?: boolean
-  urinaryCatheter?: boolean
-  stomachTube?: boolean
-  spO2Monitor?: boolean
-  invasiveBP?: boolean
-  cvpMonitor?: boolean
-  bglMonitor?: boolean
-  bloodGasMonitor?: boolean
-  neuroMonitor?: boolean
-  nbpMonitor?: boolean
-  etco2Monitor?: boolean
-  tempMonitor?: boolean
-  paCatheter?: boolean
-  tee?: boolean
-  bis?: boolean
-  entropyMonitor?: boolean
-  nirsMonitor?: boolean
-  evokedPotentials?: boolean
-  tofMonitor?: boolean
-  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  premedicationEvening?: string | null
-  premedicationMorning?: string | null
-  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  crystalloidsMl?: number | null
-  colloidsMl?: number | null
-  bloodMl?: number | null
-  bloodProductsNote?: string | null
-  urineMl?: number | null
-  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  complications?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type IntraoperativeRecordCreateOrConnectWithoutVascularAccessRowsInput = {
-  where: Prisma.IntraoperativeRecordWhereUniqueInput
-  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput>
-}
-
-export type IntraoperativeRecordUpsertWithoutVascularAccessRowsInput = {
-  update: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput>
-  create: Prisma.XOR<Prisma.IntraoperativeRecordCreateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput>
-  where?: Prisma.IntraoperativeRecordWhereInput
-}
-
-export type IntraoperativeRecordUpdateToOneWithWhereWithoutVascularAccessRowsInput = {
-  where?: Prisma.IntraoperativeRecordWhereInput
-  data: Prisma.XOR<Prisma.IntraoperativeRecordUpdateWithoutVascularAccessRowsInput, Prisma.IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput>
-}
-
-export type IntraoperativeRecordUpdateWithoutVascularAccessRowsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
-  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
-  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
-  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
-  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
-  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
-}
-
-export type IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  caseId?: Prisma.StringFieldUpdateOperationsInput | string
-  monthYear?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  startTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  endTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  positions?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  techniques?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayDevice?: Prisma.NullableEnumAirwayDeviceFieldUpdateOperationsInput | $Enums.AirwayDevice | null
-  tubeSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  cuffed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  peepCmH2O?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  ippv?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  jetVentilation?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  fob?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  airwayTools?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  airwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
-  airwayDevices?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  ventilationModes?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  dltType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dltSide?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dltSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  endobronchialSize?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  volatileAgent?: Prisma.NullableEnumVolatileAgentFieldUpdateOperationsInput | $Enums.VolatileAgent | null
-  n2oPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  n2oLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  o2LitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
-  plexusBlock?: Prisma.NullableEnumPlexusBlockFieldUpdateOperationsInput | $Enums.PlexusBlock | null
-  cvkSite?: Prisma.NullableEnumCVKSiteFieldUpdateOperationsInput | $Enums.CVKSite | null
-  arterialLineSite?: Prisma.NullableEnumArterialLineSiteFieldUpdateOperationsInput | $Enums.ArterialLineSite | null
-  ecg?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  urinaryCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  stomachTube?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  spO2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  invasiveBP?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  cvpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bglMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bloodGasMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  neuroMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  nbpMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  etco2Monitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tempMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  paCatheter?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tee?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  bis?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  entropyMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  nirsMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  evokedPotentials?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  tofMonitor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  vascularAccesses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  premedicationEvening?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  premedicationMorning?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  drugsAdministered?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  crystalloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  colloidsMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  bloodMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  bloodProductsNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  urineMl?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeSeriesData?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  keyEvents?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
 
 /**
  * Count Type IntraoperativeRecordCountOutputType
@@ -2461,10 +2708,12 @@ export type IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput = 
 
 export type IntraoperativeRecordCountOutputType = {
   vascularAccessRows: number
+  premedicationRows: number
 }
 
 export type IntraoperativeRecordCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vascularAccessRows?: boolean | IntraoperativeRecordCountOutputTypeCountVascularAccessRowsArgs
+  premedicationRows?: boolean | IntraoperativeRecordCountOutputTypeCountPremedicationRowsArgs
 }
 
 /**
@@ -2482,6 +2731,13 @@ export type IntraoperativeRecordCountOutputTypeDefaultArgs<ExtArgs extends runti
  */
 export type IntraoperativeRecordCountOutputTypeCountVascularAccessRowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.VascularAccessWhereInput
+}
+
+/**
+ * IntraoperativeRecordCountOutputType without action
+ */
+export type IntraoperativeRecordCountOutputTypeCountPremedicationRowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PremedicationAdministrationWhereInput
 }
 
 
@@ -2506,18 +2762,16 @@ export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.
   cormackLehane?: boolean
   airwayDevices?: boolean
   ventilationModes?: boolean
+  lmaSize?: boolean
+  oralTubeSize?: boolean
+  oralCuffed?: boolean
+  nasalTubeSize?: boolean
+  nasalCuffed?: boolean
   dltType?: boolean
   dltSide?: boolean
   dltSize?: boolean
   endobronchialSize?: boolean
   volatileAgent?: boolean
-  n2oPercent?: boolean
-  o2Percent?: boolean
-  n2oLitersPerMin?: boolean
-  o2LitersPerMin?: boolean
-  fgfLitersPerMin?: boolean
-  carrierGas?: boolean
-  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2556,6 +2810,7 @@ export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.
   updatedAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   vascularAccessRows?: boolean | Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs>
+  premedicationRows?: boolean | Prisma.IntraoperativeRecord$premedicationRowsArgs<ExtArgs>
   _count?: boolean | Prisma.IntraoperativeRecordCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intraoperativeRecord"]>
 
@@ -2580,18 +2835,16 @@ export type IntraoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtim
   cormackLehane?: boolean
   airwayDevices?: boolean
   ventilationModes?: boolean
+  lmaSize?: boolean
+  oralTubeSize?: boolean
+  oralCuffed?: boolean
+  nasalTubeSize?: boolean
+  nasalCuffed?: boolean
   dltType?: boolean
   dltSide?: boolean
   dltSize?: boolean
   endobronchialSize?: boolean
   volatileAgent?: boolean
-  n2oPercent?: boolean
-  o2Percent?: boolean
-  n2oLitersPerMin?: boolean
-  o2LitersPerMin?: boolean
-  fgfLitersPerMin?: boolean
-  carrierGas?: boolean
-  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2652,18 +2905,16 @@ export type IntraoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtim
   cormackLehane?: boolean
   airwayDevices?: boolean
   ventilationModes?: boolean
+  lmaSize?: boolean
+  oralTubeSize?: boolean
+  oralCuffed?: boolean
+  nasalTubeSize?: boolean
+  nasalCuffed?: boolean
   dltType?: boolean
   dltSide?: boolean
   dltSize?: boolean
   endobronchialSize?: boolean
   volatileAgent?: boolean
-  n2oPercent?: boolean
-  o2Percent?: boolean
-  n2oLitersPerMin?: boolean
-  o2LitersPerMin?: boolean
-  fgfLitersPerMin?: boolean
-  carrierGas?: boolean
-  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2724,18 +2975,16 @@ export type IntraoperativeRecordSelectScalar = {
   cormackLehane?: boolean
   airwayDevices?: boolean
   ventilationModes?: boolean
+  lmaSize?: boolean
+  oralTubeSize?: boolean
+  oralCuffed?: boolean
+  nasalTubeSize?: boolean
+  nasalCuffed?: boolean
   dltType?: boolean
   dltSide?: boolean
   dltSize?: boolean
   endobronchialSize?: boolean
   volatileAgent?: boolean
-  n2oPercent?: boolean
-  o2Percent?: boolean
-  n2oLitersPerMin?: boolean
-  o2LitersPerMin?: boolean
-  fgfLitersPerMin?: boolean
-  carrierGas?: boolean
-  fio2Percent?: boolean
   plexusBlock?: boolean
   cvkSite?: boolean
   arterialLineSite?: boolean
@@ -2774,10 +3023,11 @@ export type IntraoperativeRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "n2oPercent" | "o2Percent" | "n2oLitersPerMin" | "o2LitersPerMin" | "fgfLitersPerMin" | "carrierGas" | "fio2Percent" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
+export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "lmaSize" | "oralTubeSize" | "oralCuffed" | "nasalTubeSize" | "nasalCuffed" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
 export type IntraoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   vascularAccessRows?: boolean | Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs>
+  premedicationRows?: boolean | Prisma.IntraoperativeRecord$premedicationRowsArgs<ExtArgs>
   _count?: boolean | Prisma.IntraoperativeRecordCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type IntraoperativeRecordIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2792,6 +3042,7 @@ export type $IntraoperativeRecordPayload<ExtArgs extends runtime.Types.Extension
   objects: {
     case: Prisma.$CasePayload<ExtArgs>
     vascularAccessRows: Prisma.$VascularAccessPayload<ExtArgs>[]
+    premedicationRows: Prisma.$PremedicationAdministrationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2814,18 +3065,16 @@ export type $IntraoperativeRecordPayload<ExtArgs extends runtime.Types.Extension
     cormackLehane: $Enums.CormackLehane | null
     airwayDevices: runtime.JsonValue
     ventilationModes: runtime.JsonValue
+    lmaSize: number | null
+    oralTubeSize: number | null
+    oralCuffed: boolean | null
+    nasalTubeSize: number | null
+    nasalCuffed: boolean | null
     dltType: string | null
     dltSide: string | null
     dltSize: number | null
     endobronchialSize: number | null
     volatileAgent: $Enums.VolatileAgent | null
-    n2oPercent: number | null
-    o2Percent: number | null
-    n2oLitersPerMin: number | null
-    o2LitersPerMin: number | null
-    fgfLitersPerMin: number | null
-    carrierGas: string | null
-    fio2Percent: number | null
     plexusBlock: $Enums.PlexusBlock | null
     cvkSite: $Enums.CVKSite | null
     arterialLineSite: $Enums.ArterialLineSite | null
@@ -3258,6 +3507,7 @@ export interface Prisma__IntraoperativeRecordClient<T, Null = never, ExtArgs ext
   readonly [Symbol.toStringTag]: "PrismaPromise"
   case<T extends Prisma.CaseDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CaseDefaultArgs<ExtArgs>>): Prisma.Prisma__CaseClient<runtime.Types.Result.GetResult<Prisma.$CasePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   vascularAccessRows<T extends Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VascularAccessPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  premedicationRows<T extends Prisma.IntraoperativeRecord$premedicationRowsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntraoperativeRecord$premedicationRowsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PremedicationAdministrationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3307,18 +3557,16 @@ export interface IntraoperativeRecordFieldRefs {
   readonly cormackLehane: Prisma.FieldRef<"IntraoperativeRecord", 'CormackLehane'>
   readonly airwayDevices: Prisma.FieldRef<"IntraoperativeRecord", 'Json'>
   readonly ventilationModes: Prisma.FieldRef<"IntraoperativeRecord", 'Json'>
+  readonly lmaSize: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
+  readonly oralTubeSize: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
+  readonly oralCuffed: Prisma.FieldRef<"IntraoperativeRecord", 'Boolean'>
+  readonly nasalTubeSize: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
+  readonly nasalCuffed: Prisma.FieldRef<"IntraoperativeRecord", 'Boolean'>
   readonly dltType: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
   readonly dltSide: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
   readonly dltSize: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly endobronchialSize: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly volatileAgent: Prisma.FieldRef<"IntraoperativeRecord", 'VolatileAgent'>
-  readonly n2oPercent: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
-  readonly o2Percent: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
-  readonly n2oLitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
-  readonly o2LitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
-  readonly fgfLitersPerMin: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
-  readonly carrierGas: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
-  readonly fio2Percent: Prisma.FieldRef<"IntraoperativeRecord", 'Float'>
   readonly plexusBlock: Prisma.FieldRef<"IntraoperativeRecord", 'PlexusBlock'>
   readonly cvkSite: Prisma.FieldRef<"IntraoperativeRecord", 'CVKSite'>
   readonly arterialLineSite: Prisma.FieldRef<"IntraoperativeRecord", 'ArterialLineSite'>
@@ -3777,6 +4025,30 @@ export type IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs extends runtime.
   take?: number
   skip?: number
   distinct?: Prisma.VascularAccessScalarFieldEnum | Prisma.VascularAccessScalarFieldEnum[]
+}
+
+/**
+ * IntraoperativeRecord.premedicationRows
+ */
+export type IntraoperativeRecord$premedicationRowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PremedicationAdministration
+   */
+  select?: Prisma.PremedicationAdministrationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PremedicationAdministration
+   */
+  omit?: Prisma.PremedicationAdministrationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PremedicationAdministrationInclude<ExtArgs> | null
+  where?: Prisma.PremedicationAdministrationWhereInput
+  orderBy?: Prisma.PremedicationAdministrationOrderByWithRelationInput | Prisma.PremedicationAdministrationOrderByWithRelationInput[]
+  cursor?: Prisma.PremedicationAdministrationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PremedicationAdministrationScalarFieldEnum | Prisma.PremedicationAdministrationScalarFieldEnum[]
 }
 
 /**

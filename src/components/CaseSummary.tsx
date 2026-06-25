@@ -6,6 +6,12 @@ import { format } from "date-fns"
 import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW, calcABW } from "@/lib/scores"
 import { useLocale } from "next-intl"
 import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/PostopForm"
+import type { Tag } from "@/components/TagInput"
+import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
+import type {
+  LegacyKeyEvents, TimetableDrug, TimetableInfusion, VitalsEntry,
+  AgentSegment, TimetableFluid,
+} from "@/types/timetable"
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
 const TECHNIQUE_LABELS: Record<string, { en: string; bg: string }> = {
@@ -136,7 +142,7 @@ function tLabel(map: Record<string, { en: string; bg: string }>, key: string, lo
 }
 
 // ── Monitoring field map ─────────────────────────────────────────────────────
-const MON = [
+const MON: { f: keyof CaseDetailIntraop; l: string }[] = [
   { f: "ecg",              l: "ECG"      },
   { f: "spO2Monitor",      l: "SpO₂"     },
   { f: "nbpMonitor",       l: "NBP"      },
@@ -151,7 +157,7 @@ const MON = [
   { f: "nirsMonitor",      l: "NIRS"     },
   { f: "evokedPotentials", l: "SSEP/MEP" },
   { f: "tofMonitor",       l: "TOF/NMT"  },
-  { f: "bglMonitor",       l: "BGL"      },
+  { f: "bglMonitor",       l: "Serum/peripheral glucose" },
   { f: "bloodGasMonitor",  l: "ABG"      },
   { f: "urinaryCatheter",  l: "Urine"    },
   { f: "stomachTube",      l: "NGT"      },
@@ -179,16 +185,18 @@ const DEVICE_DISPLAY: Record<string, { en: string; bg: string; prefix_en?: strin
   SURGICAL_AIRWAY:   { en: "Surgical Airway", bg: "Хирургичен дихателен път" },
 }
 
-function deviceLabel(i: any, locale: string): string {
+function deviceLabel(i: CaseDetailIntraop | null | undefined, locale: string): string {
   const isBg = locale === "bg"
   const devs: string[] = Array.isArray(i?.airwayDevices) ? i.airwayDevices : []
+  const cuffedStr = (cuffed: boolean | null | undefined) => cuffed != null
+    ? (cuffed ? (isBg ? " с маншет" : " cuffed") : (isBg ? " без маншет" : " uncuffed"))
+    : ""
   return devs.map((d: string) => {
-    const cuffedStr = i?.cuffed != null
-      ? (i.cuffed ? (isBg ? " с маншет" : " cuffed") : (isBg ? " без маншет" : " uncuffed"))
-      : ""
-    if (d === "ORAL_ETT" || d === "NASAL_ETT")
-      return `${DEVICE_DISPLAY[d][isBg ? "bg" : "en"]}${i?.tubeSize ? " " + i.tubeSize + "mm" : ""}${cuffedStr}`
-    if (d === "LMA")                return `${DEVICE_DISPLAY.LMA[isBg ? "bg" : "en"]}${i?.tubeSize ? " " + i.tubeSize : ""}`
+    if (d === "ORAL_ETT")
+      return `${DEVICE_DISPLAY.ORAL_ETT[isBg ? "bg" : "en"]}${i?.oralTubeSize ? " " + i.oralTubeSize + "mm" : ""}${cuffedStr(i?.oralCuffed)}`
+    if (d === "NASAL_ETT")
+      return `${DEVICE_DISPLAY.NASAL_ETT[isBg ? "bg" : "en"]}${i?.nasalTubeSize ? " " + i.nasalTubeSize + "mm" : ""}${cuffedStr(i?.nasalCuffed)}`
+    if (d === "LMA")                return `${DEVICE_DISPLAY.LMA[isBg ? "bg" : "en"]}${i?.lmaSize ? " " + i.lmaSize : ""}`
     if (d === "DOUBLE_LUMEN_TUBE")  return `${DEVICE_DISPLAY.DOUBLE_LUMEN_TUBE[isBg ? "bg" : "en"]}${i?.dltType ? " " + i.dltType : ""}${i?.dltSide ? " " + i.dltSide : ""}${i?.dltSize ? " " + i.dltSize + "Fr" : ""}`
     if (d === "ENDOBRONCHIAL_TUBE") return `${DEVICE_DISPLAY.ENDOBRONCHIAL_TUBE[isBg ? "bg" : "en"]}${i?.endobronchialSize ? " " + i.endobronchialSize + "mm" : ""}`
     return (DEVICE_DISPLAY[d]?.[isBg ? "bg" : "en"]) ?? d.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
@@ -196,10 +204,10 @@ function deviceLabel(i: any, locale: string): string {
 }
 
 // ── Drug/fluid totals ─────────────────────────────────────────────────────────
-function calcDrugTotals(timetable: any) {
-  const drugs: any[] = Array.isArray(timetable?.drugs) ? timetable.drugs : []
+function calcDrugTotals(timetable: LegacyKeyEvents) {
+  const drugs: TimetableDrug[] = Array.isArray(timetable?.drugs) ? timetable.drugs : []
   const totals: Record<string, { total: number; unit: string }> = {}
-  drugs.forEach((d: any) => {
+  drugs.forEach(d => {
     const key = `${d.name ?? ""}__${d.unit ?? ""}`
     if (!totals[key]) totals[key] = { total: 0, unit: d.unit ?? "" }
     totals[key].total += parseFloat(String(d.dose)) || 0
@@ -211,9 +219,9 @@ function calcDrugTotals(timetable: any) {
   }))
 }
 
-function calcInfTotals(timetable: any) {
-  const infs: any[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
-  return infs.map((inf: any) => {
+function calcInfTotals(timetable: LegacyKeyEvents) {
+  const infs: TimetableInfusion[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
+  return infs.map(inf => {
     const cols = Math.max(0, (inf.endCol ?? 0) - (inf.startCol ?? 0))
     const hrs  = (cols * 5) / 60
     const total = Math.round(inf.rate * hrs * 10) / 10
@@ -225,10 +233,7 @@ function calcInfTotals(timetable: any) {
 const VB_W   = 1000
 const YAX    = 28    // Y-axis label width
 const GW     = VB_W - YAX  // 972
-const GH     = 170   // vitals graph height
 const YLBL_H = 14    // time-label row height
-const DRUG_H = 34    // drug bolus row height
-const BAR_H  = 13    // agent / infusion / fluid row height
 
 // Colour scheme matching IntraopTimetable.tsx
 const C_SYS  = "#ef4444"   // BP systolic — red
@@ -236,15 +241,7 @@ const C_DIA  = "#ef4444"   // BP diastolic — red dashed
 const C_HR   = "#22c55e"   // HR — green
 const C_SPO2 = "#06b6d4"   // SpO₂ — cyan
 
-function agentColor(name: string) {
-  const n = name?.toLowerCase()
-  if (n?.includes("sevo"))  return { fill: "#c084fc55", stroke: "#a855f7" }
-  if (n?.includes("des"))   return { fill: "#60a5fa55", stroke: "#3b82f6" }
-  if (n?.includes("iso"))   return { fill: "#4ade8055", stroke: "#22c55e" }
-  return { fill: "#c084fc55", stroke: "#a855f7" }
-}
-
-function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: string | null }) {
+function PrintTimetable({ timetable, startISO }: { timetable: LegacyKeyEvents; startISO?: string | null }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [dims,   setDims]   = useState({ w: 0, h: 0 })
   const [isDark, setIsDark] = useState(false)
@@ -319,11 +316,11 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
     timeText:    "#475569",
   }
 
-  const vitals: any[]    = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
-  const drugs: any[]     = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
-  const agents: any[]    = Array.isArray(timetable?.agents)    ? timetable.agents    : []
-  const infusions: any[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
-  const fluids: any[]    = Array.isArray(timetable?.fluids)    ? timetable.fluids    : []
+  const vitals: VitalsEntry[]        = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
+  const drugs: TimetableDrug[]       = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
+  const agents: AgentSegment[]       = Array.isArray(timetable?.agents)    ? timetable.agents    : []
+  const infusions: TimetableInfusion[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
+  const fluids: TimetableFluid[]     = Array.isArray(timetable?.fluids)    ? timetable.fluids    : []
 
   const hasData = vitals.length || drugs.length || agents.length || infusions.length || fluids.length
   if (!hasData) {
@@ -339,10 +336,10 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
 
   const maxCols = Math.max(
     vitals.length,
-    drugs.length     > 0 ? Math.max(...drugs.map((d: any)    => d.colIdx ?? 0)) + 3 : 0,
-    agents.length    > 0 ? Math.max(...agents.map((a: any)   => a.endCol ?? a.startCol ?? 0)) + 3 : 0,
-    infusions.length > 0 ? Math.max(...infusions.map((f: any) => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
-    fluids.length    > 0 ? Math.max(...fluids.map((f: any)   => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
+    drugs.length     > 0 ? Math.max(...drugs.map(d    => d.colIdx ?? 0)) + 3 : 0,
+    agents.length    > 0 ? Math.max(...agents.map(a   => a.endCol ?? a.startCol ?? 0)) + 3 : 0,
+    infusions.length > 0 ? Math.max(...infusions.map(f => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
+    fluids.length    > 0 ? Math.max(...fluids.map(f   => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
     12  // minimum 1 hour (12 × 5 min columns)
   ) + 2
 
@@ -364,7 +361,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
   }
 
   const drugsByName: Record<string, { col: number; dose: string; unit: string }[]> = {}
-  drugs.forEach((d: any) => {
+  drugs.forEach(d => {
     const name = String(d.name ?? "Unknown")
     if (!drugsByName[name]) drugsByName[name] = []
     drugsByName[name].push({ col: d.colIdx ?? 0, dose: String(d.dose ?? ""), unit: String(d.unit ?? "") })
@@ -393,9 +390,9 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
   const eventY = chartH + YLBL_H
 
   // Polyline segment builder
-  function segs(key: string) {
+  function segs(key: keyof VitalsEntry) {
     const out: string[][] = []; let cur: string[] = []
-    vitals.forEach((v: any, idx: number) => {
+    vitals.forEach((v, idx) => {
       const val = v?.[key]
       if (val != null && !isNaN(Number(val))) cur.push(`${xOf(idx)},${yBP(Number(val))}`)
       else { if (cur.length > 1) out.push(cur); cur = [] }
@@ -482,7 +479,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
       {/* Pulse pressure fill */}
       {(() => {
         const pts: string[] = [], rev: string[] = []
-        vitals.forEach((v: any, idx: number) => {
+        vitals.forEach((v, idx) => {
           if (v?.systolic != null && v?.diastolic != null) {
             pts.push(`${xOf(idx)},${yBP(v.systolic)}`)
             rev.unshift(`${xOf(idx)},${yBP(v.diastolic)}`)
@@ -493,19 +490,19 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
 
       {/* BP Systolic — solid, 1.5px */}
       {segs("systolic").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_SYS} strokeWidth={1.5} />)}
-      {vitals.map((v: any, idx: number) =>
+      {vitals.map((v, idx) =>
         v?.systolic != null ? <circle key={idx} cx={xOf(idx)} cy={yBP(v.systolic)} r={2.2} fill={C_SYS} /> : null
       )}
 
       {/* BP Diastolic — dashed 4,2 */}
       {segs("diastolic").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_DIA} strokeWidth={1.2} strokeDasharray="5,3" opacity={0.7} />)}
-      {vitals.map((v: any, idx: number) =>
+      {vitals.map((v, idx) =>
         v?.diastolic != null ? <circle key={idx} cx={xOf(idx)} cy={yBP(v.diastolic)} r={2} fill="none" stroke={C_DIA} strokeWidth={1.2} opacity={0.7} /> : null
       )}
 
       {/* HR — dotted 2,3 */}
       {segs("heartRate").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_HR} strokeWidth={1.5} strokeDasharray="2,4" />)}
-      {vitals.map((v: any, idx: number) =>
+      {vitals.map((v, idx) =>
         v?.heartRate != null ? (
           <g key={idx}>
             <line x1={xOf(idx)-2.5} y1={yBP(v.heartRate)-2.5} x2={xOf(idx)+2.5} y2={yBP(v.heartRate)+2.5} stroke={C_HR} strokeWidth={1.2} />
@@ -516,7 +513,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
 
       {/* SpO₂ — dash-dot 6,2,1,2 */}
       {segs("spO2").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_SPO2} strokeWidth={1.2} strokeDasharray="6,2,1,2" />)}
-      {vitals.map((v: any, idx: number) =>
+      {vitals.map((v, idx) =>
         v?.spO2 != null ? <rect key={idx} x={xOf(idx)-2} y={yBP(v.spO2)-2} width={4} height={4} fill={C_SPO2} /> : null
       )}
 
@@ -574,7 +571,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
       })}
 
       {/* Agent rows */}
-      {agents.slice(0, agentRows).map((a: any, ridx: number) => {
+      {agents.slice(0, agentRows).map((a, ridx) => {
         const rowY = eventY + drugRowCount * CELL_H_D + ridx * CELL_H_D
         const start = a.startCol ?? 0, end = a.endCol ?? start
         return (
@@ -600,7 +597,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
       })}
 
       {/* Infusion rows */}
-      {infusions.slice(0, infRows).map((inf: any, ridx: number) => {
+      {infusions.slice(0, infRows).map((inf, ridx) => {
         const rowY = eventY + (drugRowCount + agentRows) * CELL_H_D + ridx * CELL_H_D
         const start = inf.startCol ?? 0, end = inf.endCol ?? start
         return (
@@ -626,7 +623,7 @@ function PrintTimetable({ timetable, startISO }: { timetable: any; startISO?: st
       })}
 
       {/* Fluid rows */}
-      {fluids.slice(0, fluidRows).map((f: any, ridx: number) => {
+      {fluids.slice(0, fluidRows).map((f, ridx) => {
         const rowY = eventY + (drugRowCount + agentRows + infRows) * CELL_H_D + ridx * CELL_H_D
         const start = f.startCol ?? 0, end = f.endCol ?? start
         return (
@@ -766,7 +763,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     return map
   })()
 
-  const [data,    setData]    = useState<any>(null)
+  const [data,    setData]    = useState<CaseDetail | null>(null)
   const [loading, setLoading]     = useState(true)
   const [showWarning, setShowWarning] = useState(false)
 
@@ -797,9 +794,29 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   const positions:     string[] = Array.isArray(i?.positions)        ? i.positions        : []
   const ventModes:     string[] = Array.isArray(i?.ventilationModes) ? i.ventilationModes : []
   const airwayTools:   string[] = Array.isArray(i?.airwayTools)      ? i.airwayTools      : []
-  const vascular:      any[]    = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
-  const comorbidities: any[]    = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
-  const labResults:    any[]    = Array.isArray(p?.labResults)       ? p.labResults.filter((l: any) => l.value) : []
+  type VascularAccessItem = { site?: string; siteLabel?: string; size?: string; sizeUnit?: string }
+  type LabResultItem = { test?: string; value?: string; unit?: string }
+  const vascular:      VascularAccessItem[] = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
+  const comorbidities: Tag[]                = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
+  const currentMedicationsText = (() => {
+    const raw = p?.currentMedications
+    if (!raw) return null
+    const trimmed = raw.trim()
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown[]
+        if (Array.isArray(parsed)) return parsed
+          .map((item) => {
+            const med = item as { label?: unknown; inn?: unknown; name?: unknown }
+            return med.label ?? med.inn ?? med.name
+          })
+          .filter((label): label is string => typeof label === "string" && label.length > 0)
+          .join(", ")
+      } catch {}
+    }
+    return raw
+  })()
+  const labResults:    LabResultItem[]      = Array.isArray(p?.labResults)       ? (p.labResults as LabResultItem[]).filter(l => l.value) : []
   const handoverItems: string[] = Array.isArray(o?.handoverItems)    ? o.handoverItems    : []
   const timetable = (i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}
 
@@ -963,7 +980,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                     <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
                     <F label="BMI"  value={p?.bmi ? `${p.bmi} kg/m²` : null} />
                     {p?.heightCm && p?.sex && (() => {
-                      const ibw = calcIBW(p.heightCm, p.sex as any)
+                      const ibw = calcIBW(p.heightCm, p.sex)
                       const abw = p?.weightKg ? calcABW(ibw, p.weightKg) : null
                       return <>
                         <F label="IBW" value={ibw ? `${ibw} kg` : null} />
@@ -995,17 +1012,17 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                   <>
                     <Sec title={L.vascular} />
                     <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                      {vascular.map((a: any) => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).join(" · ")}
+                      {vascular.map(a => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).join(" · ")}
                     </p>
                   </>
                 )}
 
                 {/* Premedication */}
-                {(p?.premedicationEvening || p?.premedicationMorning) && (
+                {(i?.premedicationEvening || i?.premedicationMorning) && (
                   <>
                     <Sec title={L.premed} />
-                    <F label={L.evening} value={p?.premedicationEvening} />
-                    <F label={L.morning} value={p?.premedicationMorning} />
+                    <F label={L.evening} value={i?.premedicationEvening} />
+                    <F label={L.morning} value={i?.premedicationMorning} />
                   </>
                 )}
               </div>
@@ -1114,14 +1131,14 @@ export function CaseSummary({ caseId }: { caseId: string }) {
               {comorbidities.length > 0 && (
                 <>
                   <Sec title={L.comorbidities} />
-                  <div className="flex flex-wrap">{comorbidities.map((c: any, idx: number) => <Chip key={idx} color="amber">{c.label ?? String(c)}</Chip>)}</div>
+                  <div className="flex flex-wrap">{comorbidities.map((c, idx) => <Chip key={idx} color="amber">{c.label ?? String(c)}</Chip>)}</div>
                 </>
               )}
 
-              {p?.currentMedications && (
+              {currentMedicationsText && (
                 <>
                   <Sec title={L.medications} />
-                  <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-snug">{p.currentMedications}</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-snug">{currentMedicationsText}</p>
                 </>
               )}
 
@@ -1143,9 +1160,9 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                       columnGap: "0.5rem",
                     }}
                   >
-                    {labResults.map((l: any, idx: number) => (
+                    {labResults.map((l, idx) => (
                       <div key={idx} className="lab-entry" style={{ breakInside: "avoid" }}>
-                        <F label={l.test} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
+                        <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
                       </div>
                     ))}
                   </div>

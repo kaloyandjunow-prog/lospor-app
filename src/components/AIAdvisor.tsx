@@ -55,9 +55,9 @@ export function AIAdvisor({ getFormData }: Props) {
       }
 
       setStatus("done")
-    } catch (err: any) {
-      if (err.name === "AbortError") return
-      setError(err.message ?? "Unknown error")
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return
+      setError(err instanceof Error ? err.message : "Unknown error")
       setStatus("error")
     }
   }

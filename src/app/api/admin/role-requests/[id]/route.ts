@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -18,7 +19,7 @@ export async function OPTIONS() {
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
-  if (!user || user.role !== "ADMIN") {
+  if (!requireRole(user, ["ADMIN"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

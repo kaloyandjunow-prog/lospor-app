@@ -1,24 +1,23 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { allowedCorsOrigin } from "@/lib/cors"
 
-const oldEnv = { ...process.env }
-
 afterEach(() => {
-  process.env = { ...oldEnv }
+  vi.unstubAllEnvs()
+  delete process.env.CORS_ALLOW_ORIGIN
 })
 
 describe("CORS config", () => {
   it("allows permissive origin outside production deployment", () => {
     delete process.env.CORS_ALLOW_ORIGIN
-    process.env.NODE_ENV = "development"
-    delete process.env.VERCEL_ENV
+    vi.stubEnv("NODE_ENV", "development")
+    vi.stubEnv("VERCEL_ENV", undefined as unknown as string)
     expect(allowedCorsOrigin()).toBe("*")
   })
 
   it("fails closed in Vercel production when origin is missing", () => {
     delete process.env.CORS_ALLOW_ORIGIN
-    process.env.NODE_ENV = "production"
-    process.env.VERCEL_ENV = "production"
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("VERCEL_ENV", "production")
     expect(() => allowedCorsOrigin()).toThrow("CORS_ALLOW_ORIGIN")
   })
 })

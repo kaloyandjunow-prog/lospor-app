@@ -62,6 +62,16 @@ export const ModelName = {
   LabLoinc: 'LabLoinc',
   Atc: 'Atc',
   Drug: 'Drug',
+  OptionLibrary: 'OptionLibrary',
+  ConceptMap: 'ConceptMap',
+  OmopVocabulary: 'OmopVocabulary',
+  OmopDomain: 'OmopDomain',
+  OmopConcept: 'OmopConcept',
+  OmopConceptRelationship: 'OmopConceptRelationship',
+  OmopConceptAncestor: 'OmopConceptAncestor',
+  OmopConceptSynonym: 'OmopConceptSynonym',
+  OmopVocabularyImport: 'OmopVocabularyImport',
+  ClinicalFieldStatus: 'ClinicalFieldStatus',
   CaseFieldChange: 'CaseFieldChange',
   CaseSnapshot: 'CaseSnapshot',
   RevokedToken: 'RevokedToken',
@@ -78,6 +88,8 @@ export const ModelName = {
   LabResult: 'LabResult',
   Medication: 'Medication',
   VascularAccess: 'VascularAccess',
+  PremedicationAdministration: 'PremedicationAdministration',
+  CaseComplication: 'CaseComplication',
   CaseSelection: 'CaseSelection'
 } as const
 
@@ -230,6 +242,158 @@ export const DrugScalarFieldEnum = {
 export type DrugScalarFieldEnum = (typeof DrugScalarFieldEnum)[keyof typeof DrugScalarFieldEnum]
 
 
+export const OptionLibraryScalarFieldEnum = {
+  id: 'id',
+  category: 'category',
+  value: 'value',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
+  group: 'group',
+  parentId: 'parentId',
+  drugId: 'drugId',
+  color: 'color',
+  description: 'description',
+  sortOrder: 'sortOrder',
+  active: 'active',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OptionLibraryScalarFieldEnum = (typeof OptionLibraryScalarFieldEnum)[keyof typeof OptionLibraryScalarFieldEnum]
+
+
+export const ConceptMapScalarFieldEnum = {
+  id: 'id',
+  domain: 'domain',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  sourceLabelEn: 'sourceLabelEn',
+  sourceLabelBg: 'sourceLabelBg',
+  standardVocabulary: 'standardVocabulary',
+  standardConceptId: 'standardConceptId',
+  standardLabel: 'standardLabel',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
+  mappingMethod: 'mappingMethod',
+  mappingConfidence: 'mappingConfidence',
+  reviewed: 'reviewed',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  mappingNotes: 'mappingNotes',
+  athenaVersion: 'athenaVersion',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ConceptMapScalarFieldEnum = (typeof ConceptMapScalarFieldEnum)[keyof typeof ConceptMapScalarFieldEnum]
+
+
+export const OmopVocabularyScalarFieldEnum = {
+  vocabularyId: 'vocabularyId',
+  vocabularyName: 'vocabularyName',
+  vocabularyReference: 'vocabularyReference',
+  vocabularyVersion: 'vocabularyVersion',
+  vocabularyConceptId: 'vocabularyConceptId',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopVocabularyScalarFieldEnum = (typeof OmopVocabularyScalarFieldEnum)[keyof typeof OmopVocabularyScalarFieldEnum]
+
+
+export const OmopDomainScalarFieldEnum = {
+  domainId: 'domainId',
+  domainName: 'domainName',
+  domainConceptId: 'domainConceptId'
+} as const
+
+export type OmopDomainScalarFieldEnum = (typeof OmopDomainScalarFieldEnum)[keyof typeof OmopDomainScalarFieldEnum]
+
+
+export const OmopConceptScalarFieldEnum = {
+  conceptId: 'conceptId',
+  conceptName: 'conceptName',
+  domainId: 'domainId',
+  vocabularyId: 'vocabularyId',
+  conceptClassId: 'conceptClassId',
+  standardConcept: 'standardConcept',
+  conceptCode: 'conceptCode',
+  validStartDate: 'validStartDate',
+  validEndDate: 'validEndDate',
+  invalidReason: 'invalidReason',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptScalarFieldEnum = (typeof OmopConceptScalarFieldEnum)[keyof typeof OmopConceptScalarFieldEnum]
+
+
+export const OmopConceptRelationshipScalarFieldEnum = {
+  id: 'id',
+  conceptId1: 'conceptId1',
+  conceptId2: 'conceptId2',
+  relationshipId: 'relationshipId',
+  validStartDate: 'validStartDate',
+  validEndDate: 'validEndDate',
+  invalidReason: 'invalidReason',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptRelationshipScalarFieldEnum = (typeof OmopConceptRelationshipScalarFieldEnum)[keyof typeof OmopConceptRelationshipScalarFieldEnum]
+
+
+export const OmopConceptAncestorScalarFieldEnum = {
+  id: 'id',
+  ancestorConceptId: 'ancestorConceptId',
+  descendantConceptId: 'descendantConceptId',
+  minLevelsOfSeparation: 'minLevelsOfSeparation',
+  maxLevelsOfSeparation: 'maxLevelsOfSeparation',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptAncestorScalarFieldEnum = (typeof OmopConceptAncestorScalarFieldEnum)[keyof typeof OmopConceptAncestorScalarFieldEnum]
+
+
+export const OmopConceptSynonymScalarFieldEnum = {
+  id: 'id',
+  conceptId: 'conceptId',
+  conceptSynonymName: 'conceptSynonymName',
+  languageConceptId: 'languageConceptId',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptSynonymScalarFieldEnum = (typeof OmopConceptSynonymScalarFieldEnum)[keyof typeof OmopConceptSynonymScalarFieldEnum]
+
+
+export const OmopVocabularyImportScalarFieldEnum = {
+  id: 'id',
+  sourceDirectory: 'sourceDirectory',
+  vocabularyVersion: 'vocabularyVersion',
+  importedTables: 'importedTables',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  status: 'status',
+  error: 'error'
+} as const
+
+export type OmopVocabularyImportScalarFieldEnum = (typeof OmopVocabularyImportScalarFieldEnum)[keyof typeof OmopVocabularyImportScalarFieldEnum]
+
+
+export const ClinicalFieldStatusScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  fieldKey: 'fieldKey',
+  presence: 'presence',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ClinicalFieldStatusScalarFieldEnum = (typeof ClinicalFieldStatusScalarFieldEnum)[keyof typeof ClinicalFieldStatusScalarFieldEnum]
+
+
 export const CaseFieldChangeScalarFieldEnum = {
   id: 'id',
   caseId: 'caseId',
@@ -291,11 +455,30 @@ export const CaseEventScalarFieldEnum = {
   spO2: 'spO2',
   etco2: 'etco2',
   temp: 'temp',
+  bgl: 'bgl',
+  bglLoincCode: 'bglLoincCode',
+  bglUnitCanon: 'bglUnitCanon',
+  fgfLitersPerMin: 'fgfLitersPerMin',
+  carrierGas: 'carrierGas',
+  fio2Percent: 'fio2Percent',
+  fiAirPercent: 'fiAirPercent',
+  fiN2OPercent: 'fiN2OPercent',
   atcCode: 'atcCode',
   drugId: 'drugId',
+  inn: 'inn',
   drugRoute: 'drugRoute',
+  infId: 'infId',
+  fluidId: 'fluidId',
+  rate: 'rate',
+  concentration: 'concentration',
+  volume: 'volume',
+  fluidCategory: 'fluidCategory',
+  agentPercent: 'agentPercent',
+  clinicalEventCode: 'clinicalEventCode',
   metadataJson: 'metadataJson',
   source: 'source',
+  sourceVersion: 'sourceVersion',
+  schemaVersion: 'schemaVersion',
   idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -344,6 +527,8 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   proceduresJson: 'proceduresJson',
   icdCode: 'icdCode',
   teamNotes: 'teamNotes',
+  physicalExamReport: 'physicalExamReport',
+  notes: 'notes',
   comorbidities: 'comorbidities',
   allergies: 'allergies',
   allergyDetails: 'allergyDetails',
@@ -362,6 +547,11 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   spO2: 'spO2',
   temperature: 'temperature',
   respiratoryRate: 'respiratoryRate',
+  bpUnobtainable: 'bpUnobtainable',
+  heartRateUnobtainable: 'heartRateUnobtainable',
+  spO2Unobtainable: 'spO2Unobtainable',
+  temperatureUnobtainable: 'temperatureUnobtainable',
+  respiratoryRateUnobtainable: 'respiratoryRateUnobtainable',
   mallampati: 'mallampati',
   mouthOpeningCm: 'mouthOpeningCm',
   thyromental: 'thyromental',
@@ -373,7 +563,9 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   difficultAirwayHistory: 'difficultAirwayHistory',
   difficultAirwayNotes: 'difficultAirwayNotes',
   cormackLehane: 'cormackLehane',
+  airwayUnobtainable: 'airwayUnobtainable',
   asaScore: 'asaScore',
+  elective: 'elective',
   emergencySurgery: 'emergencySurgery',
   highRiskSurgery: 'highRiskSurgery',
   rcriIschemicHeart: 'rcriIschemicHeart',
@@ -422,18 +614,16 @@ export const IntraoperativeRecordScalarFieldEnum = {
   cormackLehane: 'cormackLehane',
   airwayDevices: 'airwayDevices',
   ventilationModes: 'ventilationModes',
+  lmaSize: 'lmaSize',
+  oralTubeSize: 'oralTubeSize',
+  oralCuffed: 'oralCuffed',
+  nasalTubeSize: 'nasalTubeSize',
+  nasalCuffed: 'nasalCuffed',
   dltType: 'dltType',
   dltSide: 'dltSide',
   dltSize: 'dltSize',
   endobronchialSize: 'endobronchialSize',
   volatileAgent: 'volatileAgent',
-  n2oPercent: 'n2oPercent',
-  o2Percent: 'o2Percent',
-  n2oLitersPerMin: 'n2oLitersPerMin',
-  o2LitersPerMin: 'o2LitersPerMin',
-  fgfLitersPerMin: 'fgfLitersPerMin',
-  carrierGas: 'carrierGas',
-  fio2Percent: 'fio2Percent',
   plexusBlock: 'plexusBlock',
   cvkSite: 'cvkSite',
   arterialLineSite: 'arterialLineSite',
@@ -491,6 +681,10 @@ export const PostoperativeRecordScalarFieldEnum = {
   painScoreNRS: 'painScoreNRS',
   ponv: 'ponv',
   temperatureCelsius: 'temperatureCelsius',
+  recoveryBpUnobtainable: 'recoveryBpUnobtainable',
+  recoveryHeartRateUnobtainable: 'recoveryHeartRateUnobtainable',
+  recoverySpO2Unobtainable: 'recoverySpO2Unobtainable',
+  recoveryTemperatureUnobtainable: 'recoveryTemperatureUnobtainable',
   complications: 'complications',
   disposition: 'disposition',
   dispositionNotes: 'dispositionNotes',
@@ -508,7 +702,15 @@ export const PreopDiagnosisScalarFieldEnum = {
   caseId: 'caseId',
   code: 'code',
   label: 'label',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
   system: 'system',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -524,6 +726,12 @@ export const PreopProcedureScalarFieldEnum = {
   group: 'group',
   domain: 'domain',
   description: 'description',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -536,9 +744,17 @@ export const ComorbidityScalarFieldEnum = {
   preopId: 'preopId',
   caseId: 'caseId',
   label: 'label',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
   code: 'code',
   icd10Code: 'icd10Code',
   system: 'system',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -561,6 +777,11 @@ export const LabResultScalarFieldEnum = {
   abnormalFlag: 'abnormalFlag',
   takenAt: 'takenAt',
   source: 'source',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -572,6 +793,7 @@ export const MedicationScalarFieldEnum = {
   id: 'id',
   preopId: 'preopId',
   caseId: 'caseId',
+  kind: 'kind',
   drugId: 'drugId',
   nameRaw: 'nameRaw',
   inn: 'inn',
@@ -579,6 +801,12 @@ export const MedicationScalarFieldEnum = {
   dose: 'dose',
   route: 'route',
   frequency: 'frequency',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -594,11 +822,65 @@ export const VascularAccessScalarFieldEnum = {
   siteLabel: 'siteLabel',
   size: 'size',
   sizeUnit: 'sizeUnit',
+  depthCm: 'depthCm',
+  lumens: 'lumens',
+  preexisting: 'preexisting',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
 
 export type VascularAccessScalarFieldEnum = (typeof VascularAccessScalarFieldEnum)[keyof typeof VascularAccessScalarFieldEnum]
+
+
+export const PremedicationAdministrationScalarFieldEnum = {
+  id: 'id',
+  intraopId: 'intraopId',
+  caseId: 'caseId',
+  phase: 'phase',
+  drugId: 'drugId',
+  nameRaw: 'nameRaw',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  dose: 'dose',
+  route: 'route',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PremedicationAdministrationScalarFieldEnum = (typeof PremedicationAdministrationScalarFieldEnum)[keyof typeof PremedicationAdministrationScalarFieldEnum]
+
+
+export const CaseComplicationScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  label: 'label',
+  note: 'note',
+  timestamp: 'timestamp',
+  source: 'source',
+  eventId: 'eventId',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type CaseComplicationScalarFieldEnum = (typeof CaseComplicationScalarFieldEnum)[keyof typeof CaseComplicationScalarFieldEnum]
 
 
 export const CaseSelectionScalarFieldEnum = {
@@ -607,6 +889,12 @@ export const CaseSelectionScalarFieldEnum = {
   section: 'section',
   category: 'category',
   value: 'value',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -622,19 +910,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

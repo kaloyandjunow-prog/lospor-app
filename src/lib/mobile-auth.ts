@@ -68,7 +68,7 @@ export async function getAuthUser(req: Request): Promise<AuthUser | null> {
   // Cookie path — web browser
   const session = await auth()
   if (!session?.user?.id) return null
-  const u = session.user as any
+  const u = session.user
   return {
     id:              u.id,
     role:            u.role ?? "USER",

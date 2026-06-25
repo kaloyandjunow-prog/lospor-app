@@ -71,17 +71,17 @@ export async function POST(req: NextRequest) {
           },
         })
         break
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Concurrent requests can compute the same next caseCode — retry with a
         // freshly-generated one rather than failing the whole create.
-        if (e?.code === "P2002" && attempt < 4) continue
+        if (e && typeof e === "object" && "code" in e && e.code === "P2002" && attempt < 4) continue
         throw e
       }
     }
 
     logAudit(userId, "CASE_CREATE", caseRecord.id)
     // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
-    syncCaseRelationalSafe(prisma, caseRecord.id)
+    syncCaseRelationalSafe(prisma, caseRecord.id, userId)
     return NextResponse.json({
       id: caseRecord.id,
       caseCode: caseRecord.caseCode,

@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
           // If the case was deleted, close the stream after sending the event
-          if (data && typeof data === "object" && (data as any).type === "case_deleted") {
+          if (data && typeof data === "object" && (data as { type?: unknown }).type === "case_deleted") {
             try { controller.close() } catch {}
           }
         } catch {}

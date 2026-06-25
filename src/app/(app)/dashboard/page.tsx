@@ -113,9 +113,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     ? requestedScope
     : "all"
 
-  const role          = (session.user as any).role ?? "MEMBER"
+  const role          = session.user.role ?? "MEMBER"
   const userId        = session.user!.id
-  const institutionId = (session.user as any).institutionId ?? null
+  const institutionId = session.user.institutionId ?? null
   const now           = new Date()
 
   // Fetch full list for stat counts + scoped list for display in parallel

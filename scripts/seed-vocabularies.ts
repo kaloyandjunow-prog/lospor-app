@@ -20,7 +20,7 @@ import { PrismaClient, Prisma } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const prisma = new PrismaClient({ adapter } as any)
+const prisma = new PrismaClient({ adapter } satisfies Prisma.PrismaClientOptions)
 const VOCAB_DIR = process.argv.find(a => a.startsWith("--vocab-dir="))?.split("=")[1]
   ?? process.argv[process.argv.indexOf("--vocab-dir") + 1]
   ?? "C:\\losardoc\\vocab"
@@ -278,19 +278,24 @@ async function seedBgLabels() {
   const xlsxPath = path.join(VOCAB_DIR, files[0])
   console.log(`Seeding BG labels from ${files[0]}...`)
 
-  let xlsx: any
+  let readSheet: (filePath: string) => Promise<unknown[][]>
   try {
-    const m = await import("xlsx")
-    xlsx = (m as any).default ?? m
+    const m = await import("read-excel-file/node")
+    readSheet = m.readSheet as (filePath: string) => Promise<unknown[][]>
   } catch {
-    console.warn("  'xlsx' package not found. Run: npm install xlsx --save-dev")
+    console.warn("  'read-excel-file' package not found. Run: npm install read-excel-file")
     console.warn("  Skipping BG label seeding.")
     return
   }
 
-  const wb = xlsx.readFile(xlsxPath)
-  const ws = wb.Sheets[wb.SheetNames[0]]
-  const rows: any[] = xlsx.utils.sheet_to_json(ws, { defval: "" })
+  const sheetRows = await readSheet(xlsxPath)
+  if (sheetRows.length < 2) { console.log("  Excel appears empty."); return }
+  const headers = sheetRows[0].map((cell, index) => String(cell ?? `column_${index}`).trim() || `column_${index}`)
+  const rows: Record<string, unknown>[] = sheetRows.slice(1).map(row => {
+    const obj: Record<string, unknown> = {}
+    headers.forEach((header, index) => { obj[header] = row[index] ?? "" })
+    return obj
+  })
 
   // Try to detect columns: look for something like "code", "label", "bg", etc.
   if (!rows.length) { console.log("  Excel appears empty."); return }
@@ -316,12 +321,12 @@ async function seedBgLabels() {
   let updated = 0
   await batchInsert(pairs, async batch => {
     const values = Prisma.join(batch.map(p => Prisma.sql`(${p.code}, ${p.labelBg})`))
-    const res: any = await prisma.$executeRaw(Prisma.sql`
+    const res = await prisma.$executeRaw(Prisma.sql`
       UPDATE "Icd10Code" AS i SET "labelBg" = v.label_bg
       FROM (VALUES ${values}) AS v(code, label_bg)
       WHERE i.code = v.code
     `)
-    updated += typeof res === "number" ? res : batch.length
+    updated += res
     process.stdout.write(`\r  BG labels: ${updated}...`)
   })
   console.log(`\n  BG labels done: ${updated} codes updated.`)

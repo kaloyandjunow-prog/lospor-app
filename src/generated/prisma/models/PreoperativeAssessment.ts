@@ -78,6 +78,8 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   plannedProcedure: string | null
   icdCode: string | null
   teamNotes: string | null
+  physicalExamReport: string | null
+  notes: string | null
   allergies: boolean | null
   allergyDetails: string | null
   latexAllergy: boolean | null
@@ -95,6 +97,11 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   spO2: number | null
   temperature: number | null
   respiratoryRate: number | null
+  bpUnobtainable: boolean | null
+  heartRateUnobtainable: boolean | null
+  spO2Unobtainable: boolean | null
+  temperatureUnobtainable: boolean | null
+  respiratoryRateUnobtainable: boolean | null
   mallampati: $Enums.MallampatiClass | null
   mouthOpeningCm: number | null
   thyromental: number | null
@@ -106,7 +113,9 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   difficultAirwayHistory: boolean | null
   difficultAirwayNotes: string | null
   cormackLehane: $Enums.CormackLehane | null
+  airwayUnobtainable: boolean | null
   asaScore: $Enums.ASAScore | null
+  elective: boolean | null
   emergencySurgery: boolean | null
   highRiskSurgery: boolean | null
   rcriIschemicHeart: boolean | null
@@ -144,6 +153,8 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   plannedProcedure: string | null
   icdCode: string | null
   teamNotes: string | null
+  physicalExamReport: string | null
+  notes: string | null
   allergies: boolean | null
   allergyDetails: string | null
   latexAllergy: boolean | null
@@ -161,6 +172,11 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   spO2: number | null
   temperature: number | null
   respiratoryRate: number | null
+  bpUnobtainable: boolean | null
+  heartRateUnobtainable: boolean | null
+  spO2Unobtainable: boolean | null
+  temperatureUnobtainable: boolean | null
+  respiratoryRateUnobtainable: boolean | null
   mallampati: $Enums.MallampatiClass | null
   mouthOpeningCm: number | null
   thyromental: number | null
@@ -172,7 +188,9 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   difficultAirwayHistory: boolean | null
   difficultAirwayNotes: string | null
   cormackLehane: $Enums.CormackLehane | null
+  airwayUnobtainable: boolean | null
   asaScore: $Enums.ASAScore | null
+  elective: boolean | null
   emergencySurgery: boolean | null
   highRiskSurgery: boolean | null
   rcriIschemicHeart: boolean | null
@@ -212,6 +230,8 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   proceduresJson: number
   icdCode: number
   teamNotes: number
+  physicalExamReport: number
+  notes: number
   comorbidities: number
   allergies: number
   allergyDetails: number
@@ -230,6 +250,11 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   spO2: number
   temperature: number
   respiratoryRate: number
+  bpUnobtainable: number
+  heartRateUnobtainable: number
+  spO2Unobtainable: number
+  temperatureUnobtainable: number
+  respiratoryRateUnobtainable: number
   mallampati: number
   mouthOpeningCm: number
   thyromental: number
@@ -241,7 +266,9 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   difficultAirwayHistory: number
   difficultAirwayNotes: number
   cormackLehane: number
+  airwayUnobtainable: number
   asaScore: number
+  elective: number
   emergencySurgery: number
   highRiskSurgery: number
   rcriIschemicHeart: number
@@ -320,6 +347,8 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   plannedProcedure?: true
   icdCode?: true
   teamNotes?: true
+  physicalExamReport?: true
+  notes?: true
   allergies?: true
   allergyDetails?: true
   latexAllergy?: true
@@ -337,6 +366,11 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   spO2?: true
   temperature?: true
   respiratoryRate?: true
+  bpUnobtainable?: true
+  heartRateUnobtainable?: true
+  spO2Unobtainable?: true
+  temperatureUnobtainable?: true
+  respiratoryRateUnobtainable?: true
   mallampati?: true
   mouthOpeningCm?: true
   thyromental?: true
@@ -348,7 +382,9 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   difficultAirwayHistory?: true
   difficultAirwayNotes?: true
   cormackLehane?: true
+  airwayUnobtainable?: true
   asaScore?: true
+  elective?: true
   emergencySurgery?: true
   highRiskSurgery?: true
   rcriIschemicHeart?: true
@@ -386,6 +422,8 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   plannedProcedure?: true
   icdCode?: true
   teamNotes?: true
+  physicalExamReport?: true
+  notes?: true
   allergies?: true
   allergyDetails?: true
   latexAllergy?: true
@@ -403,6 +441,11 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   spO2?: true
   temperature?: true
   respiratoryRate?: true
+  bpUnobtainable?: true
+  heartRateUnobtainable?: true
+  spO2Unobtainable?: true
+  temperatureUnobtainable?: true
+  respiratoryRateUnobtainable?: true
   mallampati?: true
   mouthOpeningCm?: true
   thyromental?: true
@@ -414,7 +457,9 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   difficultAirwayHistory?: true
   difficultAirwayNotes?: true
   cormackLehane?: true
+  airwayUnobtainable?: true
   asaScore?: true
+  elective?: true
   emergencySurgery?: true
   highRiskSurgery?: true
   rcriIschemicHeart?: true
@@ -454,6 +499,8 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   proceduresJson?: true
   icdCode?: true
   teamNotes?: true
+  physicalExamReport?: true
+  notes?: true
   comorbidities?: true
   allergies?: true
   allergyDetails?: true
@@ -472,6 +519,11 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   spO2?: true
   temperature?: true
   respiratoryRate?: true
+  bpUnobtainable?: true
+  heartRateUnobtainable?: true
+  spO2Unobtainable?: true
+  temperatureUnobtainable?: true
+  respiratoryRateUnobtainable?: true
   mallampati?: true
   mouthOpeningCm?: true
   thyromental?: true
@@ -483,7 +535,9 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   difficultAirwayHistory?: true
   difficultAirwayNotes?: true
   cormackLehane?: true
+  airwayUnobtainable?: true
   asaScore?: true
+  elective?: true
   emergencySurgery?: true
   highRiskSurgery?: true
   rcriIschemicHeart?: true
@@ -611,6 +665,8 @@ export type PreoperativeAssessmentGroupByOutputType = {
   proceduresJson: runtime.JsonValue | null
   icdCode: string | null
   teamNotes: string | null
+  physicalExamReport: string | null
+  notes: string | null
   comorbidities: runtime.JsonValue
   allergies: boolean
   allergyDetails: string | null
@@ -629,6 +685,11 @@ export type PreoperativeAssessmentGroupByOutputType = {
   spO2: number | null
   temperature: number | null
   respiratoryRate: number | null
+  bpUnobtainable: boolean
+  heartRateUnobtainable: boolean
+  spO2Unobtainable: boolean
+  temperatureUnobtainable: boolean
+  respiratoryRateUnobtainable: boolean
   mallampati: $Enums.MallampatiClass | null
   mouthOpeningCm: number | null
   thyromental: number | null
@@ -640,7 +701,9 @@ export type PreoperativeAssessmentGroupByOutputType = {
   difficultAirwayHistory: boolean
   difficultAirwayNotes: string | null
   cormackLehane: $Enums.CormackLehane | null
+  airwayUnobtainable: boolean
   asaScore: $Enums.ASAScore | null
+  elective: boolean
   emergencySurgery: boolean
   highRiskSurgery: boolean
   rcriIschemicHeart: boolean
@@ -704,6 +767,8 @@ export type PreoperativeAssessmentWhereInput = {
   proceduresJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  physicalExamReport?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  notes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
@@ -722,6 +787,11 @@ export type PreoperativeAssessmentWhereInput = {
   spO2?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   temperature?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   respiratoryRate?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
+  bpUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  heartRateUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  spO2Unobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  temperatureUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   mallampati?: Prisma.EnumMallampatiClassNullableFilter<"PreoperativeAssessment"> | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   thyromental?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
@@ -733,7 +803,9 @@ export type PreoperativeAssessmentWhereInput = {
   difficultAirwayHistory?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   difficultAirwayNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   asaScore?: Prisma.EnumASAScoreNullableFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
+  elective?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   emergencySurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   highRiskSurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   rcriIschemicHeart?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
@@ -780,6 +852,8 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   proceduresJson?: Prisma.SortOrderInput | Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
   teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  physicalExamReport?: Prisma.SortOrderInput | Prisma.SortOrder
+  notes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -798,6 +872,11 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   temperature?: Prisma.SortOrderInput | Prisma.SortOrder
   respiratoryRate?: Prisma.SortOrderInput | Prisma.SortOrder
+  bpUnobtainable?: Prisma.SortOrder
+  heartRateUnobtainable?: Prisma.SortOrder
+  spO2Unobtainable?: Prisma.SortOrder
+  temperatureUnobtainable?: Prisma.SortOrder
+  respiratoryRateUnobtainable?: Prisma.SortOrder
   mallampati?: Prisma.SortOrderInput | Prisma.SortOrder
   mouthOpeningCm?: Prisma.SortOrderInput | Prisma.SortOrder
   thyromental?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -809,7 +888,9 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   difficultAirwayHistory?: Prisma.SortOrder
   difficultAirwayNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
+  airwayUnobtainable?: Prisma.SortOrder
   asaScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  elective?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
   highRiskSurgery?: Prisma.SortOrder
   rcriIschemicHeart?: Prisma.SortOrder
@@ -859,6 +940,8 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   proceduresJson?: Prisma.JsonNullableFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  physicalExamReport?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
+  notes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
@@ -877,6 +960,11 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   spO2?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   temperature?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   respiratoryRate?: Prisma.IntNullableFilter<"PreoperativeAssessment"> | number | null
+  bpUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  heartRateUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  spO2Unobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  temperatureUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   mallampati?: Prisma.EnumMallampatiClassNullableFilter<"PreoperativeAssessment"> | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
   thyromental?: Prisma.FloatNullableFilter<"PreoperativeAssessment"> | number | null
@@ -888,7 +976,9 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   difficultAirwayHistory?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   difficultAirwayNotes?: Prisma.StringNullableFilter<"PreoperativeAssessment"> | string | null
   cormackLehane?: Prisma.EnumCormackLehaneNullableFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   asaScore?: Prisma.EnumASAScoreNullableFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
+  elective?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   emergencySurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   highRiskSurgery?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   rcriIschemicHeart?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
@@ -935,6 +1025,8 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   proceduresJson?: Prisma.SortOrderInput | Prisma.SortOrder
   icdCode?: Prisma.SortOrderInput | Prisma.SortOrder
   teamNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  physicalExamReport?: Prisma.SortOrderInput | Prisma.SortOrder
+  notes?: Prisma.SortOrderInput | Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -953,6 +1045,11 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   temperature?: Prisma.SortOrderInput | Prisma.SortOrder
   respiratoryRate?: Prisma.SortOrderInput | Prisma.SortOrder
+  bpUnobtainable?: Prisma.SortOrder
+  heartRateUnobtainable?: Prisma.SortOrder
+  spO2Unobtainable?: Prisma.SortOrder
+  temperatureUnobtainable?: Prisma.SortOrder
+  respiratoryRateUnobtainable?: Prisma.SortOrder
   mallampati?: Prisma.SortOrderInput | Prisma.SortOrder
   mouthOpeningCm?: Prisma.SortOrderInput | Prisma.SortOrder
   thyromental?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -964,7 +1061,9 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   difficultAirwayHistory?: Prisma.SortOrder
   difficultAirwayNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   cormackLehane?: Prisma.SortOrderInput | Prisma.SortOrder
+  airwayUnobtainable?: Prisma.SortOrder
   asaScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  elective?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
   highRiskSurgery?: Prisma.SortOrder
   rcriIschemicHeart?: Prisma.SortOrder
@@ -1013,6 +1112,8 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   proceduresJson?: Prisma.JsonNullableWithAggregatesFilter<"PreoperativeAssessment">
   icdCode?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   teamNotes?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
+  physicalExamReport?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
+  notes?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   comorbidities?: Prisma.JsonWithAggregatesFilter<"PreoperativeAssessment">
   allergies?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   allergyDetails?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
@@ -1031,6 +1132,11 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   spO2?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   temperature?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   respiratoryRate?: Prisma.IntNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
+  bpUnobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  heartRateUnobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  spO2Unobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  temperatureUnobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   mallampati?: Prisma.EnumMallampatiClassNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
   thyromental?: Prisma.FloatNullableWithAggregatesFilter<"PreoperativeAssessment"> | number | null
@@ -1042,7 +1148,9 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   difficultAirwayHistory?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   difficultAirwayNotes?: Prisma.StringNullableWithAggregatesFilter<"PreoperativeAssessment"> | string | null
   cormackLehane?: Prisma.EnumCormackLehaneNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   asaScore?: Prisma.EnumASAScoreNullableWithAggregatesFilter<"PreoperativeAssessment"> | $Enums.ASAScore | null
+  elective?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   emergencySurgery?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   highRiskSurgery?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   rcriIschemicHeart?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
@@ -1082,6 +1190,8 @@ export type PreoperativeAssessmentCreateInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1100,6 +1210,11 @@ export type PreoperativeAssessmentCreateInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -1111,7 +1226,9 @@ export type PreoperativeAssessmentCreateInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -1158,6 +1275,8 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1176,6 +1295,11 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -1187,7 +1311,9 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -1232,6 +1358,8 @@ export type PreoperativeAssessmentUpdateInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1250,6 +1378,11 @@ export type PreoperativeAssessmentUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -1261,7 +1394,9 @@ export type PreoperativeAssessmentUpdateInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1308,6 +1443,8 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1326,6 +1463,11 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -1337,7 +1479,9 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1383,6 +1527,8 @@ export type PreoperativeAssessmentCreateManyInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1401,6 +1547,11 @@ export type PreoperativeAssessmentCreateManyInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -1412,7 +1563,9 @@ export type PreoperativeAssessmentCreateManyInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -1452,6 +1605,8 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1470,6 +1625,11 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -1481,7 +1641,9 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1522,6 +1684,8 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1540,6 +1704,11 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -1551,7 +1720,9 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1597,6 +1768,8 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   proceduresJson?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
   teamNotes?: Prisma.SortOrder
+  physicalExamReport?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   comorbidities?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
@@ -1615,6 +1788,11 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   temperature?: Prisma.SortOrder
   respiratoryRate?: Prisma.SortOrder
+  bpUnobtainable?: Prisma.SortOrder
+  heartRateUnobtainable?: Prisma.SortOrder
+  spO2Unobtainable?: Prisma.SortOrder
+  temperatureUnobtainable?: Prisma.SortOrder
+  respiratoryRateUnobtainable?: Prisma.SortOrder
   mallampati?: Prisma.SortOrder
   mouthOpeningCm?: Prisma.SortOrder
   thyromental?: Prisma.SortOrder
@@ -1626,7 +1804,9 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   difficultAirwayHistory?: Prisma.SortOrder
   difficultAirwayNotes?: Prisma.SortOrder
   cormackLehane?: Prisma.SortOrder
+  airwayUnobtainable?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
+  elective?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
   highRiskSurgery?: Prisma.SortOrder
   rcriIschemicHeart?: Prisma.SortOrder
@@ -1684,6 +1864,8 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
   teamNotes?: Prisma.SortOrder
+  physicalExamReport?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
   latexAllergy?: Prisma.SortOrder
@@ -1701,6 +1883,11 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   temperature?: Prisma.SortOrder
   respiratoryRate?: Prisma.SortOrder
+  bpUnobtainable?: Prisma.SortOrder
+  heartRateUnobtainable?: Prisma.SortOrder
+  spO2Unobtainable?: Prisma.SortOrder
+  temperatureUnobtainable?: Prisma.SortOrder
+  respiratoryRateUnobtainable?: Prisma.SortOrder
   mallampati?: Prisma.SortOrder
   mouthOpeningCm?: Prisma.SortOrder
   thyromental?: Prisma.SortOrder
@@ -1712,7 +1899,9 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   difficultAirwayHistory?: Prisma.SortOrder
   difficultAirwayNotes?: Prisma.SortOrder
   cormackLehane?: Prisma.SortOrder
+  airwayUnobtainable?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
+  elective?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
   highRiskSurgery?: Prisma.SortOrder
   rcriIschemicHeart?: Prisma.SortOrder
@@ -1750,6 +1939,8 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   plannedProcedure?: Prisma.SortOrder
   icdCode?: Prisma.SortOrder
   teamNotes?: Prisma.SortOrder
+  physicalExamReport?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   allergies?: Prisma.SortOrder
   allergyDetails?: Prisma.SortOrder
   latexAllergy?: Prisma.SortOrder
@@ -1767,6 +1958,11 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   temperature?: Prisma.SortOrder
   respiratoryRate?: Prisma.SortOrder
+  bpUnobtainable?: Prisma.SortOrder
+  heartRateUnobtainable?: Prisma.SortOrder
+  spO2Unobtainable?: Prisma.SortOrder
+  temperatureUnobtainable?: Prisma.SortOrder
+  respiratoryRateUnobtainable?: Prisma.SortOrder
   mallampati?: Prisma.SortOrder
   mouthOpeningCm?: Prisma.SortOrder
   thyromental?: Prisma.SortOrder
@@ -1778,7 +1974,9 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   difficultAirwayHistory?: Prisma.SortOrder
   difficultAirwayNotes?: Prisma.SortOrder
   cormackLehane?: Prisma.SortOrder
+  airwayUnobtainable?: Prisma.SortOrder
   asaScore?: Prisma.SortOrder
+  elective?: Prisma.SortOrder
   emergencySurgery?: Prisma.SortOrder
   highRiskSurgery?: Prisma.SortOrder
   rcriIschemicHeart?: Prisma.SortOrder
@@ -1868,10 +2066,6 @@ export type NullableEnumBloodTypeFieldUpdateOperationsInput = {
 
 export type NullableEnumRhFactorFieldUpdateOperationsInput = {
   set?: $Enums.RhFactor | null
-}
-
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
 }
 
 export type NullableEnumMallampatiClassFieldUpdateOperationsInput = {
@@ -1979,6 +2173,8 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -1997,6 +2193,11 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2008,7 +2209,9 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2053,6 +2256,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2071,6 +2276,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2082,7 +2292,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2143,6 +2355,8 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2161,6 +2375,11 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2172,7 +2391,9 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2217,6 +2438,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2235,6 +2458,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2246,7 +2474,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2291,6 +2521,8 @@ export type PreoperativeAssessmentCreateWithoutDiagnosesInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2309,6 +2541,11 @@ export type PreoperativeAssessmentCreateWithoutDiagnosesInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2320,7 +2557,9 @@ export type PreoperativeAssessmentCreateWithoutDiagnosesInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2366,6 +2605,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutDiagnosesInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2384,6 +2625,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutDiagnosesInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2395,7 +2641,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutDiagnosesInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2455,6 +2703,8 @@ export type PreoperativeAssessmentUpdateWithoutDiagnosesInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2473,6 +2723,11 @@ export type PreoperativeAssessmentUpdateWithoutDiagnosesInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2484,7 +2739,9 @@ export type PreoperativeAssessmentUpdateWithoutDiagnosesInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2530,6 +2787,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutDiagnosesInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2548,6 +2807,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutDiagnosesInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2559,7 +2823,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutDiagnosesInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2603,6 +2869,8 @@ export type PreoperativeAssessmentCreateWithoutProcedureRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2621,6 +2889,11 @@ export type PreoperativeAssessmentCreateWithoutProcedureRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2632,7 +2905,9 @@ export type PreoperativeAssessmentCreateWithoutProcedureRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2678,6 +2953,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutProcedureRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2696,6 +2973,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutProcedureRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2707,7 +2989,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutProcedureRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2767,6 +3051,8 @@ export type PreoperativeAssessmentUpdateWithoutProcedureRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2785,6 +3071,11 @@ export type PreoperativeAssessmentUpdateWithoutProcedureRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2796,7 +3087,9 @@ export type PreoperativeAssessmentUpdateWithoutProcedureRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2842,6 +3135,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutProcedureRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2860,6 +3155,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutProcedureRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -2871,7 +3171,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutProcedureRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2915,6 +3217,8 @@ export type PreoperativeAssessmentCreateWithoutComorbidityRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -2933,6 +3237,11 @@ export type PreoperativeAssessmentCreateWithoutComorbidityRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -2944,7 +3253,9 @@ export type PreoperativeAssessmentCreateWithoutComorbidityRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -2990,6 +3301,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutComorbidityRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -3008,6 +3321,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutComorbidityRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -3019,7 +3337,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutComorbidityRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3079,6 +3399,8 @@ export type PreoperativeAssessmentUpdateWithoutComorbidityRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3097,6 +3419,11 @@ export type PreoperativeAssessmentUpdateWithoutComorbidityRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3108,7 +3435,9 @@ export type PreoperativeAssessmentUpdateWithoutComorbidityRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3154,6 +3483,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutComorbidityRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3172,6 +3503,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutComorbidityRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3183,7 +3519,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutComorbidityRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3227,6 +3565,8 @@ export type PreoperativeAssessmentCreateWithoutLabRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -3245,6 +3585,11 @@ export type PreoperativeAssessmentCreateWithoutLabRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -3256,7 +3601,9 @@ export type PreoperativeAssessmentCreateWithoutLabRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3302,6 +3649,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutLabRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -3320,6 +3669,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutLabRowsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -3331,7 +3685,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutLabRowsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3391,6 +3747,8 @@ export type PreoperativeAssessmentUpdateWithoutLabRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3409,6 +3767,11 @@ export type PreoperativeAssessmentUpdateWithoutLabRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3420,7 +3783,9 @@ export type PreoperativeAssessmentUpdateWithoutLabRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3466,6 +3831,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutLabRowsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3484,6 +3851,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutLabRowsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3495,7 +3867,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutLabRowsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3539,6 +3913,8 @@ export type PreoperativeAssessmentCreateWithoutMedicationsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -3557,6 +3933,11 @@ export type PreoperativeAssessmentCreateWithoutMedicationsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -3568,7 +3949,9 @@ export type PreoperativeAssessmentCreateWithoutMedicationsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3614,6 +3997,8 @@ export type PreoperativeAssessmentUncheckedCreateWithoutMedicationsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: string | null
   teamNotes?: string | null
+  physicalExamReport?: string | null
+  notes?: string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: boolean
   allergyDetails?: string | null
@@ -3632,6 +4017,11 @@ export type PreoperativeAssessmentUncheckedCreateWithoutMedicationsInput = {
   spO2?: number | null
   temperature?: number | null
   respiratoryRate?: number | null
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: $Enums.MallampatiClass | null
   mouthOpeningCm?: number | null
   thyromental?: number | null
@@ -3643,7 +4033,9 @@ export type PreoperativeAssessmentUncheckedCreateWithoutMedicationsInput = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: string | null
   cormackLehane?: $Enums.CormackLehane | null
+  airwayUnobtainable?: boolean
   asaScore?: $Enums.ASAScore | null
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3703,6 +4095,8 @@ export type PreoperativeAssessmentUpdateWithoutMedicationsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3721,6 +4115,11 @@ export type PreoperativeAssessmentUpdateWithoutMedicationsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3732,7 +4131,9 @@ export type PreoperativeAssessmentUpdateWithoutMedicationsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3778,6 +4179,8 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutMedicationsInput = {
   proceduresJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   icdCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  physicalExamReport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   comorbidities?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   allergies?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allergyDetails?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3796,6 +4199,11 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutMedicationsInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temperature?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   respiratoryRate?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  heartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  spO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  temperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  respiratoryRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mallampati?: Prisma.NullableEnumMallampatiClassFieldUpdateOperationsInput | $Enums.MallampatiClass | null
   mouthOpeningCm?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   thyromental?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
@@ -3807,7 +4215,9 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutMedicationsInput = {
   difficultAirwayHistory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   difficultAirwayNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cormackLehane?: Prisma.NullableEnumCormackLehaneFieldUpdateOperationsInput | $Enums.CormackLehane | null
+  airwayUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asaScore?: Prisma.NullableEnumASAScoreFieldUpdateOperationsInput | $Enums.ASAScore | null
+  elective?: Prisma.BoolFieldUpdateOperationsInput | boolean
   emergencySurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   highRiskSurgery?: Prisma.BoolFieldUpdateOperationsInput | boolean
   rcriIschemicHeart?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3919,6 +4329,8 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
+  physicalExamReport?: boolean
+  notes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -3937,6 +4349,11 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   spO2?: boolean
   temperature?: boolean
   respiratoryRate?: boolean
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: boolean
   mouthOpeningCm?: boolean
   thyromental?: boolean
@@ -3948,7 +4365,9 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: boolean
   cormackLehane?: boolean
+  airwayUnobtainable?: boolean
   asaScore?: boolean
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -3996,6 +4415,8 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
+  physicalExamReport?: boolean
+  notes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -4014,6 +4435,11 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   spO2?: boolean
   temperature?: boolean
   respiratoryRate?: boolean
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: boolean
   mouthOpeningCm?: boolean
   thyromental?: boolean
@@ -4025,7 +4451,9 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: boolean
   cormackLehane?: boolean
+  airwayUnobtainable?: boolean
   asaScore?: boolean
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -4067,6 +4495,8 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
+  physicalExamReport?: boolean
+  notes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -4085,6 +4515,11 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   spO2?: boolean
   temperature?: boolean
   respiratoryRate?: boolean
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: boolean
   mouthOpeningCm?: boolean
   thyromental?: boolean
@@ -4096,7 +4531,9 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: boolean
   cormackLehane?: boolean
+  airwayUnobtainable?: boolean
   asaScore?: boolean
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -4138,6 +4575,8 @@ export type PreoperativeAssessmentSelectScalar = {
   proceduresJson?: boolean
   icdCode?: boolean
   teamNotes?: boolean
+  physicalExamReport?: boolean
+  notes?: boolean
   comorbidities?: boolean
   allergies?: boolean
   allergyDetails?: boolean
@@ -4156,6 +4595,11 @@ export type PreoperativeAssessmentSelectScalar = {
   spO2?: boolean
   temperature?: boolean
   respiratoryRate?: boolean
+  bpUnobtainable?: boolean
+  heartRateUnobtainable?: boolean
+  spO2Unobtainable?: boolean
+  temperatureUnobtainable?: boolean
+  respiratoryRateUnobtainable?: boolean
   mallampati?: boolean
   mouthOpeningCm?: boolean
   thyromental?: boolean
@@ -4167,7 +4611,9 @@ export type PreoperativeAssessmentSelectScalar = {
   difficultAirwayHistory?: boolean
   difficultAirwayNotes?: boolean
   cormackLehane?: boolean
+  airwayUnobtainable?: boolean
   asaScore?: boolean
+  elective?: boolean
   emergencySurgery?: boolean
   highRiskSurgery?: boolean
   rcriIschemicHeart?: boolean
@@ -4192,7 +4638,7 @@ export type PreoperativeAssessmentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "asaScore" | "emergencySurgery" | "highRiskSurgery" | "rcriIschemicHeart" | "rcriCHF" | "rcriCVD" | "rcriInsulinDM" | "rcriCreatinine" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "apfelPONVHistory" | "apfelPostopOpioids" | "stopbangSnoring" | "stopbangTired" | "stopbangObserved" | "stopbangBP" | "stopbangNeck" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
+export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "physicalExamReport" | "notes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "bpUnobtainable" | "heartRateUnobtainable" | "spO2Unobtainable" | "temperatureUnobtainable" | "respiratoryRateUnobtainable" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "airwayUnobtainable" | "asaScore" | "elective" | "emergencySurgery" | "highRiskSurgery" | "rcriIschemicHeart" | "rcriCHF" | "rcriCVD" | "rcriInsulinDM" | "rcriCreatinine" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "apfelPONVHistory" | "apfelPostopOpioids" | "stopbangSnoring" | "stopbangTired" | "stopbangObserved" | "stopbangBP" | "stopbangNeck" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
 export type PreoperativeAssessmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   diagnoses?: boolean | Prisma.PreoperativeAssessment$diagnosesArgs<ExtArgs>
@@ -4235,6 +4681,8 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     proceduresJson: runtime.JsonValue | null
     icdCode: string | null
     teamNotes: string | null
+    physicalExamReport: string | null
+    notes: string | null
     comorbidities: runtime.JsonValue
     allergies: boolean
     allergyDetails: string | null
@@ -4253,6 +4701,11 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     spO2: number | null
     temperature: number | null
     respiratoryRate: number | null
+    bpUnobtainable: boolean
+    heartRateUnobtainable: boolean
+    spO2Unobtainable: boolean
+    temperatureUnobtainable: boolean
+    respiratoryRateUnobtainable: boolean
     mallampati: $Enums.MallampatiClass | null
     mouthOpeningCm: number | null
     thyromental: number | null
@@ -4264,7 +4717,9 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     difficultAirwayHistory: boolean
     difficultAirwayNotes: string | null
     cormackLehane: $Enums.CormackLehane | null
+    airwayUnobtainable: boolean
     asaScore: $Enums.ASAScore | null
+    elective: boolean
     emergencySurgery: boolean
     highRiskSurgery: boolean
     rcriIschemicHeart: boolean
@@ -4731,6 +5186,8 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly proceduresJson: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly icdCode: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly teamNotes: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
+  readonly physicalExamReport: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
+  readonly notes: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly comorbidities: Prisma.FieldRef<"PreoperativeAssessment", 'Json'>
   readonly allergies: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly allergyDetails: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
@@ -4749,6 +5206,11 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly spO2: Prisma.FieldRef<"PreoperativeAssessment", 'Float'>
   readonly temperature: Prisma.FieldRef<"PreoperativeAssessment", 'Float'>
   readonly respiratoryRate: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
+  readonly bpUnobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly heartRateUnobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly spO2Unobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly temperatureUnobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
+  readonly respiratoryRateUnobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly mallampati: Prisma.FieldRef<"PreoperativeAssessment", 'MallampatiClass'>
   readonly mouthOpeningCm: Prisma.FieldRef<"PreoperativeAssessment", 'Float'>
   readonly thyromental: Prisma.FieldRef<"PreoperativeAssessment", 'Float'>
@@ -4760,7 +5222,9 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly difficultAirwayHistory: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly difficultAirwayNotes: Prisma.FieldRef<"PreoperativeAssessment", 'String'>
   readonly cormackLehane: Prisma.FieldRef<"PreoperativeAssessment", 'CormackLehane'>
+  readonly airwayUnobtainable: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly asaScore: Prisma.FieldRef<"PreoperativeAssessment", 'ASAScore'>
+  readonly elective: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly emergencySurgery: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly highRiskSurgery: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly rcriIschemicHeart: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>

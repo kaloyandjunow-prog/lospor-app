@@ -9,8 +9,12 @@ import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { writeFieldDiffsSafe, writeSnapshotSafe } from "@/lib/case-audit"
+import { rebuildProjection, reconcileFullLog, reverseProject } from "@/lib/case-events"
 import { canAccessCase, caseWhereForUser } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
+import type { CaseDetail, Serialized } from "@/types/case-detail"
+import type { LegacyKeyEvents, LogEvent, ClinicalEvent } from "@/types/timetable"
+import type { CaseStatus } from "@/generated/prisma/enums"
 
 const CORS = corsHeaders()
 
@@ -19,26 +23,43 @@ export async function OPTIONS() {
 }
 
 const patchBodySchema = z.object({
-  status:  z.enum(["DRAFT", "IN_PROGRESS", "AWAITING_REVIEW", "COMPLETE"]).optional(),
-  notes:   z.string().max(1000).nullable().optional(),
-  preop:   preopSchema.optional(),
-  intraop: intraopSchema.optional(),
-  postop:  postopSchema.optional(),
+  status:      z.enum(["DRAFT", "IN_PROGRESS", "AWAITING_REVIEW", "COMPLETE"]).optional(),
+  notes:       z.string().max(1000).nullable().optional(),
+  preop:       preopSchema.optional(),
+  intraop:     intraopSchema.optional(),
+  postop:      postopSchema.optional(),
+  forceUpdate: z.boolean().optional(),
 })
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const userId = user.id
 
   const { id } = await params
   const where = caseWhereForUser(user, id)
 
   const record = await prisma.case.findFirst({
     where,
-    include: { preop: true, intraop: true, postop: true },
+    include: { preop: true, intraop: true, postop: true, institution: { select: { name: true, city: true } } },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  // Compile-time check only: if the Prisma query/schema shape changes without
+  // CaseDetail being updated to match, this line fails to typecheck.
+  const _shapeCheck: CaseDetail = record as unknown as Serialized<typeof record>
+  void _shapeCheck
+
+  // Extending open infusion/fluid/agent bars to "now" on read used to happen here,
+  // server-side. It was removed: the server has no way to know the client's local
+  // timezone, while startTime/endTime are stored as literal HH:MM digits with no
+  // real timezone attached (intentional - these are wall-clock times, not instants).
+  // Comparing the server's own UTC clock against that gave wrong results for any
+  // user not in UTC (e.g. a 01:20 local start showing as if it started ~23:20 the
+  // day before once the page reopened). The client-side live clock in
+  // IntraopTimetable.tsx already extends these bars correctly on mount, using the
+  // browser's own local clock against the same literal HH:MM digits - both sides
+  // of that comparison are in the same wall-clock frame, so it round-trips correctly
+  // regardless of actual UTC offset.
+
   return NextResponse.json(record)
 }
 
@@ -55,7 +76,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       userId: true, status: true,
       user:   { select: { institutionId: true } },
       preop:  true,
-      intraop: { select: { id: true, keyEvents: true, updatedAt: true } },
+      intraop: { select: { id: true, keyEvents: true, startTime: true, createdAt: true, updatedAt: true } },
       postop:  true,
     },
   })
@@ -66,19 +87,44 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   try {
     const body = patchBodySchema.parse(await req.json())
-    const { preop, intraop, postop, status, notes } = body
+    const { preop, intraop, postop, status, notes, forceUpdate: forceUpdateField } = body
     const preopBase = req.headers.get("x-lospor-preop-updated-at")
     const postopBase = req.headers.get("x-lospor-postop-updated-at")
     const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
     const forceUpdate = req.headers.get("x-lospor-force-update") === "true" ||
-      (body as any).forceUpdate === true
+      forceUpdateField === true
 
     // Reject an unparseable conflict header instead of silently skipping the
-    // guard (NaN comparisons are always false → a stale write would slip through).
+    // guard (NaN comparisons are always false -> a stale write would slip through).
     for (const [name, h] of [["preop", preopBase], ["postop", postopBase], ["intraop", intraopBase]] as const) {
       if (h && Number.isNaN(new Date(h).getTime())) {
         return NextResponse.json({ error: `Invalid ${name} conflict timestamp` }, { status: 400 })
       }
+    }
+
+    if (!forceUpdate && preop && existing.preop && !preopBase) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "preop",
+        reason: "missing_conflict_timestamp",
+        serverVersion: existing.preop,
+      }, { status: 409 })
+    }
+    if (!forceUpdate && postop && existing.postop && !postopBase) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "postop",
+        reason: "missing_conflict_timestamp",
+        serverVersion: existing.postop,
+      }, { status: 409 })
+    }
+    if (!forceUpdate && intraop && existing.intraop && !intraopBase) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "intraop",
+        reason: "missing_conflict_timestamp",
+        serverVersion: { updatedAt: existing.intraop.updatedAt },
+      }, { status: 409 })
     }
 
     if (!forceUpdate && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
@@ -110,9 +156,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // Helper: compute the next status once, reused by both transaction and audit log
-    function computeNextStatus(currentStatus: string): string | undefined {
+    function computeNextStatus(currentStatus: string): CaseStatus | undefined {
       const statusOrder: Record<string, number> = { DRAFT: 0, IN_PROGRESS: 1, AWAITING_REVIEW: 2, COMPLETE: 3 }
-      let next: string | undefined
+      let next: CaseStatus | undefined
       if (status !== undefined) {
         next = status
       } else if (intraop && currentStatus === "DRAFT" && intraop.startTime) {
@@ -131,11 +177,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       constructor(readonly section: "preop" | "postop" | "intraop", readonly serverVersion: unknown) { super("conflict") }
     }
 
-    let finalStatus: string | undefined
+    let finalStatus: CaseStatus | undefined
     try {
       await prisma.$transaction(async tx => {
         // Re-read timestamps inside the transaction so the conflict check is
-        // atomic with the write — this eliminates the race window that existed
+        // atomic with the write - this eliminates the race window that existed
         // between the outer read and the transaction start.
         const fresh = await tx.case.findUnique({
           where: { id },
@@ -169,19 +215,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         if (intraop) {
           let effectiveIntraop = intraop
           if ("timetableData" in intraop && intraop.timetableData) {
-            const existingKev = (existing.intraop?.keyEvents as any) ?? {}
-            const existingLog: any[] = Array.isArray(existingKev.log) ? existingKev.log : []
+            const existingKev = (existing.intraop?.keyEvents as LegacyKeyEvents | null) ?? {}
+            const existingLog: LogEvent[] = Array.isArray(existingKev.log) ? existingKev.log : []
             // Convert web-added clinicalEvents to log entries so mobile can see them
-            const webCEs: any[] = (intraop.timetableData as any)?.clinicalEvents ?? []
-            const logLabels = new Set(existingLog.filter((e: any) => e.type === "clinical_event" || e.type === "event").map((e: any) => e.label))
+            const webCEs: ClinicalEvent[] = (intraop.timetableData as LegacyKeyEvents)?.clinicalEvents ?? []
+            const logLabels = new Set(existingLog.filter(e => e.type === "clinical_event" || e.type === "event").map(e => e.label))
             let mergedLog = existingLog
             if (webCEs.length > 0 && existingLog.length > 0) {
-              const sortedLog = [...existingLog].sort((a: any, b: any) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+              const sortedLog = [...existingLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
               const chartStartMs = sortedLog[0]?.ts ? new Date(sortedLog[0].ts).getTime() : null
               if (chartStartMs) {
-                const newEntries = webCEs
-                  .filter((ce: any) => !logLabels.has(ce.label))
-                  .map((ce: any) => ({
+                const newEntries: LogEvent[] = webCEs
+                  .filter(ce => !logLabels.has(ce.label))
+                  .map(ce => ({
                     id: `web-${ce.colIdx}-${ce.label}`,
                     ts: new Date(chartStartMs + ce.colIdx * 5 * 60_000).toISOString(),
                     type: "clinical_event",
@@ -191,10 +237,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 if (newEntries.length > 0) mergedLog = [...existingLog, ...newEntries]
               }
             }
-            effectiveIntraop = { ...intraop, timetableData: { ...intraop.timetableData, log: mergedLog } }
+            effectiveIntraop = { ...intraop, timetableData: { ...(intraop.timetableData as LegacyKeyEvents), log: mergedLog } }
           }
           const op = existing.intraop ? { update: mapIntraopUpdate(effectiveIntraop) } : { create: mapIntraop(effectiveIntraop) }
           await tx.case.update({ where: { id }, data: { intraop: op } })
+          if ("timetableData" in effectiveIntraop && effectiveIntraop.timetableData) {
+            const start = (() => {
+              const hhmm = typeof effectiveIntraop.startTime === "string" ? effectiveIntraop.startTime : null
+              const baseDay = existing.intraop?.createdAt ?? new Date()
+              const baseMs = Date.UTC(baseDay.getUTCFullYear(), baseDay.getUTCMonth(), baseDay.getUTCDate())
+              if (!hhmm) {
+                const saved = existing.intraop?.startTime
+                return baseMs + (saved ? (saved.getUTCHours() * 3600 + saved.getUTCMinutes() * 60) * 1000 : 0)
+              }
+              const [h, m] = hhmm.split(":").map(Number)
+              return baseMs + ((h || 0) * 3600 + (m || 0) * 60) * 1000
+            })()
+            const keyEvents = effectiveIntraop.timetableData as LegacyKeyEvents
+            const projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
+              ? keyEvents.log
+              : reverseProject(keyEvents, start)
+            if (projectedLog.length > 0) {
+              await reconcileFullLog(tx, id, userId, projectedLog, "web")
+              await rebuildProjection(tx, id)
+            }
+          }
         }
         if (postop) {
           // Partial update for existing records (see mapPreopUpdate rationale)
@@ -203,18 +270,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         }
 
         // Status transition rules:
-        //   1. Explicit status in payload → use as-is (e.g., final submit sends "COMPLETE")
-        //   2. No explicit status + intraop data + current DRAFT → promote to IN_PROGRESS
-        //   3. No explicit status + postop data + current IN_PROGRESS → promote to AWAITING_REVIEW
+        //   1. Explicit status in payload -> use as-is (e.g., final submit sends "COMPLETE")
+        //   2. No explicit status + intraop data + current DRAFT -> promote to IN_PROGRESS
+        //   3. No explicit status + postop data + current IN_PROGRESS -> promote to AWAITING_REVIEW
         //   4. Never implicitly demote a status
-        //   COMPLETE is never set automatically — only on explicit client send
+        //   COMPLETE is never set automatically - only on explicit client send
         const currentStatus = fresh?.status ?? existing.status
         finalStatus = computeNextStatus(currentStatus)
         if (finalStatus) {
           await tx.case.update({
             where: { id },
             data: {
-              status: finalStatus as any,
+              status: finalStatus,
               ...(finalStatus === "COMPLETE" ? { finalizedAt: new Date() } : {}),
             },
           })
@@ -236,7 +303,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (preop)  writeFieldDiffsSafe(prisma, id, "preop",  existing.preop  ?? {}, preop,  userId)
     if (postop) writeFieldDiffsSafe(prisma, id, "postop", existing.postop ?? {}, postop, userId)
     // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
-    syncCaseRelationalSafe(prisma, id)
+    syncCaseRelationalSafe(prisma, id, userId)
     // Write immutable snapshot on finalization (best-effort)
     if (finalStatus === "COMPLETE") writeSnapshotSafe(prisma, id)
     caseEmitter.emit(id, {
@@ -269,7 +336,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       postopUpdatedAt: updated?.postop?.updatedAt,
       intraopUpdatedAt: updated?.intraop?.updatedAt,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof z.ZodError) {
       console.error("[PATCH /api/cases/:id] ZodError:", JSON.stringify(err.issues, null, 2))
       return NextResponse.json({ error: "Invalid request" }, { status: 400 })
@@ -288,10 +355,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const existing = await prisma.case.findUnique({
     where: { id },
-    select: { userId: true, status: true },
+    select: { userId: true, status: true, user: { select: { institutionId: true } } },
   })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (existing.userId !== userId && user.role !== "ADMIN")
+  if (!canAccessCase(user, existing))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Cannot delete a completed case" }, { status: 400 })
 

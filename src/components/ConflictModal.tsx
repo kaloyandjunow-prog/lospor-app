@@ -66,7 +66,7 @@ function displayValue(v: unknown): string {
   if (typeof v === "boolean") return v ? "Yes" : "No"
   if (Array.isArray(v)) {
     if (v.length === 0) return "—"
-    return v.map((item: any) => (typeof item === "object" && item !== null ? item.label ?? JSON.stringify(item) : String(item))).join(", ")
+    return v.map(item => (typeof item === "object" && item !== null ? (item as { label?: unknown }).label ?? JSON.stringify(item) : String(item))).join(", ")
   }
   if (typeof v === "object") return JSON.stringify(v)
   return String(v)
@@ -87,7 +87,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
     const keysA = Object.keys(a as object)
     const keysB = Object.keys(b as object)
     if (keysA.length !== keysB.length) return false
-    return keysA.every(k => deepEqual((a as any)[k], (b as any)[k]))
+    return keysA.every(k => deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]))
   }
   return false
 }
@@ -129,26 +129,11 @@ export function ConflictModal({ open, onClose, localValues, serverValues, onReso
     return result
   }, [localValues, serverValues])
 
-  const [choices, setChoices] = useState<Record<string, Choice>>(() => {
-    // Default: keep local edits
-    const initial: Record<string, Choice> = {}
-    fields.forEach(f => { initial[f.key] = "local" })
-    return initial
-  })
-
-  // Re-initialise choices when the fields list changes (new conflict opened)
-  const fieldKeys = fields.map(f => f.key).join(",")
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useMemo(() => {
-    const initial: Record<string, Choice> = {}
-    fields.forEach(f => { initial[f.key] = "local" })
-    setChoices(initial)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldKeys])
+  const [choices, setChoices] = useState<Record<string, Choice>>({})
 
   if (!open) return null
 
-  const allResolved = fields.every(f => choices[f.key] !== undefined)
+  const allResolved = fields.every(f => (choices[f.key] ?? "local") !== undefined)
 
   function handleResolve() {
     // Start with serverValues as base, then apply chosen sides

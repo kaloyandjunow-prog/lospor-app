@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
-import NextAuth from "next-auth"
+import type { NextFetchEvent, NextMiddleware } from "next/server"
+import NextAuth, { type NextAuthRequest } from "next-auth"
 import { authConfig } from "@/lib/auth.config"
+import { corsHeaders } from "@/lib/cors"
 
 // ── CORS preflight handler ────────────────────────────────────────────────────
 // Handles OPTIONS for every /api/* route centrally so individual route files
 // don't each need their own OPTIONS export. Bearer-token APIs require a
 // preflight because Authorization is a non-simple header.
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  // x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
-  // x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key",
-  "Access-Control-Max-Age":       "86400",
-}
+// x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
+// x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.
+const CORS_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+const CORS_REQUEST_HEADERS = "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key"
 
 function handleCorsOptions(req: NextRequest): NextResponse | null {
   if (req.method !== "OPTIONS") return null
   if (!req.nextUrl.pathname.startsWith("/api/")) return null
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+  return new NextResponse(null, { status: 204, headers: corsHeaders(CORS_METHODS, CORS_REQUEST_HEADERS) })
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -88,7 +86,7 @@ function mobileRedirect(req: NextRequest): NextResponse | null {
 
 const { auth: nextAuthMiddleware } = NextAuth(authConfig)
 
-export default async function proxy(req: NextRequest) {
+export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   // 1. CORS OPTIONS preflight — must be first so it applies to every /api/* route
   const corsOptions = handleCorsOptions(req)
   if (corsOptions) return corsOptions
@@ -102,7 +100,13 @@ export default async function proxy(req: NextRequest) {
   const csrfError = csrfCheck(req)
   if (csrfError) return csrfError
 
-  return (nextAuthMiddleware as any)(req)
+  // `auth()`'s public type is a 5-overload union that's ambiguous for plain
+  // (request, event) calls — pin the exact signature NextAuth actually uses
+  // for middleware mode (NextAuthRequest + NextFetchEvent) instead of
+  // widening the whole call to `any`. NextAuth populates the `auth` field on
+  // the request internally; callers don't pre-populate it.
+  const middleware = nextAuthMiddleware as unknown as (request: NextAuthRequest, event: NextFetchEvent) => ReturnType<NextMiddleware>
+  return middleware(req as NextAuthRequest, event)
 }
 
 export const config = {

@@ -1,13 +1,62 @@
 // Shared data-mapping helpers for POST and PATCH case routes
 import { Prisma } from "@/generated/prisma/client"
 
-export function mapPreop(preop: any) {
+// Copies full[k] into r[k] for each key present in the raw payload. A plain
+// `r[k] = full[k]` inside a loop over a key UNION can't statically prove the
+// value type for a given k matches r's expected type at that same k (TS
+// doesn't correlate union members across separate indexed accesses) — this
+// generic signature binds K once per call so the assignment type-checks
+// without a cast.
+function copyKey<T, K extends keyof T>(r: Partial<T>, full: T, k: K): void {
+  r[k] = full[k]
+}
+
+// Mappers accept a deliberately permissive payload: canonical field names
+// (matching the Prisma columns) plus legacy/mobile aliases (ulbt,
+// difficultAirway, familyProblems, etc.) that predate the canonical names.
+// Casting once here — instead of at each of the ~150 individual field reads
+// below — keeps every `preop.x` read properly typed against the real column
+// type while still tolerating the alias keys the rest of the function checks.
+type PreopRawInput = Partial<Prisma.PreoperativeAssessmentUncheckedCreateWithoutCaseInput> & {
+  ulbt?: string
+  difficultAirway?: boolean
+  familyProblems?: boolean
+  familyProblemNotes?: string | null
+  diagnoses?: { label?: string; sub?: string; code?: string }[]
+  procedures?: { label?: string; sub?: string; code?: string; group?: string; domain?: string; description?: string }[]
+  allergyDetails?: string | { label?: string; inn?: string; atcCode?: string; dose?: string; route?: string; frequency?: string }[] | null
+  currentMedications?: string | { label?: string; inn?: string; atcCode?: string; dose?: string; route?: string; frequency?: string }[] | null
+}
+
+type TaggedDrugList = PreopRawInput["currentMedications"] | PreopRawInput["allergyDetails"]
+
+function taggedListToStorage(value: TaggedDrugList): string | null {
+  if (!Array.isArray(value)) return value ?? null
+  const items = value
+    .filter(item => item && (item.label || item.inn || item.atcCode))
+    .map(item => ({
+      label: item.label ?? item.inn ?? item.atcCode ?? "",
+      inn: item.inn ?? undefined,
+      atcCode: item.atcCode ?? undefined,
+      dose: item.dose ?? undefined,
+      route: item.route ?? undefined,
+      frequency: item.frequency ?? undefined,
+    }))
+  return items.length ? JSON.stringify(items) : null
+}
+
+export function mapPreop(rawPreop: Record<string, unknown>): Prisma.PreoperativeAssessmentUncheckedCreateWithoutCaseInput {
+  const preop = rawPreop as PreopRawInput
   const upperLipBiteTest =
     preop.upperLipBiteTest ??
     (preop.ulbt === "I" ? "CLASS_I" : preop.ulbt === "II" ? "CLASS_II" : preop.ulbt === "III" ? "CLASS_III" : null)
   const difficultAirwayHistory = preop.difficultAirwayHistory ?? preop.difficultAirway ?? false
   const familyAnesthesiaProblems = preop.familyAnesthesiaProblems ?? preop.familyProblems ?? false
-  const familyAnesthesiaDetails = preop.familyAnesthesiaDetails ?? preop.familyProblemNotes ?? null
+  const familyAnesthesiaDetails = familyAnesthesiaProblems
+    ? preop.familyAnesthesiaDetails ?? preop.familyProblemNotes ?? null
+    : null
+  const allergies = preop.allergies ?? false
+  const allergyDetails = allergies ? taggedListToStorage(preop.allergyDetails) : null
   // Item 20: Validate/compute BMI from height+weight; discard client BMI if it diverges >10%
   const heightCm = preop.heightCm ?? null
   const weightKg = preop.weightKg ?? null
@@ -23,8 +72,8 @@ export function mapPreop(preop: any) {
   }
 
   // Item 26: Build JSON arrays for diagnoses/procedures; keep legacy string columns for compat
-  const diagnosesArr: any[] = Array.isArray(preop.diagnoses) ? preop.diagnoses : []
-  const proceduresArr: any[] = Array.isArray(preop.procedures) ? preop.procedures : []
+  const diagnosesArr = Array.isArray(preop.diagnoses) ? preop.diagnoses : []
+  const proceduresArr = Array.isArray(preop.procedures) ? preop.procedures : []
 
   return {
     // Items 18 + 19: Use null instead of 0 for missing biometrics — 0 corrupts risk scores
@@ -37,25 +86,23 @@ export function mapPreop(preop: any) {
     rhFactor:  safeEnum(preop.rhFactor,  ["POSITIVE","NEGATIVE"] as const),
 
     // Legacy string columns (kept for backward compatibility)
-    diagnosis:        diagnosesArr.map((t: any) => t.label).join("; ") || "",
-    plannedProcedure: proceduresArr.map((t: any) => t.label).join("; ") || "",
+    diagnosis:        diagnosesArr.map(t => t.label).join("; ") || "",
+    plannedProcedure: proceduresArr.map(t => t.label).join("; ") || "",
     // Item 26: JSON columns for structured diagnoses/procedures — use Prisma.JsonNull (not undefined) so Prisma clears the column when array is empty
     diagnosesJson:    diagnosesArr.length > 0 ? diagnosesArr : Prisma.JsonNull,
     proceduresJson:   proceduresArr.length > 0 ? proceduresArr : Prisma.JsonNull,
     icdCode:          diagnosesArr[0]?.sub ?? null,
     teamNotes:        preop.teamNotes ?? null,
+    physicalExamReport: preop.physicalExamReport ?? null,
+    notes:              preop.notes ?? null,
     aiOptIn:          preop.aiOptIn   ?? false,
 
     comorbidities: preop.comorbidities ?? [],
 
-    allergies:                preop.allergies                ?? false,
-    allergyDetails:           Array.isArray(preop.allergyDetails)
-      ? (preop.allergyDetails as any[]).map((t: any) => t.label).join(", ")
-      : preop.allergyDetails ?? null,
+    allergies,
+    allergyDetails,
     latexAllergy:             preop.latexAllergy             ?? false,
-    currentMedications:       Array.isArray(preop.currentMedications)
-      ? (preop.currentMedications as any[]).map((t: any) => t.label).join(", ")
-      : preop.currentMedications ?? null,
+    currentMedications:       taggedListToStorage(preop.currentMedications),
     familyAnesthesiaProblems,
     familyAnesthesiaDetails,
     dentalProsthetics:        preop.dentalProsthetics        ?? false,
@@ -70,6 +117,11 @@ export function mapPreop(preop: any) {
     spO2:             preop.spO2            ?? null,
     temperature:      preop.temperature     ?? null,
     respiratoryRate:  preop.respiratoryRate ?? null,
+    bpUnobtainable:          preop.bpUnobtainable          ?? false,
+    heartRateUnobtainable:   preop.heartRateUnobtainable   ?? false,
+    spO2Unobtainable:        preop.spO2Unobtainable        ?? false,
+    temperatureUnobtainable: preop.temperatureUnobtainable ?? false,
+    respiratoryRateUnobtainable: preop.respiratoryRateUnobtainable ?? false,
 
     mallampati:             preop.mallampati             ?? null,
     mouthOpeningCm:         preop.mouthOpeningCm         ?? null,
@@ -80,10 +132,12 @@ export function mapPreop(preop: any) {
     prominentIncisors:      preop.prominentIncisors      ?? false,
     facialHair:             preop.facialHair             ?? false,
     difficultAirwayHistory,
-    difficultAirwayNotes:   preop.difficultAirwayNotes   ?? null,
+    difficultAirwayNotes:   difficultAirwayHistory ? preop.difficultAirwayNotes ?? null : null,
     cormackLehane:          preop.cormackLehane          ?? null,
+    airwayUnobtainable:     preop.airwayUnobtainable     ?? false,
 
     asaScore:         preop.asaScore        ?? null,
+    elective:         preop.elective         ?? false,
     emergencySurgery: preop.emergencySurgery ?? false,
     highRiskSurgery:  preop.highRiskSurgery  ?? false,
 
@@ -111,37 +165,22 @@ export function mapPreop(preop: any) {
   }
 }
 
-function safeDate(s: string): Date {
-  const d = new Date(s)
-  return isNaN(d.getTime()) ? new Date() : d
-}
-
 // Item 21: Strict HH:MM validation — rejects invalid times like "25:90"
 const HHMMRE = /^([01]\d|2[0-3]):([0-5]\d)$/
-function toDateOnly(v: any): string {
-  if (!v) return new Date().toISOString().split("T")[0]
-  const s = String(v)
-  // Already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
-  // ISO datetime — take just the date part
-  const m = s.match(/^(\d{4}-\d{2}-\d{2})/)
-  if (m) return m[1]
-  return new Date().toISOString().split("T")[0]
-}
 
 // Return v if it is one of the allowed values, otherwise null.
 // Prevents empty strings / unknown values from breaking Prisma enum fields.
-function safeEnum<T extends string>(v: any, allowed: readonly T[]): T | null {
-  return allowed.includes(v) ? (v as T) : null
+function safeEnum<T extends string>(v: unknown, allowed: readonly T[]): T | null {
+  return (allowed as readonly unknown[]).includes(v) ? (v as T) : null
 }
 
-function toIntOrNull(v: any): number | null {
+function toIntOrNull(v: unknown): number | null {
   if (v == null || v === "") return null
   const n = parseInt(String(v), 10)
   return isNaN(n) ? null : n
 }
 
-function toFloatOrNull(v: any): number | null {
+function toFloatOrNull(v: unknown): number | null {
   if (v == null || v === "") return null
   const n = parseFloat(String(v))
   return isNaN(n) ? null : n
@@ -150,7 +189,7 @@ function toFloatOrNull(v: any): number | null {
 // For UPDATE operations: only include fields that were explicitly present in the payload.
 // Using mapIntraop for updates fills in ?? defaults for every missing field, silently
 // overwriting existing DB data with zeros/empty arrays on every partial save.
-export function mapIntraopUpdate(intraop: any) {
+export function mapIntraopUpdate(intraop: Record<string, unknown>) {
   const full = mapIntraop(intraop)
   const r: Partial<typeof full> = {}
   const has = (k: string) => k in intraop
@@ -159,7 +198,7 @@ export function mapIntraopUpdate(intraop: any) {
   if (has("monthYear"))       r.monthYear       = full.monthYear
   if (has("startTime") || has("endTime") || has("endTimeNextDay")) {
     // Only write startTime when it is a real HH:MM — never overwrite with the sentinel 00:00 default
-    if (has("startTime") && HHMMRE.test(intraop.startTime ?? "")) r.startTime = full.startTime
+    if (has("startTime") && HHMMRE.test(String(intraop.startTime ?? ""))) r.startTime = full.startTime
     if (has("endTime"))       r.endTime         = full.endTime
                               r.durationMinutes = full.durationMinutes
   }
@@ -168,9 +207,9 @@ export function mapIntraopUpdate(intraop: any) {
   const DIRECT = [
     "positions","techniques",
     "tubeSize","cuffed","peepCmH2O","airwayNotes","cormackLehane",
+    "lmaSize","oralTubeSize","oralCuffed","nasalTubeSize","nasalCuffed",
     "dltType","dltSide","dltSize","endobronchialSize",
-    "volatileAgent","n2oPercent","o2Percent","n2oLitersPerMin","o2LitersPerMin",
-    "fgfLitersPerMin","carrierGas","fio2Percent",
+    "volatileAgent",
     "plexusBlock","cvkSite","arterialLineSite",
     "ecg","urinaryCatheter","stomachTube","spO2Monitor","invasiveBP","cvpMonitor",
     "bglMonitor","bloodGasMonitor","neuroMonitor","nbpMonitor","etco2Monitor",
@@ -178,9 +217,9 @@ export function mapIntraopUpdate(intraop: any) {
     "evokedPotentials","tofMonitor",
     "vascularAccesses","premedicationEvening","premedicationMorning","drugsAdministered",
     "crystalloidsMl","colloidsMl","bloodMl","bloodProductsNote","urineMl","complications",
-  ] as const
+  ] as const satisfies readonly (keyof typeof full)[]
   for (const k of DIRECT) {
-    if (has(k)) (r as any)[k] = (full as any)[k]
+    if (has(k)) copyKey(r, full, k)
   }
 
   // Aliased source keys
@@ -205,22 +244,32 @@ export function mapIntraopUpdate(intraop: any) {
   return r
 }
 
-export function mapIntraop(intraop: any) {
+type IntraopRawInput = Partial<Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput> & {
+  fob?: boolean
+  vitals?: Prisma.InputJsonValue
+  timetableData?: Prisma.InputJsonValue
+  endTimeNextDay?: boolean
+}
+
+export function mapIntraop(rawIntraop: Record<string, unknown>): Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput {
+  const intraop = rawIntraop as IntraopRawInput
   // Use a stable reference date (2000-01-01) for startTime/endTime — only the HH:MM matters for the timetable.
   const REF_DATE = "2000-01-01"
-  const isHHMM  = (s: any) => typeof s === "string" && HHMMRE.test(s)
+  const isHHMM  = (s: unknown): s is string => typeof s === "string" && HHMMRE.test(s)
   const toMins = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m }
+  const rawStart = intraop.startTime
+  const rawEnd   = intraop.endTime
   const endRefDate = (() => {
-    const crossedMidnight = isHHMM(intraop.startTime) && isHHMM(intraop.endTime)
-      && toMins(intraop.endTime) < toMins(intraop.startTime)
+    const crossedMidnight = isHHMM(rawStart) && isHHMM(rawEnd)
+      && toMins(rawEnd) < toMins(rawStart)
     if (!crossedMidnight && !intraop.endTimeNextDay) return REF_DATE
     const d = new Date(REF_DATE + "T12:00:00Z")
     d.setUTCDate(d.getUTCDate() + 1)
     return d.toISOString().split("T")[0]
   })()
   const durationMinutes = (() => {
-    if (!isHHMM(intraop.startTime) || !isHHMM(intraop.endTime)) return intraop.durationMinutes ?? null
-    let diff = toMins(intraop.endTime) - toMins(intraop.startTime)
+    if (!isHHMM(rawStart) || !isHHMM(rawEnd)) return (intraop.durationMinutes as number | null | undefined) ?? null
+    let diff = toMins(rawEnd) - toMins(rawStart)
     if (diff < 0) diff += 24 * 60
     return diff
   })()
@@ -233,6 +282,11 @@ export function mapIntraop(intraop: any) {
     techniques:      intraop.techniques       ?? [],
     tubeSize:        intraop.tubeSize        ?? null,
     cuffed:          intraop.cuffed          ?? null,
+    lmaSize:         intraop.lmaSize         ?? null,
+    oralTubeSize:    intraop.oralTubeSize    ?? null,
+    oralCuffed:      intraop.oralCuffed      ?? null,
+    nasalTubeSize:   intraop.nasalTubeSize   ?? null,
+    nasalCuffed:     intraop.nasalCuffed     ?? null,
     peepCmH2O:       intraop.peepCmH2O       ?? null,
     airwayTools: (() => {
       const tools: string[] = Array.isArray(intraop.airwayTools) ? intraop.airwayTools : []
@@ -264,13 +318,6 @@ export function mapIntraop(intraop: any) {
       ? (intraop.ventilationModes as string[]).includes("Jet")
       : (intraop.jetVentilation ?? false),
     volatileAgent:   safeEnum(intraop.volatileAgent,   ["SEVOFLURANE","DESFLURANE","ISOFLURANE"] as const),
-    n2oPercent:      intraop.n2oPercent      ?? null,
-    o2Percent:       intraop.o2Percent       ?? null,
-    n2oLitersPerMin: intraop.n2oLitersPerMin ?? null,
-    o2LitersPerMin:  intraop.o2LitersPerMin  ?? null,
-    fgfLitersPerMin: toFloatOrNull(intraop.fgfLitersPerMin),
-    carrierGas:      intraop.carrierGas === "air" || intraop.carrierGas === "n2o" ? intraop.carrierGas : null,
-    fio2Percent:     toFloatOrNull(intraop.fio2Percent),
     plexusBlock:     safeEnum(intraop.plexusBlock, ["AXILLARY","INTERSCALENE","SUPRACLAVICULAR","INFRACLAVICULAR","FEMORAL","SCIATIC","POPLITEAL","TAP","ERECTOR_SPINAE"] as const),
     cvkSite:         safeEnum(intraop.cvkSite, ["INTERNAL_JUGULAR","EXTERNAL_JUGULAR","SUBCLAVIAN","FEMORAL"] as const),
     arterialLineSite:safeEnum(intraop.arterialLineSite, ["RADIAL","DORSALIS_PEDIS","FEMORAL","BRACHIAL"] as const),
@@ -298,7 +345,7 @@ export function mapIntraop(intraop: any) {
     premedicationMorning: intraop.premedicationMorning ?? null,
     drugsAdministered: intraop.drugsAdministered ?? [],
     timeSeriesData:    intraop.vitals            ?? [],
-    keyEvents:         intraop.timetableData     ?? null,
+    keyEvents:         intraop.timetableData     ?? Prisma.JsonNull,
     crystalloidsMl:    intraop.crystalloidsMl    ?? null,
     colloidsMl:        intraop.colloidsMl        ?? null,
     bloodMl:           intraop.bloodMl           ?? null,
@@ -312,7 +359,7 @@ export function mapIntraop(intraop: any) {
 // in the payload. Using mapPreop for updates fills in ?? null / ?? false defaults
 // for every missing field, silently wiping existing preop data on any partial or
 // stale save (e.g. a replayed offline snapshot). Mirrors mapIntraopUpdate.
-export function mapPreopUpdate(preop: any) {
+export function mapPreopUpdate(preop: Record<string, unknown>) {
   const full = mapPreop(preop)
   const r: Partial<typeof full> = {}
   // "Present" means the key exists AND is not undefined. Form snapshots send
@@ -321,22 +368,29 @@ export function mapPreopUpdate(preop: any) {
 
   // Direct fields: source key name === output key name
   const DIRECT = [
-    "ageYears", "sex", "heightCm", "weightKg", "bloodType", "rhFactor",
-    "teamNotes", "aiOptIn", "comorbidities",
-    "allergies", "allergyDetails", "latexAllergy", "currentMedications",
+      "ageYears", "sex", "heightCm", "weightKg", "bloodType", "rhFactor",
+      "teamNotes", "physicalExamReport", "notes", "aiOptIn", "comorbidities",
+    "allergies", "latexAllergy", "currentMedications",
     "dentalProsthetics", "looseTeeth", "smoking", "substanceAbuse",
     "bpSystolic", "bpDiastolic", "heartRate", "heartArrhythmia", "spO2", "temperature", "respiratoryRate",
+    "bpUnobtainable", "heartRateUnobtainable", "spO2Unobtainable", "temperatureUnobtainable", "respiratoryRateUnobtainable",
     "mallampati", "mouthOpeningCm", "thyromental", "neckMobility",
-    "retrognathia", "prominentIncisors", "facialHair", "difficultAirwayNotes", "cormackLehane",
-    "asaScore", "emergencySurgery", "highRiskSurgery",
+    "retrognathia", "prominentIncisors", "facialHair", "difficultAirwayNotes", "cormackLehane", "airwayUnobtainable",
+    "asaScore", "elective", "emergencySurgery", "highRiskSurgery",
     "rcriIschemicHeart", "rcriCHF", "rcriCVD", "rcriInsulinDM", "rcriCreatinine",
     "rcriScore", "gutaScore", "apfelScore", "stopBangScore",
     "apfelPONVHistory", "apfelPostopOpioids",
     "stopbangSnoring", "stopbangTired", "stopbangObserved", "stopbangBP", "stopbangNeck",
     "labResults",
-  ] as const
+  ] as const satisfies readonly (keyof typeof full)[]
   for (const k of DIRECT) {
-    if (has(k)) (r as any)[k] = (full as any)[k]
+    if (has(k)) copyKey(r, full, k)
+  }
+  if (has("allergies") || has("allergyDetails")) {
+    if (has("allergies")) r.allergies = full.allergies
+    r.allergyDetails = has("allergies") && full.allergies === false
+      ? null
+      : taggedListToStorage((preop as PreopRawInput).allergyDetails)
   }
 
   // Computed / aliased fields — include when any contributing source key is present
@@ -350,16 +404,22 @@ export function mapPreopUpdate(preop: any) {
     r.plannedProcedure = full.plannedProcedure
     r.proceduresJson   = full.proceduresJson
   }
-  if (has("familyAnesthesiaProblems") || has("familyProblems"))      r.familyAnesthesiaProblems = full.familyAnesthesiaProblems
+  if (has("familyAnesthesiaProblems") || has("familyProblems")) {
+    r.familyAnesthesiaProblems = full.familyAnesthesiaProblems
+    if (full.familyAnesthesiaProblems === false) r.familyAnesthesiaDetails = null
+  }
   if (has("familyAnesthesiaDetails")  || has("familyProblemNotes"))  r.familyAnesthesiaDetails  = full.familyAnesthesiaDetails
   if (has("upperLipBiteTest") || has("ulbt"))                        r.upperLipBiteTest         = full.upperLipBiteTest
-  if (has("difficultAirwayHistory") || has("difficultAirway"))       r.difficultAirwayHistory   = full.difficultAirwayHistory
+  if (has("difficultAirwayHistory") || has("difficultAirway")) {
+    r.difficultAirwayHistory = full.difficultAirwayHistory
+    if (full.difficultAirwayHistory === false) r.difficultAirwayNotes = null
+  }
 
   return r
 }
 
 // For UPDATE operations: same partial-update semantics as mapPreopUpdate.
-export function mapPostopUpdate(postop: any) {
+export function mapPostopUpdate(postop: Record<string, unknown>) {
   const full = mapPostop(postop)
   const r: Partial<typeof full> = {}
   const has = (k: string) => k in postop && postop[k] !== undefined
@@ -367,9 +427,10 @@ export function mapPostopUpdate(postop: any) {
   const DIRECT = [
     "recoveryBpSystolic", "recoveryBpDiastolic", "recoveryHeartRate", "recoverySpO2",
     "painScoreNRS", "ponv", "complications", "handoverItems", "disposition", "dispositionNotes",
-  ] as const
+    "recoveryBpUnobtainable", "recoveryHeartRateUnobtainable", "recoverySpO2Unobtainable", "recoveryTemperatureUnobtainable",
+  ] as const satisfies readonly (keyof typeof full)[]
   for (const k of DIRECT) {
-    if (has(k)) (r as any)[k] = (full as any)[k]
+    if (has(k)) copyKey(r, full, k)
   }
 
   // Aldrete subscores + total — recompute the total whenever any subscore is present
@@ -387,10 +448,25 @@ export function mapPostopUpdate(postop: any) {
 
   if (has("temperatureCelsius") || has("temperaturePostop")) r.temperatureCelsius = full.temperatureCelsius
 
+  if (has("disposition") && full.disposition !== "WARD" && full.disposition !== "PACU") {
+    r.handoverItems = []
+    r.dispositionNotes = null
+  }
+
   return r
 }
 
-export function mapPostop(postop: any) {
+type PostopRawInput = Partial<Prisma.PostoperativeRecordUncheckedCreateWithoutCaseInput> & {
+  activityScore?: unknown
+  respirationScore?: unknown
+  circulationScore?: unknown
+  consciousnessScore?: unknown
+  spO2Score?: unknown
+  temperaturePostop?: unknown
+}
+
+export function mapPostop(rawPostop: Record<string, unknown>): Prisma.PostoperativeRecordUncheckedCreateWithoutCaseInput {
+  const postop = rawPostop as PostopRawInput
   const aldreteActivity = postop.aldreteActivity ?? postop.activityScore
   const aldreteRespiration = postop.aldreteRespiration ?? postop.respirationScore
   const aldreteCirculation = postop.aldreteCirculation ?? postop.circulationScore
@@ -401,7 +477,7 @@ export function mapPostop(postop: any) {
     : aldreteActivity != null
       ? [aldreteActivity, aldreteRespiration,
          aldreteCirculation, aldreteConsciousness, aldreteSpO2]
-          .reduce((s: number, v: any) => s + (parseInt(String(v ?? 0), 10) || 0), 0)
+          .reduce((s: number, v: unknown) => s + (parseInt(String(v ?? 0), 10) || 0), 0)
       : null
 
   return {
@@ -418,9 +494,13 @@ export function mapPostop(postop: any) {
     painScoreNRS:       toIntOrNull(postop.painScoreNRS),
     ponv:               postop.ponv               ?? false,
     temperatureCelsius: toFloatOrNull(postop.temperatureCelsius ?? postop.temperaturePostop),
+    recoveryBpUnobtainable:          postop.recoveryBpUnobtainable          ?? false,
+    recoveryHeartRateUnobtainable:   postop.recoveryHeartRateUnobtainable   ?? false,
+    recoverySpO2Unobtainable:        postop.recoverySpO2Unobtainable        ?? false,
+    recoveryTemperatureUnobtainable: postop.recoveryTemperatureUnobtainable ?? false,
     complications:      postop.complications      ?? null,
-    handoverItems:      postop.handoverItems      ?? [],
+    handoverItems:      (postop.disposition === "WARD" || postop.disposition === "PACU") ? postop.handoverItems ?? [] : [],
     disposition:        postop.disposition        ?? null,
-    dispositionNotes:   postop.dispositionNotes   ?? null,
+    dispositionNotes:   (postop.disposition === "WARD" || postop.disposition === "PACU") ? postop.dispositionNotes ?? null : null,
   }
 }

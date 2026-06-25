@@ -1,9 +1,112 @@
-# Changelog — LOSPOR Web App
+# Changelog - LOSPOR Web App
 
+## [3.0.0] - 2026-06-25
+
+### Summary
+- Promotes the accumulated June 2026 work from the planned 2.x line to **v3.0.0** because the release changes the database shape, canonical clinical libraries, mobile/web parity contract, intraoperative event model, research export surface, and verification baseline.
+- `package.json` / lock metadata now use `3.0.0`. Mobile release metadata is aligned separately in `lospor-mobile`.
+
+### Added - Canonical option and clinical libraries
+- Added the shared `OptionLibrary` table and `GET /api/library/[category]` endpoint as the single catalogue for web, mobile, and PWA pickers.
+- Library categories now cover positions, techniques, airway management, ventilation, monitoring, premedication drugs, bolus drugs, infusions, inhalational agents, fluids, clinical events, sex, blood group, airway grades, disposition, handover items, and numeric range specs.
+- Web and mobile now share canonical codes for clinical techniques, monitoring groups, drug/infusion/fluid/agent choices, and fresh-gas settings.
+- Added bundled option-library fallback snapshots, a protected internal snapshot endpoint, snapshot freshness checks, and visible cached/offline-library banners.
+
+### Added - Canonical labs, units, and AI scanning
+- Web and mobile now use the same canonical lab catalogue, units, LOINC mappings, and reference ranges.
+- AI lab extraction scans for the full canonical lab catalogue and imports only recognised results; unknown/free-form lab names are discarded.
+- Lab rows store parsed numeric value, canonical unit, LOINC code, reference low/high, abnormal flag, source, and mapping metadata.
+- Serum/peripheral glucose is stored as a timed intraoperative measurement with LOINC `2345-7` and canonical `mmol/L`.
+
+### Added - Research-grade database rows
+- Added normalized/queryable rows for diagnoses, procedures, comorbidities, lab results, medications, vascular access, premedication, complications, selections, and event timeline data.
+- Added local bilingual `ConceptMap` for ICD-10 English/Bulgarian labels, LOINC, ATC, INN, and LOSPOR option values.
+- Known OMOP concept IDs are stored where confidently mapped; source-only and unmapped values remain explicit rather than faking concept IDs.
+- Added `ClinicalFieldStatus` for key-field missingness and provenance metadata on normalized rows.
+- Added `scripts/seed-concept-maps.ts`, `scripts/data-quality-report.ts`, expanded `scripts/backfill-relational.ts`, and guarded `scripts/wipe-dev-clinical-data.ts`.
+
+### Changed - Intraoperative timetable and event sourcing
+- Web intraop timetable now writes bolus drugs, infusion start/rate-change/stop, agent start/stop, fluid start/stop, gas changes, clinical events, and vitals through the same append-only `CaseEvent` API used by mobile.
+- The legacy `keyEvents` JSON is rebuilt as a projection/cache from active event rows.
+- Infusion, agent, fluid, and fresh-gas-flow bars extend correctly when a case is reopened while still running.
+- Fresh gas flow is represented as a timeline lane/bar with FGF, FiO2, carrier gas, calculated FiAir/FiN2O, and FiO2 clamped to the valid clinical range.
+- Legacy scalar gas entry rows were removed from the active UI and the legacy scalar gas DB columns are no longer written.
+
+### Changed - Mobile/web parity and sync
+- Mobile maps payloads to canonical web/API field names before persistence.
+- Case updates use timestamp/header conflict detection so stale mobile edits do not silently overwrite newer web edits.
+- Mobile autosave queues offline patches, flushes queued saves, and exposes conflict/queued/saved states.
+- Live case refresh uses polling/SSE fallback so mobile can see web-side changes and web can see mobile-side changes.
+- Mobile now exposes web-parity actions/surfaces for case details, printable protocol, share summary, audit logs, admin console, handover, postop, AI advisor, and intraop timetable.
+
+### Changed - Preop, postop, and form quality
+- Mobile preop was redesigned into section-based, scrollable, thumb-friendly entry with inline autocomplete and context-specific number controls.
+- Diagnosis and comorbidity fields use the local Bulgarian/English ICD-10 database.
+- Medication allergy is stored using `Medication.kind = ALLERGY`; deselecting the allergy boolean clears associated allergy text/rows.
+- Difficult-airway notes, team notes, physical exam report, and event complication notes are limited to 500 characters and cleared when their controlling boolean is false.
+- General inhalational anaesthesia auto-selects expected monitoring defaults: SpO2, NBP, ECG, temperature, and EtCO2.
+
+### Changed - OMOP/export and research reproducibility
+- Added local Athena/OMOP vocabulary import tables and `scripts/seed-athena-vocabularies.ts` for full vocabulary-backed concept resolution.
+- `ConceptMap` now stores mapping method, confidence, review state, mapping notes, and Athena vocabulary version.
+- OMOP export now reads from normalized rows and active `CaseEvent` rows instead of parsing legacy blobs.
+- Export includes labs, vitals, intraop glucose, gas settings, bolus drugs, infusions, inhalational agents, vascular access, selections, complications, postop recovery vitals, Aldrete subscores, and provenance/version metadata.
+- Export bundles now include table counts, mapping summary, de-identification metadata, and quality warnings; app exports warn rather than block.
+- Export `source_version` and snapshot schema version are now `3.0.0`.
+- Free-text fields are redacted before AI advisor/export use; coded ICD/LOINC/ATC/option values are preserved.
+
+### Security, tooling, and migration notes
+- Centralized role authorization with `requireRole`; case-scoped vitals scan now enforces case access before sending images to AI.
+- Production CORS is fail-closed without explicit allowed origins; login, registration, token revocation, audit logging, HOD scoping, transfer checks, and admin routes were hardened.
+- Mobile now has baseline ESLint, typecheck, and Vitest coverage; web and mobile deployment checks cover typecheck, lint, tests, Expo doctor, and build prerequisites.
+- Do not edit old applied Prisma migrations. Fresh/live deploys must run migrations, seed vocabularies, seed labs, seed option library, seed concept maps, generate/fetch option-library fallback snapshots, and run relational/data-quality backfills.
+
+---
 All notable changes to the web application are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+
+## [2.3.0] — 2026-06-20
+
+### Added — Shared Option Library
+- New `OptionLibrary` table: one shared, modular catalog for every intraop/preop pill-button option (position, technique, vascular access, airway management, monitoring, premedication drugs, intraop drugs, intraop infusions, inhalational agents, intraop fluids, clinical events) — replaces hardcoded lists that had drifted between web, mobile, and even within mobile itself.
+- New master endpoint `GET /api/library/[category]`, consumed by both apps via a `useOptionLibrary(category)` hook.
+- Seed content lives in one small file per category under `lospor-app/src/data/option-library/`; `scripts/seed-option-library.ts` is a thin orchestrator — adding or editing an option no longer touches application code. Also exposed as a protected production maintenance action, `POST /api/admin/maintenance/seed-option-library` (ADMIN + `ALLOW_MAINTENANCE_SEED=true` required, audit-logged, idempotent).
+- Fixed a real mobile/web data mismatch surfaced by the migration: mobile stored different technique codes than web for the same clinical techniques (e.g. `GENERAL_COMBINED` vs `GENERAL_BALANCED`). Both apps now share one code per technique.
+- Monitoring gained a genuine `respiratory` group (capnography, temperature) shared by both apps, replacing a display-label workaround that only relabelled "Standard" as "Respiratory" in the UI.
+
+### Added — Offline-safe option library
+- Web and mobile now fall back to a snapshot of the option library bundled into the app itself if a device has never successfully synced and has no prior cache either (first load/install + no connectivity) — previously this showed silently empty pickers with no fallback at all.
+- A visible banner appears whenever any picker is running on cached or bundled (non-live) data, so a clinician never silently trusts a list without knowing it might be stale; a background retry every 30s swaps in live data the moment connectivity returns, no reload needed.
+- A successful-but-empty `200 []` from `/api/library/[category]` is now treated the same as a fetch failure (never trusted as "live") — an unseeded live DB can no longer silently blank out a picker with no banner.
+- `npm run build` now regenerates the bundled snapshot fresh from the database before every Vercel deploy (`scripts/generate-option-library-fallback.ts`), and **fails the build** if the DB is unreachable or any category comes back empty. Mobile/EAS fetches the snapshot from a shared-secret-protected web endpoint (`GET /api/internal/option-library-snapshot`) via an `eas-build-pre-install` hook, since EAS can't reach the database directly. A separate content-hash staleness check (`npm run check:option-library-fallback-fresh`) is available for PR/CI use. See `docs/post-migration-seeds.md` for the env vars that need configuring on Vercel/EAS for this to be active.
+
+### Changed — Web Intraop Timetable
+- New dedicated **Infusions** row, separate from the Drugs row — starting an infusion no longer requires picking a drug and then choosing "Bolus" vs "Infusion"; Drugs is bolus-only, Infusions has its own entry point, matching the mobile app's separated Drug/Infusion/Fluid/Agent layout.
+- Web's intraop timetable now writes real `CaseEvent` rows (bolus, infusion start/rate-change/stop, agent start/stop, fluid start/stop, clinical events) via the same `/api/cases/[id]/events` endpoint mobile already used, instead of only the legacy `keyEvents` JSON blob. Deleting an infusion or fluid now reconciles the full event log server-side.
+- IntraopForm.tsx and IntraopTimetable.tsx shrank substantially as a result of the option-library extraction (hundreds of lines of hardcoded option data removed from each).
+
+### Changed — Code quality
+- `TechniqueTree.tsx`, `VascularAccessTree.tsx`, and `IntraopTimetable.tsx` no longer populate the option-library data by mutating module-level arrays inside `useMemo`. Every category is now a plain `useMemo`-derived value scoped to the component itself — removes a real (if previously low-impact) risk of two instances of the same component clobbering each other's data, and removes the only place in this codebase doing side effects inside `useMemo`. `calcInfusionTotal`'s weight-basis lookup, the one piece genuinely shared across components/files, now takes it as an explicit parameter instead of reading shared state.
+
+### Security
+- Centralized role-authorization (`requireRole`) — replaces 14+ separate `role !== "ADMIN"` checks and two bespoke case-ownership reimplementations with one audited helper.
+- OMOP export and the AI advisor's data path now redact free-text fields that could carry identifying information, instead of relying solely on write-time blocking.
+- `admin/validate-relational` renamed to `admin/repair-relational` to reflect what it actually does (rewrites the relational mirror, not a read-only check); relational-sync failures are now written to the audit log instead of only a server console line.
+
+### Fixed
+- Stale ICD-11 references in live UI text (guided tour, i18n strings, AI translation prompt) corrected to ICD-10; removed the unused, dead `groq-translate.ts`. "Anonymised" language in live UI text and legal copy (GDPR protocol notice, Terms of Use, OMOP export metadata) corrected to "de-identified/pseudonymised," matching the project's own established wording.
+- Corrupted comment-divider text (mis-encoded box-drawing characters) cleaned up across the codebase.
+- A case closed mid-infusion (or mid-fluid, mid-agent) and reopened later now shows the running bar correctly extended to the current time on load, instead of frozen wherever it was at the last save. The client-side timetable extends non-stopped segments using the user's local wall clock; server-side read-time extension was intentionally removed because stored HH:MM values are not UTC instants. Rate-change boundaries are untouched, so per-segment infusion totals stay correct across the extension.
+- `package-lock.json` in both `lospor-app` and `lospor-mobile` was still pinned at `2.1.1` despite `package.json` reading `2.3.0`.
+
+### Migration notes
+- `LibraryCategory` was expanded after the original option-library migration. Existing environments must receive the additive `ALTER TYPE ... ADD VALUE` migration before `scripts/seed-option-library.ts` runs, otherwise categories such as `SEX`, `AGE_RANGE`, and `HANDOVER_ITEM` cannot be inserted.
+- Confirm the live Supabase `_prisma_migrations` state before deployment if the enum was previously repaired manually or drifted outside Prisma; an edited historical migration file will not repair an already-applied environment.
+
+### Backfill note
+- A case whose intraop data predates this release's web event-wiring still gets a one-time backfill of `CaseEvent` rows the first time it is touched through the events API. Current code reconstructs timestamps from the intraop record day plus the stored start-time/5-minute column offset where possible, and writes `source: "backfill"` because those rows were not submitted by either app. Legacy intraop `startTime` values may still use the schema's `2000-01-01` time-only convention; that dummy date is not the event backfill source label.
 
 ## [2.1.1] — 2026-06-19
 

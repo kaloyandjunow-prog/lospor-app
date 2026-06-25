@@ -34,7 +34,7 @@ export async function translateQueryToEnglish(query: string): Promise<string> {
 export async function translateToBulgarian(titles: string[]): Promise<string[]> {
   if (titles.length === 0) return []
   const raw = await mistralChat(
-    "You are a medical translator specialising in Bulgarian. Translate the following ICD-11 diagnostic terms from English to precise Bulgarian medical terminology. Return ONLY a valid JSON array of translated strings, in exactly the same order as the input. No explanation, no markdown, no code block — just the raw JSON array.",
+    "You are a medical translator specialising in Bulgarian. Translate the following ICD-10 diagnostic terms from English to precise Bulgarian medical terminology. Return ONLY a valid JSON array of translated strings, in exactly the same order as the input. No explanation, no markdown, no code block — just the raw JSON array.",
     JSON.stringify(titles),
     3000,
   )

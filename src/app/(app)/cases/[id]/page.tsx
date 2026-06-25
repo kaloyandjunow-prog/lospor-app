@@ -3,13 +3,9 @@ import { jwtVerify } from "jose"
 import { prisma } from "@/lib/prisma"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { CaseSummary } from "@/components/CaseSummary"
 import { CaseMeta } from "@/components/CaseMeta"
 import { format } from "date-fns"
-import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -29,37 +25,6 @@ async function verifyPrintToken(token: string, caseId: string): Promise<string |
   } catch {
     return null
   }
-}
-
-function Row({ label, value }: { label: string; value?: string | number | boolean | null }) {
-  if (value === null || value === undefined || value === "") return null
-  const display = typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)
-  return (
-    <div className="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
-      <span className="text-sm text-slate-500 shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 text-right font-medium">{display}</span>
-    </div>
-  )
-}
-
-function YesRow({ label, value }: { label: string; value?: boolean | null }) {
-  if (!value) return null
-  return (
-    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full mr-1 mb-1">
-      {label}
-    </span>
-  )
-}
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-slate-600 uppercase tracking-wide">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  )
 }
 
 export default async function CasePage({
@@ -90,7 +55,7 @@ export default async function CasePage({
   } else {
     const session = await auth()
     if (!session) return null
-    const me  = session.user as any
+    const me  = session.user
     userId    = me.id
     role      = me.role
     institutionId = me.institutionId ?? null
@@ -112,7 +77,6 @@ export default async function CasePage({
 
   const p = record.preop
   const i = record.intraop
-  const o = record.postop
 
   return (
     <>

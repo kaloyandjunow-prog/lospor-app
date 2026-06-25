@@ -41,13 +41,29 @@ describe("mapPreop", () => {
   })
 
   it("handles allergyDetails as string passthrough", () => {
-    const result = mapPreop({ allergyDetails: "penicillin" })
+    const result = mapPreop({ allergies: true, allergyDetails: "penicillin" })
     expect(result.allergyDetails).toBe("penicillin")
   })
 
-  it("handles allergyDetails as labelled-item array", () => {
-    const result = mapPreop({ allergyDetails: [{ label: "penicillin" }, { label: "latex" }] })
-    expect(result.allergyDetails).toBe("penicillin, latex")
+  it("stores allergyDetails arrays as structured JSON", () => {
+    const result = mapPreop({ allergies: true, allergyDetails: [{ label: "penicillin", inn: "penicillin", atcCode: "J01CE01" }] })
+    expect(JSON.parse(result.allergyDetails ?? "[]")).toEqual([
+      { label: "penicillin", inn: "penicillin", atcCode: "J01CE01" },
+    ])
+  })
+
+  it("clears allergyDetails when allergies is false", () => {
+    const result = mapPreop({ allergies: false, allergyDetails: [{ label: "penicillin" }] })
+    expect(result.allergyDetails).toBeNull()
+  })
+
+  it("persists preop physical exam report and notes", () => {
+    const result = mapPreop({
+      physicalExamReport: "Clear lungs, no edema.",
+      notes: "Discussed blood consent.",
+    })
+    expect(result.physicalExamReport).toBe("Clear lungs, no edema.")
+    expect(result.notes).toBe("Discussed blood consent.")
   })
 })
 
@@ -84,6 +100,28 @@ describe("mapPreopUpdate (partial — never wipes unspecified fields)", () => {
 
   it("returns an empty object for an empty payload (no fields wiped)", () => {
     expect(mapPreopUpdate({})).toEqual({})
+  })
+
+  it("includes preop physical exam report and notes when provided", () => {
+    const result = mapPreopUpdate({
+      physicalExamReport: "Airway exam repeated.",
+      notes: "Needs senior review.",
+    })
+    expect(result).toEqual({
+      physicalExamReport: "Airway exam repeated.",
+      notes: "Needs senior review.",
+    })
+  })
+
+  it("clears hidden allergy and family-anesthesia details when booleans are false", () => {
+    const result = mapPreopUpdate({
+      allergies: false,
+      allergyDetails: [{ label: "penicillin" }],
+      familyAnesthesiaProblems: false,
+      familyAnesthesiaDetails: "malignant hyperthermia",
+    })
+    expect(result.allergyDetails).toBeNull()
+    expect(result.familyAnesthesiaDetails).toBeNull()
   })
 })
 

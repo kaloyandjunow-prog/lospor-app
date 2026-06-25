@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslations, useLocale } from "next-intl"
@@ -10,43 +10,34 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { calcBMI, calcIBW, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
 import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd-categories"
-import { ChevronRight, AlertCircle, Lightbulb, X } from "lucide-react"
+import { suggestRcriIschemicHeart, suggestRcriCHF, suggestRcriCVD, suggestRcriInsulinDM, suggestRcriCreatinine, suggestStopBangBP } from "@/lib/risk-derivation"
+import { ChevronRight, Lightbulb, X } from "lucide-react"
 import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
+import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { AIAdvisor } from "@/components/AIAdvisor"
 import { LabResults, type LabResult } from "@/components/LabResults"
 import GuardedTextarea from "@/components/GuardedTextarea"
+import { useOptionLibrary, useRangeSpec } from "@/hooks/useOptionLibrary"
 
-// ── Numeric range select (kept for any remaining uses) ────────────────────────
-function RangeSelect({ name, control, min, max, step = 1, placeholder = "—" }: {
-  name: string; control: any; min: number; max: number; step?: number; placeholder?: string
-}) {
-  const options: React.ReactNode[] = []
-  for (let v = min; v <= max; v = Math.round((v + step) * 1000) / 1000) {
-    options.push(<option key={v} value={v}>{v}</option>)
-  }
-  return (
-    <Controller name={name} control={control} render={({ field }) => (
-      <select
-        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        value={field.value ?? ""}
-        onChange={e => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-      >
-        <option value="">{placeholder}</option>
-        {options}
-      </select>
-    )} />
-  )
-}
+type Icd10SearchItem = { code: string; description: string; descriptionBg?: string }
+type ProcedureSearchItem = { code: string; group?: string; description: string; domain: string }
+type DrugSearchItem = { name: string; inn?: string; strength?: string; atcCode?: string }
 
 // ── Schema ────────────────────────────────────────────────────────────────────
-const tagSchema = z.object({ label: z.string(), sub: z.string().optional() })
+// .passthrough() (not just listing every field) so renderSuggestion can carry
+// through whatever extra coded fields a given picker attaches (code/system/
+// labelEn/labelBg for ICD-10, inn/atcCode for drugs) without the zod-validated
+// submit path silently stripping them — autosave already preserves them since
+// it reads getValues() directly and never goes through this schema, but the
+// final-submit path does, so this schema must declare (or pass through) the
+// same shape or submit silently regresses data autosave already has.
+const tagSchema = z.object({ label: z.string(), sub: z.string().optional() }).passthrough()
+const drugTagSchema = z.object({ label: z.string(), sub: z.string().optional(), inn: z.string().optional(), atcCode: z.string().optional() })
 
 const schema = z.object({
   // For printed protocol only
@@ -57,8 +48,8 @@ const schema = z.object({
   // Demographics
   ageYears:  z.coerce.number().min(0).max(120).optional(),
   sex:       z.enum(["MALE","FEMALE","OTHER"]).optional(),
-  heightCm:  z.coerce.number().optional(),
-  weightKg:  z.coerce.number().optional(),
+  heightCm:  z.coerce.number({ error: "Height is required" }).positive("Height is required"),
+  weightKg:  z.coerce.number({ error: "Weight is required" }).positive("Weight is required"),
   bloodType: z.enum(["A","B","AB","O"]).optional(),
   rhFactor:  z.enum(["POSITIVE","NEGATIVE"]).optional(),
 
@@ -67,6 +58,7 @@ const schema = z.object({
   procedures:   z.array(tagSchema).default([]),
   teamNotes:            z.string().max(500).optional(),
   highRiskSurgery:      z.boolean().default(false),
+  elective:             z.boolean().default(false),
   emergencySurgery:     z.boolean().default(false),
   aiOptIn:              z.boolean().default(false),
 
@@ -75,11 +67,11 @@ const schema = z.object({
 
   // Safety-critical fields
   allergies:               z.boolean().default(false),
-  allergyDetails:          z.array(z.object({ label: z.string(), sub: z.string().optional() })).default([]),
+  allergyDetails:          z.array(drugTagSchema).default([]),
   latexAllergy:            z.boolean().default(false),
-  currentMedications:      z.array(z.object({ label: z.string(), sub: z.string().optional() })).default([]),
+  currentMedications:      z.array(drugTagSchema).default([]),
   familyAnesthesiaProblems: z.boolean().default(false),
-  familyAnesthesiaDetails:  z.string().optional(),
+  familyAnesthesiaDetails:  z.string().max(500).optional(),
   dentalProsthetics:       z.boolean().default(false),
   looseTeeth:              z.boolean().default(false),
   smoking:                 z.boolean().default(false),
@@ -113,6 +105,11 @@ const schema = z.object({
   heartRate:  z.coerce.number().optional(), spO2: z.coerce.number().optional(),
   temperature: z.coerce.number().optional(), respiratoryRate: z.coerce.number().optional(),
   heartArrhythmia: z.boolean().default(false),
+  bpUnobtainable:          z.boolean().default(false),
+  heartRateUnobtainable:   z.boolean().default(false),
+  spO2Unobtainable:        z.boolean().default(false),
+  temperatureUnobtainable: z.boolean().default(false),
+  respiratoryRateUnobtainable: z.boolean().default(false),
 
   // Airway
   mallampati:             z.enum(["I","II","III","IV"]).optional(),
@@ -124,14 +121,15 @@ const schema = z.object({
   prominentIncisors:      z.boolean().default(false),
   facialHair:             z.boolean().default(false),
   difficultAirwayHistory: z.boolean().default(false),
-  difficultAirwayNotes:   z.string().optional(),
+  difficultAirwayNotes:   z.string().max(500).optional(),
   cormackLehane:          z.enum(["I","IIa","IIb","III","IV"]).optional(),
+  airwayUnobtainable:     z.boolean().default(false),
 
   // Scores
   asaScore: z.enum(["I","II","III","IV","V","VI"]).optional(),
 
   // Free-text
-  physicalExamReport: z.string().optional(),
+  physicalExamReport: z.string().max(500).optional(),
   notes:              z.string().optional(),
 
   labResults: z.array(z.object({ test: z.string(), value: z.string(), unit: z.string() })).default([]),
@@ -143,11 +141,9 @@ export type PreopData = z.infer<typeof schema>
 function ComorbiditiesBySystem({
   tags,
   onRemove,
-  noItemsLabel = "No comorbidities recorded",
 }: {
   tags: Tag[]
   onRemove: (label: string) => void
-  noItemsLabel?: string
 }) {
   if (tags.length === 0) return null
 
@@ -198,21 +194,10 @@ function SectionCard({ title, children, action, error }: { title: string; childr
   )
 }
 
-function CheckField({ id, label, control }: { id: string; label: string; control: any }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Controller name={id} control={control} render={({ field }) => (
-        <Checkbox id={id} checked={!!field.value} onCheckedChange={field.onChange} />
-      )} />
-      <Label htmlFor={id} className="font-normal cursor-pointer">{label}</Label>
-    </div>
-  )
-}
-
 function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, onAutoSave, layoutMode = "scroll" }: {
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll" }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
@@ -222,8 +207,29 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
 }) {
   const t      = useTranslations()
   const locale = useLocale()
-  const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors } } = useForm<PreopData>({
-    resolver: zodResolver(schema) as any,
+  const lbl = (opt: { label: string; labelBg: string | null }) => (locale === "bg" && opt.labelBg) ? opt.labelBg : opt.label
+
+  const { options: bloodGroupOptions }   = useOptionLibrary("BLOOD_GROUP")
+  const { options: neckMobilityOptions } = useOptionLibrary("NECK_MOBILITY")
+  const { options: mallampatiOptions }   = useOptionLibrary("MALLAMPATI")
+  const { options: upperLipBiteOptions } = useOptionLibrary("UPPER_LIP_BITE")
+  const { options: cormackLehaneOptions }= useOptionLibrary("CORMACK_LEHANE")
+  const ageRange         = useRangeSpec("AGE_RANGE")
+  const heightRange      = useRangeSpec("HEIGHT_RANGE")
+  const weightRange      = useRangeSpec("WEIGHT_RANGE")
+  const bpSystolicRange  = useRangeSpec("BP_SYSTOLIC_RANGE")
+  const bpDiastolicRange = useRangeSpec("BP_DIASTOLIC_RANGE")
+  const heartRateRange   = useRangeSpec("HEART_RATE_RANGE")
+  const spo2Range        = useRangeSpec("SPO2_RANGE")
+  const temperatureRange = useRangeSpec("TEMPERATURE_RANGE")
+  const respiratoryRange = useRangeSpec("RESPIRATORY_RATE_RANGE")
+  const mouthOpeningRange= useRangeSpec("MOUTH_OPENING_RANGE")
+  const thyromentalRange = useRangeSpec("THYROMENTAL_RANGE")
+  const { register, handleSubmit, control, watch, setValue, getValues } = useForm<PreopData>({
+    // Same zod-v4/react-hook-form resolver-typing friction as IntraopForm.tsx
+    // (a large schema with many .optional()/.default() fields doesn't
+    // exactly match zodResolver's inferred generic).
+    resolver: zodResolver(schema) as Resolver<PreopData>,
     defaultValues: {
       bpSystolic:  randInt(120, 130),
       bpDiastolic: randInt(70, 85),
@@ -237,9 +243,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
 
   // ── Batched watch subscriptions (5 groups instead of 19 individual) ──────────
   const [height, weight, sex, ageYearsVal, smoking, highRiskSurgery, emergencySurgery,
-         allergies, familyAnesthesiaProblems, difficultAirwayHistory, comorbidities] =
+         allergies, familyAnesthesiaProblems, difficultAirwayHistory, comorbidities, bloodType, rhFactor] =
     watch(["heightCm", "weightKg", "sex", "ageYears", "smoking", "highRiskSurgery", "emergencySurgery",
-           "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities"])
+           "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities", "bloodType", "rhFactor"])
+  const [currentMedications, labResults] = watch(["currentMedications", "labResults"])
 
   const [rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine] =
     watch(["rcriIschemicHeart", "rcriCHF", "rcriCVD", "rcriInsulinDM", "rcriCreatinine"])
@@ -247,12 +254,34 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
   const [apfelPONVHistory, apfelPostopOpioids, stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, stopbangNeck] =
     watch(["apfelPONVHistory", "apfelPostopOpioids", "stopbangSnoring", "stopbangTired", "stopbangObserved", "stopbangBP", "stopbangNeck"])
 
+  useEffect(() => {
+    if (!allergies && (getValues("allergyDetails")?.length ?? 0) > 0) {
+      setValue("allergyDetails", [], { shouldDirty: true })
+    }
+    if (!familyAnesthesiaProblems && getValues("familyAnesthesiaDetails")) {
+      setValue("familyAnesthesiaDetails", "", { shouldDirty: true })
+    }
+    if (!difficultAirwayHistory && getValues("difficultAirwayNotes")) {
+      setValue("difficultAirwayNotes", "", { shouldDirty: true })
+    }
+  }, [allergies, familyAnesthesiaProblems, difficultAirwayHistory, getValues, setValue])
+
   // ── Memoised score + BMI calculations ────────────────────────────────────────
   const bmi  = useMemo(() => height && weight ? calcBMI(Number(height), Number(weight)) : null,
     [height, weight])
   const ibw  = useMemo(() => height && sex ? calcIBW(Number(height), sex) : null, [height, sex])
   const abw  = useMemo(() => ibw && weight ? calcABW(ibw, Number(weight)) : null, [ibw, weight])
   const asaSuggestion = useMemo(() => suggestASAFromTags(comorbidities ?? [], bmi), [comorbidities, bmi])
+
+  // Suggestions only — never silently auto-checked, same rule as ASA above.
+  const rcriSuggested = useMemo(() => ({
+    rcriIschemicHeart: suggestRcriIschemicHeart(comorbidities ?? []),
+    rcriCHF:            suggestRcriCHF(comorbidities ?? []),
+    rcriCVD:            suggestRcriCVD(comorbidities ?? []),
+    rcriInsulinDM:      suggestRcriInsulinDM(comorbidities ?? [], currentMedications ?? []),
+    rcriCreatinine:     suggestRcriCreatinine(labResults ?? []),
+  }), [comorbidities, currentMedications, labResults])
+  const stopBangBPSuggested = useMemo(() => suggestStopBangBP(comorbidities ?? [], currentMedications ?? []), [comorbidities, currentMedications])
 
   const apfelScore = useMemo(() => calcApfel({
     female:         sex === "FEMALE",
@@ -281,31 +310,44 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     creatinineHigh:           rcriCreatinine    ?? false,
   }), [highRiskSurgery, rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine])
 
-  const [vitalsUTO, setVitalsUTO] = useState<Set<string>>(new Set())
-  function toggleUTO(field: string, clearFn: () => void) {
-    setVitalsUTO(prev => {
-      const next = new Set(prev)
-      if (next.has(field)) { next.delete(field) }
-      else { next.add(field); clearFn() }
-      return next
-    })
+  // "Unable to obtain" — persisted form fields (bpUnobtainable etc.), not local-only
+  // state, so the flag survives a reload instead of silently resetting to unchecked.
+  const UTO_FIELD = {
+    bp: "bpUnobtainable", heartRate: "heartRateUnobtainable", spO2: "spO2Unobtainable",
+    temperature: "temperatureUnobtainable", respiratoryRate: "respiratoryRateUnobtainable",
+  } as const satisfies Record<string, keyof PreopData>
+  const [bpUTOVal, heartRateUTOVal, spO2UTOVal, temperatureUTOVal, respiratoryRateUTOVal] =
+    watch(["bpUnobtainable", "heartRateUnobtainable", "spO2Unobtainable", "temperatureUnobtainable", "respiratoryRateUnobtainable"])
+  const vitalsUTO = useMemo(() => {
+    const s = new Set<string>()
+    if (bpUTOVal) s.add("bp")
+    if (heartRateUTOVal) s.add("heartRate")
+    if (spO2UTOVal) s.add("spO2")
+    if (temperatureUTOVal) s.add("temperature")
+    if (respiratoryRateUTOVal) s.add("respiratoryRate")
+    return s
+  }, [bpUTOVal, heartRateUTOVal, spO2UTOVal, temperatureUTOVal, respiratoryRateUTOVal])
+  function toggleUTO(field: keyof typeof UTO_FIELD, clearFn: () => void) {
+    const next = !vitalsUTO.has(field)
+    setValue(UTO_FIELD[field], next)
+    if (next) clearFn()
   }
 
   // ── Debounced auto-save — subscription callback instead of JSON.stringify ────
   useEffect(() => {
     if (!onAutoSave) return
     let timer: ReturnType<typeof setTimeout>
+    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values) => {
-      const { sex, ageYears, diagnoses } = values as any
+      const { sex, ageYears, diagnoses } = values
       const hasData = sex || ageYears != null || (diagnoses?.length ?? 0) > 0
       if (!hasData) return
       clearTimeout(timer)
       timer = setTimeout(() => onAutoSave(getValues()), 1500)
     })
     return () => { subscription.unsubscribe(); clearTimeout(timer) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watch, onAutoSave])
-  const [airwayUTO, setAirwayUTO] = useState(false)
+  }, [getValues, onAutoSave, watch])
+  const airwayUTO = !!watch("airwayUnobtainable")
   const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">("patient")
 
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set())
@@ -321,6 +363,8 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     const errs: string[] = []
     if (data.ageYears == null)      errs.push("ageYears")
     if (!data.sex)                  errs.push("sex")
+    if (!data.heightCm)             errs.push("heightCm")
+    if (!data.weightKg)             errs.push("weightKg")
     if (!data.diagnoses?.length)    errs.push("diagnoses")
     if (!data.procedures?.length)   errs.push("procedures")
     if (!vitalsUTO.has("bp") && (!data.bpSystolic || !data.bpDiastolic)) errs.push("bp")
@@ -337,12 +381,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
     { value: "history", label: "History"   },
     { value: "exam",    label: "Exam"      },
     { value: "risk",    label: "Risk & ASA"},
-  ]
+  ] as const
 
   function hasTabError(tab: string): boolean {
     if (fieldErrors.size === 0) return false
     switch (tab) {
-      case "patient": return fieldErrors.has("ageYears") || fieldErrors.has("sex")
+      case "patient": return fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")
       case "case":    return fieldErrors.has("diagnoses") || fieldErrors.has("procedures")
       case "exam":    return fieldErrors.has("bp") || fieldErrors.has("heartRate") || fieldErrors.has("respiratoryRate") || fieldErrors.has("airway")
       case "risk":    return fieldErrors.has("asaScore")
@@ -357,12 +401,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       setFieldErrors(errSet)
       if (layoutMode === "tabs") {
         const firstErr = errs[0]
-        const tab =
+        const tab: "patient" | "case" | "exam" | "risk" =
           firstErr === "ageYears"  || firstErr === "sex"        ? "patient" :
           firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
           firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
           "risk"
-        setActiveTab(tab as any)
+        setActiveTab(tab)
       } else {
         const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
         const firstErr = sectionOrder.find(e => errSet.has(e))
@@ -390,7 +434,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         <div className="sticky top-0 z-20 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-[#2a2a2a] flex items-center h-11 -mx-0">
           {TABS.map(tab => (
             <button key={tab.value} type="button"
-              onClick={() => setActiveTab(tab.value as any)}
+              onClick={() => setActiveTab(tab.value)}
               className={`relative h-full px-4 text-xs font-semibold border-b-2 transition-colors ${
                 activeTab === tab.value
                   ? "border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100"
@@ -407,24 +451,24 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       <div className={layoutMode === "tabs" && activeTab !== "patient" ? "hidden" : ""}>
       {/* Demographics */}
       <div ref={el => { refMap.current.demographics = el }} data-tour="preop-demographics">
-      <SectionCard title={t("preop.demographicsSection")} error={fieldErrors.has("ageYears") || fieldErrors.has("sex")}>
+      <SectionCard title={t("preop.demographicsSection")} error={fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.age")} <span className="text-red-500">*</span></Label>
             <Controller name="ageYears" control={control} render={({ field }) => (
-              <div className={fe("ageYears")}><NumberStepper value={field.value} onChange={field.onChange} min={0} max={120} unit="yrs" showSlider /></div>
+              <div className={fe("ageYears")}><NumberStepper value={field.value} onChange={field.onChange} min={ageRange?.min ?? 0} max={ageRange?.max ?? 150} step={ageRange?.step ?? 1} unit="yrs" showSlider /></div>
             )} />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.height")}</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.height")} <span className="text-red-500">*</span></Label>
             <Controller name="heightCm" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={220} unit="cm" showSlider />
+              <div className={fe("heightCm")}><ConvertedStepper measurement="height" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={heightRange?.min ?? 0} canonicalMax={heightRange?.max ?? 250} canonicalStep={heightRange?.step ?? 1} showSlider /></div>
             )} />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.weight")}</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.weight")} <span className="text-red-500">*</span></Label>
             <Controller name="weightKg" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={250} step={0.5} stepFn={v => v < 20 ? 0.5 : 1} unit="kg" showSlider />
+              <div className={fe("weightKg")}><ConvertedStepper measurement="weight" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={weightRange?.min ?? 0} canonicalMax={weightRange?.max ?? 250} canonicalStep={weightRange?.step ?? 1} showSlider /></div>
             )} />
           </div>
         </div>
@@ -477,44 +521,29 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             </div>
           )} />
         </div>
-        {(fieldErrors.has("ageYears") || fieldErrors.has("sex")) && (
-          <p className="text-red-500 text-xs">Age and sex are required.</p>
+        {(fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")) && (
+          <p className="text-red-500 text-xs">Age, sex, height, and weight are required.</p>
         )}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label>{t("preop.bloodType")}</Label>
-            <Controller name="bloodType" control={control} render={({ field }) => (
-              <div className="flex gap-2">
-                {["A","B","AB","O"].map(bt => (
-                  <button key={bt} type="button"
-                    onClick={() => field.onChange(field.value === bt ? undefined : bt)}
-                    className={`flex-1 rounded-xl border-2 py-2 font-bold text-sm transition-all ${
-                      field.value === bt
-                        ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300 dark:text-white scale-105"
-                        : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"
-                    }`}>{bt}</button>
-                ))}
-              </div>
-            )} />
-          </div>
-          <div className="space-y-1">
-            <Label>{t("preop.rhFactor")}</Label>
-            <Controller name="rhFactor" control={control} render={({ field }) => (
-              <div className="flex gap-2">
-                {[
-                  { v: "POSITIVE", label: "Rh +" },
-                  { v: "NEGATIVE", label: "Rh −" },
-                ].map(opt => (
-                  <button key={opt.v} type="button"
-                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                    className={`flex-1 rounded-xl border-2 py-2 font-bold text-sm transition-all ${
-                      field.value === opt.v
-                        ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300 dark:text-white scale-105"
-                        : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"
-                    }`}>{opt.label}</button>
-                ))}
-              </div>
-            )} />
+        <div className="space-y-1">
+          <Label>{t("preop.bloodType")}</Label>
+          <div className="grid grid-cols-4 gap-2">
+            {bloodGroupOptions.map(opt => {
+              const meta = opt.metadata as { bloodType: "A" | "B" | "AB" | "O"; rhFactor: "POSITIVE" | "NEGATIVE" } | undefined
+              const selected = bloodType === meta?.bloodType && rhFactor === meta?.rhFactor
+              return (
+                <button key={opt.value} type="button"
+                  onClick={() => {
+                    if (selected) { setValue("bloodType", undefined); setValue("rhFactor", undefined); return }
+                    setValue("bloodType", meta?.bloodType)
+                    setValue("rhFactor", meta?.rhFactor)
+                  }}
+                  className={`rounded-xl border-2 py-2 font-bold text-sm transition-all ${
+                    selected
+                      ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300 dark:text-white scale-105"
+                      : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"
+                  }`}>{lbl(opt)}</button>
+              )
+            })}
           </div>
         </div>
       </SectionCard>
@@ -535,14 +564,16 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
                   searchUrl={`/api/search/icd10?locale=${locale}`}
-                  renderSuggestion={item => ({
-                    label: `${item.code} — ${locale === "bg" ? (item.descriptionBg || item.description) : item.description}`,
+                  renderSuggestion={(item: Icd10SearchItem) => ({
+                    label: locale === "bg" ? (item.descriptionBg || item.description) : item.description,
                     sub: item.code,
                     code: item.code,
                     system: "ICD-10",
                     labelEn: item.description,
                     labelBg: item.descriptionBg,
                   })}
+                  allowFreeText={false}
+                  minSearchLength={2}
                   placeholder={t("preop.diagnosisPlaceholder")}
                 />
               </div>
@@ -557,7 +588,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
                   searchUrl="/api/search/procedures"
-                  renderSuggestion={item => ({
+                  renderSuggestion={(item: ProcedureSearchItem) => ({
                     label: item.group || item.description,
                     sub: `${item.code} · ${item.domain}`,
                   })}
@@ -584,9 +615,20 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             )} />
             <Label htmlFor="highRiskSurgery" className="font-normal cursor-pointer">{t("preop.highRiskSurgery")}</Label>
           </div>
+          <Controller name="elective" control={control} render={({ field }) => (
+            <button type="button"
+              onClick={() => { field.onChange(!field.value); if (!field.value) setValue("emergencySurgery", false) }}
+              className={`px-4 py-1.5 rounded-full border-2 text-sm font-semibold transition-all ${
+                field.value
+                  ? "bg-green-600 border-green-600 text-white scale-105 shadow"
+                  : "border-green-300 text-green-600 hover:border-green-400"
+              }`}>
+              {t("preop.elective")}
+            </button>
+          )} />
           <Controller name="emergencySurgery" control={control} render={({ field }) => (
             <button type="button"
-              onClick={() => field.onChange(!field.value)}
+              onClick={() => { field.onChange(!field.value); if (!field.value) setValue("elective", false) }}
               className={`px-4 py-1.5 rounded-full border-2 text-sm font-semibold transition-all ${
                 field.value
                   ? "bg-red-600 border-red-600 text-white scale-105 shadow"
@@ -611,19 +653,20 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
               value={(field.value ?? []) as Tag[]}
               onChange={field.onChange}
               searchUrl={`/api/search/icd10?locale=${locale}`}
-              renderSuggestion={item => ({
-                label: `${item.code} — ${locale === "bg" ? (item.descriptionBg || item.description) : item.description}`,
+              renderSuggestion={(item: Icd10SearchItem) => ({
+                label: locale === "bg" ? (item.descriptionBg || item.description) : item.description,
                 sub: item.code,
                 code: item.code,
                 system: "ICD-10",
                 labelEn: item.description,
                 labelBg: item.descriptionBg,
               })}
+              allowFreeText={false}
+              minSearchLength={2}
               placeholder={t("preop.historyPlaceholder")}
             />
             <ComorbiditiesBySystem
               tags={(field.value ?? []) as Tag[]}
-              noItemsLabel={t("preop.noComorbidities")}
               onRemove={label => field.onChange((field.value as Tag[]).filter(tg => tg.label !== label))}
             />
           </>
@@ -637,9 +680,11 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             value={(field.value ?? []) as Tag[]}
             onChange={field.onChange}
             searchUrl="/api/search/drugs"
-            renderSuggestion={item => ({
+            renderSuggestion={(item: DrugSearchItem) => ({
               label: item.inn ? `${item.inn}${item.strength ? ` ${item.strength}` : ""}` : item.name,
               sub: item.name !== item.inn ? item.name : undefined,
+              inn: item.inn ?? undefined,
+              atcCode: item.atcCode ?? undefined,
             })}
             placeholder={t("preop.medicationsPlaceholder")}
           />
@@ -652,7 +697,10 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           {/* Allergies */}
           <div className="flex items-center gap-2">
             <Controller name="allergies" control={control} render={({ field }) => (
-              <Checkbox id="allergies" checked={!!field.value} onCheckedChange={field.onChange} />
+              <Checkbox id="allergies" checked={!!field.value} onCheckedChange={(checked) => {
+                field.onChange(checked)
+                if (!checked) setValue("allergyDetails", [], { shouldDirty: true })
+              }} />
             )} />
             <Label htmlFor="allergies" className="font-normal cursor-pointer">{t("preop.allergies")}</Label>
           </div>
@@ -662,9 +710,11 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                 value={(field.value ?? []) as Tag[]}
                 onChange={field.onChange}
                 searchUrl="/api/search/drugs"
-                renderSuggestion={item => ({
+                renderSuggestion={(item: DrugSearchItem) => ({
                   label: item.inn ? `${item.inn}${item.strength ? ` ${item.strength}` : ""}` : item.name,
                   sub: item.name !== item.inn ? item.name : undefined,
+                  inn: item.inn ?? undefined,
+                  atcCode: item.atcCode ?? undefined,
                 })}
                 placeholder="Search allergen (drug name or INN)…"
               />
@@ -680,11 +730,14 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           {/* Family history */}
           <div className="flex items-center gap-2">
             <Controller name="familyAnesthesiaProblems" control={control} render={({ field }) => (
-              <Checkbox id="familyAnesthesiaProblems" checked={!!field.value} onCheckedChange={field.onChange} />
+              <Checkbox id="familyAnesthesiaProblems" checked={!!field.value} onCheckedChange={(checked) => {
+                field.onChange(checked)
+                if (!checked) setValue("familyAnesthesiaDetails", "", { shouldDirty: true })
+              }} />
             )} />
             <Label htmlFor="familyAnesthesiaProblems" className="font-normal cursor-pointer">{t("preop.familyAnesthesia")}</Label>
           </div>
-          {familyAnesthesiaProblems && <Textarea placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />}
+          {familyAnesthesiaProblems && <Textarea maxLength={500} placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />}
           <Separator />
           {/* Dental */}
           <div className="flex items-center gap-2">
@@ -721,20 +774,29 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">RCRI — Cardiac risk factors</p>
             <p className="text-xs text-slate-400">High-risk surgery is set in the Case section above.</p>
-            {[
+            {([
               { id:"rcriIschemicHeart", label:"Ischaemic heart disease (history of MI, positive stress test, use of nitrates, ECG Q waves)" },
               { id:"rcriCHF",           label:"Congestive heart failure (pulmonary oedema, PND, S3, bilateral crackles, CXR redistribution)" },
               { id:"rcriCVD",           label:"Cerebrovascular disease (history of TIA or stroke)" },
               { id:"rcriInsulinDM",     label:"Insulin-dependent diabetes mellitus" },
               { id:"rcriCreatinine",    label:"Creatinine > 177 µmol/L (> 2.0 mg/dL)" },
-            ].map(item => (
-              <div key={item.id} className="flex items-start gap-2">
-                <Controller name={item.id as any} control={control} render={({ field }) => (
-                  <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
-                )} />
-                <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
-              </div>
-            ))}
+            ] as const).map(item => {
+              const suggested = rcriSuggested[item.id as keyof typeof rcriSuggested]
+              const checked = !!watch(item.id)
+              return (
+                <div key={item.id} className="flex items-start gap-2">
+                  <Controller name={item.id} control={control} render={({ field }) => (
+                    <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                  )} />
+                  <div>
+                    <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
+                    {suggested && !checked && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Suggested by comorbidities/medications — review and confirm</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           <Separator />
@@ -743,12 +805,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">APFEL — PONV risk</p>
             <p className="text-xs text-slate-400">Female sex and non-smoker status are derived from demographics and habits above.</p>
-            {[
+            {([
               { id:"apfelPONVHistory",   label:"History of PONV or motion sickness" },
               { id:"apfelPostopOpioids", label:"Postoperative opioids planned" },
-            ].map(item => (
+            ] as const).map(item => (
               <div key={item.id} className="flex items-center gap-2">
-                <Controller name={item.id as any} control={control} render={({ field }) => (
+                <Controller name={item.id} control={control} render={({ field }) => (
                   <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} />
                 )} />
                 <Label htmlFor={item.id} className="font-normal cursor-pointer">{item.label}</Label>
@@ -762,20 +824,29 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">STOP-BANG — OSA screening</p>
             <p className="text-xs text-slate-400">BMI &gt; 35, age &gt; 50, and male sex are derived automatically.</p>
-            {[
+            {([
               { id:"stopbangSnoring",  label:"Snoring — do you snore loudly?" },
               { id:"stopbangTired",    label:"Tired — often feel tired, fatigued, or sleepy during daytime?" },
               { id:"stopbangObserved", label:"Observed — has anyone observed you stop breathing during sleep?" },
               { id:"stopbangBP",       label:"Pressure — do you have or are you being treated for high blood pressure?" },
               { id:"stopbangNeck",     label:"Neck circumference > 40 cm" },
-            ].map(item => (
-              <div key={item.id} className="flex items-start gap-2">
-                <Controller name={item.id as any} control={control} render={({ field }) => (
-                  <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
-                )} />
-                <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
-              </div>
-            ))}
+            ] as const).map(item => {
+              const suggested = item.id === "stopbangBP" && stopBangBPSuggested
+              const checked = !!watch(item.id)
+              return (
+                <div key={item.id} className="flex items-start gap-2">
+                  <Controller name={item.id} control={control} render={({ field }) => (
+                    <Checkbox id={item.id} checked={!!field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                  )} />
+                  <div>
+                    <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
+                    {suggested && !checked && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Suggested by comorbidities/medications — review and confirm</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </SectionCard>
@@ -804,14 +875,14 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
                     <Controller name="bpSystolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={0} max={260} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpSystolicRange?.min ?? 1} max={bpSystolicRange?.max ?? 300} step={bpSystolicRange?.step ?? 1} showSlider />
                     )} />
                   </div>
                   <span className="text-2xl font-light text-slate-300 mt-4">/</span>
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
                     <Controller name="bpDiastolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={0} max={160} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpDiastolicRange?.min ?? 1} max={bpDiastolicRange?.max ?? 200} step={bpDiastolicRange?.step ?? 1} showSlider />
                     )} />
                   </div>
                 </div>
@@ -819,12 +890,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             {fieldErrors.has("bp") && !vitalsUTO.has("bp") && <p className="text-red-500 text-xs">{t("common.required")}</p>}
           </div>
 
-          {[
-            { id: "heartRate",      label: t("preop.heartRate"),      min: 0, max: 250, step: 1,   unit: "bpm",  required: true, slider: true },
-            { id: "spO2",           label: t("preop.spO2"),           min: 0, max: 100, step: 1,   unit: "%",    slider: true },
-            { id: "temperature",    label: t("preop.temperature"),    min: 0, max: 42,  step: 0.1, unit: "°C",   slider: true },
-            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: 0, max: 60,  step: 1,   unit: "/min", required: true, slider: true },
-          ].map(v => (
+          {([
+            { id: "heartRate",      label: t("preop.heartRate"),      min: heartRateRange?.min ?? 1,   max: heartRateRange?.max ?? 300,   step: heartRateRange?.step ?? 1,   unit: "bpm",  required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "spO2",           label: t("preop.spO2"),           min: spo2Range?.min ?? 0,        max: spo2Range?.max ?? 100,        step: spo2Range?.step ?? 1,        unit: "%",    required: false, slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "temperature",    label: t("preop.temperature"),    min: temperatureRange?.min ?? 0, max: temperatureRange?.max ?? 45,  step: temperatureRange?.step ?? 0.1, unit: "°C",   required: false, slider: true, measurement: "temperature" as "temperature" | undefined },
+            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: respiratoryRange?.min ?? 0, max: respiratoryRange?.max ?? 50,  step: respiratoryRange?.step ?? 1,  unit: "/min", required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+          ] as const).map(v => (
             <div key={v.id} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -841,7 +912,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
                   )}
                 </div>
                 <button type="button"
-                  onClick={() => toggleUTO(v.id, () => setValue(v.id as any, undefined))}
+                  onClick={() => toggleUTO(v.id, () => setValue(v.id, undefined))}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-all ${vitalsUTO.has(v.id) ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                   {t("preop.unableToObtain")}
                 </button>
@@ -849,9 +920,13 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
               {vitalsUTO.has(v.id)
                 ? <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
                 : <>
-                    <Controller name={v.id as any} control={control} render={({ field }) => (
+                    <Controller name={v.id} control={control} render={({ field }) => (
                       <div className={fe(v.id)}>
-                        <NumberStepper value={field.value} onChange={field.onChange} min={v.min} max={v.max} step={v.step} unit={v.unit} showSlider={v.slider} />
+                        {"measurement" in v && v.measurement ? (
+                          <ConvertedStepper measurement={v.measurement} canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={v.min} canonicalMax={v.max} canonicalStep={v.step} showSlider={v.slider} />
+                        ) : (
+                          <NumberStepper value={field.value} onChange={field.onChange} min={v.min} max={v.max} step={v.step} unit={v.unit} showSlider={v.slider} />
+                        )}
                       </div>
                     )} />
                     {fieldErrors.has(v.id) && <p className="text-red-500 text-xs">{t("common.required")}</p>}
@@ -865,7 +940,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         {/* Physical Exam Report */}
         <div className="space-y-1 pt-2">
           <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.physicalExamReport")}</Label>
-          <Textarea placeholder={t("preop.physicalExamPlaceholder")} rows={3} {...register("physicalExamReport")} />
+          <Textarea maxLength={500} placeholder={t("preop.physicalExamPlaceholder")} rows={3} {...register("physicalExamReport")} />
         </div>
       </SectionCard>
       </div>
@@ -874,7 +949,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
       <div ref={el => { refMap.current.airway = el }} data-tour="preop-airway">
       <SectionCard title={`${t("preop.airwaySection")} *`} error={fieldErrors.has("airway")} action={
         <button type="button"
-          onClick={() => setAirwayUTO(v => !v)}
+          onClick={() => setValue("airwayUnobtainable", !airwayUTO)}
           className={`text-xs px-3 py-1 rounded-full border transition-all ${airwayUTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
           {t("preop.unableToObtain")}
         </button>
@@ -887,17 +962,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.mallampati")}</Label>
             <Controller name="mallampati" control={control} render={({ field }) => (
               <div className="grid grid-cols-4 gap-2">
-                {[
-                  { v:"I",   desc:"Soft palate, uvula, fauces, pillars", color:"bg-green-500  border-green-500  text-white dark:bg-green-700  dark:border-green-500" },
-                  { v:"II",  desc:"Soft palate, uvula, fauces",          color:"bg-yellow-500 border-yellow-500 text-white dark:bg-yellow-700 dark:border-yellow-500" },
-                  { v:"III", desc:"Soft palate, base of uvula",           color:"bg-orange-500 border-orange-500 text-white dark:bg-orange-700 dark:border-orange-500" },
-                  { v:"IV",  desc:"Hard palate only",                    color:"bg-red-500    border-red-500    text-white dark:bg-red-700    dark:border-red-500"    },
-                ].map(opt => (
-                  <button key={opt.v} type="button"
-                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                    className={`rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.v ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    <div className="text-xl font-bold">{opt.v}</div>
-                    <div className="text-[10px] mt-1 leading-tight">{opt.desc}</div>
+                {mallampatiOptions.map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
+                    className={`rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
+                    <div className="text-xl font-bold">{opt.value}</div>
+                    <div className="text-[10px] mt-1 leading-tight">{opt.description}</div>
                   </button>
                 ))}
               </div>
@@ -906,28 +976,24 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-1">
             <Label>{t("preop.mouthOpening")}</Label>
             <Controller name="mouthOpeningCm" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0.5} max={8} step={0.5} unit="cm" />
+              <NumberStepper value={field.value} onChange={field.onChange} min={mouthOpeningRange?.min ?? 0} max={mouthOpeningRange?.max ?? 10} step={mouthOpeningRange?.step ?? 0.5} unit="cm" />
             )} />
           </div>
           <div className="space-y-1">
             <Label>{t("preop.thyromental")}</Label>
             <Controller name="thyromental" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={3} max={12} step={0.5} unit="cm" />
+              <NumberStepper value={field.value} onChange={field.onChange} min={thyromentalRange?.min ?? 0} max={thyromentalRange?.max ?? 15} step={thyromentalRange?.step ?? 1} unit="cm" />
             )} />
           </div>
           <div className="space-y-2 col-span-2 sm:col-span-3">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.neckMobility")}</Label>
             <Controller name="neckMobility" control={control} render={({ field }) => (
               <div className="flex gap-3">
-                {[
-                  { v:"FULL",    label:t("preop.neckFull"),    color:"bg-green-500  border-green-500  text-white dark:bg-green-700  dark:border-green-500" },
-                  { v:"LIMITED", label:t("preop.neckLimited"), color:"bg-yellow-500 border-yellow-500 text-white dark:bg-yellow-700 dark:border-yellow-500" },
-                  { v:"FIXED",   label:t("preop.neckFixed"),   color:"bg-red-500    border-red-500    text-white dark:bg-red-700    dark:border-red-500"    },
-                ].map(opt => (
-                  <button key={opt.v} type="button"
-                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                    className={`flex-1 rounded-xl border-2 py-2.5 font-semibold text-sm transition-all ${field.value === opt.v ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    {opt.label}
+                {neckMobilityOptions.map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
+                    className={`flex-1 rounded-xl border-2 py-2.5 font-semibold text-sm transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
+                    {lbl(opt)}
                   </button>
                 ))}
               </div>
@@ -937,16 +1003,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.upperLipBite")}</Label>
             <Controller name="upperLipBiteTest" control={control} render={({ field }) => (
               <div className="flex gap-3">
-                {[
-                  { v:"CLASS_I",   label:"Class I",   desc:"Incisors bite above vermillion",  color:"bg-green-500  border-green-500  text-white dark:bg-green-700  dark:border-green-500" },
-                  { v:"CLASS_II",  label:"Class II",  desc:"Incisors bite below vermillion",  color:"bg-yellow-500 border-yellow-500 text-white dark:bg-yellow-700 dark:border-yellow-500" },
-                  { v:"CLASS_III", label:"Class III", desc:"Cannot bite upper lip",            color:"bg-red-500    border-red-500    text-white dark:bg-red-700    dark:border-red-500"    },
-                ].map(opt => (
-                  <button key={opt.v} type="button"
-                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                    className={`flex-1 rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.v ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    <div className="font-bold">{opt.label}</div>
-                    <div className="text-[10px] mt-0.5 leading-tight">{opt.desc}</div>
+                {upperLipBiteOptions.map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
+                    className={`flex-1 rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
+                    <div className="font-bold">{lbl(opt)}</div>
+                    <div className="text-[10px] mt-0.5 leading-tight">{opt.description}</div>
                   </button>
                 ))}
               </div>
@@ -956,18 +1018,12 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.cormackLehane")}</Label>
             <Controller name="cormackLehane" control={control} render={({ field }) => (
               <div className="flex gap-2">
-                {[
-                  { v:"I",   desc:"Full glottis",          color:"bg-green-500  border-green-500  text-white dark:bg-green-700  dark:border-green-500" },
-                  { v:"IIa", desc:"Posterior glottis",     color:"bg-lime-500   border-lime-500   text-white dark:bg-lime-700   dark:border-lime-500"   },
-                  { v:"IIb", desc:"Arytenoids only",       color:"bg-yellow-500 border-yellow-500 text-white dark:bg-yellow-700 dark:border-yellow-500" },
-                  { v:"III", desc:"Epiglottis only",       color:"bg-orange-500 border-orange-500 text-white dark:bg-orange-700 dark:border-orange-500" },
-                  { v:"IV",  desc:"No glottic structures", color:"bg-red-500    border-red-500    text-white dark:bg-red-700    dark:border-red-500"    },
-                ].map(opt => (
-                  <button key={opt.v} type="button"
-                    onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                    className={`flex-1 rounded-xl border-2 p-2 text-center transition-all ${field.value === opt.v ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    <div className="text-lg font-bold">{opt.v}</div>
-                    <div className="text-[9px] mt-0.5 leading-tight">{opt.desc}</div>
+                {cormackLehaneOptions.map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
+                    className={`flex-1 rounded-xl border-2 p-2 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
+                    <div className="text-lg font-bold">{opt.value}</div>
+                    <div className="text-[9px] mt-0.5 leading-tight">{opt.description}</div>
                   </button>
                 ))}
               </div>
@@ -976,15 +1032,21 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <div className="space-y-2 col-span-2 sm:col-span-3">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.airwayFeatures")}</Label>
             <div className="flex flex-wrap gap-2">
-              {[
+              {([
                 { id:"retrognathia",           label:t("preop.retrognathia") },
                 { id:"prominentIncisors",      label:t("preop.prominentIncisors") },
                 { id:"facialHair",             label:t("preop.facialHair") },
                 { id:"difficultAirwayHistory", label:t("preop.difficultAirway") },
-              ].map(item => (
-                <Controller key={item.id} name={item.id as any} control={control} render={({ field }) => (
+              ] as const).map(item => (
+                <Controller key={item.id} name={item.id} control={control} render={({ field }) => (
                   <button type="button"
-                    onClick={() => field.onChange(!field.value)}
+                    onClick={() => {
+                      const next = !field.value
+                      field.onChange(next)
+                      if (item.id === "difficultAirwayHistory" && !next) {
+                        setValue("difficultAirwayNotes", "", { shouldDirty: true })
+                      }
+                    }}
                     className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-all ${field.value ? "bg-amber-50 border-amber-400 text-amber-800 scale-105" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
                     {item.label}
                   </button>
@@ -997,7 +1059,7 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
         {!airwayUTO && difficultAirwayHistory && (
           <div className="space-y-1">
             <Label>{t("common.details")}</Label>
-            <Textarea placeholder={t("preop.difficultAirwayDetails")} {...register("difficultAirwayNotes")} />
+            <Textarea maxLength={500} placeholder={t("preop.difficultAirwayDetails")} {...register("difficultAirwayNotes")} />
           </div>
         )}
         {fieldErrors.has("airway") && !airwayUTO && (
@@ -1140,6 +1202,8 @@ export function PreopForm({ defaultValues, onSubmit, onNameChange, onIdChange, o
           <ul className="list-disc list-inside space-y-0.5 text-xs">
             {fieldErrors.has("ageYears")    && <li>Age</li>}
             {fieldErrors.has("sex")         && <li>Sex</li>}
+            {fieldErrors.has("heightCm")    && <li>Height</li>}
+            {fieldErrors.has("weightKg")    && <li>Weight</li>}
             {fieldErrors.has("diagnoses")   && <li>At least one diagnosis</li>}
             {fieldErrors.has("procedures")  && <li>At least one planned procedure</li>}
             {fieldErrors.has("bp")          && <li>Blood pressure</li>}

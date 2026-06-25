@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
+import { mergeIcd10Results, type Icd10SearchRow } from "@/lib/icd10-search"
 
 export async function GET(req: NextRequest) {
   if (!await getAuthUser(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -12,20 +13,19 @@ export async function GET(req: NextRequest) {
   const useBg = locale === "bg"
   const term = q.toLowerCase()
 
-  // Search Icd10Code labels + Icd10Synonym terms. Priority:
-  //   1. code starts with query (e.g. "I21")
-  //   2. BG label contains query (if locale=bg)
-  //   3. EN label contains query
-  //   4. synonym contains query
-  const [byCode, byLabel, bySynonym] = await Promise.all([
+  const [byBgLabel, byCode, byEnLabel, bySynonym] = await Promise.all([
+    useBg
+      ? prisma.icd10Code.findMany({
+          where: { labelBg: { contains: term, mode: "insensitive" } },
+          take: 15,
+        })
+      : Promise.resolve([] as Icd10SearchRow[]),
     prisma.icd10Code.findMany({
       where: { code: { startsWith: q.toUpperCase() } },
       take: 10,
     }),
     prisma.icd10Code.findMany({
-      where: useBg
-        ? { OR: [{ labelBg: { contains: term, mode: "insensitive" } }, { labelEn: { contains: term, mode: "insensitive" } }] }
-        : { labelEn: { contains: term, mode: "insensitive" } },
+      where: { labelEn: { contains: term, mode: "insensitive" } },
       take: 15,
     }),
     prisma.icd10Synonym.findMany({
@@ -35,25 +35,10 @@ export async function GET(req: NextRequest) {
     }),
   ])
 
-  // Merge + deduplicate by code, preserving priority order
-  const seen = new Set<string>()
-  const results: { code: string; description: string; descriptionBg?: string; display: string; system: string }[] = []
-
-  const add = (row: { code: string; labelEn: string; labelBg?: string | null }) => {
-    if (seen.has(row.code)) return
-    seen.add(row.code)
-    results.push({
-      code: row.code,
-      description: row.labelEn,
-      ...(row.labelBg ? { descriptionBg: row.labelBg } : {}),
-      display: `${row.code} — ${useBg && row.labelBg ? row.labelBg : row.labelEn}`,
-      system: "ICD-10",
-    })
-  }
-
-  byCode.forEach(add)
-  byLabel.forEach(add)
-  bySynonym.forEach(r => add(r.icd10))
-
-  return NextResponse.json(results.slice(0, 20))
+  return NextResponse.json(mergeIcd10Results([
+    byBgLabel,
+    byCode,
+    byEnLabel,
+    bySynonym.map((row) => row.icd10),
+  ], useBg))
 }

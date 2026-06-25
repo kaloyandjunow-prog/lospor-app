@@ -21,7 +21,7 @@ export default function TermsPage() {
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">1. What LOSPOR is for</h3>
-              <p>LOSPOR is a personal anaesthetic case log for anaesthesiologists. It is designed for recording anonymised perioperative cases for the purposes of learning, professional development, portfolio building, and clinical audit.</p>
+              <p>LOSPOR is a personal anaesthetic case log for anaesthesiologists. It is designed for recording de-identified/pseudonymised perioperative cases for the purposes of learning, professional development, portfolio building, and clinical audit.</p>
             </section>
 
             <section>

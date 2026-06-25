@@ -1,11 +1,30 @@
 ﻿"use client"
 
-import { useState, useRef, useEffect, useCallback, memo } from "react"
+/* eslint-disable react-hooks/refs */
+import { useState, useRef, useEffect, useMemo, memo } from "react"
 import { createPortal } from "react-dom"
-import { Plus, Minus, X, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
+import { ConvertedStepper } from "@/components/ConvertedStepper"
+import { useOptionLibrary } from "@/hooks/useOptionLibrary"
+import type { DoseProfileInput } from "@/data/option-library/dose-profile"
+import type { WeightBasisMap } from "@/lib/infusion-calc"
+import type {
+  VitalsEntry, TimetableFluid, AgentSegment, GasSettingsSegment, TimetableData,
+  LogEvent as IntraopLogEvent,
+} from "@/types/timetable"
+import { EndCaseModal } from "@/components/intraop/EndCaseModal"
+import { DoseSelector } from "@/components/intraop/DoseSelector"
+import { HotkeysModal } from "@/components/intraop/HotkeysModal"
+import { useDrugHandlers } from "@/hooks/useDrugHandlers"
+import { useVitalsHandlers } from "@/hooks/useVitalsHandlers"
+import { useClinicalEventHandlers } from "@/hooks/useClinicalEventHandlers"
+import { useInfusionHandlers } from "@/hooks/useInfusionHandlers"
+import { useFluidHandlers } from "@/hooks/useFluidHandlers"
+import { useAgentHandlers } from "@/hooks/useAgentHandlers"
+import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
 
-// в"Ђв"Ђ Constants в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Constants ─────────────────────────────────────────────────────────────────
 const COL_W     = 74
 const LABEL_W   = 96
 const CHART_H   = 220
@@ -14,278 +33,33 @@ const GRID_VALS = [40, 80, 120, 160, 200]
 const INTERVAL  = 5
 const ROW_COLS  = 12  // columns per row = 60 min per row (1 hour)
 
-const INH_AGENTS = ["Sevoflurane", "Desflurane", "Isoflurane"]
-
-const AGENT_STYLE: Record<string, { bar: string; text: string; grip: string }> = {
-  "Sevoflurane": { bar: "bg-purple-300/40 dark:bg-purple-500/25 border-purple-400 dark:border-purple-500", text: "text-purple-700 dark:text-purple-200", grip: "bg-purple-400 dark:bg-purple-500" },
-  "Desflurane":  { bar: "bg-blue-300/40   dark:bg-blue-500/25   border-blue-400   dark:border-blue-500",   text: "text-blue-700   dark:text-blue-200",   grip: "bg-blue-400   dark:bg-blue-500"   },
-  "Isoflurane":  { bar: "bg-green-300/40  dark:bg-green-500/25  border-green-400  dark:border-green-500",  text: "text-green-700  dark:text-green-200",  grip: "bg-green-400  dark:bg-green-500"  },
-}
-
-// в"Ђв"Ђ Quick-drug & fluid libraries в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-const QUICK_DRUGS: { cat: string; color: string; drugs: { name: string; unit: string }[] }[] = [
-  { cat: "Induction",    color: "bg-blue-100   dark:bg-blue-900/40   text-blue-800   dark:text-blue-300   border-blue-200   dark:border-blue-700",   drugs: [{ name:"Propofol",unit:"mg"},{name:"Thiopental",unit:"mg"},{name:"Ketamine",unit:"mg"},{name:"Etomidate",unit:"mg"},{name:"Midazolam",unit:"mg"}] },
-  { cat: "Opioids",      color: "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700", drugs: [{ name:"Fentanyl",unit:"mcg"},{name:"Morphine",unit:"mg"},{name:"Remifentanil",unit:"mcg"},{name:"Sufentanil",unit:"mcg"},{name:"Alfentanil",unit:"mcg"}] },
-  { cat: "Relaxants",    color: "bg-amber-100  dark:bg-amber-900/40  text-amber-800  dark:text-amber-300  border-amber-200  dark:border-amber-700",  drugs: [{ name:"Succinylcholine",unit:"mg"},{name:"Rocuronium",unit:"mg"},{name:"Vecuronium",unit:"mg"},{name:"Atracurium",unit:"mg"},{name:"Cisatracurium",unit:"mg"}] },
-  { cat: "Reversal",     color: "bg-green-100  dark:bg-green-900/40  text-green-800  dark:text-green-300  border-green-200  dark:border-green-700",  drugs: [{ name:"Sugammadex",unit:"mg"},{name:"Neostigmine",unit:"mg"},{name:"Atropine",unit:"mg"},{name:"Galantamine",unit:"mg"}] },
-  { cat: "Vasopressors", color: "bg-red-100    dark:bg-red-900/40    text-red-800    dark:text-red-300    border-red-200    dark:border-red-700",    drugs: [{ name:"Ephedrine",unit:"mg"},{name:"Phenylephrine",unit:"mcg"},{name:"Epinephrine",unit:"mg"},{name:"Norepinephrine",unit:"mg"},{name:"Vasopressin",unit:"IU"}] },
-  { cat: "Antiemetics",  color: "bg-teal-100   dark:bg-teal-900/40   text-teal-800   dark:text-teal-300   border-teal-200   dark:border-teal-700",   drugs: [{ name:"Ondansetron",unit:"mg"},{name:"Dexamethasone",unit:"mg"},{name:"Metoclopramide",unit:"mg"},{name:"Droperidol",unit:"mg"}] },
-  { cat: "Analgesics",   color: "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-700", drugs: [{ name:"Paracetamol",unit:"g"},{name:"Ketorolac",unit:"mg"},{name:"Ketoprofen",unit:"mg"},{name:"Lidocaine",unit:"mg"},{name:"Magnesium",unit:"mg"}] },
-  { cat: "Local anaesthetics", color: "bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-700", drugs: [{ name:"Lidocaine",unit:"mg"},{name:"Bupivacaine",unit:"mg"},{name:"Ropivacaine",unit:"mg"},{name:"Levobupivacaine",unit:"mg"},{name:"Prilocaine",unit:"mg"},{name:"Mepivacaine",unit:"mg"},{name:"Articaine",unit:"mg"}] },
-]
-const QUICK_FLUIDS: { cat: string; color: string; fluids: { name: string }[] }[] = [
-  { cat: "Crystalloids",  color: "bg-cyan-100   dark:bg-cyan-900/40   text-cyan-800   dark:text-cyan-300   border-cyan-200   dark:border-cyan-700",   fluids: [{name:"NaCl 0.9%"},{name:"Ringer's Lactate"},{name:"Hartmann's"},{name:"Ringer's Acetate"},{name:"Plasma-Lyte"},{name:"D5W"},{name:"D10W"}] },
-  { cat: "Colloids",      color: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700", fluids: [{name:"Gelofusine"},{name:"HES 130/0.4"},{name:"Albumin 4%"},{name:"Albumin 20%"}] },
-  { cat: "Blood products",color: "bg-rose-100   dark:bg-rose-900/40   text-rose-800   dark:text-rose-300   border-rose-200   dark:border-rose-700",   fluids: [{name:"PRBC"},{name:"FFP"},{name:"Platelets"},{name:"Cryoprecipitate"}] },
-  { cat: "Other",         color: "bg-slate-100  dark:bg-slate-800/60  text-slate-700  dark:text-slate-300  border-slate-200  dark:border-slate-600",  fluids: [{name:"Mannitol 20%"},{name:"NaHCO3 8.4%"},{name:"Gelatin 4%"},{name:"Dextran 40"}] },
-]
-
-// ── Clinical event categories ─────────────────────────────────────────────────
+// The selectable libraries (agents, drugs, fluids, clinical events, infusion
+// configs/weight-basis, LA concentrations, bolus dose hints) used to be
+// hardcoded module-level literals. They're now derived via useMemo from the
+// OptionLibrary API inside the IntraopTimetable component itself — plain
+// local consts, not mutated module state, so two instances of this component
+// can never stomp on each other's data. calcSuggestedDose/bolusRange/
+// fluidColor/fluidCategory/computeFluidRows live inside the component for
+// the same reason (they read this derived data via closure). calcInfusionTotal
+// and WeightBasisMap live in src/lib/infusion-calc.ts since IntraopForm.tsx
+// and EndCaseModal.tsx (a separate component file) both need them too, and
+// a cross-file caller can't reach this component's closures.
 type ClinicalEventDef = { label: string; color: string }
-const CLINICAL_EVENT_CATS: { cat: string; color: string; isComplication?: boolean; events: ClinicalEventDef[] }[] = [
-  { cat: "Airway", color: "#6366f1", events: [
-    { label:"Induction",        color:"#3b82f6" },
-    { label:"Mask vent",        color:"#0891b2" },
-    { label:"Intubated",        color:"#6366f1" },
-    { label:"LMA in",           color:"#6366f1" },
-    { label:"Extubated",        color:"#22c55e" },
-    { label:"Failed intubation",color:"#ef4444" },
-    { label:"Airway exchange",  color:"#f97316" },
-    { label:"DLT placed",       color:"#6366f1" },
-  ]},
-  { cat: "Regional", color: "#a855f7", events: [
-    { label:"Spinal in",        color:"#a855f7" },
-    { label:"Epidural in",      color:"#a855f7" },
-    { label:"CSE",              color:"#a855f7" },
-    { label:"Block done",       color:"#8b5cf6" },
-    { label:"LA top-up",        color:"#8b5cf6" },
-    { label:"Spinal removed",   color:"#64748b" },
-    { label:"Epidural removed", color:"#64748b" },
-  ]},
-  { cat: "Access", color: "#f59e0b", events: [
-    { label:"Art line in",      color:"#f59e0b" },
-    { label:"CVC in",           color:"#f59e0b" },
-    { label:"PA cath",          color:"#d97706" },
-    { label:"PICC",             color:"#d97706" },
-    { label:"IO access",        color:"#d97706" },
-  ]},
-  { cat: "Surgical", color: "#ef4444", events: [
-    { label:"Positioned",       color:"#64748b" },
-    { label:"Incision",         color:"#ef4444" },
-    { label:"Procedure started",color:"#ef4444" },
-    { label:"Procedure ended",  color:"#22c55e" },
-    { label:"Tourniquet on",    color:"#f97316" },
-    { label:"Tourniquet off",   color:"#22c55e" },
-    { label:"Closure",          color:"#22c55e" },
-  ]},
-  { cat: "Transfer", color: "#22c55e", events: [
-    { label:"To PACU",          color:"#22c55e" },
-    { label:"To ICU",           color:"#f97316" },
-    { label:"To HDU",           color:"#f59e0b" },
-    { label:"To ward",          color:"#22c55e" },
-  ]},
-  { cat: "Complications", color: "#ef4444", isComplication: true, events: [
-    { label:"Hypotension",                    color:"#ef4444" },
-    { label:"Hypertension",                   color:"#ef4444" },
-    { label:"Bradycardia",                    color:"#ef4444" },
-    { label:"Tachycardia",                    color:"#ef4444" },
-    { label:"Cardiac arrest",                 color:"#ef4444" },
-    { label:"Hypoxia / desaturation",         color:"#ef4444" },
-    { label:"Laryngospasm",                   color:"#ef4444" },
-    { label:"Bronchospasm",                   color:"#ef4444" },
-    { label:"Aspiration",                     color:"#ef4444" },
-    { label:"Anaphylaxis / allergic reaction",color:"#ef4444" },
-    { label:"Drug error",                     color:"#ef4444" },
-    { label:"LAST",                           color:"#ef4444" },
-    { label:"Massive haemorrhage",            color:"#ef4444" },
-    { label:"Awareness under anaesthesia",    color:"#ef4444" },
-  ]},
-]
-
-// в"Ђв"Ђ Infusion configs в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-const INFUSION_CONFIGS: Record<string, { units: string[]; min: number; max: number; step: number; color: string }> = {
-  "Remifentanil":    { units:["mcg/kg/min","mcg/min"],            min:0.01, max:1,    step:0.01, color:"#a855f7" },
-  "Propofol":        { units:["mcg/kg/min","mg/kg/hr","ml/hr"],   min:25,   max:200,  step:5,    color:"#6366f1" },
-  "Ketamine":        { units:["mg/kg/hr","mg/hr"],                min:0.1,  max:2,    step:0.1,  color:"#f59e0b" },
-  "Midazolam":       { units:["mg/hr","mcg/kg/hr"],               min:1,    max:20,   step:0.5,  color:"#4f46e5" },
-  "Dexmedetomidine": { units:["mcg/kg/hr"],                       min:0.1,  max:1.5,  step:0.1,  color:"#0ea5e9" },
-  "Fentanyl":        { units:["mcg/hr","mcg/kg/hr"],              min:10,   max:200,  step:10,   color:"#9333ea" },
-  "Sufentanil":      { units:["mcg/hr"],                          min:1,    max:50,   step:1,    color:"#7c3aed" },
-  "Morphine":        { units:["mg/hr"],                           min:1,    max:20,   step:1,    color:"#8b5cf6" },
-  "Alfentanil":      { units:["mcg/kg/min","mcg/min"],            min:0.5,  max:5,    step:0.5,  color:"#a78bfa" },
-  "Norepinephrine":  { units:["mcg/kg/min","mcg/min"],            min:0.01, max:1,    step:0.01, color:"#ef4444" },
-  "Epinephrine":     { units:["mcg/kg/min","mcg/min"],            min:0.01, max:0.5,  step:0.01, color:"#b91c1c" },
-  "Phenylephrine":   { units:["mcg/min","mcg/kg/min"],            min:10,   max:300,  step:10,   color:"#dc2626" },
-  "Ephedrine":       { units:["mg/hr"],                           min:5,    max:60,   step:5,    color:"#f87171" },
-  "Dopamine":        { units:["mcg/kg/min"],                      min:1,    max:20,   step:1,    color:"#f97316" },
-  "Dobutamine":      { units:["mcg/kg/min"],                      min:2,    max:20,   step:1,    color:"#fb923c" },
-  "Vasopressin":     { units:["units/hr"],                        min:0.01, max:0.04, step:0.01, color:"#991b1b" },
-  "Rocuronium":      { units:["mcg/kg/min","mg/hr"],              min:5,    max:15,   step:1,    color:"#d97706" },
-  "Cisatracurium":   { units:["mcg/kg/min"],                      min:1,    max:3,    step:0.5,  color:"#b45309" },
-  "Lidocaine":       { units:["ml/hr"],                            min:1,    max:20,   step:1,    color:"#0891b2" },
-  "Ropivacaine":     { units:["ml/hr"],                            min:1,    max:20,   step:1,    color:"#0e7490" },
-  "Bupivacaine":     { units:["ml/hr"],                            min:1,    max:15,   step:1,    color:"#164e63" },
-  "Levobupivacaine": { units:["ml/hr"],                            min:1,    max:15,   step:1,    color:"#155e75" },
-  "Prilocaine":      { units:["ml/hr"],                            min:1,    max:20,   step:1,    color:"#0c4a6e" },
-  "Mepivacaine":     { units:["ml/hr"],                            min:1,    max:20,   step:1,    color:"#0369a1" },
-  "Magnesium":       { units:["g/hr"],                            min:0.5,  max:3,    step:0.5,  color:"#0d9488" },
-  "Oxytocin":        { units:["mIU/min","units/hr"],              min:1,    max:40,   step:1,    color:"#ec4899" },
-  "Insulin":         { units:["units/hr"],                        min:1,    max:20,   step:1,    color:"#06b6d4" },
-  "Heparin":         { units:["units/hr"],                        min:500,  max:2000, step:100,  color:"#64748b" },
-  "Nitroglycerin":   { units:["mcg/min","mcg/kg/min"],            min:5,    max:200,  step:5,    color:"#84cc16" },
-  "Labetalol":       { units:["mg/hr"],                           min:10,   max:120,  step:10,   color:"#059669" },
-}
 const DEFAULT_INF = { units:["mg/hr","mcg/kg/min","ml/hr"], min:0, max:100, step:1, color:"#64748b" }
 
-// Weight basis for per-kg infusion units.
-// IBW = ideal body weight (default for most CNS/anaesthetic agents)
-// TBW = total (actual) body weight (haemodynamic agents dosed by actual weight per label)
-export const INFUSION_WEIGHT_BASIS: Record<string, "IBW" | "TBW"> = {
-  "Propofol":        "IBW",
-  "Remifentanil":    "IBW",
-  "Ketamine":        "IBW",
-  "Midazolam":       "IBW",
-  "Dexmedetomidine": "TBW",
-  "Fentanyl":        "IBW",
-  "Sufentanil":      "IBW",
-  "Morphine":        "IBW",
-  "Alfentanil":      "IBW",
-  "Norepinephrine":  "IBW",
-  "Epinephrine":     "IBW",
-  "Phenylephrine":   "TBW",
-  "Dopamine":        "TBW",
-  "Dobutamine":      "TBW",
-  "Rocuronium":      "IBW",
-  "Cisatracurium":   "IBW",
-  "Nitroglycerin":   "TBW",
-}
+// ── Types ─────────────────────────────────────────────────────────────────────
+// Canonical definitions live in src/types/timetable.ts (shared with the
+// server-side projection in src/lib/case-events.ts) — re-exported here so
+// every existing "@/components/IntraopTimetable" import site keeps working.
+export type {
+  VitalsEntry, TimetableDrug, TimetableFluid, AgentSegment,
+  TimetableInfusion, ClinicalEvent, GasSettingsSegment, TimetableData,
+} from "@/types/timetable"
+export type { LogEvent as IntraopLogEvent } from "@/types/timetable"
 
-// Common solution concentrations for local anaesthetics (shown as pill selector)
-const LA_CONCENTRATIONS: Record<string, string[]> = {
-  "Lidocaine":       ["0.5%","1%","1.5%","2%"],
-  "Ropivacaine":     ["0.1%","0.2%","0.375%","0.5%","0.75%"],
-  "Bupivacaine":     ["0.125%","0.25%","0.375%","0.5%"],
-  "Levobupivacaine": ["0.125%","0.25%","0.5%","0.75%"],
-  "Prilocaine":      ["0.5%","1%","2%"],
-  "Mepivacaine":     ["0.5%","1%","1.5%","2%"],
-  "Articaine":       ["2%","4%"],
-}
+interface Props { startTime: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onComplicationAdded?: (labels: string[]) => void; onLogEvent?: (event: IntraopLogEvent) => void; onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void }
 
-// Median bolus dose suggestions - mgPerKg is in the same unit as QUICK_DRUGS
-// weightBasis: IBW (default) or TBW (succinylcholine, some others)
-// flat: a fixed dose in the drug's unit, not weight-based
-const BOLUS_DOSES: Record<string, { mgPerKg?: number; flat?: number; basis?: "IBW" | "TBW"; hint: string }> = {
-  "Propofol":        { mgPerKg: 2.0,   basis:"IBW", hint:"2.0 mg/kg IBW (1.5-2.5)"         },
-  "Thiopental":      { mgPerKg: 4.0,   basis:"IBW", hint:"4 mg/kg IBW (3-5)"                },
-  "Ketamine":        { mgPerKg: 1.5,   basis:"IBW", hint:"1.5 mg/kg IBW (1-2)"              },
-  "Etomidate":       { mgPerKg: 0.3,   basis:"IBW", hint:"0.3 mg/kg IBW (0.2-0.4)"          },
-  "Midazolam":       { mgPerKg: 0.05,  basis:"IBW", hint:"0.05 mg/kg IBW (0.02-0.1)"        },
-  "Fentanyl":        { mgPerKg: 2.0,   basis:"IBW", hint:"2 mcg/kg IBW (1-3)"               },
-  "Morphine":        { mgPerKg: 0.1,   basis:"IBW", hint:"0.1 mg/kg IBW"                    },
-  "Remifentanil":    { mgPerKg: 0.5,   basis:"IBW", hint:"0.5 mcg/kg IBW"                   },
-  "Sufentanil":      { mgPerKg: 0.3,   basis:"IBW", hint:"0.3 mcg/kg IBW (0.2-0.5)"         },
-  "Alfentanil":      { mgPerKg: 15,    basis:"IBW", hint:"15 mcg/kg IBW (10-20)"             },
-  "Succinylcholine": { mgPerKg: 1.5,   basis:"TBW", hint:"1.5 mg/kg TBW (RSI)"              },
-  "Rocuronium":      { mgPerKg: 0.6,   basis:"IBW", hint:"0.6 mg/kg IBW (RSI: 1.2)"         },
-  "Vecuronium":      { mgPerKg: 0.1,   basis:"IBW", hint:"0.1 mg/kg IBW"                    },
-  "Atracurium":      { mgPerKg: 0.5,   basis:"IBW", hint:"0.5 mg/kg IBW"                    },
-  "Cisatracurium":   { mgPerKg: 0.15,  basis:"IBW", hint:"0.15 mg/kg IBW"                   },
-  "Sugammadex":      { mgPerKg: 4.0,   basis:"IBW", hint:"4 mg/kg IBW (deep block)"          },
-  "Neostigmine":     { mgPerKg: 0.05,  basis:"IBW", hint:"0.05 mg/kg IBW"                   },
-  "Atropine":        { flat: 0.6,               hint:"0.6 mg (standard)"                    },
-  "Galantamine":     { mgPerKg: 0.3,   basis:"IBW", hint:"0.3 mg/kg IBW"                    },
-  "Ephedrine":       { flat: 10,                hint:"10 mg (titrate)"                       },
-  "Phenylephrine":   { flat: 100,               hint:"100 mcg bolus"                         },
-  "Epinephrine":     { flat: 0.1,               hint:"0.1 mg (1:10000)"                      },
-  "Norepinephrine":  { flat: 0.1,               hint:"0.1 mg"                                },
-  "Vasopressin":     { flat: 20,                hint:"20 IU"                                 },
-  "Ondansetron":     { flat: 4,                 hint:"4 mg (standard)"                       },
-  "Dexamethasone":   { flat: 8,                 hint:"8 mg (PONV)"                           },
-  "Metoclopramide":  { flat: 10,                hint:"10 mg (standard)"                      },
-  "Droperidol":      { flat: 1.25,              hint:"1.25 mg (standard)"                    },
-  "Paracetamol":     { flat: 1,                 hint:"1 g IV"                                },
-  "Ketorolac":       { flat: 30,                hint:"30 mg (max)"                           },
-  "Ketoprofen":      { flat: 100,               hint:"100 mg"                                },
-  "Lidocaine":       { mgPerKg: 1.5,   basis:"IBW", hint:"1.5 mg/kg IBW"                    },
-  "Magnesium":       { flat: 2000,              hint:"2000 mg (2g)"                          },
-}
-
-function calcSuggestedDose(name: string, ibw: number | null, tbw: number | null): { dose: string; hint: string } {
-  const cfg = BOLUS_DOSES[name]
-  if (!cfg) return { dose: "", hint: "" }
-  if (cfg.flat !== undefined)
-    return { dose: String(cfg.flat), hint: cfg.hint }
-  if (cfg.mgPerKg !== undefined) {
-    const w = cfg.basis === "TBW" ? (tbw ?? ibw) : (ibw ?? tbw)
-    if (!w) return { dose: "", hint: cfg.hint }
-    const dose = Math.round(w * cfg.mgPerKg * 10) / 10
-    return { dose: String(dose), hint: cfg.hint }
-  }
-  return { dose: "", hint: "" }
-}
-
-const BOLUS_CONFIGS: Record<string, { min: number; max: number; step: number }> = {
-  "Propofol":        { min:0,  max:300,  step:5    },
-  "Thiopental":      { min:0,  max:500,  step:25   },
-  "Ketamine":        { min:0,  max:200,  step:5    },
-  "Etomidate":       { min:0,  max:30,   step:2    },
-  "Midazolam":       { min:0,  max:20,   step:0.5  },
-  "Fentanyl":        { min:0,  max:500,  step:10   },
-  "Morphine":        { min:0,  max:20,   step:1    },
-  "Remifentanil":    { min:0,  max:200,  step:5    },
-  "Sufentanil":      { min:0,  max:50,   step:2.5  },
-  "Alfentanil":      { min:0,  max:2000, step:50   },
-  "Succinylcholine": { min:0,  max:200,  step:5    },
-  "Rocuronium":      { min:0,  max:100,  step:5    },
-  "Vecuronium":      { min:0,  max:15,   step:1    },
-  "Atracurium":      { min:0,  max:50,   step:5    },
-  "Cisatracurium":   { min:0,  max:20,   step:2    },
-  "Sugammadex":      { min:0,  max:400,  step:50   },
-  "Neostigmine":     { min:0,  max:5,    step:0.5  },
-  "Atropine":        { min:0,  max:2,    step:0.1  },
-  "Galantamine":     { min:0,  max:50,   step:1    },
-  "Ephedrine":       { min:0,  max:50,   step:2    },
-  "Phenylephrine":   { min:0,  max:200,  step:25   },
-  "Epinephrine":     { min:0,  max:1000, step:50   },
-  "Norepinephrine":  { min:0,  max:1000, step:50   },
-  "Vasopressin":     { min:0,  max:40,   step:5    },
-  "Ondansetron":     { min:0,  max:8,    step:1    },
-  "Dexamethasone":   { min:0,  max:16,   step:2    },
-  "Metoclopramide":  { min:0,  max:10,   step:1    },
-  "Droperidol":      { min:0,  max:2.5,  step:0.25 },
-  "Paracetamol":     { min:0,  max:2,    step:0.5  },
-  "Ketorolac":       { min:0,  max:30,   step:5    },
-  "Ketoprofen":      { min:0,  max:100,  step:25   },
-  "Lidocaine":       { min:0,  max:200,  step:10   },
-  "Magnesium":       { min:0,  max:4,    step:0.5  },
-  "Bupivacaine":     { min:0,  max:150,  step:5    },
-  "Ropivacaine":     { min:0,  max:200,  step:10   },
-  "Levobupivacaine": { min:0,  max:150,  step:5    },
-  "Prilocaine":      { min:0,  max:400,  step:10   },
-  "Mepivacaine":     { min:0,  max:400,  step:10   },
-  "Articaine":       { min:0,  max:500,  step:10   },
-}
-function bolusRange(name: string, unit: string) {
-  if (BOLUS_CONFIGS[name]) return BOLUS_CONFIGS[name]
-  if (unit === "mcg") return { min:0, max:2000, step:10 }
-  if (unit === "g")   return { min:0, max:10,   step:0.5 }
-  if (unit === "ml")  return { min:0, max:100,  step:1 }
-  if (unit === "IU")  return { min:0, max:200,  step:5 }
-  return { min:0, max:500, step:5 }
-}
-
-// в"Ђв"Ђ Types в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-export interface VitalsEntry    { systolic?: number; diastolic?: number; heartRate?: number; spO2?: number; etco2?: number; temp?: number; bgl?: number }
-export interface TimetableDrug  { colIdx: number; name: string; dose: string; unit: string }
-export interface TimetableFluid { id: string; name: string; category?: string; volume: string; color: string; startCol: number; endCol: number; stopped?: boolean }
-export interface AgentSegment   { name: string; startCol: number; endCol: number; n2o?: number; stopped?: boolean }
-export interface TimetableInfusion { id: string; name: string; rate: number; unit: string; startCol: number; endCol: number; color: string; stopped?: boolean; rateChanges?: { col: number; rate: number; unit: string }[] }
-export interface ClinicalEvent    { colIdx: number; label: string; color: string }
-export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[]; clinicalEvents?: ClinicalEvent[] }
-
-interface Props { startTime: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onFluidTotals?: (crystalloids: number, colloids: number, blood: number) => void; onComplicationAdded?: (labels: string[]) => void }
-
-// в"Ђв"Ђ Helpers в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function addMinutes(hhmm: string, min: number) {
   const [h, m] = (hhmm || "00:00").split(":").map(Number)
   const t = (h * 60 + m + min + 1440) % 1440
@@ -327,18 +101,6 @@ function calcDuration(start: string, end: string | undefined, cols: number): str
   const mn = total % 60
   return h > 0 ? `${h}h ${mn}min` : `${mn}min`
 }
-function yPx(v: number) { return CHART_H - (v / Y_MAX) * CHART_H }
-function linePath(pts: { x: number; y: number }[]) {
-  return pts.length < 2 ? "" : pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ")
-}
-
-const CHART_LINES: { key: keyof VitalsEntry; color: string; dash?: string; opacity?: number }[] = [
-  { key: "systolic",  color: "#f87171" },
-  { key: "diastolic", color: "#f87171", dash: "4 2", opacity: 0.7 },
-  { key: "heartRate", color: "#22c55e" },
-  { key: "spO2",      color: "#06b6d4" },
-  { key: "etco2",     color: "#f59e0b" },
-]
 
 const VITAL_ROW_DEFS: {
   key:      keyof VitalsEntry
@@ -357,10 +119,10 @@ const VITAL_ROW_DEFS: {
   { key:"spO2",      label:"SpO₂",   unit:"%",     color:"#06b6d4", min:50, max:100, step:1,   defaultVal:98,  monitors:["spO2Monitor"]             },
   { key:"etco2",     label:"EtCO₂",  unit:"mmHg",  color:"#f59e0b", min:0,  max:80,  step:1,   defaultVal:35,  monitors:["etco2Monitor"]            },
   { key:"temp",      label:"Temp",    unit:"°C",    color:"#a78bfa", min:30, max:42,  step:0.1, defaultVal:36.5,monitors:["tempMonitor"]             },
-  { key:"bgl",       label:"BGL",     unit:"mmol/L",color:"#34d399", min:0,  max:30,  step:0.1, defaultVal:5.5, monitors:["bglMonitor"]              },
+  { key:"bgl",       label:"Serum/peripheral glucose", unit:"mmol/L",color:"#34d399", min:0,  max:30,  step:0.1, defaultVal:5.5, monitors:["bglMonitor"]              },
 ]
 
-// в"Ђв"Ђ Div-based chart в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Div-based chart ───────────────────────────────────────────────────────────
 const DivChart = memo(function DivChart({ vitals, colStart, rowColCount, activeRows }: { vitals: VitalsEntry[]; colStart: number; rowColCount: number; activeRows: typeof VITAL_ROW_DEFS }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [w, setW]    = useState(0)
@@ -485,56 +247,14 @@ const DivChart = memo(function DivChart({ vitals, colStart, rowColCount, activeR
   )
 })
 
-// в"Ђв"Ђ Fluid color by category в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Fluid color by category ───────────────────────────────────────────────────
 const FLUID_CAT_COLOR: Record<string, string> = {
   "Crystalloids":   "#06b6d4",
   "Colloids":       "#818cf8",
   "Blood products": "#fb7185",
   "Other":          "#94a3b8",
 }
-function fluidColor(name: string): string {
-  for (const cat of QUICK_FLUIDS) {
-    if (cat.fluids.some(f => f.name === name)) return FLUID_CAT_COLOR[cat.cat] ?? "#94a3b8"
-  }
-  return "#94a3b8"
-}
-function fluidCategory(name: string): string {
-  for (const cat of QUICK_FLUIDS) {
-    if (cat.fluids.some(f => f.name === name)) return cat.cat
-  }
-  return "Other"
-}
-
 interface FluidLaneRow { label: string; cat: string; color: string; segs: TimetableFluid[] }
-
-function computeFluidRows(fluids: TimetableFluid[]): FluidLaneRow[] {
-  const byCat = new Map<string, TimetableFluid[]>()
-  for (const f of fluids) {
-    const cat = f.category ?? fluidCategory(f.name)
-    // Normalise: endCol must be >= startCol to guarantee the overlap formula works.
-    const normalised = f.endCol < f.startCol ? { ...f, endCol: f.startCol } : f
-    const list = byCat.get(cat) ?? []; list.push(normalised); byCat.set(cat, list)
-  }
-  const rows: FluidLaneRow[] = []
-  for (const [cat, catFluids] of byCat) {
-    const sorted = [...catFluids].sort((a, b) => a.startCol - b.startCol)
-    const lanes: TimetableFluid[][] = []
-    for (const fluid of sorted) {
-      let placed = false
-      for (const lane of lanes) {
-        if (!lane.some(l => !(fluid.endCol < l.startCol || fluid.startCol > l.endCol))) {
-          lane.push(fluid); placed = true; break
-        }
-      }
-      if (!placed) lanes.push([fluid])
-    }
-    const catColor = FLUID_CAT_COLOR[cat] ?? "#94a3b8"
-    lanes.forEach((lane, idx) => {
-      rows.push({ label: idx === 0 ? cat : `${cat} ${idx + 1}`, cat, color: catColor, segs: lane })
-    })
-  }
-  return rows
-}
 
 type FConflictAnchor = { top: number; bottom: number; left: number; right: number; width: number }
 type FluidConflict =
@@ -542,294 +262,15 @@ type FluidConflict =
   | { phase: "finished"; newName: string; newCat: string; newColor: string; newVol: string; newCol: number; existingId: string; anchor: FConflictAnchor }
   | { phase: "volume";   newName: string; newCat: string; newColor: string; newVol: string; newCol: number; existingId: string; volInput: string; anchor: FConflictAnchor }
 
-// в"Ђв"Ђ Module-level types в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Module-level types ────────────────────────────────────────────────────────
 type TtSel = { type: "drug"; idx: number } | { type: "infusion"; id: string } | { type: "fluid"; id: string } | { type: "agent"; startCol: number }
-type TtFPMode = "choose" | "bolus" | "infusion" | "fluid"
+type TtFPMode = "bolus" | "infusion" | "fluid"
 
-// ── End Case Modal ────────────────────────────────────────────────────────────
-type EndCaseDecision = "discontinue" | "continue" | null
-
-interface EndCaseModalProps {
-  agents: AgentSegment[]
-  infusions: TimetableInfusion[]
-  fluids: TimetableFluid[]
-  onDismiss: () => void
-  onConfirm: (result: {
-    continuedItems: string[]
-    infusionTotals: { name: string; total: number; unit: string }[]
-    discontinuedAgentCols: number[]
-    discontinuedInfusionIds: string[]
-    discontinuedFluidWithAmounts: { id: string; amount: number; category: string }[]
-  }) => void
-}
-
-export function calcInfusionTotal(
-  seg: TimetableInfusion,
-  ibw: number | null = null,
-  tbw: number | null = null,
-): { amount: number; unit: string; weightUsed: number | null; weightBasis: "IBW" | "TBW" | null } {
-  // Determine whether this drug is dosed per-kg and which weight to use
-  const basis    = INFUSION_WEIGHT_BASIS[seg.name] ?? "IBW"
-  const bodyWt   = basis === "TBW" ? (tbw ?? ibw) : (ibw ?? tbw)
-
-  function segmentTotal(rate: number, unit: string, cols: number): number {
-    const isPerKg  = unit.includes("/kg/")
-    const wt       = isPerKg && bodyWt ? bodyWt : isPerKg ? 1 : 1  // fallback to 1 if no weight
-    const mins     = unit.includes("/min") ? cols * 5 : cols * 5 / 60
-    return rate * wt * mins
-  }
-
-  const sorted = (seg.rateChanges ?? []).slice().sort((a, b) => a.col - b.col)
-  let total = 0; let prevCol = seg.startCol; let prevRate = seg.rate; let prevUnit = seg.unit
-  for (const rc of sorted) {
-    total += segmentTotal(prevRate, prevUnit, rc.col - prevCol)
-    prevCol = rc.col; prevRate = rc.rate; prevUnit = rc.unit
-  }
-  total += segmentTotal(prevRate, prevUnit, seg.endCol - prevCol + 1)
-
-  const baseUnit = prevUnit
-    .replace(/\/kg\/min$/, "").replace(/\/kg\/hr$/, "")
-    .replace(/\/min$/, "").replace(/\/hr$/, "").trim()
-
-  const anyPerKg = seg.unit.includes("/kg/") || (seg.rateChanges ?? []).some(rc => rc.unit.includes("/kg/"))
-  const weightUsed = anyPerKg && bodyWt ? Math.round(bodyWt * 10) / 10 : null
-
-  return {
-    amount: Math.round(total * 100) / 100,
-    unit: baseUnit,
-    weightUsed,
-    weightBasis: anyPerKg ? basis : null,
-  }
-}
-
-function EndCaseModal({ agents, infusions, fluids, onDismiss, onConfirm }: EndCaseModalProps) {
-  const [decisions, setDecisions] = useState<Record<string, EndCaseDecision>>({})
-  const [fluidAmounts, setFluidAmounts] = useState<Record<string, string>>({})
-  const [fluidFullBag, setFluidFullBag] = useState<Record<string, boolean | null>>({})
-
-  function setDecision(key: string, val: EndCaseDecision) {
-    setDecisions(prev => ({ ...prev, [key]: prev[key] === val ? null : val }))
-  }
-
-  function handleConfirm() {
-    const continuedItems: string[] = []
-    const infusionTotals: { name: string; total: number; unit: string }[] = []
-    const discontinuedAgentCols: number[] = []
-    const discontinuedInfusionIds: string[] = []
-    const discontinuedFluidWithAmounts: { id: string; amount: number; category: string }[] = []
-
-    for (const a of agents) {
-      const d = decisions[`agent-${a.startCol}`]
-      if (d === "continue") continuedItems.push(`${a.name} (inhalational agent)`)
-      if (d === "discontinue") discontinuedAgentCols.push(a.startCol)
-    }
-    for (const inf of infusions) {
-      const d = decisions[`inf-${inf.id}`]
-      if (d === "continue") continuedItems.push(`${inf.name} infusion (${inf.rate} ${inf.unit})`)
-      if (d === "discontinue") {
-        const tot = calcInfusionTotal(inf)
-        infusionTotals.push({ name: inf.name, total: tot.amount, unit: tot.unit })
-        discontinuedInfusionIds.push(inf.id)
-      }
-    }
-    for (const f of fluids) {
-      const d = decisions[`fluid-${f.id}`]
-      const cat = f.category ?? "Crystalloids"
-      if (d === "continue") continuedItems.push(`${f.name} (fluid)`)
-      if (d === "discontinue") {
-        const amt = Number(fluidAmounts[f.id] ?? 0) || 0
-        discontinuedFluidWithAmounts.push({ id: f.id, amount: amt, category: cat })
-      }
-    }
-    onConfirm({ continuedItems, infusionTotals, discontinuedAgentCols, discontinuedInfusionIds, discontinuedFluidWithAmounts })
-  }
-
-  const pillBase = "text-xs px-2.5 py-1 rounded-full border font-semibold transition-colors"
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={e => { if (e.target === e.currentTarget) onDismiss() }}>
-      <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
-        <div className="mb-4">
-          <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">End Case — Active Items</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose what to do with each active item.</p>
-        </div>
-
-        {agents.length === 0 && infusions.length === 0 && fluids.length === 0 && (
-          <p className="text-sm text-slate-400 py-4 text-center">No active items — ready to end.</p>
-        )}
-
-        {agents.map(a => {
-          const key = `agent-${a.startCol}`
-          const d = decisions[key]
-          return (
-            <div key={a.startCol} className="flex items-center justify-between gap-2 py-3 border-b border-slate-100 dark:border-[#2e2e2e]">
-              <div>
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">{a.name}</span>
-                <span className="ml-2 text-[10px] text-slate-400">inhalational</span>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button type="button" onClick={() => setDecision(key, "discontinue")}
-                  className={`${pillBase} ${d === "discontinue" ? "bg-red-500 text-white border-red-500" : "border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"}`}>
-                  Discontinue
-                </button>
-                <button type="button" onClick={() => setDecision(key, "continue")}
-                  className={`${pillBase} ${d === "continue" ? "bg-emerald-500 text-white border-emerald-500" : "border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"}`}>
-                  Continue postop
-                </button>
-              </div>
-            </div>
-          )
-        })}
-
-        {infusions.map(inf => {
-          const key = `inf-${inf.id}`
-          const d = decisions[key]
-          const tot = d === "discontinue" ? calcInfusionTotal(inf) : null
-          return (
-            <div key={inf.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-sm font-semibold" style={{ color: inf.color }}>{inf.name}</span>
-                  <span className="ml-2 text-[10px] text-slate-400">{inf.rate} {inf.unit}</span>
-                </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button type="button" onClick={() => setDecision(key, "discontinue")}
-                    className={`${pillBase} ${d === "discontinue" ? "bg-red-500 text-white border-red-500" : "border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"}`}>
-                    Discontinue
-                  </button>
-                  <button type="button" onClick={() => setDecision(key, "continue")}
-                    className={`${pillBase} ${d === "continue" ? "bg-emerald-500 text-white border-emerald-500" : "border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"}`}>
-                    Continue postop
-                  </button>
-                </div>
-              </div>
-              {tot && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-0.5">
-                  Estimated total: <span className="font-semibold">{tot.amount} {tot.unit}</span>
-                </p>
-              )}
-            </div>
-          )
-        })}
-
-        {fluids.map(f => {
-          const key = `fluid-${f.id}`
-          const d = decisions[key]
-          return (
-            <div key={f.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-sm font-semibold" style={{ color: f.color }}>{f.name}</span>
-                  <span className="ml-2 text-[10px] text-slate-400">{f.category ?? "fluid"}</span>
-                </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button type="button" onClick={() => setDecision(key, "discontinue")}
-                    className={`${pillBase} ${d === "discontinue" ? "bg-red-500 text-white border-red-500" : "border-red-300 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"}`}>
-                    Discontinue
-                  </button>
-                  <button type="button" onClick={() => setDecision(key, "continue")}
-                    className={`${pillBase} ${d === "continue" ? "bg-emerald-500 text-white border-emerald-500" : "border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"}`}>
-                    Continue postop
-                  </button>
-                </div>
-              </div>
-              {d === "discontinue" && (() => {
-                const bagVol = parseInt(f.volume) || 500
-                const curAmt = parseInt(fluidAmounts[f.id] ?? "0") || 0
-                const fb = fluidFullBag[f.id] ?? null
-                return (
-                  <div className="pl-0.5 space-y-2">
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Was the full bag infused?</p>
-                    <div className="flex gap-2">
-                      <button type="button"
-                        onClick={() => { setFluidFullBag(prev => ({ ...prev, [f.id]: true })); setFluidAmounts(prev => ({ ...prev, [f.id]: String(bagVol) })) }}
-                        className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border-2 transition-colors ${fb === true ? "bg-teal-500 border-teal-500 text-white" : "border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}>
-                        ✓ Yes — full bag
-                      </button>
-                      <button type="button"
-                        onClick={() => { setFluidFullBag(prev => ({ ...prev, [f.id]: false })); setFluidAmounts(prev => ({ ...prev, [f.id]: "0" })) }}
-                        className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border-2 transition-colors ${fb === false ? "bg-amber-500 border-amber-500 text-white" : "border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}>
-                        No — partial
-                      </button>
-                    </div>
-                    {fb === false && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">Amount:</span>
-                          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">{curAmt} mL</span>
-                        </div>
-                        <input type="range" min={0} max={bagVol} step={50}
-                          value={curAmt}
-                          onChange={e => setFluidAmounts(prev => ({ ...prev, [f.id]: e.target.value }))}
-                          className="w-full accent-teal-500 cursor-pointer" />
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </div>
-          )
-        })}
-
-        <div className="flex justify-end gap-2 pt-4">
-          <button type="button" onClick={onDismiss}
-            className="text-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-            Cancel
-          </button>
-          <button type="button" onClick={handleConfirm}
-            className="text-sm px-4 py-2 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">
-            Confirm End Case
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  )
-}
-// ── Keyboard Shortcuts Modal ──────────────────────────────────────────────────
-function HotkeysModal({ onClose }: { onClose: () => void }) {
-  const SHORTCUTS: [string, string][] = [
-    ["Click",                        "Select / deselect item"],
-    ["Esc",                          "Deselect / close dialogs"],
-    ["Tab",                          "Cycle: drugs → infusions → fluids → agents"],
-    ["Del / Backspace",              "Delete selected item"],
-    ["→  (Right arrow)",             "Extend bar right / copy drug right"],
-    ["←  (Left arrow)",              "Retract bar left / remove drug"],
-    ["0 – 9",                        "Enter dose for selected drug"],
-    ["Double-click stopped bar",     "Reactivate bar"],
-    ["Double-click infusion bar",    "Change infusion rate"],
-    ["Double-click drug pill",       "Change drug dose"],
-    ["↑ / ↓",                        "Adjust vitals slider value"],
-    ["Enter",                        "Confirm value in any input"],
-    ["Ctrl + Z",                     "Undo"],
-    ["Ctrl + Y  /  Ctrl + Shift + Z","Redo"],
-  ]
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-slate-200 dark:border-[#3a3a3a]">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Keyboard Shortcuts</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="space-y-1.5">
-          {SHORTCUTS.map(([key, desc]) => (
-            <div key={key} className="flex items-center gap-3">
-              <kbd className="shrink-0 w-52 px-2 py-1 font-mono text-[10px] bg-slate-100 dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                {key}
-              </kbd>
-              <span className="text-xs text-slate-600 dark:text-slate-300">{desc}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>,
-    document.body
-  )
-}
+// TtSel's `id`/`startCol`/`idx` fields each only exist on 2 of its 4 members
+// — these narrow without a cast for spots that key off "is this an
+// id-bearing selection" rather than one specific exact type.
+function selId(s: TtSel): string | undefined { return s.type === "infusion" || s.type === "fluid" ? s.id : undefined }
+function selIdx(s: TtSel): number | undefined { return s.type === "drug" ? s.idx : undefined }
 
 type TtFP = {
   col: number; name: string; unit: string; mode: TtFPMode; dose: string; doseHint: string;
@@ -838,15 +279,179 @@ type TtFP = {
   color: string; fluidScale?: "S" | "L";
   concentration?: string   // local anaesthetic solution % (e.g. "0.25%")
   customConc?: string      // user-typed custom % before appending "%"
+  quickDoses?: number[]    // bolus quick-dose presets
+  quickRates?: number[]    // infusion quick-rate presets
+  routes?: string[]        // available routes of administration for this drug
+  route?: string           // selected route
   anchor: { top: number; bottom: number; left: number; right: number; width: number };
 }
 
-// в"Ђв"Ђ Component в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onFluidTotals, onComplicationAdded }: Props) {
+// ── Component ─────────────────────────────────────────────────────────────────
+export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onComplicationAdded, onLogEvent, onLogEventDelete }: Props) {
+  // Derived (not mutated) from the shared library — see the comment above
+  // this component for why these are plain local consts instead of the
+  // module-level mutated containers this used to be.
+  const { options: drugLibOpts } = useOptionLibrary("INTRAOP_DRUG")
+  const { options: fluidLibOpts } = useOptionLibrary("INTRAOP_FLUID")
+  const { options: eventLibOpts } = useOptionLibrary("INTRAOP_EVENT")
+  const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
+  const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
+
+  const { QUICK_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES } = useMemo(() => {
+    const byGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string }[] }>()
+    const bolusDoses: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number; hint: string; byRoute?: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }> }> = {}
+    const bolusConfigs: Record<string, { min: number; max: number; step: number }> = {}
+    const laConcentrations: Record<string, string[]> = {}
+    const drugRoutes: Record<string, string[]> = {}
+    const quickDoses: Record<string, number[]> = {}
+    for (const o of drugLibOpts) {
+      const cat = o.group ?? "Other"
+      const m = (o.metadata ?? {}) as DoseProfileInput
+      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", drugs: [] })
+      byGroup.get(cat)!.drugs.push({ name: o.label, unit: m.unit ?? "mg" })
+      if (m.hint || m.doseCalc || m.doseCalcByRoute) {
+        bolusDoses[o.label] = {
+          hint: m.hint ?? "", perKg: m.doseCalc?.perKg, flat: m.doseCalc?.flat, basis: m.doseCalc?.basis,
+          roundTo: m.doseCalc?.roundTo, cap: m.doseCalc?.cap, byRoute: m.doseCalcByRoute,
+        }
+      }
+      if (m.min != null && m.max != null && m.step != null) bolusConfigs[o.label] = { min: m.min, max: m.max, step: m.step }
+      if (m.concentrationOptions?.length) laConcentrations[o.label] = m.concentrationOptions
+      drugRoutes[o.label] = m.routes ?? ["IV"]
+      if (m.quickValues?.length) quickDoses[o.label] = m.quickValues
+    }
+    return { QUICK_DRUGS: [...byGroup.values()], BOLUS_DOSES: bolusDoses, BOLUS_CONFIGS: bolusConfigs, LA_CONCENTRATIONS: laConcentrations, DRUG_ROUTES: drugRoutes, QUICK_DOSES: quickDoses }
+  }, [drugLibOpts])
+
+  const { QUICK_FLUIDS, FLUID_QUICK_VOLUMES, FLUID_ROUTES } = useMemo(() => {
+    const byGroup = new Map<string, { cat: string; color: string; fluids: { name: string }[] }>()
+    const quickVolumes: Record<string, number[]> = {}
+    const routes: Record<string, string[]> = {}
+    for (const o of fluidLibOpts) {
+      const cat = o.group ?? "Other"
+      const m = o.metadata as DoseProfileInput | null
+      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", fluids: [] })
+      byGroup.get(cat)!.fluids.push({ name: o.label })
+      if (m?.quickValues?.length) quickVolumes[o.label] = m.quickValues
+      routes[o.label] = m?.routes ?? ["IV"]
+    }
+    return { QUICK_FLUIDS: [...byGroup.values()], FLUID_QUICK_VOLUMES: quickVolumes, FLUID_ROUTES: routes }
+  }, [fluidLibOpts])
+
+  function fluidColor(name: string): string {
+    for (const cat of QUICK_FLUIDS) {
+      if (cat.fluids.some(f => f.name === name)) return FLUID_CAT_COLOR[cat.cat] ?? "#94a3b8"
+    }
+    return "#94a3b8"
+  }
+  function fluidCategory(name: string): string {
+    for (const cat of QUICK_FLUIDS) {
+      if (cat.fluids.some(f => f.name === name)) return cat.cat
+    }
+    return "Other"
+  }
+  function computeFluidRows(fluids: TimetableFluid[]): FluidLaneRow[] {
+    const byCat = new Map<string, TimetableFluid[]>()
+    for (const f of fluids) {
+      const cat = f.category ?? fluidCategory(f.name)
+      // Normalise: endCol must be >= startCol to guarantee the overlap formula works.
+      const normalised = f.endCol < f.startCol ? { ...f, endCol: f.startCol } : f
+      const list = byCat.get(cat) ?? []; list.push(normalised); byCat.set(cat, list)
+    }
+    const rows: FluidLaneRow[] = []
+    for (const [cat, catFluids] of byCat) {
+      const sorted = [...catFluids].sort((a, b) => a.startCol - b.startCol)
+      const lanes: TimetableFluid[][] = []
+      for (const fluid of sorted) {
+        let placed = false
+        for (const lane of lanes) {
+          if (!lane.some(l => !(fluid.endCol < l.startCol || fluid.startCol > l.endCol))) {
+            lane.push(fluid); placed = true; break
+          }
+        }
+        if (!placed) lanes.push([fluid])
+      }
+      const catColor = FLUID_CAT_COLOR[cat] ?? "#94a3b8"
+      lanes.forEach((lane, idx) => {
+        rows.push({ label: idx === 0 ? cat : `${cat} ${idx + 1}`, cat, color: catColor, segs: lane })
+      })
+    }
+    return rows
+  }
+
+  const CLINICAL_EVENT_CATS = useMemo(() => {
+    const byGroup = new Map<string, { cat: string; color: string; isComplication?: boolean; events: ClinicalEventDef[] }>()
+    for (const o of eventLibOpts) {
+      const cat = o.group ?? "Other"
+      const m = o.metadata as { categoryColor?: string; isComplication?: boolean } | null
+      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: m?.categoryColor ?? "#64748b", isComplication: !!m?.isComplication, events: [] })
+      byGroup.get(cat)!.events.push({ label: o.label, color: o.color ?? "#64748b" })
+    }
+    return [...byGroup.values()]
+  }, [eventLibOpts])
+
+  const { INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES } = useMemo(() => {
+    const configs: Record<string, { units: string[]; min: number; max: number; step: number; color: string }> = {}
+    const weightBasis: WeightBasisMap = {}
+    const routes: Record<string, string[]> = {}
+    const quickRates: Record<string, number[]> = {}
+    for (const o of infusionLibOpts) {
+      const m = (o.metadata ?? {}) as DoseProfileInput
+      const unit = m.unit ?? "mg/hr"
+      configs[o.label] = { units: [unit], min: m.min ?? 0, max: m.max ?? 100, step: m.step ?? 1, color: o.color ?? "#64748b" }
+      weightBasis[o.label] = m.weightBasis ?? "IBW"
+      routes[o.label] = m.routes ?? ["IV"]
+      if (m.quickValues?.length) quickRates[o.label] = m.quickValues
+    }
+    return { INFUSION_CONFIGS: configs, INFUSION_WEIGHT_BASIS: weightBasis, INFUSION_ROUTES: routes, QUICK_RATES: quickRates }
+  }, [infusionLibOpts])
+
+  const { INH_AGENTS, AGENT_STYLE, AGENT_QUICK_PERCENTS } = useMemo(() => {
+    const agents: string[] = []
+    const style: Record<string, { bar: string; text: string; grip: string }> = {}
+    const quickPercents: Record<string, number[]> = {}
+    for (const o of agentLibOpts) {
+      agents.push(o.label)
+      const m = o.metadata as (DoseProfileInput & { bar: string; text: string; grip: string }) | null
+      if (m) style[o.label] = { bar: m.bar, text: m.text, grip: m.grip }
+      if (m?.quickValues?.length) quickPercents[o.label] = m.quickValues
+    }
+    return { INH_AGENTS: agents, AGENT_STYLE: style, AGENT_QUICK_PERCENTS: quickPercents }
+  }, [agentLibOpts])
+
+  function calcSuggestedDose(name: string, ibw: number | null, tbw: number | null, route?: string): { dose: string; hint: string } {
+    const cfg = BOLUS_DOSES[name]
+    if (!cfg) return { dose: "", hint: "" }
+    // Per-route override takes priority (Ketamine: IV 2mg/kg, IM 4mg/kg, IN 3mg/kg, PO 8mg/kg).
+    const active = (route ? cfg.byRoute?.[route] : undefined) ?? cfg
+    const roundTo = active.roundTo ?? 1
+    const roundStep = (v: number) => Math.round(v / roundTo) * roundTo
+    if (active.flat !== undefined)
+      return { dose: String(active.flat), hint: cfg.hint }
+    if (active.perKg !== undefined) {
+      // IBW basis is capped at the patient's actual weight (min(IBW,TBW)) —
+      // never suggest a dose computed against a higher theoretical weight
+      // than the patient actually has.
+      const w = active.basis === "TBW" ? (tbw ?? ibw) : (ibw != null && tbw != null ? Math.min(ibw, tbw) : (ibw ?? tbw))
+      if (!w) return { dose: "", hint: cfg.hint }
+      let dose = roundStep(w * active.perKg)
+      if (active.cap != null) dose = Math.min(dose, active.cap)
+      return { dose: String(dose), hint: cfg.hint }
+    }
+    return { dose: "", hint: cfg.hint }
+  }
+
+  function bolusRange(name: string, unit: string) {
+    if (BOLUS_CONFIGS[name]) return BOLUS_CONFIGS[name]
+    if (unit === "mcg") return { min:0, max:2000, step:10 }
+    if (unit === "g")   return { min:0, max:10,   step:0.5 }
+    if (unit === "ml")  return { min:0, max:100,  step:1 }
+    if (unit === "IU")  return { min:0, max:200,  step:5 }
+    return { min:0, max:500, step:5 }
+  }
+
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
-  const [addingDrug, setAddingDrug]       = useState<number | null>(null)
-  const [draft, setDraft]                 = useState({ name: "", dose: "", unit: "mg" })
   const [dragOver, setDragOver]           = useState<number | null>(null)
   // Extending an infusion segment
   // Whole-bar drag
@@ -854,7 +459,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [movingInfCol, setMovingInfCol]   = useState<number | null>(null)
   // Rate-pill drag
   const [movingRatePill, setMovingRatePill]       = useState<{ infId: string; fromCol: number; rate: number; unit: string } | null>(null)
-  const [movingRatePillCol, setMovingRatePillCol] = useState<number | null>(null)
+  const [, setMovingRatePillCol] = useState<number | null>(null)
   // Misc infusion UI state
   const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null)
   const [hoverDiscontinue, setHoverDiscontinue] = useState<string | null>(null)
@@ -863,8 +468,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [extInfHover, setExtInfHover]           = useState<number | null>(null)
   const [extendingInfLeft, setExtendingInfLeft] = useState<string | null>(null)
   const [extInfLeftHover, setExtInfLeftHover]   = useState<number | null>(null)
-  // Fluid volume slider scale: S=small 10ml steps, L=large 50ml steps
-  const [fluidScale, setFluidScale]       = useState<"S"|"L">("L")
   // Item-level selection (pill or infusion bar)
   const [sel, setSel] = useState<TtSel | null>(null)
   // Floating prompt portal
@@ -879,12 +482,18 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const prevColRef                    = useRef<number | null>(null)
   const endedAtRef                    = useRef<Date | null>(null)
   const [resumeSecsLeft, setResumeSecsLeft] = useState(0)
+  const [resumeUntilLabel, setResumeUntilLabel] = useState("")
   // In-cell drug picker
   const [drugPicker, setDrugPicker]   = useState<{ ci: number; rect: DOMRect } | null>(null)
   const [dpSearch,   setDpSearch]     = useState("")
   // In-cell fluid picker
   const [fluidPicker, setFluidPicker] = useState<{ ci: number; rect: DOMRect } | null>(null)
   const [fpSearch,    setFpSearch]    = useState("")
+  // In-cell infusion picker — separate row/entry point from the drug picker,
+  // so starting an infusion no longer requires picking a drug then choosing
+  // "Infusion" (matches mobile's separate Drug/Infusion/Fluid/Agent rows).
+  const [infPicker, setInfPicker]     = useState<{ ci: number; rect: DOMRect } | null>(null)
+  const [ipSearch,  setIpSearch]      = useState("")
   // Infusion context menu + rate-change dialog
   const [infMenu, setInfMenu] = useState<{ segId: string; name: string; color: string; rect: DOMRect; stopped?: boolean; fromPillCol?: number } | null>(null)
   const [rateDialog, setRateDialog] = useState<{
@@ -893,6 +502,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     color: string; rect: DOMRect; step: "rate" | "time"
     timeH: string; timeM: string
     editFromCol?: number
+    concentration?: string  // local anaesthetic infusions only — editable mid-run
+    baseDrugName?: string   // drug name without the concentration suffix, for LA_CONCENTRATIONS lookup
   } | null>(null)
   // Timetable layout mode
   const [layout, setLayout] = useState<"expand" | "scroll">(() =>
@@ -959,8 +570,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }, [])
 
   // Resume countdown — tick every second while active
+  const resumeActive = resumeSecsLeft > 0
   useEffect(() => {
-    if (resumeSecsLeft <= 0) return
+    if (!resumeActive) return
     const id = setInterval(() => {
       if (!endedAtRef.current) return
       const elapsed = Math.floor((Date.now() - endedAtRef.current.getTime()) / 1000)
@@ -968,8 +580,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       setResumeSecsLeft(left)
     }, 1000)
     return () => clearInterval(id)
-  }, [resumeSecsLeft > 0])
+  }, [resumeActive])
   // Reset inline-discontinue state when selection changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setDiscConfirmId(null); setDiscFluidState(null) }, [sel])
 
   // Resize-aware column width: fill available width in stacked mode
@@ -985,9 +598,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     ro.observe(el); update()
     return () => ro.disconnect()
   }, [])
+  // Recompute width immediately on layout-mode toggle, not just on resize.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (layout !== "expand") setColW(COL_W)
     else { const el = rowsContainerRef.current; if (el) { const w = el.getBoundingClientRect().width; if (w > LABEL_W) setColW(Math.max(COL_W, Math.floor((w - LABEL_W) / ROW_COLS))) } }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [layout])
 
   // Undo / redo history (refs → no extra renders)
@@ -1001,29 +617,58 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     rawOnChangeRef.current(newData)
   })
 
-  function openFP(col: number, name: string, unit: string, anchorEl: Element) {
+  // Per-action event emission alongside the existing onChange/data mutation —
+  // matches mobile's POST-one-event-per-action pattern against
+  // /api/cases/[id]/events, so web cases get real CaseEvent rows too instead
+  // of only the legacy keyEvents JSON blob. Scoped to create/start/stop/rate
+  // actions; raw bar-drag resize gestures are left on the existing local-only
+  // path since they aren't a distinct clinical event.
+  const onLogEventRef = useRef(onLogEvent)
+  useEffect(() => { onLogEventRef.current = onLogEvent }, [onLogEvent])
+  const onLogEventDeleteRef = useRef(onLogEventDelete)
+  useEffect(() => { onLogEventDeleteRef.current = onLogEventDelete }, [onLogEventDelete])
+  function uid(): string {
+    return typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("")
+  }
+  function emitLogEvent(partial: Omit<IntraopLogEvent, "id" | "ts">) {
+    onLogEventRef.current?.({ id: uid(), ts: new Date().toISOString(), ...partial })
+  }
+
+  function openFP(col: number, name: string, unit: string, anchorEl: Element, mode: "bolus" | "infusion") {
     const r    = anchorEl.getBoundingClientRect()
     const cfg  = INFUSION_CONFIGS[name]
-    const sugg = calcSuggestedDose(name, ibw ?? null, tbw ?? null)
+    const routes = mode === "infusion" ? (INFUSION_ROUTES[name] ?? ["IV"]) : (DRUG_ROUTES[name] ?? ["IV"])
+    const sugg = calcSuggestedDose(name, ibw ?? null, tbw ?? null, routes[0])
     setFp({ col, name, unit,
-      mode: cfg ? "choose" : "bolus",
+      mode,
       dose: sugg.dose, doseHint: sugg.hint,
       rate: cfg?.min ?? 0, rateUnit: cfg?.units[0] ?? "mg/hr", rateUnits: cfg?.units ?? DEFAULT_INF.units,
       rateMin: cfg?.min ?? DEFAULT_INF.min, rateMax: cfg?.max ?? DEFAULT_INF.max, rateStep: cfg?.step ?? DEFAULT_INF.step,
       color: cfg?.color ?? DEFAULT_INF.color,
+      quickDoses: QUICK_DOSES[name], quickRates: QUICK_RATES[name],
+      routes, route: routes[0],
       anchor: { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width },
     })
   }
   function fpCommitBolus() {
     if (!fp) return
-    onChange({ ...data, drugs: [...data.drugs, { colIdx: fp.col, name: fp.name, dose: fp.dose, unit: fp.unit }] })
+    // Coded identity (drugId/atcCode/inn) comes from the matching catalog
+    // row when the library has it — currently empty, so these are
+    // undefined today, but the field flows all the way through to the
+    // chart/cache/export once the drug library is populated.
+    const lib = drugLibOpts.find(o => o.label === fp.name)
+    onChange({ ...data, drugs: [...data.drugs, { colIdx: fp.col, name: fp.name, dose: fp.dose, unit: fp.unit, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, route: fp.route }] })
+    emitLogEvent({ type: "drug", name: fp.name, dose: fp.dose, unit: fp.unit, drugRoute: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined })
     setFp(null)
   }
   function addFluidDirect(name: string, cat: string, vol: string, col: number) {
     const color = FLUID_CAT_COLOR[cat] ?? fluidColor(name)
-    const id = `${name}-${col}-${Date.now()}`
+    const id = `${name}-${col}-${uid()}`
     const d = dataRef.current
     onChangeRef.current({ ...d, fluids: [...(d.fluids ?? []), { id, name, category: cat, volume: vol, color, startCol: col, endCol: col }] })
+    emitLogEvent({ type: "fluid_start", fluidId: id, name, category: cat, volume: vol, color })
   }
   function checkFluidConflict(name: string, vol: string, col: number, anchor: FConflictAnchor): boolean {
     const cat = fluidCategory(name)
@@ -1046,10 +691,15 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     const cfg  = INFUSION_CONFIGS[fp.name] ?? DEFAULT_INF
     const conc = fp.concentration ? ` ${fp.concentration}` : ""
     const displayName = fp.name + conc
-    const id   = `${fp.name}-${fp.col}-${Date.now()}`
-    onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:fp.rate, unit:fp.rateUnit, startCol:fp.col, endCol:fp.col, color:cfg.color }] })
+    const id   = `${fp.name}-${fp.col}-${uid()}`
+    const lib = infusionLibOpts.find(o => o.label === fp.name)
+    onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:fp.rate, unit:fp.rateUnit, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined }] })
+    emitLogEvent({ type: "infusion_start", infId: id, name: displayName, rate: String(fp.rate), unit: fp.rateUnit, color: cfg.color, drugRoute: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined })
     setFp(null)
   }
+
+  // ── Vitals ──────────────────────────────────────────────────────────────────
+  const { setVital, lastVitalBefore } = useVitalsHandlers(dataRef, rawOnChangeRef)
 
   // Keyboard navigation on selected items
   useEffect(() => {
@@ -1061,11 +711,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       if (e.key === "Escape") { setSel(null); return }
 
       const col = sel.type === "drug"     ? d.drugs[sel.idx]?.colIdx
-                : sel.type === "fluid"    ? (d.fluids??[]).find(f=>f.id===(sel as any).id)?.startCol
-                : (d.infusions??[]).find(i=>i.id===(sel as any).id)?.startCol
+                : sel.type === "fluid"    ? (d.fluids??[]).find(f=>f.id===selId(sel))?.startCol
+                : (d.infusions??[]).find(i=>i.id===selId(sel))?.startCol
       if (col == null) return
 
-      // Tab: cycle drugв†'fluidв†'next col drug
+      // Tab: cycle drug→fluid→next col drug
       if (e.key === "Tab") {
         e.preventDefault()
         // Build ordered list for cycling
@@ -1077,7 +727,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           ;(d.agents??[]).forEach(x  => { if (x.startCol===c)  items.push({type:"agent",startCol:x.startCol}) })
         }
         const ci = items.findIndex(it =>
-          it.type===sel.type && ((it.type==="infusion"||it.type==="fluid") ? (it as any).id===(sel as any).id : (it as any).idx===(sel as any).idx)
+          it.type===sel.type && ((it.type==="infusion"||it.type==="fluid") ? selId(it)===selId(sel) : selIdx(it)===selIdx(sel))
         )
         setSel(items[(ci+1)%items.length] ?? null)
         return
@@ -1086,10 +736,10 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       if (e.key === "Backspace" || e.key === "Delete") {
         e.preventDefault()
         if (sel.type==="drug")     { oc({...d,drugs:d.drugs.filter((_,i)=>i!==sel.idx)}); setSel(null) }
-        if (sel.type==="fluid")    { oc({...d,fluids:(d.fluids??[]).filter(f=>f.id!==(sel as any).id)}); setSel(null) }
-        if (sel.type==="infusion") { oc({...d,infusions:(d.infusions??[]).filter(x=>x.id!==(sel as any).id)}); setSel(null) }
+        if (sel.type==="fluid")    { oc({...d,fluids:(d.fluids??[]).filter(f=>f.id!==sel.id)}); setSel(null) }
+        if (sel.type==="infusion") { oc({...d,infusions:(d.infusions??[]).filter(x=>x.id!==sel.id)}); setSel(null) }
         if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===(sel as any).startCol)
+          const a = d.agents.find(a => a.startCol===sel.startCol)
           if (a) { oc({...d, agents:d.agents.filter(x=>x.startCol!==a.startCol)}); setSel(null) }
         }
         return
@@ -1098,7 +748,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       if (e.key === "ArrowRight") {
         e.preventDefault()
         if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===(sel as any).startCol)
+          const a = d.agents.find(a => a.startCol===sel.startCol)
           if (a && a.endCol+1 < colCount) oc({...d, agents:d.agents.map(x=>x.startCol===a.startCol?{...x,endCol:x.endCol+1}:x)})
           return
         }
@@ -1113,8 +763,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           oc({...d, infusions:(d.infusions??[]).map(i=>i.id===sel.id?{...i,endCol:i.endCol+1}:i)})
         }
         if (sel.type==="fluid") {
-          const fl = (d.fluids??[]).find(f=>f.id===(sel as any).id)
-          if (fl && fl.endCol+1 < colCount) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===(sel as any).id?{...f,endCol:f.endCol+1}:f)})
+          const fl = (d.fluids??[]).find(f=>f.id===sel.id)
+          if (fl && fl.endCol+1 < colCount) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===sel.id?{...f,endCol:f.endCol+1}:f)})
         }
         return
       }
@@ -1122,7 +772,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       if (e.key === "ArrowLeft") {
         e.preventDefault()
         if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===(sel as any).startCol)
+          const a = d.agents.find(a => a.startCol===sel.startCol)
           if (a && a.endCol > a.startCol) oc({...d, agents:d.agents.map(x=>x.startCol===a.startCol?{...x,endCol:x.endCol-1}:x)})
           return
         }
@@ -1135,15 +785,10 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           if (inf && inf.endCol > inf.startCol) oc({...d, infusions:(d.infusions??[]).map(i=>i.id===sel.id?{...i,endCol:i.endCol-1}:i)})
         }
         if (sel.type==="fluid") {
-          const fl = (d.fluids??[]).find(f=>f.id===(sel as any).id)
-          if (fl && fl.endCol > fl.startCol) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===(sel as any).id?{...f,endCol:f.endCol-1}:f)})
+          const fl = (d.fluids??[]).find(f=>f.id===sel.id)
+          if (fl && fl.endCol > fl.startCol) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===sel.id?{...f,endCol:f.endCol-1}:f)})
         }
         return
-      }
-
-      if (/^[0-9]$/.test(e.key) && sel.type==="drug") {
-        setDraft({name:"", dose:e.key, unit:"mg"})
-        setAddingDrug(col)
       }
     }
     window.addEventListener("keydown", handle)
@@ -1172,7 +817,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     }
     window.addEventListener("keydown", handleKey, true) // capture phase — beats input handlers
     return () => window.removeEventListener("keydown", handleKey, true)
-  }, [vitalsPopup])
+  }, [vitalsPopup, setVital])
 
   // Undo / redo
   useEffect(() => {
@@ -1196,6 +841,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // Freeze and clear the live clock as soon as case ends
   const endTimeRef = useRef(endTime)
   useEffect(() => { endTimeRef.current = endTime }, [endTime])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (endTime) setNowOffsetPx(null) }, [endTime])
 
   // On mount: expand colCount to cover all loaded data + the end time so a
@@ -1224,10 +870,10 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
     const needed = Math.max(dataMax, endMax) + 1
     if (needed > ROW_COLS) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setColCount(Math.ceil(needed / ROW_COLS) * ROW_COLS)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // intentionally run once on mount only
+  }, [caseStarted, data, endTime, startTime])
 
   // ── Mount-time backfill: fill any gap from last vitals col to current col ──
   useEffect(() => {
@@ -1264,8 +910,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       })
     }
     rawOnChangeRef.current({ ...d, vitals: newVitals })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseStarted])
+  }, [caseStarted, rawOnChangeRef, startTime])
 
   // ── Live clock: advance selectedCol + pixel offset every 10 s ──────────────
   useEffect(() => {
@@ -1291,7 +936,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         const needsExtend =
           (d.infusions ?? []).some(i => i.endCol < col && !i.stopped) ||
           (d.fluids    ?? []).some(f => f.endCol < col && !f.stopped) ||
-          (d.agents    ?? []).some(a => a.endCol < col && !a.stopped)
+          (d.agents    ?? []).some(a => a.endCol < col && !a.stopped) ||
+          (d.gasSettings ?? []).some(g => g.endCol < col && !g.stopped)
 
         // Auto-fill vitals from previous column when clock advances
         const AUTO_FILL_KEYS    = ["etco2", "temp", "spO2"] as const
@@ -1319,6 +965,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             infusions: (d.infusions ?? []).map(i => i.endCol < col && !i.stopped ? { ...i, endCol: col } : i),
             fluids:    (d.fluids    ?? []).map(f => f.endCol < col && !f.stopped ? { ...f, endCol: col } : f),
             agents:    (d.agents   ?? []).map(a => a.endCol < col && !a.stopped ? { ...a, endCol: col } : a),
+            gasSettings: (d.gasSettings ?? []).map(g => g.endCol < col && !g.stopped ? { ...g, endCol: col } : g),
           })
         }
         prevColRef.current = col
@@ -1330,7 +977,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }, [startTime, caseStarted])
 
   const nowCol    = nowOffsetPx !== null ? Math.min(Math.floor(nowOffsetPx / COL_W), colCount - 1) : null
-  const nowCellPx = nowOffsetPx !== null && nowCol !== null ? nowOffsetPx - nowCol * COL_W : null
 
   // Column index of the case end time (handles midnight crossing)
   const endCol = endTime ? (() => {
@@ -1340,7 +986,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     return Math.max(0, Math.floor(diffMins / INTERVAL))
   })() : null
 
-  // в"Ђв"Ђ Auto-scroll active row into view when column advances в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+  // ── Auto-scroll active row into view when column advances ────────────────────
   useEffect(() => {
     if (!caseStarted) return          // don't auto-scroll until the case has started
     activeRowRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
@@ -1349,16 +995,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [extendingFluid, setExtendingFluid] = useState<string | null>(null)
   const [extFluidHover, setExtFluidHover]   = useState<number | null>(null)
   const [fluidConflict, setFluidConflict]   = useState<FluidConflict | null>(null)
-  const [agentPicker, setAgentPicker]     = useState<number | null>(null)
-  const [agentPickerRect, setAgentPickerRect] = useState<DOMRect | null>(null)
-  const [pickerN2o, setPickerN2o] = useState<number | null>(null)
   // Drag-to-extend state: startCol of segment being extended
   const [extendingAgent, setExtendingAgent]   = useState<number | null>(null)
   const [extendHoverCol, setExtendHoverCol]   = useState<number | null>(null)
 
   const roundedStart = floorTo5(startTime || "08:00")
   const times  = Array.from({ length: colCount }, (_, i) => addMinutes(roundedStart, i * INTERVAL))
-  const agents = data.agents ?? []
 
   // Show only rows whose monitor is active; fall back to all rows if no monitoring passed
   const activeRows = monitoring
@@ -1369,151 +1011,38 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   function segmentAt(ci: number): AgentSegment | null {
     return agents.find(a => ci >= a.startCol && ci <= a.endCol) ?? null
   }
-
-  // в"Ђв"Ђ Vitals в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
-    const val  = raw === "" ? undefined : Number(raw)
-    const next = [...dataRef.current.vitals]
-    while (next.length <= col) next.push({})
-    next[col] = { ...next[col], [key]: val }
-    rawOnChangeRef.current({ ...dataRef.current, vitals: next })
-  // dataRef and rawOnChangeRef are stable refs — no deps needed
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const lastVitalBefore = useCallback((col: number, key: keyof VitalsEntry): number | undefined => {
-    for (let c = col - 1; c >= 0; c--) {
-      const v = dataRef.current.vitals[c]?.[key]
-      if (v != null) return v
-    }
-    return undefined
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  function gasSegmentAt(ci: number): GasSettingsSegment | null {
+    return (data.gasSettings ?? []).find(g => ci >= g.startCol && ci <= g.endCol) ?? null
+  }
 
   // ── Clinical Events ───────────────────────────────────────────────────────────
-  function addClinicalEvent(colIdx: number, label: string, color: string, isComplication: boolean) {
-    const d = dataRef.current
-    onChangeRef.current({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), { colIdx, label, color }] })
-    if (isComplication) onComplicationAdded?.([label])
-  }
-  function removeClinicalEvent(colIdx: number, label: string) {
-    const d = dataRef.current
-    onChangeRef.current({ ...d, clinicalEvents: (d.clinicalEvents ?? []).filter(e => !(e.colIdx === colIdx && e.label === label)) })
-  }
+  const { addClinicalEvent, removeClinicalEvent } = useClinicalEventHandlers(dataRef, onChangeRef, emitLogEvent, onComplicationAdded)
 
-  // в"Ђв"Ђ Drugs в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function commitDrug(col: number) {
-    if (!draft.name.trim()) { setAddingDrug(null); return }
-    onChange({ ...data, drugs: [...data.drugs, { colIdx: col, name: draft.name.trim(), dose: draft.dose, unit: draft.unit }] })
-    setDraft({ name: "", dose: "", unit: "mg" }); setAddingDrug(null)
-  }
-  function removeDrug(idx: number) { onChange({ ...data, drugs: data.drugs.filter((_, i) => i !== idx) }) }
+  // ── Drugs ───────────────────────────────────────────────────────────────────
+  const { removeDrug } = useDrugHandlers(data, onChange)
 
-  // в"Ђв"Ђ Infusions в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function removeInfusion(id: string) { onChange({ ...data, infusions: (data.infusions ?? []).filter(i => i.id !== id) }) }
-  function extendInfusion(id: string, newEnd: number, terminate = false) {
-    const d = dataRef.current; onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, endCol: newEnd, stopped: terminate ? true : undefined } : i) })
-  }
-  function resumeInfusion(id: string) {
-    const d = dataRef.current; onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, stopped: undefined } : i) })
-  }
-  function continueInfusion(source: TimetableInfusion, col: number) {
-    const d = dataRef.current
-    const newId = `${source.name}-${col}-${Date.now()}`
-    const startCol = col
-    const endCol   = Math.max(nowCol ?? col, col)  // past cell → fill to now; future cell → start there
-    onChangeRef.current({ ...d, infusions: [...(d.infusions ?? []), { ...source, id: newId, startCol, endCol, stopped: undefined }] })
-  }
+  // ── Infusions ────────────────────────────────────────────────────────────────
+  const { removeInfusion, extendInfusion, extendInfusionLeft, restoreInfusion, applyInfRateChange } =
+    useInfusionHandlers(data, onChange, dataRef, onChangeRef, onLogEventDeleteRef, emitLogEvent, nowCol)
 
-  // в"Ђв"Ђ Fluids в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function removeFluid(id: string) { onChange({ ...data, fluids: (data.fluids ?? []).filter(f => f.id !== id) }) }
-  function extendFluid(id: string, newEnd: number, terminate = false) {
-    const d = dataRef.current; onChangeRef.current({ ...d, fluids: (d.fluids ?? []).map(f => f.id === id ? { ...f, endCol: newEnd, stopped: terminate ? true : undefined } : f) })
-  }
-  function resumeFluid(id: string) {
-    const d = dataRef.current; onChangeRef.current({ ...d, fluids: (d.fluids ?? []).map(f => f.id === id ? { ...f, stopped: undefined } : f) })
-  }
-  function continueFluid(source: TimetableFluid, col: number) {
-    const d = dataRef.current
-    const newId = `${source.name}-${col}-${Date.now()}`
-    const startCol = col
-    const endCol   = Math.max(nowCol ?? col, col)
-    onChangeRef.current({ ...d, fluids: [...(d.fluids ?? []), { ...source, id: newId, startCol, endCol, stopped: undefined }] })
-  }
+  // ── Fluids ──────────────────────────────────────────────────────────────────
+  const { removeFluid, extendFluid, resumeFluid, continueFluid } =
+    useFluidHandlers(data, onChange, dataRef, onChangeRef, onLogEventDeleteRef, emitLogEvent, nowCol)
 
-  // в"Ђв"Ђ Agents в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function startAgent(col: number, name: string) {
-    const filtered = agents.filter(a => !(a.startCol <= col && col <= a.endCol) && a.startCol !== col)
-    const n2o = pickerN2o !== null ? pickerN2o : undefined
-    onChange({ ...data, agents: [...filtered, { name, startCol: col, endCol: col, n2o }] })
-    closeAgentPicker(); setPickerN2o(null)
-  }
-  function updateAgentExtras(startCol: number) {
-    const n2o = pickerN2o !== null ? pickerN2o : undefined
-    onChange({ ...data, agents: agents.map(a => a.startCol === startCol ? { ...a, n2o } : a) })
-    closeAgentPicker(); setPickerN2o(null)
-  }
-  function openPickerForSeg(ci: number, seg: AgentSegment, rect: DOMRect) {
-    if (agentPicker === ci) { setAgentPicker(null); setAgentPickerRect(null); return }
-    setPickerN2o(seg.n2o ?? null)
-    setAgentPicker(ci)
-    setAgentPickerRect(rect)
-  }
-  function openPickerEmpty(ci: number, rect: DOMRect) {
-    if (agentPicker === ci) { setAgentPicker(null); setAgentPickerRect(null); return }
-    setPickerN2o(null)
-    setAgentPicker(ci)
-    setAgentPickerRect(rect)
-  }
-  function closeAgentPicker() { setAgentPicker(null); setAgentPickerRect(null) }
-  function removeSegment(startCol: number) {
-    onChange({ ...data, agents: agents.filter(a => a.startCol !== startCol) })
-    closeAgentPicker()
-  }
-  function extendSegment(startCol: number, newEndCol: number, terminate = false) {
-    const d = dataRef.current; onChangeRef.current({ ...d, agents: d.agents.map(a => a.startCol === startCol ? { ...a, endCol: newEndCol, stopped: terminate ? true : undefined } : a) })
-  }
-  function resumeSegment(startCol: number) {
-    const d = dataRef.current; onChangeRef.current({ ...d, agents: d.agents.map(a => a.startCol === startCol ? { ...a, stopped: undefined } : a) })
-  }
-  function continueAgent(source: AgentSegment, col: number) {
-    const d = dataRef.current
-    const startCol = col
-    const endCol   = Math.max(nowCol ?? col, col)
-    onChangeRef.current({ ...d, agents: [...d.agents, { name: source.name, startCol, endCol, n2o: source.n2o, stopped: undefined }] })
-  }
+  // ── Agents ──────────────────────────────────────────────────────────────────
+  const {
+    agents, agentPicker, agentPickerRect, pickerN2o, setPickerN2o, pickerPercent, setPickerPercent,
+    pendingAgentName, setPendingAgentName,
+    startAgent, updateAgentExtras, openPickerForSeg, openPickerEmpty, closeAgentPicker,
+    removeSegment, extendSegment, resumeSegment, continueAgent,
+  } = useAgentHandlers(data, onChange, dataRef, onChangeRef, emitLogEvent, nowCol)
 
-  function extendInfusionLeft(id: string, newStartCol: number) {
-    const d = dataRef.current
-    const seg = (d.infusions ?? []).find(i => i.id === id)
-    if (!seg) return
-    const clamped = Math.max(0, Math.min(newStartCol, seg.endCol))
-    onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? {
-      ...i, startCol: clamped,
-      rateChanges: (i.rateChanges ?? []).filter(rc => rc.col >= clamped),
-    } : i) })
-  }
-
-  function restoreInfusion(id: string) {
-    const d = dataRef.current
-    const col = nowCol !== null ? nowCol : 0
-    onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, stopped: undefined, endCol: Math.max(i.endCol, col) } : i) })
-  }
-
-  function applyInfRateChange(infId: string, fromCol: number | null, toCol: number, rate: number, unit: string) {
-    onChangeRef.current({
-      ...dataRef.current,
-      infusions: (dataRef.current.infusions ?? []).map(i => {
-        if (i.id !== infId) return i
-        const changes = (i.rateChanges ?? []).filter(rc => rc.col !== fromCol && rc.col !== toCol).sort((a, b) => a.col - b.col)
-        if (toCol === i.startCol) {
-          // Dropped on the start cell → change the base rate of the segment
-          return { ...i, rate, unit, rateChanges: changes.length > 0 ? changes : undefined }
-        }
-        return { ...i, rateChanges: [...changes, { col: toCol, rate, unit }].sort((a, b) => a.col - b.col) }
-      }),
-    })
-  }
+  // ── Gas settings (FGF / carrier gas / FiO2) ──────────────────────────────────
+  const {
+    gasSettings, gasPicker, gasPickerRect, pickerFgf, setPickerFgf, pickerCarrierGas, setPickerCarrierGas, pickerFio2, setPickerFio2,
+    openPickerForSeg: openGasPickerForSeg, openPickerEmpty: openGasPickerEmpty, closeGasPicker,
+    startGas, applyGasChange, stopGas,
+  } = useGasSettingsHandlers(data, onChange, dataRef, onChangeRef, emitLogEvent)
 
   function handleEndCaseConfirm(result: {
     continuedItems: string[]
@@ -1521,6 +1050,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     discontinuedAgentCols: number[]
     discontinuedInfusionIds: string[]
     discontinuedFluidWithAmounts: { id: string; amount: number; category: string }[]
+    discontinuedGasIds: string[]
   }) {
     const col = nowCol ?? 0
     // One combined read + one combined write avoids stale-closure overwrites when
@@ -1528,6 +1058,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     const d = dataRef.current
     const discontinuedAgentSet = new Set(result.discontinuedAgentCols)
     const discontinuedInfSet   = new Set(result.discontinuedInfusionIds)
+    const discontinuedGasSet   = new Set(result.discontinuedGasIds)
     const amtById: Record<string, number> = Object.fromEntries(
       result.discontinuedFluidWithAmounts.map(f => [f.id, f.amount])
     )
@@ -1549,8 +1080,16 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           ? { ...f, endCol: Math.max(col, f.startCol), stopped: true as const, volume: String(amtById[f.id]) }
           : f
       ),
+      gasSettings: (d.gasSettings ?? []).map(g =>
+        discontinuedGasSet.has(g.id)
+          ? { ...g, endCol: col, stopped: true as const }
+          : g
+      ),
     })
-    endedAtRef.current = new Date()
+    const endedAt = new Date()
+    endedAtRef.current = endedAt
+    const resumeUntil = new Date(endedAt.getTime() + 30 * 60 * 1000)
+    setResumeUntilLabel(`${String(resumeUntil.getHours()).padStart(2,"0")}:${String(resumeUntil.getMinutes()).padStart(2,"0")}`)
     setResumeSecsLeft(30 * 60)
     onEndCase?.()
     if (result.continuedItems.length > 0) onPostopContinued?.(result.continuedItems)
@@ -1558,7 +1097,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     setShowEndModal(false)
   }
 
-  // в"Ђв"Ђ Extend drag-and-drop в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+  // ── Extend drag-and-drop ─────────────────────────────────────────────────────
   function onGripDragStart(e: React.DragEvent, startCol: number) {
     e.dataTransfer.setData("extend-agent", String(startCol))
     e.dataTransfer.effectAllowed = "move"
@@ -1581,11 +1120,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }
   function onAgentDragEnd() { setExtendingAgent(null); setExtendHoverCol(null) }
 
-  // в"Ђв"Ђ Drug/fluid drag в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function onItemDragStart(e: React.DragEvent, name: string, unit: string, type: "drug" | "fluid") {
-    e.dataTransfer.setData("item-type", type); e.dataTransfer.setData("item-name", name); e.dataTransfer.setData("item-unit", unit)
-    e.dataTransfer.effectAllowed = "copy"
-  }
+  // ── Drug/fluid drag ──────────────────────────────────────────────────────────
   function onDrugDragOver(e: React.DragEvent, col: number)  { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); setDragOver(col) }
   function onDrugDrop(e: React.DragEvent, col: number) {
     e.preventDefault(); setDragOver(null)
@@ -1596,9 +1131,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       return
     }
     if (type !== "drug") return
-    openFP(col, e.dataTransfer.getData("item-name"), e.dataTransfer.getData("item-unit"), e.currentTarget)
+    openFP(col, e.dataTransfer.getData("item-name"), e.dataTransfer.getData("item-unit"), e.currentTarget, "bolus")
   }
-  function onFluidDragOver(e: React.DragEvent, col: number) { e.preventDefault(); setFluidDragOver(col) }
   function onFluidDrop(e: React.DragEvent, col: number) {
     e.preventDefault(); setFluidDragOver(null)
     const type = e.dataTransfer.getData("item-type")
@@ -1622,30 +1156,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
   const [showEndPrompt, setShowEndPrompt] = useState(false)
 
-  // в"Ђв"Ђ Chart в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
-  function pts(key: keyof VitalsEntry) {
-    return times.flatMap((_, ci) => {
-      const v = data.vitals[ci]?.[key]; return v == null ? [] : [{ x: LABEL_W + ci * COL_W + COL_W / 2, y: yPx(v) }]
-    })
-  }
-  const bpAreaPath = (() => {
-    const pairs = times.flatMap((_, ci) => {
-      const s = data.vitals[ci]?.systolic, d = data.vitals[ci]?.diastolic
-      return (s != null && d != null) ? [{ x: LABEL_W + ci * COL_W + COL_W / 2, sy: yPx(s), dy: yPx(d) }] : []
-    })
-    if (pairs.length < 2) return ""
-    const fwd = pairs.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.sy}`).join(" ")
-    const bwd = [...pairs].reverse().map(p => `L ${p.x} ${p.dy}`).join(" ")
-    return `${fwd} ${bwd} Z`
-  })()
-
-  // в"Ђв"Ђ Shared styles в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+  // ── Shared styles ─────────────────────────────────────────────────────────────
   const cellCls     = "w-full text-center text-sm font-mono bg-white/60 dark:bg-transparent outline-none focus:bg-blue-50 dark:focus:bg-blue-900/30 rounded transition-colors py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-slate-700 dark:text-[#d0d0d0]"
   const rowLabelCls = "text-xs font-semibold text-slate-400 dark:text-[#888] uppercase tracking-wide text-right pr-2 leading-none select-none"
-  const stopBtnCls  = "text-[8px] font-bold px-1.5 py-0.5 rounded bg-red-700 dark:bg-red-900/80 hover:bg-red-600 dark:hover:bg-red-800 text-white border border-red-600 dark:border-red-800 whitespace-nowrap cursor-pointer"
-  const hoverStopCls = stopBtnCls + " absolute right-3 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
 
-  // в"Ђв"Ђ Per-row renderer в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+  // ── Per-row renderer ──────────────────────────────────────────────────────────
   function renderRow(rowIdx: number, overrideColStart?: number, overrideColEnd?: number) {
     const colStart    = overrideColStart ?? rowIdx * ROW_COLS
     const colEnd      = overrideColEnd   ?? Math.min(colStart + ROW_COLS, colCount)
@@ -1666,11 +1181,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       : endCol < colEnd   ? (endCol - colStart + 1) * colW // partial — from boundary right
       : null                                              // whole row is pre-end
 
-    // в"Ђв"Ђ bar continuation helpers в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+    // ── bar continuation helpers ──────────────────────────────────────────────
     function barContinues(endCol: number) { return endCol >= colEnd }
     function barEntries(startCol: number) { return startCol < colStart }
 
-    // в"Ђв"Ђ per-bar edge classes & grip visibility в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+    // ── per-bar edge classes & grip visibility ────────────────────────────────
     // isVisualStart = this cell is the first visible cell of the bar (actual start OR first in row)
     function leftCls(isVisualStart: boolean) {
       return isVisualStart ? "left-1 border-l rounded-l-full" : "left-0"
@@ -1809,7 +1324,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {/* Agent row */}
           {showAgentRow && (() => {
-            const nowAgentSeg = isActiveRow && nowCol !== null ? segmentAt(nowCol) : null
             return (
               <div className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/60 dark:bg-[#1a1a1a]/60 relative" style={{ minHeight: 32 }}>
                 <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>Inh. Agent</div>
@@ -1831,7 +1345,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   const isRowExit     = seg != null && barContinues(seg.endCol) && ci === colEnd - 1
                   const visStart      = Math.max(seg?.startCol ?? 0, colStart)
                   const visEnd        = Math.min(effectiveEnd, colEnd - 1)
-                  const labelMinW     = Math.max(0, (visEnd - visStart + 1) * colW - 16)
 
                   return (
                     <div key={ci} style={{ width: colW, minWidth: colW }}
@@ -1846,7 +1359,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       }}>
                       {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none">choose</span>}
                       {seg && style2 && (() => {
-                        const isAgentSel = sel?.type === "agent" && (sel as any).startCol === seg.startCol
+                        const isAgentSel = sel?.type === "agent" && sel.startCol === seg.startCol
                         const label = (isStart || isRowCont) ? [seg.name, seg.n2o != null ? `+ N2O ${seg.n2o}%` : null].filter(Boolean).join(" ") : null
                         return (
                           <>
@@ -1871,7 +1384,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                           <span className="text-white text-[8px] font-bold select-none">|</span>
                         </div>
                       )}
-                      {isEnd && !isRowExit && sel?.type === "agent" && (sel as any).startCol === seg?.startCol && seg && !seg.stopped && !isDragPreview && (
+                      {isEnd && !isRowExit && sel?.type === "agent" && sel.startCol === seg?.startCol && seg && !seg.stopped && !isDragPreview && (
                         <div className="absolute z-30 flex items-center gap-1" style={{ top: 2, right: 14 }}>
                           {discConfirmId === `agent-${seg.startCol}` ? (
                             <>
@@ -1919,6 +1432,67 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               </div>
             )
           })()}
+
+          {/* Gas settings row — FGF / carrier gas / FiO2. Visible whenever the
+              agent row is (same gating: GA technique selected), but starts
+              empty/unstarted until manually tapped. */}
+          {showAgentRow && (
+            <div className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/40 dark:bg-[#1a1a1a]/40 relative" style={{ minHeight: 32 }}>
+              <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>Gas Settings</div>
+              {rowCols.map(ci => {
+                const seg     = gasSegmentAt(ci)
+                const isStart = seg?.startCol === ci
+                const isEnd   = seg !== null && ci === seg.endCol
+                const isRowCont = !isStart && seg != null && ci === colStart && seg.startCol < colStart
+                const label = (isStart || isRowCont)
+                  ? `FGF ${seg!.fgf}L/min${seg!.carrierGas ? ` · ${seg!.carrierGas.toUpperCase()}` : ""} · FiO2 ${seg!.fio2}%`
+                  : null
+                return (
+                  <div key={ci} style={{ width: colW, minWidth: colW }}
+                    className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
+                    onClick={e => {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                      if (seg && isStart) openGasPickerForSeg(ci, seg, rect)
+                      else if (!seg) openGasPickerEmpty(ci, rect)
+                    }}>
+                    {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">tap to start</span>}
+                    {seg && (
+                      <div className={`absolute inset-y-1 left-0 right-0 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
+                    )}
+                    {label && (
+                      <span className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-[10px] font-bold whitespace-nowrap text-indigo-700 dark:text-indigo-300 px-1">
+                        {label}
+                      </span>
+                    )}
+                    {isEnd && seg && !seg.stopped && (
+                      <div className="absolute z-30 flex items-center gap-1" style={{ top: 2, right: 2 }}>
+                        {discConfirmId === `gas-${seg.startCol}` ? (
+                          <>
+                            <button type="button"
+                              onClick={e => { e.stopPropagation(); stopGas(seg.id, nowCol); setDiscConfirmId(null) }}
+                              className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap">
+                              ✓ Confirm
+                            </button>
+                            <button type="button"
+                              onClick={e => { e.stopPropagation(); setDiscConfirmId(null) }}
+                              className="text-[8px] text-white/70 hover:text-white px-1 whitespace-nowrap">
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <button type="button"
+                            onClick={e => { e.stopPropagation(); setDiscConfirmId(`gas-${seg.startCol}`) }}
+                            className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap">
+                            ✕ Disc
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Clinical Events row */}
           {(() => {
@@ -2025,12 +1599,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   const isActualEnd   = seg !== null && ci === effectiveEnd
                   const isRowCont     = !isActualStart && seg != null && ci === colStart
                   const isRowExit     = seg != null && barContinues(effectiveEnd) && ci === colEnd - 1 && !isActualEnd
-                  // Rate pill: shown at start of each distinct rate period
-                  const ratePill: { rate: number; unit: string; draggable: boolean } | null = seg ? (
-                    ci === seg.startCol ? { rate: seg.rate, unit: seg.unit, draggable: false }
-                    : (seg.rateChanges ?? []).find(rc => rc.col === ci) ? { ...(seg.rateChanges!.find(rc => rc.col === ci)!), draggable: true }
-                    : null
-                  ) : null
                   return (
                     <div key={ci} style={{ width: colW, minWidth: colW }}
                       className="relative border-l border-slate-100 dark:border-[#2a2a2a]"
@@ -2223,7 +1791,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {/* Fluid rows */}
           {computeFluidRows(data.fluids ?? []).map(({ label, segs, color }) => {
-            const nowFluidSeg = isActiveRow && nowCol !== null ? segs.find(s => s.startCol <= nowCol && s.endCol >= nowCol) : null
             return (
               <div key={label} className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
                 <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="flex flex-col items-end justify-center pr-2 py-2 gap-0 select-none shrink-0">
@@ -2240,7 +1807,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   const effectiveEnd  = seg && extendingFluid === seg.id && extFluidHover !== null ? Math.max(extFluidHover, seg.startCol) : (seg?.endCol ?? -1)
                   const isActualEnd   = seg !== null && ci === effectiveEnd
                   const isRowExit     = seg != null && barContinues(seg.endCol) && ci === colEnd - 1 && !isActualEnd
-                  const isSel         = seg && sel?.type==="fluid" && (sel as any).id===seg.id
+                  const isSel         = seg && sel?.type==="fluid" && sel.id===seg.id
                   const stoppedSeg    = !seg
                     ? segs.find(s => s.stopped && s.endCol < ci) ?? null : null
                   return (
@@ -2308,6 +1875,23 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             )
           })}
 
+          {/* Infusion drop zone — always-visible entry point, separate from
+              the Drug row, so starting an infusion never goes through a
+              drug-then-bolus/infusion choice. */}
+          <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>Infusions</div>
+            {rowCols.map(ci => (
+              <div key={ci} style={{ width: colW, minWidth: colW }}
+                className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
+                <button type="button" tabIndex={-1}
+                  onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }); setIpSearch("") }}
+                  className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
           {/* Fluid drop zone */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-cyan-50/20 dark:bg-cyan-950/5">
             <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>Fluids</div>
@@ -2359,7 +1943,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       </div>
 
       <div className="flex gap-3 items-start">
-        {/* в"Ђв"Ђ Timetable rows */}
+        {/* ── Timetable rows */}
         <div ref={rowsContainerRef} className="flex-1 min-w-0 space-y-2" onClick={() => { setSel(null); setDiscConfirmId(null) }}>
           {layout === "expand"
             ? Array.from({ length: Math.ceil(colCount / ROW_COLS) }, (_, ri) => renderRow(ri))
@@ -2393,21 +1977,17 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             <div className="ml-auto relative">
               {endTime ? (
                 <div className="flex items-center gap-2">
-                  {resumeSecsLeft > 0 && onResumeCase && (() => {
-                    const deadline = endedAtRef.current ? new Date(endedAtRef.current.getTime() + 30 * 60 * 1000) : null
-                    const hhmm = deadline ? `${String(deadline.getHours()).padStart(2,"0")}:${String(deadline.getMinutes()).padStart(2,"0")}` : ""
-                    return (
-                      <>
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                          Resumable until {hhmm}
-                        </span>
-                        <button type="button" onClick={onResumeCase}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-full border-2 border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-colors">
-                          Resume Case
-                        </button>
-                      </>
-                    )
-                  })()}
+                  {resumeSecsLeft > 0 && onResumeCase && (
+                    <>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                        Resumable until {resumeUntilLabel}
+                      </span>
+                      <button type="button" onClick={onResumeCase}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full border-2 border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-colors">
+                        Resume Case
+                      </button>
+                    </>
+                  )}
                   <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
                     Case ended
                   </span>
@@ -2477,12 +2057,13 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                           onClick={() => {
                             const { ci, rect } = fluidPicker!
                             setFluidPicker(null)
-                            const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => {} }) } as HTMLElement
                             const isCrystColloid = ["Crystalloids","Colloids"].includes(cat.cat)
+                            const routes = FLUID_ROUTES[fluid.name] ?? ["IV"]
                             setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
                               dose: isCrystColloid ? "500" : "", doseHint: "", fluidScale: "L",
                               rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
                               color: "#06b6d4",
+                              quickDoses: FLUID_QUICK_VOLUMES[fluid.name], routes, route: routes[0],
                               anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
                             })
                           }}
@@ -2607,7 +2188,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                             const { ci, rect } = drugPicker!
                             setDrugPicker(null)
                             const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
-                            openFP(ci, drug.name, drug.unit, anchor)
+                            openFP(ci, drug.name, drug.unit, anchor, "bolus")
                           }}
                           className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
                           {drug.name}
@@ -2632,7 +2213,60 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     ,
       document.body
     )}
-    {/* в"Ђв"Ђ Custom drug portal в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ */}
+    {/* -- Infusion picker portal -- */}
+    {infPicker && typeof document !== "undefined" && createPortal(
+      (() => {
+        const POP_W = 220
+        const spaceBelow = window.innerHeight - infPicker.rect.bottom
+        const showAbove  = spaceBelow < 320
+        const left = Math.max(8, Math.min(infPicker.rect.left, window.innerWidth - POP_W - 8))
+        const top  = showAbove ? infPicker.rect.top - 4 : infPicker.rect.bottom + 4
+        const names = Object.keys(INFUSION_CONFIGS).sort()
+        const filtered = ipSearch.trim()
+          ? names.filter(n => n.toLowerCase().includes(ipSearch.toLowerCase()))
+          : names
+        return (
+          <>
+            <div className="fixed inset-0 z-[9990]" onClick={() => setInfPicker(null)} />
+            <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
+              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
+                <input autoFocus type="text" placeholder="Search infusion..." value={ipSearch}
+                  onChange={e => setIpSearch(e.target.value)}
+                  onKeyDown={e => e.key === "Escape" && setInfPicker(null)}
+                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+              </div>
+              <div className="max-h-64 overflow-y-auto p-2">
+                <div className="flex flex-wrap gap-1">
+                  {filtered.map(name => {
+                    const cfg = INFUSION_CONFIGS[name]
+                    return (
+                      <button key={name} type="button"
+                        onClick={() => {
+                          const { ci, rect } = infPicker!
+                          setInfPicker(null)
+                          const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
+                          openFP(ci, name, cfg.units[0], anchor, "infusion")
+                        }}
+                        style={{ borderColor: cfg.color, color: cfg.color }}
+                        className="text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity">
+                        {name}
+                      </button>
+                    )
+                  })}
+                </div>
+                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No infusions found</p>}
+              </div>
+            </div>
+          </>
+        )
+      })()
+    ,
+      document.body
+    )}
+    {/* ── Custom drug portal ──────────────────────────────────────────────── */}
     {customDrugOpen && customDrugRect && typeof document !== "undefined" && createPortal(
       (() => {
         const POP_W = 230
@@ -2745,7 +2379,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       })(),
       document.body
     )}
-    {/* в"Ђв"Ђ Fluid conflict portal в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ */}
+    {/* ── Fluid conflict portal ──────────────────────────────────────────────── */}
     {fluidConflict && typeof document !== "undefined" && createPortal(
       (() => {
         const POP_W = 230
@@ -2856,7 +2490,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       })(),
       document.body
     )}
-    {/* в"Ђв"Ђ Agent picker portal в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ */}
+    {/* ── Agent picker portal ────────────────────────────────────────────────── */}
     {agentPicker !== null && agentPickerRect && typeof document !== "undefined" && createPortal(
       (() => {
         const pickerSeg = agents.find(a => a.startCol === agentPicker) ?? null
@@ -2880,13 +2514,35 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 <div className="space-y-0.5">
                   {INH_AGENTS.map(agent => (
                     <button key={agent} type="button"
-                      onClick={() => startAgent(agentPicker, agent)}
-                      className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#333] transition-colors ${AGENT_STYLE[agent]?.text ?? ""}`}>
+                      onClick={() => { setPendingAgentName(agent); setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null) }}
+                      className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors ${
+                        pendingAgentName === agent ? "bg-slate-100 dark:bg-[#333]" : "hover:bg-slate-100 dark:hover:bg-[#333]"
+                      } ${AGENT_STYLE[agent]?.text ?? ""}`}>
                       {agent}
                     </button>
                   ))}
                 </div>
               )}
+
+              {/* Fi(agent)% — agents always dose in %, no unit/route rows */}
+              {(pickerSeg || pendingAgentName) && (() => {
+                const agentName = pickerSeg?.name ?? pendingAgentName!
+                const quick = AGENT_QUICK_PERCENTS[agentName] ?? [0.5, 1, 1.5, 2, 3]
+                return (
+                  <div className="border-t border-slate-100 dark:border-[#333] pt-2">
+                    <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mb-1.5">Fi{agentName}</p>
+                    <DoseSelector
+                      accent="purple"
+                      quickValues={quick}
+                      value={String(pickerPercent ?? quick[0])}
+                      onValueChange={v => setPickerPercent(parseFloat(v) || 0)}
+                      min={0} max={10} step={0.1} unitSuffix="%"
+                      confirmLabel={!pickerSeg ? `Start ${agentName}` : undefined}
+                      onConfirm={!pickerSeg ? () => startAgent(agentPicker, agentName) : undefined}
+                    />
+                  </div>
+                )
+              })()}
 
               <div className="border-t border-slate-100 dark:border-[#333] pt-2 space-y-2">
                 <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Optional</p>
@@ -2926,7 +2582,69 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       })(),
       document.body
     )}
-    {/* в"Ђв"Ђ Floating prompt portal в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ */}
+    {gasPicker !== null && gasPickerRect && typeof document !== "undefined" && createPortal(
+      (() => {
+        const pickerSeg = gasSettings.find(g => g.startCol === gasPicker) ?? null
+        const POP_W = 210
+        const spaceBelow = window.innerHeight - gasPickerRect.bottom
+        const showAbove = spaceBelow < 280
+        const left = Math.max(8, Math.min(gasPickerRect.left, window.innerWidth - POP_W - 8))
+        const top  = showAbove ? gasPickerRect.top - 4 : gasPickerRect.bottom + 4
+        return (
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={closeGasPicker} />
+            <div
+              style={{ position:"fixed", left, top, width: POP_W, zIndex: 9999, transform: showAbove ? "translateY(-100%)" : undefined }}
+              className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
+              onClick={e => e.stopPropagation()}>
+              <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{pickerSeg ? "Edit gas settings" : "Start gas settings"}</p>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 font-semibold">FGF</span>
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{pickerFgf} L/min</span>
+                </div>
+                <input type="range" min={0} max={10} step={0.5}
+                  value={pickerFgf} onChange={e => setPickerFgf(parseFloat(e.target.value))}
+                  className="w-full h-1.5 accent-indigo-500" />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-500 font-semibold">Carrier gas</span>
+                <div className="flex gap-1">
+                  {[{ v: null, label: "O2 only" }, { v: "air", label: "+ Air" }, { v: "n2o", label: "+ N2O" }].map(opt => (
+                    <button key={opt.label} type="button"
+                      onClick={() => { setPickerCarrierGas(opt.v); if (opt.v == null) setPickerFio2(100) }}
+                      className={`flex-1 text-[10px] font-semibold px-1.5 py-1 rounded-lg border transition-colors ${
+                        pickerCarrierGas === opt.v ? "bg-indigo-500 border-indigo-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"
+                      }`}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 font-semibold">FiO2</span>
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{pickerCarrierGas == null ? 100 : pickerFio2}%</span>
+                </div>
+                <input type="range" min={21} max={100} step={1}
+                  value={pickerCarrierGas == null ? 100 : pickerFio2} onChange={e => setPickerFio2(parseFloat(e.target.value))}
+                  disabled={pickerCarrierGas == null}
+                  className="w-full h-1.5 accent-indigo-500 disabled:opacity-50" />
+              </div>
+
+              <button type="button"
+                onClick={() => pickerSeg ? applyGasChange(pickerSeg.id) : startGas(gasPicker)}
+                className="w-full text-xs font-semibold bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg py-1.5 transition-colors">
+                {pickerSeg ? "Apply" : "Start"}
+              </button>
+            </div>
+          </>
+        )
+      })(),
+      document.body
+    )}
+    {/* ── Floating prompt portal ─────────────────────────────────────────────── */}
     {fp && typeof document !== "undefined" && createPortal(
       <>
         {/* Backdrop to close */}
@@ -2939,7 +2657,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           const left = Math.max(8, Math.min(fp.anchor.left + fp.anchor.width / 2 - POP_W / 2, window.innerWidth - POP_W - 8))
           const top  = showAbove ? fp.anchor.top - 4 : fp.anchor.bottom + 6
           const br   = bolusRange(fp.name, fp.unit)
-          const nd   = parseFloat(fp.dose) || 0
           return (
             <div
               style={{ position:"fixed", left, top, width:POP_W, zIndex:9999, transform: showAbove ? "translateY(-100%)" : undefined }}
@@ -2954,204 +2671,76 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 at <span className="font-semibold text-blue-500 dark:text-blue-400">{times[fp.col]}</span>
               </p>
 
-              {fp.mode === "choose" && (
-                <div className="flex gap-1.5">
-                  <button type="button"
-                    onClick={() => setFp(f => f ? {...f, mode:"bolus"} : f)}
-                    className="flex-1 text-xs font-semibold bg-violet-500 hover:bg-violet-600 text-white rounded-lg py-1.5">Bolus</button>
-                  <button type="button"
-                    onClick={() => setFp(f => f ? {...f, mode:"infusion"} : f)}
-                    className="flex-1 text-xs font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5">Infusion</button>
-                </div>
-              )}
-
               {fp.mode === "fluid" && (
-                <>
-                  <div className="flex gap-1.5">
-                    {(["S","L"] as const).map(s => (
-                      <button key={s} type="button"
-                        onClick={() => setFp(f => f ? {...f, fluidScale:s, dose:""} : f)}
-                        className={`flex-1 text-xs font-semibold rounded-lg py-1.5 border transition-colors ${
-                          fp.fluidScale===s ? "bg-cyan-500 border-cyan-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"
-                        }`}>
-                        {s==="S" ? "Small <=100 ml" : "Large <=2000 ml"}
-                      </button>
-                    ))}
-                  </div>
-                  <input type="range"
-                    min={0} max={fp.fluidScale==="S" ? 100 : 2000} step={fp.fluidScale==="S" ? 10 : 50}
-                    value={parseInt(fp.dose)||0}
-                    onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
-                    className="w-full h-1.5 accent-cyan-500" />
-                  <div className="flex items-center gap-1.5">
-                    <button type="button"
-                      onClick={() => setFp(f => f ? {...f, dose: String(Math.max(0, (parseInt(f.dose)||0) - 50))} : f)}
-                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <input autoFocus type="number" placeholder="0" value={fp.dose}
-                      onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
-                      onKeyDown={e => e.key==="Enter" && fpCommitFluid()}
-                      className="flex-1 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-cyan-400 [appearance:textfield]" />
-                    <button type="button"
-                      onClick={() => setFp(f => f ? {...f, dose: String((parseInt(f.dose)||0) + 50)} : f)}
-                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
-                      <Plus className="h-3 w-3" />
-                    </button>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">ml</span>
-                  </div>
-                  <button type="button" onClick={fpCommitFluid}
-                    className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">Add fluid</button>
-                </>
+                <DoseSelector
+                  accent="cyan"
+                  quickValues={fp.quickDoses}
+                  value={fp.dose} onValueChange={dose => setFp(f => f ? {...f, dose} : f)}
+                  min={0} max={2000} step={50} unitSuffix="ml"
+                  routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => f ? {...f, route: r} : f)}
+                  confirmLabel="Add fluid" onConfirm={fpCommitFluid}
+                />
               )}
 
-              {fp.mode === "bolus" && (
-                <>
-                  {fp.doseHint && (
-                    <p className="text-[9px] text-violet-500 dark:text-violet-400 font-medium">{fp.doseHint}</p>
-                  )}
-
-                  {/* LA bolus: concentration pills + mL slider */}
-                  {LA_CONCENTRATIONS[fp.name] && (
-                    <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
-                      <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Concentration</p>
-                      <div className="flex flex-wrap gap-1">
-                        {LA_CONCENTRATIONS[fp.name].map(c => (
-                          <button key={c} type="button"
-                            onClick={() => setFp(f => f ? {...f, concentration: f.concentration===c ? undefined : c, customConc:"", unit:"ml"} : f)}
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                              fp.concentration===c
-                                ? "bg-sky-500 border-sky-500 text-white"
-                                : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
-                            }`}>{c}</button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-slate-400 shrink-0">Custom:</span>
-                        <input type="number" min="0.01" max="20" step="0.001" placeholder="e.g. 0.75"
-                          value={fp.customConc ?? ""}
-                          onChange={e => {
-                            const v = e.target.value
-                            setFp(f => f ? {...f, customConc:v, concentration: v ? v+"%" : undefined, unit:"ml"} : f)
-                          }}
-                          className="w-14 text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-1.5 py-0.5 outline-none focus:border-sky-400 [appearance:textfield]" />
-                        <span className="text-[9px] text-slate-400">%</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Slider: mL when LA with concentration, otherwise mg/unit range */}
-                  {LA_CONCENTRATIONS[fp.name] && fp.concentration ? (
-                    <input type="range" min={0} max={30} step={1}
-                      value={nd}
-                      onChange={e => setFp(f => f ? {...f, dose:e.target.value, unit:"ml"} : f)}
-                      className="w-full h-1.5 accent-sky-500" />
-                  ) : (
-                    <input type="range" min={br.min} max={br.max} step={br.step}
-                      value={nd}
-                      onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
-                      className="w-full h-1.5 accent-violet-500" />
-                  )}
-
-                  {/* Dose input row with +/- */}
-                  <div className="flex items-center gap-1.5">
-                    <button type="button"
-                      onClick={() => setFp(f => f ? {...f, dose: String(Math.max(0, (parseFloat(f.dose)||0) - br.step))} : f)}
-                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <input autoFocus type="number" placeholder="Dose" value={fp.dose}
-                      onChange={e => setFp(f => f ? {...f, dose:e.target.value} : f)}
-                      onKeyDown={e => e.key==="Enter" && fpCommitBolus()}
-                      className="flex-1 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-violet-400 [appearance:textfield]" />
-                    <button type="button"
-                      onClick={() => setFp(f => f ? {...f, dose: String((parseFloat(f.dose)||0) + br.step)} : f)}
-                      className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-600 dark:text-[#c0c0c0] hover:bg-slate-50 dark:hover:bg-[#333] transition-colors select-none">
-                      <Plus className="h-3 w-3" />
-                    </button>
-                    {!(LA_CONCENTRATIONS[fp.name] && fp.concentration) && (
-                      <select value={fp.unit} onChange={e => setFp(f => f ? {...f, unit:e.target.value} : f)}
-                        className="text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-1 py-1 outline-none">
-                        {["mg","mcg","ml","g","IU"].map(u => <option key={u}>{u}</option>)}
-                      </select>
-                    )}
-                    {LA_CONCENTRATIONS[fp.name] && fp.concentration && (
-                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">ml</span>
-                    )}
-                  </div>
-                  <button type="button" onClick={fpCommitBolus}
-                    className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">Administer</button>
-                </>
-              )}
+              {fp.mode === "bolus" && (() => {
+                const isLA = !!LA_CONCENTRATIONS[fp.name]
+                const laSelected = isLA && !!fp.concentration
+                return (
+                  <DoseSelector
+                    accent="violet"
+                    hint={fp.doseHint}
+                    quickValues={!isLA ? fp.quickDoses : undefined}
+                    concentrationOptions={isLA ? LA_CONCENTRATIONS[fp.name] : undefined}
+                    concentration={fp.concentration}
+                    onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: "", unit: c ? "ml" : f.unit} : f)}
+                    customConcentration={fp.customConc}
+                    onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
+                    value={fp.dose} onValueChange={dose => setFp(f => f ? {...f, dose, unit: laSelected ? "ml" : f.unit} : f)}
+                    valuePlaceholder="Dose"
+                    min={laSelected ? 0 : br.min} max={laSelected ? 30 : br.max} step={laSelected ? 1 : br.step}
+                    units={!laSelected ? ["mg","mcg","ml","g","IU"] : undefined}
+                    unit={fp.unit} onUnitChange={u => setFp(f => f ? {...f, unit: u} : f)}
+                    unitSuffix={laSelected ? "ml" : undefined}
+                    routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => {
+                      if (!f) return f
+                      const sugg = calcSuggestedDose(f.name, ibw ?? null, tbw ?? null, r)
+                      return { ...f, route: r, dose: sugg.dose, doseHint: sugg.hint }
+                    })}
+                    confirmLabel="Administer" onConfirm={fpCommitBolus}
+                  />
+                )
+              })()}
 
               {fp.mode === "infusion" && (
-                <>
-                  {/* Concentration picker — local anaesthetics only */}
-                  {LA_CONCENTRATIONS[fp.name] && (
-                    <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
-                      <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Concentration</p>
-                      <div className="flex flex-wrap gap-1">
-                        {LA_CONCENTRATIONS[fp.name].map(c => (
-                          <button key={c} type="button"
-                            onClick={() => setFp(f => f ? {...f, concentration: f.concentration===c ? undefined : c, customConc:""} : f)}
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                              fp.concentration===c
-                                ? "bg-sky-500 border-sky-500 text-white"
-                                : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
-                            }`}>{c}</button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-slate-400 shrink-0">Custom:</span>
-                        <input type="number" min="0.01" max="20" step="0.001" placeholder="e.g. 0.75"
-                          value={fp.customConc ?? ""}
-                          onChange={e => {
-                            const v = e.target.value
-                            setFp(f => f ? {...f, customConc:v, concentration: v ? v+"%" : undefined} : f)
-                          }}
-                          className="w-14 text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-1.5 py-0.5 outline-none focus:border-sky-400 [appearance:textfield]" />
-                        <span className="text-[9px] text-slate-400">%</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Unit pills — hidden for local anaesthetics (always mL/hr) */}
-                  {!LA_CONCENTRATIONS[fp.name] && (
-                    <div className="flex flex-wrap gap-1">
-                      {fp.rateUnits.map(u => (
-                        <button key={u} type="button" onClick={() => setFp(f => f ? {...f, rateUnit:u} : f)}
-                          className={`text-[9px] px-1.5 py-0.5 rounded-md border transition-colors ${fp.rateUnit===u ? "bg-blue-500 border-blue-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"}`}>
-                          {u}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <input type="range" min={fp.rateMin} max={fp.rateMax} step={fp.rateStep}
-                    value={fp.rate}
-                    onChange={e => setFp(f => f ? {...f, rate:parseFloat(e.target.value)} : f)}
-                    className="w-full h-1.5 accent-blue-500" />
-                  <div className="flex items-center gap-1.5">
-                    <input type="number" min={fp.rateMin} max={fp.rateMax} step={fp.rateStep}
-                      value={fp.rate}
-                      onChange={e => setFp(f => f ? {...f, rate:parseFloat(e.target.value)||f.rateMin} : f)}
-                      className="w-16 text-xs bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none focus:border-blue-400 [appearance:textfield]" />
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight">{fp.rateUnit}</span>
-                  </div>
-                  {(() => {
-                    const basis = INFUSION_WEIGHT_BASIS[fp.name]
-                    const isPerKg = fp.rateUnit?.includes("/kg/")
-                    if (!isPerKg || !basis) return null
-                    const wt = basis === "TBW" ? tbw : ibw
-                    return (
-                      <p className="text-[9px] text-amber-500 dark:text-amber-400">
-                        ⚖ Total will use {basis}{wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}
-                      </p>
-                    )
-                  })()}
-                  <button type="button" onClick={fpCommitInfusion}
-                    className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">Start Infusion</button>
-                </>
+                (() => {
+                  const isLA = !!LA_CONCENTRATIONS[fp.name]
+                  const basis = INFUSION_WEIGHT_BASIS[fp.name]
+                  const isPerKg = fp.rateUnit?.includes("/kg/")
+                  const wt = basis === "TBW" ? tbw : ibw
+                  const extraHint = isPerKg && basis
+                    ? `⚖ Total will use ${basis}${wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}`
+                    : undefined
+                  return (
+                    <DoseSelector
+                      accent="blue"
+                      concentrationOptions={isLA ? LA_CONCENTRATIONS[fp.name] : undefined}
+                      concentration={fp.concentration}
+                      onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: ""} : f)}
+                      customConcentration={fp.customConc}
+                      onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
+                      quickValues={fp.quickRates}
+                      value={String(fp.rate)} onValueChange={v => setFp(f => f ? {...f, rate: parseFloat(v) || f.rateMin} : f)}
+                      valuePlaceholder="Rate"
+                      min={fp.rateMin} max={fp.rateMax} step={fp.rateStep}
+                      units={!isLA ? fp.rateUnits : undefined}
+                      unit={fp.rateUnit} onUnitChange={u => setFp(f => f ? {...f, rateUnit: u} : f)}
+                      unitSuffix={fp.rateUnit}
+                      extraHint={extraHint}
+                      routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => f ? {...f, route: r} : f)}
+                      confirmLabel="Start Infusion" onConfirm={fpCommitInfusion}
+                    />
+                  )
+                })()
               )}
             </div>
           )
@@ -3213,13 +2802,18 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 onClick={() => {
                   const seg = (data.infusions ?? []).find(i => i.id === infMenu.segId)
                   if (!seg) { setInfMenu(null); return }
-                  const cfg = INFUSION_CONFIGS[seg.name] ?? DEFAULT_INF
+                  // seg.name carries a " 1%"-style concentration suffix for LA infusions
+                  // (kept for display backward-compat) — strip it to look up the base
+                  // drug's config/concentration options.
+                  const baseDrugName = seg.concentration && seg.name.endsWith(seg.concentration)
+                    ? seg.name.slice(0, -(seg.concentration.length + 1)) : seg.name
+                  const cfg = INFUSION_CONFIGS[baseDrugName] ?? DEFAULT_INF
                   const pillCol = infMenu.fromPillCol
                   const cur = pillCol != null ? (
-                    pillCol === seg.startCol ? { rate: seg.rate, unit: seg.unit }
-                    : (seg.rateChanges ?? []).find(rc => rc.col === pillCol) ?? { rate: seg.rate, unit: seg.unit }
-                  ) : { rate: seg.rate, unit: seg.unit }
-                  setRateDialog({ segId: seg.id, name: seg.name, rate: cur.rate, unit: cur.unit, units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step, color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "", editFromCol: pillCol })
+                    pillCol === seg.startCol ? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
+                    : (seg.rateChanges ?? []).find(rc => rc.col === pillCol) ?? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
+                  ) : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
+                  setRateDialog({ segId: seg.id, name: baseDrugName, rate: cur.rate, unit: cur.unit, units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step, color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "", editFromCol: pillCol, concentration: cur.concentration, baseDrugName })
                   setInfMenu(null)
                 }}
                 className="w-full text-left text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-[#333] transition-colors text-slate-700 dark:text-slate-200">
@@ -3244,7 +2838,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
           onClick={e => e.stopPropagation()}>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{rateDialog.name} — Change rate</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{rateDialog.name}{rateDialog.concentration ? ` ${rateDialog.concentration}` : ""} — Change rate</p>
             {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">Set new rate, then choose when to apply it.</p>}
             {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">Pick the time at which the rate changed.</p>}
             {(() => {
@@ -3262,6 +2856,22 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {rateDialog.step === "rate" && (
             <>
+              {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name] && (
+                <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Concentration</p>
+                  <div className="flex flex-wrap gap-1">
+                    {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name].map(c => (
+                      <button key={c} type="button"
+                        onClick={() => setRateDialog(d => d ? { ...d, concentration: d.concentration === c ? undefined : c } : d)}
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
+                          rateDialog.concentration === c
+                            ? "bg-sky-500 border-sky-500 text-white"
+                            : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
+                        }`}>{c}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <input type="number" value={rateDialog.rate} autoFocus
@@ -3286,7 +2896,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 <button type="button"
                   onClick={() => {
                     const col = rateDialog.editFromCol !== undefined ? rateDialog.editFromCol : nowCol ?? 0
-                    applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialog.rate, rateDialog.unit)
+                    applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
                     setRateDialog(null)
                   }}
                   className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 transition-colors">
@@ -3334,7 +2944,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       const changeMins = timeToMins(`${rateDialog.timeH}:${rateDialog.timeM}`)
                       const diff = (changeMins - startMins + 1440) % 1440
                       const changeCol = Math.min(Math.floor(diff / INTERVAL), colCount - 1)
-                      applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit)
+                      applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
                       setRateDialog(null)
                     }}
                     className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-lg py-2 transition-colors">
@@ -3369,15 +2979,25 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{vitalsPopup.label}</span>
                 <span className="text-xs text-slate-400 ml-auto">{vitalsPopup.unit}</span>
               </div>
-              <NumberStepper
-                value={currentCellVal ?? vitalsPopup.defaultVal}
-                onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
-                min={vitalsPopup.min}
-                max={vitalsPopup.max}
-                step={vitalsPopup.step}
-                unit={vitalsPopup.unit}
-                showSlider
-              />
+              {vitalsPopup.key === "etco2" || vitalsPopup.key === "temp" ? (
+                <ConvertedStepper
+                  measurement={vitalsPopup.key === "etco2" ? "etco2" : "temperature"}
+                  canonicalValue={currentCellVal ?? vitalsPopup.defaultVal}
+                  onCanonicalChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
+                  canonicalMin={vitalsPopup.min} canonicalMax={vitalsPopup.max} canonicalStep={vitalsPopup.step}
+                  showSlider
+                />
+              ) : (
+                <NumberStepper
+                  value={currentCellVal ?? vitalsPopup.defaultVal}
+                  onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
+                  min={vitalsPopup.min}
+                  max={vitalsPopup.max}
+                  step={vitalsPopup.step}
+                  unit={vitalsPopup.unit}
+                  showSlider
+                />
+              )}
               <button type="button" onClick={commitAndClose}
                 className="w-full text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 transition-colors">
                 Done
@@ -3414,6 +3034,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         agents={agents.filter(a => !a.stopped)}
         infusions={(data.infusions ?? []).filter(i => !i.stopped && true)}
         fluids={(data.fluids ?? []).filter(f => !f.stopped)}
+        gasSettings={gasSettings.filter(g => !g.stopped)}
+        weightBasis={INFUSION_WEIGHT_BASIS}
         onDismiss={() => setShowEndModal(false)}
         onConfirm={handleEndCaseConfirm}
       />

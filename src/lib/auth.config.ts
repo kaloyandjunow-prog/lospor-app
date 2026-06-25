@@ -25,29 +25,29 @@ export const authConfig: NextAuthConfig = {
         return { ...token, id: undefined, role: undefined }
       }
       if (user) {
-        token.jti             = (user as any).jti ?? token.jti
+        token.jti             = user.jti ?? token.jti
         token.id              = user.id
-        token.role            = (user as any).role
-        token.institutionId   = (user as any).institutionId
-        token.institutionName = (user as any).institutionName
-        token.firstName       = (user as any).firstName
-        token.lastName        = (user as any).lastName
-        token.title           = (user as any).title
-        token.lastLoginAt     = (user as any).lastLoginAt ?? null
+        token.role            = user.role
+        token.institutionId   = user.institutionId
+        token.institutionName = user.institutionName
+        token.firstName       = user.firstName
+        token.lastName        = user.lastName
+        token.title           = user.title
+        token.lastLoginAt     = user.lastLoginAt ?? null
       }
       return token
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id              = token.id as string
-        session.user.role            = token.role as string
-        session.user.institutionId   = token.institutionId as string
-        session.user.institutionName = token.institutionName as string
-        session.user.firstName       = token.firstName as string
-        session.user.lastName        = token.lastName as string
-        session.user.title           = token.title as string
-        ;(session.user as any).jti         = token.jti as string
-        ;(session.user as any).lastLoginAt = token.lastLoginAt as string | null
+        session.user.id              = token.id ?? ""
+        session.user.role            = token.role ?? ""
+        session.user.institutionId   = token.institutionId ?? ""
+        session.user.institutionName = token.institutionName ?? ""
+        session.user.firstName       = token.firstName ?? ""
+        session.user.lastName        = token.lastName ?? ""
+        session.user.title           = token.title ?? ""
+        session.user.jti             = token.jti
+        session.user.lastLoginAt     = token.lastLoginAt ?? null
       }
       return session
     },

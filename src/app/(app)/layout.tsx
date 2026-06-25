@@ -9,6 +9,7 @@ import { OngoingCasesButton } from "@/components/OngoingCasesButton"
 import { TourManager } from "@/components/TourManager"
 import { TourButton } from "@/components/TourButton"
 import { OnboardingGate } from "@/components/OnboardingGate"
+import { OfflineLibraryBanner } from "@/components/OfflineLibraryBanner"
 import { prisma } from "@/lib/prisma"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,19 +30,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center gap-2">
           <Link href="/dashboard" className="flex shrink-0 items-center" aria-label="LOSPOR dashboard">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lospor-horizontal-light.svg" alt="LOSPOR" className="h-12 w-auto dark:hidden" />
+            <img src="/brand/lospor-horizontal-light.svg" alt="LOSPOR" className="h-16 w-auto dark:hidden" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lospor-horizontal-dark.svg" alt="LOSPOR" className="hidden h-12 w-auto dark:block" />
+            <img src="/brand/lospor-horizontal-dark.svg" alt="LOSPOR" className="hidden h-16 w-auto dark:block" />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
             <Link href="/dashboard"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors">
               <LayoutDashboard className="h-4 w-4" />
               {t("nav.dashboard")}
             </Link>
             <span data-tour="nav-ongoing"><OngoingCasesButton /></span>
-            {(session.user as any).role === "ADMIN" && (
+            {session.user.role === "ADMIN" && (
               <Link href="/admin"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                 <Shield className="h-4 w-4" />
@@ -55,10 +56,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-3 md:ml-0 ml-auto">
             <TourButton />
             <span data-tour="settings-menu">
-              <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={(session.user as any).role} lastLoginAt={(session.user as any).lastLoginAt} />
+              <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />
             </span>
             <form action={handleSignOut}>
               <button type="submit" title={t("nav.signOut")}
@@ -69,6 +70,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
+
+      <OfflineLibraryBanner />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <OnboardingGate needsOnboarding={needsOnboarding}>

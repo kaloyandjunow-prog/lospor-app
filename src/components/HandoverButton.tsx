@@ -16,7 +16,7 @@ interface Props {
   onTransferred?: () => void
 }
 
-export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole, hasPendingTransfer, onTransferred }: Props) {
+export function HandoverButton({ caseId, sessionRole, hasPendingTransfer, onTransferred }: Props) {
   const t = useTranslations()
 
   const [open,        setOpen]        = useState(false)
@@ -36,6 +36,8 @@ export function HandoverButton({ caseId, caseOwnerId, sessionUserId, sessionRole
 
   useEffect(() => {
     if (!open || colleagues.length) return
+    // Async fetch-on-open with a loading flag — standard data-fetching effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch("/api/users/colleagues")
       .then(r => r.json())

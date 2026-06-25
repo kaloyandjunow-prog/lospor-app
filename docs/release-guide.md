@@ -1,6 +1,6 @@
-# LOSPOR v1.0 Release Guide
+﻿# LOSPOR v3.0 Release Guide
 
-Complete guide for releasing LOSPOR v1.0: web app to GitHub/Vercel, database migration from dev to live, and mobile app to Google Play Store.
+Complete guide for releasing LOSPOR v3.0: web app to GitHub/Vercel, database migration from dev to live, mobile/PWA updates, and Google Play Store metadata.
 
 ---
 
@@ -12,7 +12,7 @@ Before anything else:
 - [ ] Dev web server runs without errors: `npm run dev` in `lospor-app`
 - [ ] Mobile app connects to local web server and all features work on emulator
 - [ ] Postop, intraop, preop round-trip tested (save on mobile, check on web and vice versa)
-- [ ] GDPR: confirm only Mistral AI (EU) endpoints are used — no Groq or US providers anywhere
+- [ ] GDPR: confirm only Mistral AI (EU) endpoints are used вЂ” no Groq or US providers anywhere
 - [ ] `.env.local` is in `.gitignore` (it contains secrets)
 - [ ] `MISTRAL_API_KEY` and `DATABASE_URL` and `NEXTAUTH_SECRET` are NOT committed to git
 
@@ -20,7 +20,7 @@ Before anything else:
 
 ## 2. Push web app to GitHub
 
-> The repository already exists at v0.4.3. This section covers pushing all v1.0 changes on top.
+> The repository already exists at v0.4.3. This section covers pushing all v3.0 changes on top.
 
 ### 2.1 Stage and commit all changes
 
@@ -30,8 +30,8 @@ From `C:\LOSAR\lospor-app` in PowerShell:
 cd C:\LOSAR\lospor-app
 
 git add -A
-git status          # review what's staged — make sure no .env files appear
-git commit -m "feat: v1.0.0 — PWA, gas settings, recovery vitals, OMOP export, Bulgarian ICD-11, bug fixes"
+git status          # review what's staged вЂ” make sure no .env files appear
+git commit -m "feat: v3.0.0 - canonical libraries, research rows, OMOP export, mobile/web parity"
 git push
 ```
 
@@ -40,8 +40,8 @@ git push
 ### 2.2 Tag the release
 
 ```powershell
-git tag -a v1.0.0 -m "LOSPOR web app v1.0.0"
-git push origin v1.0.0
+git tag -a v3.0.0 -m "LOSPOR web app v3.0.0"
+git push origin v3.0.0
 ```
 
 ### 2.3 Push mobile app to GitHub (first time)
@@ -55,12 +55,12 @@ The mobile app repo does not exist yet on GitHub. Create it first:
 cd C:\LOSAR\lospor-mobile
 git init
 git add -A
-git commit -m "feat: LOSPOR mobile app v1.0.0"
+git commit -m "feat: LOSPOR mobile app v3.0.0"
 git remote add origin https://github.com/kaloyandzhunov/lospor-mobile.git
 git branch -M main
 git push -u origin main
-git tag -a v1.0.0 -m "LOSPOR mobile app v1.0.0"
-git push origin v1.0.0
+git tag -a v3.0.0 -m "LOSPOR mobile app v3.0.0"
+git push origin v3.0.0
 ```
 
 ---
@@ -76,7 +76,7 @@ git push origin v1.0.0
 
 ### 3.2 Environment variables
 
-Add these in Vercel project settings → Environment Variables:
+Add these in Vercel project settings в†’ Environment Variables:
 
 | Name | Value | Environments |
 |------|-------|-------------|
@@ -89,7 +89,7 @@ Add these in Vercel project settings → Environment Variables:
 
 ### 3.3 Custom domain (optional)
 
-In Vercel project → Domains → add `app.lospor.org` and follow the DNS instructions.
+In Vercel project в†’ Domains в†’ add `app.lospor.org` and follow the DNS instructions.
 
 ### 3.4 Deploy
 
@@ -110,7 +110,7 @@ Click **Deploy**. Vercel auto-deploys on every push to `main`.
 
 ### 4.2 What needs migrating
 
-The following schema changes were introduced in v1.0 and must be applied to the live database:
+The following schema changes must be applied to the live database for v3.0:
 
 **Added columns (`IntraoperativeRecord`):**
 ```sql
@@ -172,7 +172,7 @@ npx prisma studio    # visual inspection of live tables
 
 ## 5. Deploy mobile PWA (Expo web build)
 
-This creates the React Native app compiled for web — the PWA that mobile browsers land on.
+This creates the React Native app compiled for web вЂ” the PWA that mobile browsers land on.
 
 ### 5.1 Build
 
@@ -186,11 +186,11 @@ The `dist/` folder is a complete static web app with its own manifest and servic
 
 ### 5.2 Deploy to Vercel (as a separate static site)
 
-1. Push `lospor-mobile` to GitHub (see §5.3 below)
-2. Go to https://vercel.com/new → import `lospor-mobile`
+1. Push `lospor-mobile` to GitHub (see В§5.3 below)
+2. Go to https://vercel.com/new в†’ import `lospor-mobile`
 3. **Framework preset**: Other (it's static output, not Next.js)
 4. **Output directory**: `dist`
-5. **Build command**: `npm run export:web`  ← must use this, not `npx expo export --platform web`
+5. **Build command**: `npm run export:web`  в†ђ must use this, not `npx expo export --platform web`
 6. **Environment variable**: `EXPO_PUBLIC_API_BASE = https://app.lospor.org`
 7. Set the custom domain to `mobile.lospor.org`
 
@@ -215,12 +215,12 @@ From `C:\LOSAR\lospor-mobile`:
 cd C:\LOSAR\lospor-mobile
 git init
 git add -A
-git commit -m "feat: LOSPOR mobile app v1.0"
+git commit -m "feat: LOSPOR mobile app v3.0.0"
 git remote add origin https://github.com/kaloyandzhunov/lospor-mobile.git
 git branch -M main
 git push -u origin main
-git tag -a v1.0.0 -m "LOSPOR mobile app v1.0.0"
-git push origin v1.0.0
+git tag -a v3.0.0 -m "LOSPOR mobile app v3.0.0"
+git push origin v3.0.0
 ```
 
 ---
@@ -229,16 +229,16 @@ git push origin v1.0.0
 
 ### 6.1 Prerequisites
 
-1. **Google Play Developer account** — https://play.google.com/console  
+1. **Google Play Developer account** вЂ” https://play.google.com/console  
    One-time registration fee: $25 USD
 
-2. **EAS CLI** — already installed if you have Expo:
+2. **EAS CLI** вЂ” already installed if you have Expo:
    ```powershell
    npm install -g eas-cli
    eas login   # login with your Expo account (kaloyandjunow@gmail.com)
    ```
 
-3. **Java 17** — required for Android signing. Already configured at:
+3. **Java 17** вЂ” required for Android signing. Already configured at:
    ```powershell
    $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
    ```
@@ -318,7 +318,7 @@ This uploads your code to EAS Build servers and creates an `.aab` (Android App B
 ### 6.6 Sign the app
 
 EAS Build manages signing automatically. On first production build, it will either:
-- Generate a new keystore (recommended — EAS stores it securely)
+- Generate a new keystore (recommended вЂ” EAS stores it securely)
 - Ask you to provide an existing keystore
 
 **IMPORTANT**: Save the keystore credentials. You need the same key for all future updates.
@@ -334,8 +334,8 @@ eas submit --platform android --profile production
 
 **Option B: Manual submission**
 1. Download the `.aab` file from the EAS Build dashboard
-2. Go to Google Play Console → Create app
-3. App name: "LOSPOR — Perioperative Register"
+2. Go to Google Play Console в†’ Create app
+3. App name: "LOSPOR вЂ” Perioperative Register"
 4. Default language: English (UK)
 5. App or game: App
 6. Free or paid: Free
@@ -353,16 +353,16 @@ eas submit --platform android --profile production
 > LOSPOR (Large Open Source Perioperative Register) is a professional tool for anaesthesiologists to document and review perioperative cases.
 >
 > Features:
-> • Comprehensive preoperative assessment with risk scoring (ASA, RCRI, APFEL, STOP-BANG)
-> • Real-time intraoperative documentation with 5-minute timetable
-> • Drug, fluid, infusion, and volatile agent tracking
-> • Vitals recording with camera scan from anaesthetic machine monitor
-> • Postoperative documentation and handover checklists
-> • Offline-capable with automatic sync
-> • Bilingual: English and Bulgarian
-> • Built with GDPR in mind: no patient names stored, EU infrastructure only
+> вЂў Comprehensive preoperative assessment with risk scoring (ASA, RCRI, APFEL, STOP-BANG)
+> вЂў Real-time intraoperative documentation with 5-minute timetable
+> вЂў Drug, fluid, infusion, and volatile agent tracking
+> вЂў Vitals recording with camera scan from anaesthetic machine monitor
+> вЂў Postoperative documentation and handover checklists
+> вЂў Offline-capable with automatic sync
+> вЂў Bilingual: English and Bulgarian
+> вЂў Built with GDPR in mind: no patient names stored, EU infrastructure only
 >
-> Designed for use in theatre — fast entry, thumb-friendly controls, dark clinical theme.
+> Designed for use in theatre вЂ” fast entry, thumb-friendly controls, dark clinical theme.
 
 **Category:** Medical
 
@@ -376,29 +376,29 @@ eas submit --platform android --profile production
 
 ---
 
-## 7. PWA — mobile web experience
+## 7. PWA вЂ” mobile web experience
 
 The web app (`lospor-app`) is now a Progressive Web App. When a user visits `app.lospor.org` on mobile:
 
 1. **Android Chrome** shows "Add to Home Screen" banner automatically
-2. **iOS Safari**: user taps Share → "Add to Home Screen"
+2. **iOS Safari**: user taps Share в†’ "Add to Home Screen"
 3. Once installed, opens as full-screen app (no browser chrome)
 4. App icon appears on home screen
 5. Offline fallback page shown when network unavailable
 
 **PWA files added:**
-- `src/app/manifest.ts` → served as `/manifest.webmanifest`
+- `src/app/manifest.ts` в†’ served as `/manifest.webmanifest`
 - `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`
-- `src/app/offline/page.tsx` → shown when offline
-- `src/components/PwaInit.tsx` → registers service worker
-- Service worker generated by `@ducanh2912/next-pwa` at build time → `public/sw.js`
+- `src/app/offline/page.tsx` в†’ shown when offline
+- `src/components/PwaInit.tsx` в†’ registers service worker
+- Service worker generated by `@ducanh2912/next-pwa` at build time в†’ `public/sw.js`
 
 **Testing PWA locally:**
 ```powershell
 cd C:\LOSAR\lospor-app
 npm run build   # PWA requires production build (SW disabled in dev)
 npm start
-# Open http://localhost:3000 in Chrome DevTools → Application → Service Workers
+# Open http://localhost:3000 in Chrome DevTools в†’ Application в†’ Service Workers
 ```
 
 ---
@@ -412,3 +412,4 @@ After all deployments are live:
 3. Monitor Supabase dashboard for database usage
 4. Check Google Play Console for crash reports
 5. Keep dev and prod databases in sync via `prisma migrate` (never edit prod schema manually)
+

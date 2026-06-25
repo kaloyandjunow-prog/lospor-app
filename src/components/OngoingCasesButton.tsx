@@ -47,14 +47,18 @@ export function OngoingCasesButton() {
     setLoading(true)
     fetch("/api/cases")
       .then(r => r.json())
-      .then((data: any) => {
+      .then((data: unknown) => {
         // /api/cases returns { cases, total, skip, take }; tolerate a raw array too.
-        const rows: CaseRow[] = Array.isArray(data) ? data : (data?.cases ?? [])
+        const rows: CaseRow[] = Array.isArray(data) ? data : ((data as { cases?: CaseRow[] })?.cases ?? [])
         setCases(rows.filter(c => c.status !== "COMPLETE")); setLoading(false)
       })
       .catch(() => setLoading(false))
   }
+  // Async fetch-on-mount/open with a loading flag inside fetchCases — standard
+  // data-fetching effect.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchCases() }, [])            // badge count on mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (open) fetchCases() }, [open]) // refresh list on open
 
   // Close on outside click

@@ -55,7 +55,7 @@ async function authorize(req: NextRequest, id: string) {
     select: {
       userId: true, status: true,
       user:    { select: { institutionId: true } },
-      intraop: { select: { keyEvents: true, startTime: true } },
+      intraop: { select: { keyEvents: true, startTime: true, updatedAt: true } },
     },
   })
   if (!existing) return { error: "Not found", status: 404 as const }
@@ -94,8 +94,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Resolve Drug.id from ATC code when a drug event arrives without one
   if (event.type === "drug" && event.atcCode && !event.drugId) {
-    const drug = await prisma.drug.findFirst({ where: { atcCode: event.atcCode }, select: { id: true } })
-    if (drug) (event as any).drugId = drug.id
+    const drug = await prisma.drug.findFirst({ where: { atcCode: String(event.atcCode) }, select: { id: true } })
+    if (drug) event.drugId = drug.id
   }
 
   const source = sourceFrom(req)
@@ -115,10 +115,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         logAudit(user.id, "CASE_EVENT_ADD", id, { type: event.type, source })
         caseEmitter.emit(id, { type: "event", event })
       }
-      return NextResponse.json({ ok: true, id: event.id })
-    } catch (e: any) {
+      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+      return NextResponse.json({ ok: true, id: event.id, intraopUpdatedAt: intraop?.updatedAt })
+    } catch (e: unknown) {
       // Serialization failure (P2034) or a unique race (P2002) — retry a few times.
-      if ((e?.code === "P2034" || e?.code === "P2002") && attempt < 5) continue
+      if ((e && typeof e === "object" && "code" in e && (e.code === "P2034" || e.code === "P2002")) && attempt < 5) continue
       console.error("[events POST]", e)
       return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }
@@ -139,6 +140,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json()
   const rawLog = body?.log
   if (!Array.isArray(rawLog)) return NextResponse.json({ error: "log must be array" }, { status: 400 })
+  const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
+  if (intraopBase && Number.isNaN(new Date(intraopBase).getTime())) {
+    return NextResponse.json({ error: "Invalid intraop conflict timestamp" }, { status: 400 })
+  }
+  if (!intraopBase && existing.intraop?.updatedAt) {
+    return NextResponse.json({
+      error: "conflict",
+      section: "intraop",
+      reason: "missing_conflict_timestamp",
+      serverVersion: { updatedAt: existing.intraop.updatedAt },
+    }, { status: 409 })
+  }
+  if (intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+    return NextResponse.json({ error: "conflict", section: "intraop", serverVersion: { updatedAt: existing.intraop.updatedAt } }, { status: 409 })
+  }
 
   // Validate + PII-check every entry before it becomes the working set.
   let log: z.infer<typeof eventSchema>[]
@@ -157,15 +173,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   for (let attempt = 0; ; attempt++) {
     try {
       await prisma.$transaction(async tx => {
+        if (intraopBase) {
+          const fresh = await tx.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+          if (fresh?.updatedAt && fresh.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+            throw new Error("INTRAOP_CONFLICT")
+          }
+        }
         await reconcileFullLog(tx, id, user.id, log as unknown as LogEvent[], source)
         await rebuildProjection(tx, id)
       }, SERIALIZABLE)
 
       logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source })
       caseEmitter.emit(id, { type: "log_updated" })
-      return NextResponse.json({ ok: true })
-    } catch (e: any) {
-      if ((e?.code === "P2034" || e?.code === "P2002") && attempt < 5) continue
+      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+      return NextResponse.json({ ok: true, intraopUpdatedAt: intraop?.updatedAt })
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === "INTRAOP_CONFLICT") {
+        return NextResponse.json({ error: "conflict", section: "intraop" }, { status: 409 })
+      }
+      if ((e && typeof e === "object" && "code" in e && (e.code === "P2034" || e.code === "P2002")) && attempt < 5) continue
       console.error("[events PUT]", e)
       return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }

@@ -1,14 +1,14 @@
 /**
- * OMOP CDM v5.4 mapper — v2.1
+ * OMOP CDM v5.4 mapper - v3.0
  *
- * Improvements in v2.1:
+ * Current v3.0 export:
  * - Drug exposure now reads from CaseEvent rows (type="drug") instead of keyEvents.log
  * - Lab measurements now exported from LabResult rows (LOINC-coded, canonical units)
  * - care_site_source_value now uses Case.institutionId when available
- * - source_version updated to 2.1.0
+ * - source_version updated to 3.0.0
  *
  * Concept IDs remain 0 where LOSPOR does not have OMOP standard vocabulary mapping
- * (vitals and their LOINC codes are the exception — those have real concept_ids).
+ * (vitals and their LOINC codes are the exception - those have real concept_ids).
  */
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ let _counter = 1
 function nextId() { return _counter++ }
 function resetIds() { _counter = 1 }
 
-/** Deterministic numeric ID from a string — avoids collisions across tables */
+/** Deterministic numeric ID from a string - avoids collisions across tables */
 function hashId(s: string): number {
   let h = 0
   for (let i = 0; i < s.length; i++) {
@@ -41,6 +41,7 @@ const VITAL_CONCEPTS: Record<string, { concept_id: number; loinc: string; unit: 
   spO2:        { concept_id: 3016502, loinc: "59408-5", unit: "%" },
   etco2:       { concept_id: 3020892, loinc: "19889-5", unit: "mmHg" },
   temp:        { concept_id: 3020891, loinc: "8310-5",  unit: "Cel" },
+  bgl:         { concept_id: 0,       loinc: "2345-7",  unit: "mmol/L" },
   respiratoryRate: { concept_id: 3024171, loinc: "9279-1", unit: "/min" },
 }
 
@@ -52,7 +53,21 @@ export interface OmopBundle {
     generated_at: string
     source: string
     source_version: string
+    schema_version: string
+    concept_map_version: string
     case_count: number
+    mapping_summary: {
+      mapped_rows: number
+      source_only_rows: number
+      unmapped_rows: number
+    }
+    table_counts: Record<string, number>
+    quality_warnings: ExportQualityWarning[]
+    deidentification: {
+      person_id_strategy: string
+      direct_patient_identifiers_stored: boolean
+      residual_linkage_risks: string[]
+    }
     note: string
   }
   visit_occurrence: OmopVisit[]
@@ -61,6 +76,13 @@ export interface OmopBundle {
   measurement: OmopMeasurement[]
   procedure_occurrence: OmopProcedure[]
   observation: OmopObservation[]
+}
+
+export type ExportQualityWarning = {
+  code: string
+  severity: "info" | "warning" | "high"
+  message: string
+  count?: number
 }
 
 interface OmopVisit {
@@ -148,9 +170,44 @@ type CaseRow = {
     label: string | null
     value: string | null
     unit: string | null
+    rate?: string | null
+    concentration?: string | null
+    volume?: string | null
+    fluidCategory?: string | null
+    agentPercent?: number | null
+    fgfLitersPerMin?: number | null
+    carrierGas?: string | null
+    fio2Percent?: number | null
+    fiAirPercent?: number | null
+    fiN2OPercent?: number | null
+    systolic?: number | null
+    diastolic?: number | null
+    heartRate?: number | null
+    spO2?: number | null
+    etco2?: number | null
+    temp?: number | null
+    bgl: number | null
+    bglLoincCode: string | null
+    bglUnitCanon: string | null
     atcCode: string | null
     drugId: string | null
+    inn?: string | null
+    drugRoute?: string | null
     metadataJson: unknown
+  }[]
+  selections?: {
+    section: string
+    category: string
+    value: string
+    ordinal: number
+  }[]
+  complications?: {
+    section: string
+    label: string
+    note: string | null
+    timestamp: Date | null
+    source: string | null
+    ordinal: number
   }[]
   preop?: {
     ageYears: number | null
@@ -189,6 +246,55 @@ type CaseRow = {
       unitCanon: string | null
       loincCode: string | null
       abnormalFlag: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+    }[]
+    diagnoses?: {
+      code: string | null
+      label: string
+      labelEn: string | null
+      labelBg: string | null
+      sourceVocabulary?: string | null
+      sourceCode?: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+      ordinal: number
+    }[]
+    procedureRows?: {
+      code: string | null
+      group: string | null
+      domain: string | null
+      description: string | null
+      sourceVocabulary?: string | null
+      sourceCode?: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+      ordinal: number
+    }[]
+    comorbidityRows?: {
+      label: string
+      labelEn: string | null
+      labelBg: string | null
+      code: string | null
+      icd10Code: string | null
+      sourceVocabulary?: string | null
+      sourceCode?: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+      ordinal: number
+    }[]
+    medications?: {
+      kind: string
+      nameRaw: string
+      inn: string | null
+      atcCode: string | null
+      dose: string | null
+      route: string | null
+      sourceVocabulary?: string | null
+      sourceCode?: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+      ordinal: number
     }[]
   } | null
   intraop?: {
@@ -206,13 +312,111 @@ type CaseRow = {
     premedicationEvening: string | null
     premedicationMorning: string | null
     airwayDevice: string | null
+    vascularAccessRows?: {
+      site: string | null
+      siteLabel: string | null
+      size: string | null
+      sizeUnit: string | null
+      depthCm: string | null
+      lumens: string | null
+      preexisting: boolean
+      ordinal: number
+    }[]
+    premedicationRows?: {
+      phase: string
+      nameRaw: string
+      inn: string | null
+      atcCode: string | null
+      standardConceptId?: number | null
+      mappingStatus?: string
+      dose: string | null
+      route: string | null
+      ordinal: number
+    }[]
   } | null
   postop?: {
+    aldreteActivity: number | null
+    aldreteRespiration: number | null
+    aldreteCirculation: number | null
+    aldreteConsciousness: number | null
+    aldreteSpO2: number | null
     aldreteTotal: number | null
+    recoveryBpSystolic: number | null
+    recoveryBpDiastolic: number | null
+    recoveryHeartRate: number | null
+    recoverySpO2: number | null
+    temperatureCelsius: number | null
     painScoreNRS: number | null
     ponv: boolean
     disposition: string | null
+    complications: string | null
   } | null
+  fieldStatuses?: {
+    section: string
+    fieldKey: string
+    presence: string
+  }[]
+}
+
+function buildQualityWarnings(
+  cases: CaseRow[],
+  mappingSummary: { mapped_rows: number; source_only_rows: number; unmapped_rows: number },
+): ExportQualityWarning[] {
+  const warnings: ExportQualityWarning[] = []
+  const casesWithoutFieldStatus = cases.filter(c => (c.fieldStatuses ?? []).length === 0).length
+  const exactTimestampRows = cases.reduce((sum, c) => sum + (c.events ?? []).length, 0)
+  const freeTextComplications = cases.reduce((sum, c) => sum + (c.complications ?? []).filter(comp => Boolean(comp.note)).length, 0)
+  const institutionLinked = cases.filter(c => Boolean(c.institutionId ?? c.user?.institution?.name)).length
+
+  if (mappingSummary.unmapped_rows > 0) {
+    warnings.push({
+      code: "UNMAPPED_CONCEPT_ROWS",
+      severity: "warning",
+      message: "Some normalized rows have no source or standard vocabulary mapping.",
+      count: mappingSummary.unmapped_rows,
+    })
+  }
+  if (mappingSummary.source_only_rows > 0) {
+    warnings.push({
+      code: "SOURCE_ONLY_CONCEPT_ROWS",
+      severity: "info",
+      message: "Some rows preserve source vocabulary/code without a confident OMOP standard concept ID.",
+      count: mappingSummary.source_only_rows,
+    })
+  }
+  if (casesWithoutFieldStatus > 0) {
+    warnings.push({
+      code: "MISSING_FIELD_STATUS_ROWS",
+      severity: "warning",
+      message: "Some cases have no ClinicalFieldStatus rows, so missingness may be incomplete.",
+      count: casesWithoutFieldStatus,
+    })
+  }
+  if (exactTimestampRows > 0) {
+    warnings.push({
+      code: "EXACT_EVENT_TIMESTAMPS",
+      severity: "info",
+      message: "Intraoperative events retain exact timestamps for clinical sequence analysis; this is a residual linkage risk.",
+      count: exactTimestampRows,
+    })
+  }
+  if (institutionLinked > 0) {
+    warnings.push({
+      code: "INSTITUTION_LINKAGE",
+      severity: "info",
+      message: "Exports include care_site_source_value for research governance; small institutions can increase re-identification risk.",
+      count: institutionLinked,
+    })
+  }
+  if (freeTextComplications > 0) {
+    warnings.push({
+      code: "REDACTED_FREE_TEXT_PRESENT",
+      severity: "info",
+      message: "Free-text complication notes existed and were passed through the export redaction pipeline.",
+      count: freeTextComplications,
+    })
+  }
+  return warnings
 }
 
 export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
@@ -224,6 +428,16 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
   const measurements: OmopMeasurement[] = []
   const procedures: OmopProcedure[] = []
   const observations: OmopObservation[] = []
+  const mappingSummary = { mapped_rows: 0, source_only_rows: 0, unmapped_rows: 0 }
+
+  const trackMapping = (status: string | null | undefined) => {
+    if (status === "MAPPED") mappingSummary.mapped_rows++
+    else if (status === "UNMAPPED") mappingSummary.unmapped_rows++
+    else if (status === "SOURCE_ONLY") mappingSummary.source_only_rows++
+  }
+
+  const sourceValue = (prefix: string, sourceVocabulary?: string | null, sourceCode?: string | null, label?: string | null) =>
+    sourceVocabulary && sourceCode ? `${sourceVocabulary}:${sourceCode}${label ? ` - ${label}` : ""}` : `${prefix}:${label ?? "unknown"}`
 
   for (const c of cases) {
     const personId = hashId(c.id)
@@ -231,7 +445,7 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
     const startDate = isoDate(c.intraop?.startTime ?? c.createdAt)
     const endDate   = isoDate(c.intraop?.endTime ?? c.intraop?.startTime ?? c.createdAt)
 
-    // care_site: prefer case-level institutionId (populated from v2.1+), fall back to user institution
+    // care_site: prefer case-level institutionId, fall back to user institution
     const careSite = c.institutionId ?? c.user?.institution?.name ?? null
 
     // ── VISIT_OCCURRENCE ─────────────────────────────────────────────────────
@@ -248,7 +462,7 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
 
     const preop = c.preop
 
-    // ── Preop vitals → MEASUREMENT ───────────────────────────────────────────
+    // ── Preop vitals -> MEASUREMENT ───────────────────────────────────────────
     if (preop) {
       const vitDate = isoDate(c.createdAt)
       const vitalMap: [keyof typeof VITAL_CONCEPTS, number | null | undefined][] = [
@@ -277,15 +491,16 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
         })
       }
 
-      // ── Lab results from LabResult rows → MEASUREMENT ────────────────────
-      // v2.1: use SQL LabResult rows (LOINC-coded) instead of raw JSON
+      // ── Lab results from LabResult rows -> MEASUREMENT ────────────────────
+      // Use SQL LabResult rows (LOINC-coded) instead of raw JSON
       const labRows = preop.labRows ?? []
       for (const lab of labRows) {
         if (lab.valueNum == null) continue
+        trackMapping(lab.mappingStatus)
         measurements.push({
           measurement_id:              nextId(),
           person_id:                   personId,
-          measurement_concept_id:      0,
+          measurement_concept_id:      lab.standardConceptId ?? 0,
           measurement_date:            vitDate,
           measurement_datetime:        vitDate,
           measurement_type_concept_id: 32817,
@@ -297,35 +512,43 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
         })
       }
 
-      // ── Comorbidities → CONDITION_OCCURRENCE ─────────────────────────────
-      const comorbs: { label: string; code?: string }[] = Array.isArray(preop.comorbidities)
-        ? preop.comorbidities as { label: string; code?: string }[]
-        : []
-      for (const co of comorbs) {
+      // ── Comorbidities -> CONDITION_OCCURRENCE ─────────────────────────────
+      for (const co of preop.comorbidityRows ?? []) {
+        trackMapping(co.mappingStatus)
         conditions.push({
           condition_occurrence_id:    nextId(),
           person_id:                 personId,
-          condition_concept_id:      0,
+          condition_concept_id:      co.standardConceptId ?? 0,
           condition_start_date:      isoDate(c.createdAt),
           condition_type_concept_id: 32817,
-          condition_source_value:    co.code ? `${co.code} — ${co.label}` : co.label,
+          condition_source_value:    sourceValue("COMORBIDITY", co.sourceVocabulary, co.sourceCode, co.labelEn ?? co.labelBg ?? co.label),
           visit_occurrence_id:       visitId,
         })
       }
 
-      // Primary diagnosis → CONDITION_OCCURRENCE
-      const diagLabel = (() => {
-        const dj = preop.diagnosesJson as { label?: string; code?: string }[] | null
-        return dj?.[0] ? (dj[0].code ? `${dj[0].code} — ${dj[0].label}` : dj[0].label) : preop.diagnosis
-      })()
-      if (diagLabel) {
+      // Primary diagnosis -> CONDITION_OCCURRENCE
+      const diagRows = preop.diagnoses ?? []
+      if (diagRows.length > 0) {
+        for (const diag of diagRows) {
+          trackMapping(diag.mappingStatus)
+          conditions.push({
+            condition_occurrence_id:    nextId(),
+            person_id:                 personId,
+            condition_concept_id:      diag.standardConceptId ?? 0,
+            condition_start_date:      isoDate(c.createdAt),
+            condition_type_concept_id: 32817,
+            condition_source_value:    sourceValue("DIAGNOSIS", diag.sourceVocabulary, diag.sourceCode, diag.labelEn ?? diag.labelBg ?? diag.label),
+            visit_occurrence_id:       visitId,
+          })
+        }
+      } else if (preop.diagnosis) {
         conditions.push({
           condition_occurrence_id:    nextId(),
           person_id:                 personId,
           condition_concept_id:      0,
           condition_start_date:      isoDate(c.createdAt),
           condition_type_concept_id: 32817,
-          condition_source_value:    diagLabel ?? null,
+          condition_source_value:    preop.diagnosis,
           visit_occurrence_id:       visitId,
         })
       }
@@ -390,18 +613,20 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
       }
     }
 
-    // ── Planned procedure → PROCEDURE_OCCURRENCE ─────────────────────────────
+    // ── Planned procedure -> PROCEDURE_OCCURRENCE ─────────────────────────────
     const procLabel = (() => {
       if (!preop) return null
-      const pj = preop.proceduresJson as { label?: string; code?: string; group?: string }[] | null
-      if (pj?.[0]) return pj[0].group ?? pj[0].label ?? preop.plannedProcedure
+      const row = preop.procedureRows?.[0]
+      if (row) return sourceValue("PROCEDURE", row.sourceVocabulary, row.sourceCode, row.group ?? row.description)
       return preop.plannedProcedure
     })()
     if (procLabel) {
+      const row = preop?.procedureRows?.[0]
+      trackMapping(row?.mappingStatus)
       procedures.push({
         procedure_occurrence_id:    nextId(),
         person_id:                 personId,
-        procedure_concept_id:      0,
+        procedure_concept_id:      row?.standardConceptId ?? 0,
         procedure_date:            startDate,
         procedure_type_concept_id: 32817,
         procedure_source_value:    procLabel,
@@ -409,7 +634,25 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
       })
     }
 
-    // ── Intraop techniques → PROCEDURE_OCCURRENCE ────────────────────────────
+    // ── Intraop techniques -> PROCEDURE_OCCURRENCE ────────────────────────────
+    for (const med of preop?.medications ?? []) {
+      trackMapping(med.mappingStatus)
+      const dose = med.dose ? parseFloat(med.dose) || null : null
+      drugs.push({
+        drug_exposure_id: nextId(),
+        person_id: personId,
+        drug_concept_id: med.standardConceptId ?? 0,
+        drug_exposure_start_date: isoDate(c.createdAt),
+        drug_type_concept_id: 32817,
+        drug_source_value: sourceValue("MEDICATION", med.sourceVocabulary, med.sourceCode, med.nameRaw),
+        drug_source_concept_id: med.atcCode ? `ATC:${med.atcCode}` : med.inn ? `INN:${med.inn}` : null,
+        dose_value: dose,
+        dose_unit_source_value: med.dose,
+        route_source_value: med.route,
+        visit_occurrence_id: visitId,
+      })
+    }
+
     if (c.intraop) {
       const techs: string[] = Array.isArray(c.intraop.techniques) ? c.intraop.techniques as string[] : []
       for (const tech of techs) {
@@ -424,26 +667,108 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
         })
       }
 
-      // ── Drug events from CaseEvent rows → DRUG_EXPOSURE ─────────────────
-      // v2.1: read from SQL CaseEvent rows (type="drug", status="active")
+      // ── Drug events from CaseEvent rows -> DRUG_EXPOSURE ─────────────────
+      // Read from SQL CaseEvent rows (type="drug", status="active")
       // instead of parsing the legacy keyEvents.log JSON blob
       const drugEvents = c.events ?? []
       for (const ev of drugEvents) {
-        if (ev.type !== "drug") continue
-        const meta = (ev.metadataJson ?? {}) as any
-        const dose = meta.dose != null ? parseFloat(String(meta.dose)) || null : null
+        if (ev.type === "vital") {
+          const eventVitals: [keyof typeof VITAL_CONCEPTS, number | null | undefined, string | null | undefined][] = [
+            ["systolic", ev.systolic, null],
+            ["diastolic", ev.diastolic, null],
+            ["heartRate", ev.heartRate, null],
+            ["spO2", ev.spO2, null],
+            ["etco2", ev.etco2, null],
+            ["temp", ev.temp, null],
+            ["bgl", ev.bgl, ev.bglLoincCode],
+          ]
+          for (const [key, val, loincOverride] of eventVitals) {
+            if (val == null) continue
+            const cfg = VITAL_CONCEPTS[key]
+            measurements.push({
+              measurement_id:            nextId(),
+              person_id:                 personId,
+              measurement_concept_id:    cfg.concept_id,
+              measurement_date:          isoDate(ev.timestamp),
+              measurement_datetime:      ev.timestamp.toISOString(),
+              measurement_type_concept_id: 32817,
+              value_as_number:           val,
+              unit_concept_id:           0,
+              unit_source_value:         key === "bgl" ? ev.bglUnitCanon ?? cfg.unit : cfg.unit,
+              measurement_source_value:  `LOINC:${loincOverride ?? cfg.loinc}`,
+              visit_occurrence_id:       visitId,
+            })
+          }
+        }
+        if (ev.type === "gas_start" || ev.type === "gas_change") {
+          const gasValues: [string, number | null | undefined, string][] = [
+            ["INTRAOP_FGF_L_PER_MIN", ev.fgfLitersPerMin, "L/min"],
+            ["INTRAOP_FIO2_PERCENT", ev.fio2Percent, "%"],
+            ["INTRAOP_FIAIR_PERCENT", ev.fiAirPercent, "%"],
+            ["INTRAOP_FIN2O_PERCENT", ev.fiN2OPercent, "%"],
+          ]
+          for (const [source, val, unit] of gasValues) {
+            if (val == null) continue
+            measurements.push({
+              measurement_id: nextId(), person_id: personId,
+              measurement_concept_id: 0,
+              measurement_date: isoDate(ev.timestamp),
+              measurement_datetime: ev.timestamp.toISOString(),
+              measurement_type_concept_id: 32817,
+              value_as_number: val,
+              unit_concept_id: 0,
+              unit_source_value: unit,
+              measurement_source_value: source,
+              visit_occurrence_id: visitId,
+            })
+          }
+          if (ev.carrierGas) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: isoDate(ev.timestamp), observation_type_concept_id: 32817, value_as_string: ev.carrierGas, observation_source_value: "INTRAOP_CARRIER_GAS", visit_occurrence_id: visitId })
+        }
+        if (ev.type !== "drug" && ev.type !== "agent_start" && ev.type !== "infusion_start") continue
+        const meta = (ev.metadataJson ?? {}) as Record<string, unknown>
+        const doseSource = ev.type === "infusion_start" ? ev.rate : meta.dose
+        const dose = doseSource != null ? parseFloat(String(doseSource)) || null : null
         drugs.push({
           drug_exposure_id:           nextId(),
           person_id:                  personId,
           drug_concept_id:            0,
           drug_exposure_start_date:   isoDate(ev.timestamp),
           drug_type_concept_id:       32817,
-          drug_source_value:          meta.name ?? ev.label ?? null,
+          drug_source_value:          (meta.name as string | undefined) ?? ev.label ?? null,
           drug_source_concept_id:     ev.atcCode ? `ATC:${ev.atcCode}` : null,
           dose_value:                 dose,
-          dose_unit_source_value:     ev.unit ?? meta.unit ?? null,
-          route_source_value:         meta.drugRoute ?? "IV",
+          dose_unit_source_value:     ev.unit ?? (meta.unit as string | undefined) ?? (ev.type === "agent_start" ? "%" : null),
+          route_source_value:         ev.drugRoute ?? (meta.drugRoute as string | undefined) ?? (ev.type === "agent_start" ? "INHALATIONAL" : "IV"),
           visit_occurrence_id:        visitId,
+        })
+      }
+
+      for (const prem of c.intraop.premedicationRows ?? []) {
+        trackMapping(prem.mappingStatus)
+        const dose = prem.dose ? parseFloat(prem.dose) || null : null
+        drugs.push({
+          drug_exposure_id: nextId(), person_id: personId,
+          drug_concept_id: prem.standardConceptId ?? 0,
+          drug_exposure_start_date: startDate,
+          drug_type_concept_id: 32817,
+          drug_source_value: prem.nameRaw,
+          drug_source_concept_id: prem.atcCode ? `ATC:${prem.atcCode}` : null,
+          dose_value: dose,
+          dose_unit_source_value: prem.dose,
+          route_source_value: prem.route,
+          visit_occurrence_id: visitId,
+        })
+        observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: startDate, observation_type_concept_id: 32817, value_as_string: prem.phase, observation_source_value: "PREMEDICATION_PHASE", visit_occurrence_id: visitId })
+      }
+
+      for (const line of c.intraop.vascularAccessRows ?? []) {
+        procedures.push({
+          procedure_occurrence_id: nextId(), person_id: personId,
+          procedure_concept_id: 0,
+          procedure_date: startDate,
+          procedure_type_concept_id: 32817,
+          procedure_source_value: `VASCULAR_ACCESS:${line.siteLabel ?? line.site ?? "unknown"}${line.size ? ` ${line.size}${line.sizeUnit ?? ""}` : ""}`,
+          visit_occurrence_id: visitId,
         })
       }
 
@@ -452,12 +777,52 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
       if (c.intraop.colloidsMl != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: endDate, observation_type_concept_id: 32817, value_as_string: String(c.intraop.colloidsMl), observation_source_value: "COLLOIDS_ML", visit_occurrence_id: visitId })
       if (c.intraop.bloodMl != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: endDate, observation_type_concept_id: 32817, value_as_string: String(c.intraop.bloodMl), observation_source_value: "BLOOD_ML", visit_occurrence_id: visitId })
       if (c.intraop.urineMl != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: endDate, observation_type_concept_id: 32817, value_as_string: String(c.intraop.urineMl), observation_source_value: "URINE_OUTPUT_ML", visit_occurrence_id: visitId })
-      if (c.intraop.complications) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: endDate, observation_type_concept_id: 32817, value_as_string: c.intraop.complications, observation_source_value: "INTRAOP_COMPLICATIONS", visit_occurrence_id: visitId })
     }
 
-    // ── Postop → OBSERVATION ─────────────────────────────────────────────────
+    for (const sel of c.selections ?? []) {
+      observations.push({
+        observation_id: nextId(), person_id: personId,
+        observation_concept_id: 0,
+        observation_date: startDate,
+        observation_type_concept_id: 32817,
+        value_as_string: sel.value,
+        observation_source_value: `${sel.section.toUpperCase()}_${sel.category.toUpperCase()}`,
+        visit_occurrence_id: visitId,
+      })
+    }
+
+    for (const comp of c.complications ?? []) {
+      observations.push({
+        observation_id: nextId(), person_id: personId,
+        observation_concept_id: 0,
+        observation_date: isoDate(comp.timestamp) ?? (comp.section === "postop" ? endDate : startDate),
+        observation_type_concept_id: 32817,
+        value_as_string: comp.note ? `${comp.label}; ${comp.note}` : comp.label,
+        observation_source_value: `${comp.section.toUpperCase()}_COMPLICATION`,
+        visit_occurrence_id: visitId,
+      })
+    }
+
+    // ── Postop -> OBSERVATION ─────────────────────────────────────────────────
     if (c.postop) {
       const postDate = endDate ?? isoDate(c.createdAt)
+      const postopVitals: [keyof typeof VITAL_CONCEPTS, number | null | undefined][] = [
+        ["systolic", c.postop.recoveryBpSystolic],
+        ["diastolic", c.postop.recoveryBpDiastolic],
+        ["heartRate", c.postop.recoveryHeartRate],
+        ["spO2", c.postop.recoverySpO2],
+        ["temp", c.postop.temperatureCelsius],
+      ]
+      for (const [key, val] of postopVitals) {
+        if (val == null) continue
+        const cfg = VITAL_CONCEPTS[key]
+        measurements.push({ measurement_id: nextId(), person_id: personId, measurement_concept_id: cfg.concept_id, measurement_date: postDate, measurement_datetime: postDate, measurement_type_concept_id: 32817, value_as_number: val, unit_concept_id: 0, unit_source_value: cfg.unit, measurement_source_value: `POSTOP_LOINC:${cfg.loinc}`, visit_occurrence_id: visitId })
+      }
+      if (c.postop.aldreteActivity != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteActivity), observation_source_value: "ALDRETE_ACTIVITY", visit_occurrence_id: visitId })
+      if (c.postop.aldreteRespiration != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteRespiration), observation_source_value: "ALDRETE_RESPIRATION", visit_occurrence_id: visitId })
+      if (c.postop.aldreteCirculation != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteCirculation), observation_source_value: "ALDRETE_CIRCULATION", visit_occurrence_id: visitId })
+      if (c.postop.aldreteConsciousness != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteConsciousness), observation_source_value: "ALDRETE_CONSCIOUSNESS", visit_occurrence_id: visitId })
+      if (c.postop.aldreteSpO2 != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteSpO2), observation_source_value: "ALDRETE_SPO2", visit_occurrence_id: visitId })
       if (c.postop.aldreteTotal != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.aldreteTotal), observation_source_value: "ALDRETE_TOTAL", visit_occurrence_id: visitId })
       if (c.postop.painScoreNRS != null) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 3020891, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: String(c.postop.painScoreNRS), observation_source_value: "PAIN_NRS_0_10", visit_occurrence_id: visitId })
       if (c.postop.ponv) observations.push({ observation_id: nextId(), person_id: personId, observation_concept_id: 0, observation_date: postDate, observation_type_concept_id: 32817, value_as_string: "true", observation_source_value: "PONV_PRESENT", visit_occurrence_id: visitId })
@@ -465,14 +830,38 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
     }
   }
 
+  const tableCounts = {
+    visit_occurrence: visits.length,
+    condition_occurrence: conditions.length,
+    drug_exposure: drugs.length,
+    measurement: measurements.length,
+    procedure_occurrence: procedures.length,
+    observation: observations.length,
+  }
+  const qualityWarnings = buildQualityWarnings(cases, mappingSummary)
+
   return {
     metadata: {
       omop_cdm_version: "5.4",
       generated_at: new Date().toISOString(),
       source: "LOSPOR",
-      source_version: "2.1.0",
+      source_version: "3.0.0",
+      schema_version: "3.0.0",
+      concept_map_version: "local-bilingual-map-v2",
       case_count: cases.length,
-      note: "concept_id = 0 where LOSPOR does not yet have standard OMOP vocabulary mapping. person_id is a deterministic anonymised hash of the internal case ID — no patient identifiers are stored or exported. Drug exposure reads from the CaseEvent event log (type=drug, status=active). Lab measurements include LOINC-coded results from the LabResult table.",
+      mapping_summary: mappingSummary,
+      table_counts: tableCounts,
+      quality_warnings: qualityWarnings,
+      deidentification: {
+        person_id_strategy: "deterministic pseudonymised hash of internal case id",
+        direct_patient_identifiers_stored: false,
+        residual_linkage_risks: [
+          "exact event timestamps",
+          "case-level institution/care-site linkage",
+          "rare procedure, complication, and timeline combinations",
+        ],
+      },
+      note: "OMOP concept IDs are emitted only where LOSPOR has a confident local mapping. Source vocabulary, source code, English/Bulgarian labels, and source-only rows are preserved for research traceability. person_id is a deterministic pseudonymised hash of the internal case ID - no patient identifiers are stored or exported.",
     },
     visit_occurrence:      visits,
     condition_occurrence:  conditions,

@@ -34,6 +34,12 @@ export type CaseEventAvgAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  bgl: number | null
+  fgfLitersPerMin: number | null
+  fio2Percent: number | null
+  fiAirPercent: number | null
+  fiN2OPercent: number | null
+  agentPercent: number | null
 }
 
 export type CaseEventSumAggregateOutputType = {
@@ -44,6 +50,12 @@ export type CaseEventSumAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  bgl: number | null
+  fgfLitersPerMin: number | null
+  fio2Percent: number | null
+  fiAirPercent: number | null
+  fiN2OPercent: number | null
+  agentPercent: number | null
 }
 
 export type CaseEventMinAggregateOutputType = {
@@ -64,10 +76,29 @@ export type CaseEventMinAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  bgl: number | null
+  bglLoincCode: string | null
+  bglUnitCanon: string | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
+  fiAirPercent: number | null
+  fiN2OPercent: number | null
   atcCode: string | null
   drugId: string | null
+  inn: string | null
   drugRoute: string | null
+  infId: string | null
+  fluidId: string | null
+  rate: string | null
+  concentration: string | null
+  volume: string | null
+  fluidCategory: string | null
+  agentPercent: number | null
+  clinicalEventCode: string | null
   source: string | null
+  sourceVersion: string | null
+  schemaVersion: string | null
   idempotencyKey: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -91,10 +122,29 @@ export type CaseEventMaxAggregateOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  bgl: number | null
+  bglLoincCode: string | null
+  bglUnitCanon: string | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
+  fiAirPercent: number | null
+  fiN2OPercent: number | null
   atcCode: string | null
   drugId: string | null
+  inn: string | null
   drugRoute: string | null
+  infId: string | null
+  fluidId: string | null
+  rate: string | null
+  concentration: string | null
+  volume: string | null
+  fluidCategory: string | null
+  agentPercent: number | null
+  clinicalEventCode: string | null
   source: string | null
+  sourceVersion: string | null
+  schemaVersion: string | null
   idempotencyKey: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -118,11 +168,30 @@ export type CaseEventCountAggregateOutputType = {
   spO2: number
   etco2: number
   temp: number
+  bgl: number
+  bglLoincCode: number
+  bglUnitCanon: number
+  fgfLitersPerMin: number
+  carrierGas: number
+  fio2Percent: number
+  fiAirPercent: number
+  fiN2OPercent: number
   atcCode: number
   drugId: number
+  inn: number
   drugRoute: number
+  infId: number
+  fluidId: number
+  rate: number
+  concentration: number
+  volume: number
+  fluidCategory: number
+  agentPercent: number
+  clinicalEventCode: number
   metadataJson: number
   source: number
+  sourceVersion: number
+  schemaVersion: number
   idempotencyKey: number
   createdAt: number
   updatedAt: number
@@ -138,6 +207,12 @@ export type CaseEventAvgAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  bgl?: true
+  fgfLitersPerMin?: true
+  fio2Percent?: true
+  fiAirPercent?: true
+  fiN2OPercent?: true
+  agentPercent?: true
 }
 
 export type CaseEventSumAggregateInputType = {
@@ -148,6 +223,12 @@ export type CaseEventSumAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  bgl?: true
+  fgfLitersPerMin?: true
+  fio2Percent?: true
+  fiAirPercent?: true
+  fiN2OPercent?: true
+  agentPercent?: true
 }
 
 export type CaseEventMinAggregateInputType = {
@@ -168,10 +249,29 @@ export type CaseEventMinAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  bgl?: true
+  bglLoincCode?: true
+  bglUnitCanon?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
+  fiAirPercent?: true
+  fiN2OPercent?: true
   atcCode?: true
   drugId?: true
+  inn?: true
   drugRoute?: true
+  infId?: true
+  fluidId?: true
+  rate?: true
+  concentration?: true
+  volume?: true
+  fluidCategory?: true
+  agentPercent?: true
+  clinicalEventCode?: true
   source?: true
+  sourceVersion?: true
+  schemaVersion?: true
   idempotencyKey?: true
   createdAt?: true
   updatedAt?: true
@@ -195,10 +295,29 @@ export type CaseEventMaxAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  bgl?: true
+  bglLoincCode?: true
+  bglUnitCanon?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
+  fiAirPercent?: true
+  fiN2OPercent?: true
   atcCode?: true
   drugId?: true
+  inn?: true
   drugRoute?: true
+  infId?: true
+  fluidId?: true
+  rate?: true
+  concentration?: true
+  volume?: true
+  fluidCategory?: true
+  agentPercent?: true
+  clinicalEventCode?: true
   source?: true
+  sourceVersion?: true
+  schemaVersion?: true
   idempotencyKey?: true
   createdAt?: true
   updatedAt?: true
@@ -222,11 +341,30 @@ export type CaseEventCountAggregateInputType = {
   spO2?: true
   etco2?: true
   temp?: true
+  bgl?: true
+  bglLoincCode?: true
+  bglUnitCanon?: true
+  fgfLitersPerMin?: true
+  carrierGas?: true
+  fio2Percent?: true
+  fiAirPercent?: true
+  fiN2OPercent?: true
   atcCode?: true
   drugId?: true
+  inn?: true
   drugRoute?: true
+  infId?: true
+  fluidId?: true
+  rate?: true
+  concentration?: true
+  volume?: true
+  fluidCategory?: true
+  agentPercent?: true
+  clinicalEventCode?: true
   metadataJson?: true
   source?: true
+  sourceVersion?: true
+  schemaVersion?: true
   idempotencyKey?: true
   createdAt?: true
   updatedAt?: true
@@ -337,11 +475,30 @@ export type CaseEventGroupByOutputType = {
   spO2: number | null
   etco2: number | null
   temp: number | null
+  bgl: number | null
+  bglLoincCode: string | null
+  bglUnitCanon: string | null
+  fgfLitersPerMin: number | null
+  carrierGas: string | null
+  fio2Percent: number | null
+  fiAirPercent: number | null
+  fiN2OPercent: number | null
   atcCode: string | null
   drugId: string | null
+  inn: string | null
   drugRoute: string | null
+  infId: string | null
+  fluidId: string | null
+  rate: string | null
+  concentration: string | null
+  volume: string | null
+  fluidCategory: string | null
+  agentPercent: number | null
+  clinicalEventCode: string | null
   metadataJson: runtime.JsonValue | null
   source: string
+  sourceVersion: string | null
+  schemaVersion: string | null
   idempotencyKey: string
   createdAt: Date
   updatedAt: Date
@@ -388,11 +545,30 @@ export type CaseEventWhereInput = {
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bgl?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bglLoincCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  bglUnitCanon?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fgfLitersPerMin?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  carrierGas?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fio2Percent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiAirPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiN2OPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  inn?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  infId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  rate?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  concentration?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  volume?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidCategory?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  agentPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  clinicalEventCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  schemaVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
   createdAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
@@ -417,11 +593,30 @@ export type CaseEventOrderByWithRelationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   etco2?: Prisma.SortOrderInput | Prisma.SortOrder
   temp?: Prisma.SortOrderInput | Prisma.SortOrder
+  bgl?: Prisma.SortOrderInput | Prisma.SortOrder
+  bglLoincCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  bglUnitCanon?: Prisma.SortOrderInput | Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrderInput | Prisma.SortOrder
   atcCode?: Prisma.SortOrderInput | Prisma.SortOrder
   drugId?: Prisma.SortOrderInput | Prisma.SortOrder
+  inn?: Prisma.SortOrderInput | Prisma.SortOrder
   drugRoute?: Prisma.SortOrderInput | Prisma.SortOrder
+  infId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fluidId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rate?: Prisma.SortOrderInput | Prisma.SortOrder
+  concentration?: Prisma.SortOrderInput | Prisma.SortOrder
+  volume?: Prisma.SortOrderInput | Prisma.SortOrder
+  fluidCategory?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  clinicalEventCode?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  schemaVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -450,11 +645,30 @@ export type CaseEventWhereUniqueInput = Prisma.AtLeast<{
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bgl?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bglLoincCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  bglUnitCanon?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fgfLitersPerMin?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  carrierGas?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fio2Percent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiAirPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiN2OPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  inn?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  infId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  rate?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  concentration?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  volume?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidCategory?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  agentPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  clinicalEventCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  schemaVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
@@ -478,11 +692,30 @@ export type CaseEventOrderByWithAggregationInput = {
   spO2?: Prisma.SortOrderInput | Prisma.SortOrder
   etco2?: Prisma.SortOrderInput | Prisma.SortOrder
   temp?: Prisma.SortOrderInput | Prisma.SortOrder
+  bgl?: Prisma.SortOrderInput | Prisma.SortOrder
+  bglLoincCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  bglUnitCanon?: Prisma.SortOrderInput | Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrderInput | Prisma.SortOrder
+  carrierGas?: Prisma.SortOrderInput | Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrderInput | Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrderInput | Prisma.SortOrder
   atcCode?: Prisma.SortOrderInput | Prisma.SortOrder
   drugId?: Prisma.SortOrderInput | Prisma.SortOrder
+  inn?: Prisma.SortOrderInput | Prisma.SortOrder
   drugRoute?: Prisma.SortOrderInput | Prisma.SortOrder
+  infId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fluidId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rate?: Prisma.SortOrderInput | Prisma.SortOrder
+  concentration?: Prisma.SortOrderInput | Prisma.SortOrder
+  volume?: Prisma.SortOrderInput | Prisma.SortOrder
+  fluidCategory?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  clinicalEventCode?: Prisma.SortOrderInput | Prisma.SortOrder
   metadataJson?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
+  schemaVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -514,11 +747,30 @@ export type CaseEventScalarWhereWithAggregatesInput = {
   spO2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  bgl?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  bglLoincCode?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  bglUnitCanon?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  fgfLitersPerMin?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  carrierGas?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  fio2Percent?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  fiAirPercent?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  fiN2OPercent?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
   atcCode?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   drugId?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  inn?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   drugRoute?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  infId?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  fluidId?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  rate?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  concentration?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  volume?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  fluidCategory?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  agentPercent?: Prisma.FloatNullableWithAggregatesFilter<"CaseEvent"> | number | null
+  clinicalEventCode?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableWithAggregatesFilter<"CaseEvent">
   source?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
+  sourceVersion?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
+  schemaVersion?: Prisma.StringNullableWithAggregatesFilter<"CaseEvent"> | string | null
   idempotencyKey?: Prisma.StringWithAggregatesFilter<"CaseEvent"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CaseEvent"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CaseEvent"> | Date | string
@@ -541,11 +793,30 @@ export type CaseEventCreateInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -570,11 +841,30 @@ export type CaseEventUncheckedCreateInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -597,11 +887,30 @@ export type CaseEventUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -626,11 +935,30 @@ export type CaseEventUncheckedUpdateInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -654,11 +982,30 @@ export type CaseEventCreateManyInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -681,11 +1028,30 @@ export type CaseEventUpdateManyMutationInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -709,11 +1075,30 @@ export type CaseEventUncheckedUpdateManyInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -747,11 +1132,30 @@ export type CaseEventCountOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  bgl?: Prisma.SortOrder
+  bglLoincCode?: Prisma.SortOrder
+  bglUnitCanon?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrder
   atcCode?: Prisma.SortOrder
   drugId?: Prisma.SortOrder
+  inn?: Prisma.SortOrder
   drugRoute?: Prisma.SortOrder
+  infId?: Prisma.SortOrder
+  fluidId?: Prisma.SortOrder
+  rate?: Prisma.SortOrder
+  concentration?: Prisma.SortOrder
+  volume?: Prisma.SortOrder
+  fluidCategory?: Prisma.SortOrder
+  agentPercent?: Prisma.SortOrder
+  clinicalEventCode?: Prisma.SortOrder
   metadataJson?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
+  schemaVersion?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -765,6 +1169,12 @@ export type CaseEventAvgOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  bgl?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrder
+  agentPercent?: Prisma.SortOrder
 }
 
 export type CaseEventMaxOrderByAggregateInput = {
@@ -785,10 +1195,29 @@ export type CaseEventMaxOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  bgl?: Prisma.SortOrder
+  bglLoincCode?: Prisma.SortOrder
+  bglUnitCanon?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrder
   atcCode?: Prisma.SortOrder
   drugId?: Prisma.SortOrder
+  inn?: Prisma.SortOrder
   drugRoute?: Prisma.SortOrder
+  infId?: Prisma.SortOrder
+  fluidId?: Prisma.SortOrder
+  rate?: Prisma.SortOrder
+  concentration?: Prisma.SortOrder
+  volume?: Prisma.SortOrder
+  fluidCategory?: Prisma.SortOrder
+  agentPercent?: Prisma.SortOrder
+  clinicalEventCode?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
+  schemaVersion?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -812,10 +1241,29 @@ export type CaseEventMinOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  bgl?: Prisma.SortOrder
+  bglLoincCode?: Prisma.SortOrder
+  bglUnitCanon?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  carrierGas?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrder
   atcCode?: Prisma.SortOrder
   drugId?: Prisma.SortOrder
+  inn?: Prisma.SortOrder
   drugRoute?: Prisma.SortOrder
+  infId?: Prisma.SortOrder
+  fluidId?: Prisma.SortOrder
+  rate?: Prisma.SortOrder
+  concentration?: Prisma.SortOrder
+  volume?: Prisma.SortOrder
+  fluidCategory?: Prisma.SortOrder
+  agentPercent?: Prisma.SortOrder
+  clinicalEventCode?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
+  schemaVersion?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -829,6 +1277,12 @@ export type CaseEventSumOrderByAggregateInput = {
   spO2?: Prisma.SortOrder
   etco2?: Prisma.SortOrder
   temp?: Prisma.SortOrder
+  bgl?: Prisma.SortOrder
+  fgfLitersPerMin?: Prisma.SortOrder
+  fio2Percent?: Prisma.SortOrder
+  fiAirPercent?: Prisma.SortOrder
+  fiN2OPercent?: Prisma.SortOrder
+  agentPercent?: Prisma.SortOrder
 }
 
 export type CaseEventCreateNestedManyWithoutCaseInput = {
@@ -873,14 +1327,6 @@ export type CaseEventUncheckedUpdateManyWithoutCaseNestedInput = {
   deleteMany?: Prisma.CaseEventScalarWhereInput | Prisma.CaseEventScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CaseEventCreateWithoutCaseInput = {
   id?: string
   userId?: string | null
@@ -898,11 +1344,30 @@ export type CaseEventCreateWithoutCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -925,11 +1390,30 @@ export type CaseEventUncheckedCreateWithoutCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -982,11 +1466,30 @@ export type CaseEventScalarWhereInput = {
   spO2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   etco2?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   temp?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bgl?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  bglLoincCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  bglUnitCanon?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fgfLitersPerMin?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  carrierGas?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fio2Percent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiAirPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  fiN2OPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
   atcCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  inn?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   drugRoute?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  infId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidId?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  rate?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  concentration?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  volume?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  fluidCategory?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  agentPercent?: Prisma.FloatNullableFilter<"CaseEvent"> | number | null
+  clinicalEventCode?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   metadataJson?: Prisma.JsonNullableFilter<"CaseEvent">
   source?: Prisma.StringFilter<"CaseEvent"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
+  schemaVersion?: Prisma.StringNullableFilter<"CaseEvent"> | string | null
   idempotencyKey?: Prisma.StringFilter<"CaseEvent"> | string
   createdAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CaseEvent"> | Date | string
@@ -1009,11 +1512,30 @@ export type CaseEventCreateManyCaseInput = {
   spO2?: number | null
   etco2?: number | null
   temp?: number | null
+  bgl?: number | null
+  bglLoincCode?: string | null
+  bglUnitCanon?: string | null
+  fgfLitersPerMin?: number | null
+  carrierGas?: string | null
+  fio2Percent?: number | null
+  fiAirPercent?: number | null
+  fiN2OPercent?: number | null
   atcCode?: string | null
   drugId?: string | null
+  inn?: string | null
   drugRoute?: string | null
+  infId?: string | null
+  fluidId?: string | null
+  rate?: string | null
+  concentration?: string | null
+  volume?: string | null
+  fluidCategory?: string | null
+  agentPercent?: number | null
+  clinicalEventCode?: string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string
+  sourceVersion?: string | null
+  schemaVersion?: string | null
   idempotencyKey: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1036,11 +1558,30 @@ export type CaseEventUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1063,11 +1604,30 @@ export type CaseEventUncheckedUpdateWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1090,11 +1650,30 @@ export type CaseEventUncheckedUpdateManyWithoutCaseInput = {
   spO2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   etco2?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   temp?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bgl?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bglLoincCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bglUnitCanon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fgfLitersPerMin?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  carrierGas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fio2Percent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiAirPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  fiN2OPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugRoute?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  infId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  concentration?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  volume?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fluidCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentPercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  clinicalEventCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadataJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schemaVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1120,11 +1699,30 @@ export type CaseEventSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  bgl?: boolean
+  bglLoincCode?: boolean
+  bglUnitCanon?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
+  fiAirPercent?: boolean
+  fiN2OPercent?: boolean
   atcCode?: boolean
   drugId?: boolean
+  inn?: boolean
   drugRoute?: boolean
+  infId?: boolean
+  fluidId?: boolean
+  rate?: boolean
+  concentration?: boolean
+  volume?: boolean
+  fluidCategory?: boolean
+  agentPercent?: boolean
+  clinicalEventCode?: boolean
   metadataJson?: boolean
   source?: boolean
+  sourceVersion?: boolean
+  schemaVersion?: boolean
   idempotencyKey?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1149,11 +1747,30 @@ export type CaseEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  bgl?: boolean
+  bglLoincCode?: boolean
+  bglUnitCanon?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
+  fiAirPercent?: boolean
+  fiN2OPercent?: boolean
   atcCode?: boolean
   drugId?: boolean
+  inn?: boolean
   drugRoute?: boolean
+  infId?: boolean
+  fluidId?: boolean
+  rate?: boolean
+  concentration?: boolean
+  volume?: boolean
+  fluidCategory?: boolean
+  agentPercent?: boolean
+  clinicalEventCode?: boolean
   metadataJson?: boolean
   source?: boolean
+  sourceVersion?: boolean
+  schemaVersion?: boolean
   idempotencyKey?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1178,11 +1795,30 @@ export type CaseEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  bgl?: boolean
+  bglLoincCode?: boolean
+  bglUnitCanon?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
+  fiAirPercent?: boolean
+  fiN2OPercent?: boolean
   atcCode?: boolean
   drugId?: boolean
+  inn?: boolean
   drugRoute?: boolean
+  infId?: boolean
+  fluidId?: boolean
+  rate?: boolean
+  concentration?: boolean
+  volume?: boolean
+  fluidCategory?: boolean
+  agentPercent?: boolean
+  clinicalEventCode?: boolean
   metadataJson?: boolean
   source?: boolean
+  sourceVersion?: boolean
+  schemaVersion?: boolean
   idempotencyKey?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1207,17 +1843,36 @@ export type CaseEventSelectScalar = {
   spO2?: boolean
   etco2?: boolean
   temp?: boolean
+  bgl?: boolean
+  bglLoincCode?: boolean
+  bglUnitCanon?: boolean
+  fgfLitersPerMin?: boolean
+  carrierGas?: boolean
+  fio2Percent?: boolean
+  fiAirPercent?: boolean
+  fiN2OPercent?: boolean
   atcCode?: boolean
   drugId?: boolean
+  inn?: boolean
   drugRoute?: boolean
+  infId?: boolean
+  fluidId?: boolean
+  rate?: boolean
+  concentration?: boolean
+  volume?: boolean
+  fluidCategory?: boolean
+  agentPercent?: boolean
+  clinicalEventCode?: boolean
   metadataJson?: boolean
   source?: boolean
+  sourceVersion?: boolean
+  schemaVersion?: boolean
   idempotencyKey?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "systolic" | "diastolic" | "heartRate" | "spO2" | "etco2" | "temp" | "atcCode" | "drugId" | "drugRoute" | "metadataJson" | "source" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
+export type CaseEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "userId" | "logicalId" | "version" | "status" | "type" | "timestamp" | "label" | "value" | "unit" | "systolic" | "diastolic" | "heartRate" | "spO2" | "etco2" | "temp" | "bgl" | "bglLoincCode" | "bglUnitCanon" | "fgfLitersPerMin" | "carrierGas" | "fio2Percent" | "fiAirPercent" | "fiN2OPercent" | "atcCode" | "drugId" | "inn" | "drugRoute" | "infId" | "fluidId" | "rate" | "concentration" | "volume" | "fluidCategory" | "agentPercent" | "clinicalEventCode" | "metadataJson" | "source" | "sourceVersion" | "schemaVersion" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["caseEvent"]>
 export type CaseEventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -1251,11 +1906,30 @@ export type $CaseEventPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     spO2: number | null
     etco2: number | null
     temp: number | null
+    bgl: number | null
+    bglLoincCode: string | null
+    bglUnitCanon: string | null
+    fgfLitersPerMin: number | null
+    carrierGas: string | null
+    fio2Percent: number | null
+    fiAirPercent: number | null
+    fiN2OPercent: number | null
     atcCode: string | null
     drugId: string | null
+    inn: string | null
     drugRoute: string | null
+    infId: string | null
+    fluidId: string | null
+    rate: string | null
+    concentration: string | null
+    volume: string | null
+    fluidCategory: string | null
+    agentPercent: number | null
+    clinicalEventCode: string | null
     metadataJson: runtime.JsonValue | null
     source: string
+    sourceVersion: string | null
+    schemaVersion: string | null
     idempotencyKey: string
     createdAt: Date
     updatedAt: Date
@@ -1700,11 +2374,30 @@ export interface CaseEventFieldRefs {
   readonly spO2: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly etco2: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly temp: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly bgl: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly bglLoincCode: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly bglUnitCanon: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly fgfLitersPerMin: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly carrierGas: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly fio2Percent: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly fiAirPercent: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly fiN2OPercent: Prisma.FieldRef<"CaseEvent", 'Float'>
   readonly atcCode: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly drugId: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly inn: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly drugRoute: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly infId: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly fluidId: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly rate: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly concentration: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly volume: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly fluidCategory: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly agentPercent: Prisma.FieldRef<"CaseEvent", 'Float'>
+  readonly clinicalEventCode: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly metadataJson: Prisma.FieldRef<"CaseEvent", 'Json'>
   readonly source: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly sourceVersion: Prisma.FieldRef<"CaseEvent", 'String'>
+  readonly schemaVersion: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly idempotencyKey: Prisma.FieldRef<"CaseEvent", 'String'>
   readonly createdAt: Prisma.FieldRef<"CaseEvent", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CaseEvent", 'DateTime'>

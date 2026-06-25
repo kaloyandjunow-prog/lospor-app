@@ -30,6 +30,14 @@ describe("preopSchema", () => {
     }
   })
 
+  it("accepts persisted preop free-text fields", () => {
+    const result = preopSchema.safeParse({
+      physicalExamReport: "Normal heart sounds.",
+      notes: "Patient prefers regional if possible.",
+    })
+    expect(result.success).toBe(true)
+  })
+
   it("rejects invalid sex enum", () => {
     expect(preopSchema.safeParse({ sex: "UNKNOWN" }).success).toBe(false)
   })
@@ -42,7 +50,7 @@ describe("preopSchema", () => {
     const result = preopSchema.safeParse({ sex: "FEMALE", customField: true })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect((result.data as any).customField).toBe(true)
+      expect((result.data as Record<string, unknown>).customField).toBe(true)
     }
   })
 })

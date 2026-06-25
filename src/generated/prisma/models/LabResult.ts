@@ -30,6 +30,7 @@ export type LabResultAvgAggregateOutputType = {
   valueNum: number | null
   referenceLow: number | null
   referenceHigh: number | null
+  standardConceptId: number | null
   ordinal: number | null
 }
 
@@ -37,6 +38,7 @@ export type LabResultSumAggregateOutputType = {
   valueNum: number | null
   referenceLow: number | null
   referenceHigh: number | null
+  standardConceptId: number | null
   ordinal: number | null
 }
 
@@ -55,6 +57,11 @@ export type LabResultMinAggregateOutputType = {
   abnormalFlag: string | null
   takenAt: Date | null
   source: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -74,6 +81,11 @@ export type LabResultMaxAggregateOutputType = {
   abnormalFlag: string | null
   takenAt: Date | null
   source: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -93,6 +105,11 @@ export type LabResultCountAggregateOutputType = {
   abnormalFlag: number
   takenAt: number
   source: number
+  sourceVocabulary: number
+  sourceCode: number
+  standardConceptId: number
+  mappingStatus: number
+  sourceVersion: number
   ordinal: number
   createdAt: number
   _all: number
@@ -103,6 +120,7 @@ export type LabResultAvgAggregateInputType = {
   valueNum?: true
   referenceLow?: true
   referenceHigh?: true
+  standardConceptId?: true
   ordinal?: true
 }
 
@@ -110,6 +128,7 @@ export type LabResultSumAggregateInputType = {
   valueNum?: true
   referenceLow?: true
   referenceHigh?: true
+  standardConceptId?: true
   ordinal?: true
 }
 
@@ -128,6 +147,11 @@ export type LabResultMinAggregateInputType = {
   abnormalFlag?: true
   takenAt?: true
   source?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -147,6 +171,11 @@ export type LabResultMaxAggregateInputType = {
   abnormalFlag?: true
   takenAt?: true
   source?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -166,6 +195,11 @@ export type LabResultCountAggregateInputType = {
   abnormalFlag?: true
   takenAt?: true
   source?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
   _all?: true
@@ -272,6 +306,11 @@ export type LabResultGroupByOutputType = {
   abnormalFlag: string | null
   takenAt: Date | null
   source: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus
+  sourceVersion: string | null
   ordinal: number
   createdAt: Date
   _count: LabResultCountAggregateOutputType | null
@@ -314,6 +353,11 @@ export type LabResultWhereInput = {
   abnormalFlag?: Prisma.StringNullableFilter<"LabResult"> | string | null
   takenAt?: Prisma.DateTimeNullableFilter<"LabResult"> | Date | string | null
   source?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"LabResult"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"LabResult"> | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.StringNullableFilter<"LabResult"> | string | null
   ordinal?: Prisma.IntFilter<"LabResult"> | number
   createdAt?: Prisma.DateTimeFilter<"LabResult"> | Date | string
   preop?: Prisma.XOR<Prisma.PreoperativeAssessmentScalarRelationFilter, Prisma.PreoperativeAssessmentWhereInput>
@@ -334,6 +378,11 @@ export type LabResultOrderByWithRelationInput = {
   abnormalFlag?: Prisma.SortOrderInput | Prisma.SortOrder
   takenAt?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   preop?: Prisma.PreoperativeAssessmentOrderByWithRelationInput
@@ -357,6 +406,11 @@ export type LabResultWhereUniqueInput = Prisma.AtLeast<{
   abnormalFlag?: Prisma.StringNullableFilter<"LabResult"> | string | null
   takenAt?: Prisma.DateTimeNullableFilter<"LabResult"> | Date | string | null
   source?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"LabResult"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"LabResult"> | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.StringNullableFilter<"LabResult"> | string | null
   ordinal?: Prisma.IntFilter<"LabResult"> | number
   createdAt?: Prisma.DateTimeFilter<"LabResult"> | Date | string
   preop?: Prisma.XOR<Prisma.PreoperativeAssessmentScalarRelationFilter, Prisma.PreoperativeAssessmentWhereInput>
@@ -377,6 +431,11 @@ export type LabResultOrderByWithAggregationInput = {
   abnormalFlag?: Prisma.SortOrderInput | Prisma.SortOrder
   takenAt?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.LabResultCountOrderByAggregateInput
@@ -404,6 +463,11 @@ export type LabResultScalarWhereWithAggregatesInput = {
   abnormalFlag?: Prisma.StringNullableWithAggregatesFilter<"LabResult"> | string | null
   takenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LabResult"> | Date | string | null
   source?: Prisma.StringNullableWithAggregatesFilter<"LabResult"> | string | null
+  sourceVocabulary?: Prisma.StringNullableWithAggregatesFilter<"LabResult"> | string | null
+  sourceCode?: Prisma.StringNullableWithAggregatesFilter<"LabResult"> | string | null
+  standardConceptId?: Prisma.IntNullableWithAggregatesFilter<"LabResult"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusWithAggregatesFilter<"LabResult"> | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.StringNullableWithAggregatesFilter<"LabResult"> | string | null
   ordinal?: Prisma.IntWithAggregatesFilter<"LabResult"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"LabResult"> | Date | string
 }
@@ -422,6 +486,11 @@ export type LabResultCreateInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
   preop: Prisma.PreoperativeAssessmentCreateNestedOneWithoutLabRowsInput
@@ -442,6 +511,11 @@ export type LabResultUncheckedCreateInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -460,6 +534,11 @@ export type LabResultUpdateInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUpdateOneRequiredWithoutLabRowsNestedInput
@@ -480,6 +559,11 @@ export type LabResultUncheckedUpdateInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -499,6 +583,11 @@ export type LabResultCreateManyInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -517,6 +606,11 @@ export type LabResultUpdateManyMutationInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -536,6 +630,11 @@ export type LabResultUncheckedUpdateManyInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -565,6 +664,11 @@ export type LabResultCountOrderByAggregateInput = {
   abnormalFlag?: Prisma.SortOrder
   takenAt?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -573,6 +677,7 @@ export type LabResultAvgOrderByAggregateInput = {
   valueNum?: Prisma.SortOrder
   referenceLow?: Prisma.SortOrder
   referenceHigh?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -591,6 +696,11 @@ export type LabResultMaxOrderByAggregateInput = {
   abnormalFlag?: Prisma.SortOrder
   takenAt?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -610,6 +720,11 @@ export type LabResultMinOrderByAggregateInput = {
   abnormalFlag?: Prisma.SortOrder
   takenAt?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -618,6 +733,7 @@ export type LabResultSumOrderByAggregateInput = {
   valueNum?: Prisma.SortOrder
   referenceLow?: Prisma.SortOrder
   referenceHigh?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -677,6 +793,11 @@ export type LabResultCreateWithoutPreopInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -695,6 +816,11 @@ export type LabResultUncheckedCreateWithoutPreopInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -743,6 +869,11 @@ export type LabResultScalarWhereInput = {
   abnormalFlag?: Prisma.StringNullableFilter<"LabResult"> | string | null
   takenAt?: Prisma.DateTimeNullableFilter<"LabResult"> | Date | string | null
   source?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"LabResult"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"LabResult"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"LabResult"> | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.StringNullableFilter<"LabResult"> | string | null
   ordinal?: Prisma.IntFilter<"LabResult"> | number
   createdAt?: Prisma.DateTimeFilter<"LabResult"> | Date | string
 }
@@ -761,6 +892,11 @@ export type LabResultCreateManyPreopInput = {
   abnormalFlag?: string | null
   takenAt?: Date | string | null
   source?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -779,6 +915,11 @@ export type LabResultUpdateWithoutPreopInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -797,6 +938,11 @@ export type LabResultUncheckedUpdateWithoutPreopInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -815,6 +961,11 @@ export type LabResultUncheckedUpdateManyWithoutPreopInput = {
   abnormalFlag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   takenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -836,6 +987,11 @@ export type LabResultSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   abnormalFlag?: boolean
   takenAt?: boolean
   source?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -856,6 +1012,11 @@ export type LabResultSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   abnormalFlag?: boolean
   takenAt?: boolean
   source?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -876,6 +1037,11 @@ export type LabResultSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   abnormalFlag?: boolean
   takenAt?: boolean
   source?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -896,11 +1062,16 @@ export type LabResultSelectScalar = {
   abnormalFlag?: boolean
   takenAt?: boolean
   source?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
 }
 
-export type LabResultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "test" | "value" | "valueNum" | "unit" | "unitCanon" | "loincCode" | "referenceLow" | "referenceHigh" | "abnormalFlag" | "takenAt" | "source" | "ordinal" | "createdAt", ExtArgs["result"]["labResult"]>
+export type LabResultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "test" | "value" | "valueNum" | "unit" | "unitCanon" | "loincCode" | "referenceLow" | "referenceHigh" | "abnormalFlag" | "takenAt" | "source" | "sourceVocabulary" | "sourceCode" | "standardConceptId" | "mappingStatus" | "sourceVersion" | "ordinal" | "createdAt", ExtArgs["result"]["labResult"]>
 export type LabResultInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
 }
@@ -931,6 +1102,11 @@ export type $LabResultPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     abnormalFlag: string | null
     takenAt: Date | null
     source: string | null
+    sourceVocabulary: string | null
+    sourceCode: string | null
+    standardConceptId: number | null
+    mappingStatus: $Enums.ConceptMappingStatus
+    sourceVersion: string | null
     ordinal: number
     createdAt: Date
   }, ExtArgs["result"]["labResult"]>
@@ -1371,6 +1547,11 @@ export interface LabResultFieldRefs {
   readonly abnormalFlag: Prisma.FieldRef<"LabResult", 'String'>
   readonly takenAt: Prisma.FieldRef<"LabResult", 'DateTime'>
   readonly source: Prisma.FieldRef<"LabResult", 'String'>
+  readonly sourceVocabulary: Prisma.FieldRef<"LabResult", 'String'>
+  readonly sourceCode: Prisma.FieldRef<"LabResult", 'String'>
+  readonly standardConceptId: Prisma.FieldRef<"LabResult", 'Int'>
+  readonly mappingStatus: Prisma.FieldRef<"LabResult", 'ConceptMappingStatus'>
+  readonly sourceVersion: Prisma.FieldRef<"LabResult", 'String'>
   readonly ordinal: Prisma.FieldRef<"LabResult", 'Int'>
   readonly createdAt: Prisma.FieldRef<"LabResult", 'DateTime'>
 }

@@ -190,6 +190,7 @@ export type DrugWhereInput = {
   atcCode?: Prisma.StringNullableFilter<"Drug"> | string | null
   form?: Prisma.StringNullableFilter<"Drug"> | string | null
   strength?: Prisma.StringNullableFilter<"Drug"> | string | null
+  optionLibrary?: Prisma.OptionLibraryListRelationFilter
 }
 
 export type DrugOrderByWithRelationInput = {
@@ -199,6 +200,7 @@ export type DrugOrderByWithRelationInput = {
   atcCode?: Prisma.SortOrderInput | Prisma.SortOrder
   form?: Prisma.SortOrderInput | Prisma.SortOrder
   strength?: Prisma.SortOrderInput | Prisma.SortOrder
+  optionLibrary?: Prisma.OptionLibraryOrderByRelationAggregateInput
 }
 
 export type DrugWhereUniqueInput = Prisma.AtLeast<{
@@ -211,6 +213,7 @@ export type DrugWhereUniqueInput = Prisma.AtLeast<{
   atcCode?: Prisma.StringNullableFilter<"Drug"> | string | null
   form?: Prisma.StringNullableFilter<"Drug"> | string | null
   strength?: Prisma.StringNullableFilter<"Drug"> | string | null
+  optionLibrary?: Prisma.OptionLibraryListRelationFilter
 }, "id">
 
 export type DrugOrderByWithAggregationInput = {
@@ -244,6 +247,7 @@ export type DrugCreateInput = {
   atcCode?: string | null
   form?: string | null
   strength?: string | null
+  optionLibrary?: Prisma.OptionLibraryCreateNestedManyWithoutDrugInput
 }
 
 export type DrugUncheckedCreateInput = {
@@ -253,6 +257,7 @@ export type DrugUncheckedCreateInput = {
   atcCode?: string | null
   form?: string | null
   strength?: string | null
+  optionLibrary?: Prisma.OptionLibraryUncheckedCreateNestedManyWithoutDrugInput
 }
 
 export type DrugUpdateInput = {
@@ -262,6 +267,7 @@ export type DrugUpdateInput = {
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   form?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strength?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  optionLibrary?: Prisma.OptionLibraryUpdateManyWithoutDrugNestedInput
 }
 
 export type DrugUncheckedUpdateInput = {
@@ -271,6 +277,7 @@ export type DrugUncheckedUpdateInput = {
   atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   form?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strength?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  optionLibrary?: Prisma.OptionLibraryUncheckedUpdateManyWithoutDrugNestedInput
 }
 
 export type DrugCreateManyInput = {
@@ -327,6 +334,108 @@ export type DrugMinOrderByAggregateInput = {
   strength?: Prisma.SortOrder
 }
 
+export type DrugNullableScalarRelationFilter = {
+  is?: Prisma.DrugWhereInput | null
+  isNot?: Prisma.DrugWhereInput | null
+}
+
+export type DrugCreateNestedOneWithoutOptionLibraryInput = {
+  create?: Prisma.XOR<Prisma.DrugCreateWithoutOptionLibraryInput, Prisma.DrugUncheckedCreateWithoutOptionLibraryInput>
+  connectOrCreate?: Prisma.DrugCreateOrConnectWithoutOptionLibraryInput
+  connect?: Prisma.DrugWhereUniqueInput
+}
+
+export type DrugUpdateOneWithoutOptionLibraryNestedInput = {
+  create?: Prisma.XOR<Prisma.DrugCreateWithoutOptionLibraryInput, Prisma.DrugUncheckedCreateWithoutOptionLibraryInput>
+  connectOrCreate?: Prisma.DrugCreateOrConnectWithoutOptionLibraryInput
+  upsert?: Prisma.DrugUpsertWithoutOptionLibraryInput
+  disconnect?: Prisma.DrugWhereInput | boolean
+  delete?: Prisma.DrugWhereInput | boolean
+  connect?: Prisma.DrugWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DrugUpdateToOneWithWhereWithoutOptionLibraryInput, Prisma.DrugUpdateWithoutOptionLibraryInput>, Prisma.DrugUncheckedUpdateWithoutOptionLibraryInput>
+}
+
+export type DrugCreateWithoutOptionLibraryInput = {
+  id?: string
+  name: string
+  inn?: string | null
+  atcCode?: string | null
+  form?: string | null
+  strength?: string | null
+}
+
+export type DrugUncheckedCreateWithoutOptionLibraryInput = {
+  id?: string
+  name: string
+  inn?: string | null
+  atcCode?: string | null
+  form?: string | null
+  strength?: string | null
+}
+
+export type DrugCreateOrConnectWithoutOptionLibraryInput = {
+  where: Prisma.DrugWhereUniqueInput
+  create: Prisma.XOR<Prisma.DrugCreateWithoutOptionLibraryInput, Prisma.DrugUncheckedCreateWithoutOptionLibraryInput>
+}
+
+export type DrugUpsertWithoutOptionLibraryInput = {
+  update: Prisma.XOR<Prisma.DrugUpdateWithoutOptionLibraryInput, Prisma.DrugUncheckedUpdateWithoutOptionLibraryInput>
+  create: Prisma.XOR<Prisma.DrugCreateWithoutOptionLibraryInput, Prisma.DrugUncheckedCreateWithoutOptionLibraryInput>
+  where?: Prisma.DrugWhereInput
+}
+
+export type DrugUpdateToOneWithWhereWithoutOptionLibraryInput = {
+  where?: Prisma.DrugWhereInput
+  data: Prisma.XOR<Prisma.DrugUpdateWithoutOptionLibraryInput, Prisma.DrugUncheckedUpdateWithoutOptionLibraryInput>
+}
+
+export type DrugUpdateWithoutOptionLibraryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  form?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  strength?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type DrugUncheckedUpdateWithoutOptionLibraryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  inn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  atcCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  form?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  strength?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+
+/**
+ * Count Type DrugCountOutputType
+ */
+
+export type DrugCountOutputType = {
+  optionLibrary: number
+}
+
+export type DrugCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  optionLibrary?: boolean | DrugCountOutputTypeCountOptionLibraryArgs
+}
+
+/**
+ * DrugCountOutputType without action
+ */
+export type DrugCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DrugCountOutputType
+   */
+  select?: Prisma.DrugCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * DrugCountOutputType without action
+ */
+export type DrugCountOutputTypeCountOptionLibraryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OptionLibraryWhereInput
+}
 
 
 export type DrugSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -336,6 +445,8 @@ export type DrugSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   atcCode?: boolean
   form?: boolean
   strength?: boolean
+  optionLibrary?: boolean | Prisma.Drug$optionLibraryArgs<ExtArgs>
+  _count?: boolean | Prisma.DrugCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["drug"]>
 
 export type DrugSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -366,10 +477,18 @@ export type DrugSelectScalar = {
 }
 
 export type DrugOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "inn" | "atcCode" | "form" | "strength", ExtArgs["result"]["drug"]>
+export type DrugInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  optionLibrary?: boolean | Prisma.Drug$optionLibraryArgs<ExtArgs>
+  _count?: boolean | Prisma.DrugCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type DrugIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type DrugIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $DrugPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Drug"
-  objects: {}
+  objects: {
+    optionLibrary: Prisma.$OptionLibraryPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
@@ -771,6 +890,7 @@ readonly fields: DrugFieldRefs;
  */
 export interface Prisma__DrugClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  optionLibrary<T extends Prisma.Drug$optionLibraryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Drug$optionLibraryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OptionLibraryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -823,6 +943,10 @@ export type DrugFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * Filter, which Drug to fetch.
    */
   where: Prisma.DrugWhereUniqueInput
@@ -841,6 +965,10 @@ export type DrugFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * Filter, which Drug to fetch.
    */
   where: Prisma.DrugWhereUniqueInput
@@ -858,6 +986,10 @@ export type DrugFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the Drug
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
   /**
    * Filter, which Drug to fetch.
    */
@@ -907,6 +1039,10 @@ export type DrugFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * Filter, which Drug to fetch.
    */
   where?: Prisma.DrugWhereInput
@@ -954,6 +1090,10 @@ export type DrugFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Drug
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
   /**
    * Filter, which Drugs to fetch.
    */
@@ -1003,6 +1143,10 @@ export type DrugCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * The data needed to create a Drug.
    */
   data: Prisma.XOR<Prisma.DrugCreateInput, Prisma.DrugUncheckedCreateInput>
@@ -1050,6 +1194,10 @@ export type DrugUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    * Omit specific fields from the Drug
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
   /**
    * The data needed to update a Drug.
    */
@@ -1117,6 +1265,10 @@ export type DrugUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * The filter to search for the Drug to update in case it exists.
    */
   where: Prisma.DrugWhereUniqueInput
@@ -1143,6 +1295,10 @@ export type DrugDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
+  /**
    * Filter which Drug to delete.
    */
   where: Prisma.DrugWhereUniqueInput
@@ -1163,6 +1319,30 @@ export type DrugDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
+ * Drug.optionLibrary
+ */
+export type Drug$optionLibraryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OptionLibrary
+   */
+  select?: Prisma.OptionLibrarySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OptionLibrary
+   */
+  omit?: Prisma.OptionLibraryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OptionLibraryInclude<ExtArgs> | null
+  where?: Prisma.OptionLibraryWhereInput
+  orderBy?: Prisma.OptionLibraryOrderByWithRelationInput | Prisma.OptionLibraryOrderByWithRelationInput[]
+  cursor?: Prisma.OptionLibraryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OptionLibraryScalarFieldEnum | Prisma.OptionLibraryScalarFieldEnum[]
+}
+
+/**
  * Drug without action
  */
 export type DrugDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1174,4 +1354,8 @@ export type DrugDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    * Omit specific fields from the Drug
    */
   omit?: Prisma.DrugOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DrugInclude<ExtArgs> | null
 }

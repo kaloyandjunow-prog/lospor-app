@@ -6,11 +6,12 @@
  *   npx tsx scripts/backfill-case-events.ts
  */
 import "dotenv/config"
-import { PrismaClient } from "../src/generated/prisma/client"
+import { PrismaClient, Prisma } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import type { LegacyKeyEvents } from "../src/types/timetable"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const prisma = new PrismaClient({ adapter } as any)
+const prisma = new PrismaClient({ adapter } satisfies Prisma.PrismaClientOptions)
 
 function inferSource(entryId: unknown): string {
   return typeof entryId === "string" && entryId.startsWith("web-") ? "web" : "mobile"
@@ -26,8 +27,8 @@ async function main() {
   let skipped = 0
 
   for (const rec of records) {
-    const keyEvents = (rec.keyEvents as any) ?? {}
-    const log: any[] = Array.isArray(keyEvents.log) ? keyEvents.log : []
+    const keyEvents = (rec.keyEvents as LegacyKeyEvents | null) ?? {}
+    const log = Array.isArray(keyEvents.log) ? keyEvents.log : []
     if (log.length === 0) continue
     cases += 1
 

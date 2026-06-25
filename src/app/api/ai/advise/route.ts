@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit } from "@/lib/audit"
+import { redactText } from "@/lib/pii-check"
 import {
   AI_MAX_REQUESTS_PER_HOUR,
   AI_BURST_COOLDOWN_MS,
@@ -128,8 +129,13 @@ export async function POST(req: NextRequest) {
   const aiOptInAtStart = Boolean(parsed.aiOptIn)
 
   // GDPR: Only structured fields are sent to the AI provider.
-  // Free-text fields that may contain PHI are explicitly excluded.
-  const patientSummary = buildPatientSummary(parsed)
+  // Free-text fields that may contain PHI are explicitly excluded by
+  // buildPatientSummary's field allowlist. redactText is a defense-in-depth
+  // backstop in case a future edit adds a free-text field without updating
+  // that allowlist — accepted trade-off: it can occasionally over-redact a
+  // legitimate two-word diagnosis/procedure label, which only degrades advice
+  // quality for this one streamed response, not stored data.
+  const patientSummary = redactText(buildPatientSummary(parsed))
 
   // Item 15: await the audit write so it completes (or logs an error) before responding.
   await logAudit(user.id, "AI_ADVISE", user.id, { optIn: true })
@@ -161,7 +167,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     clearTimeout(timeoutHandle)
-    if ((err as any)?.name === "AbortError") {
+    if (err instanceof Error && err.name === "AbortError") {
       return NextResponse.json({ error: "AI request timed out" }, { status: 504 })
     }
     console.error("[ai/advise] Mistral fetch error:", err)
@@ -264,7 +270,8 @@ export async function POST(req: NextRequest) {
 // The following free-text fields are intentionally excluded:
 //   difficultAirwayNotes, familyAnesthesiaDetails, teamNotes, notes,
 //   allergyDetails (free-text), complications, airwayNotes
-function buildPatientSummary(data: any): string {
+type Tag = { label?: string }
+function buildPatientSummary(data: Record<string, unknown>): string {
   const lines: string[] = []
 
   const demo: string[] = []
@@ -273,22 +280,27 @@ function buildPatientSummary(data: any): string {
   if (data.heightCm) demo.push(`Height: ${data.heightCm} cm`)
   if (data.weightKg) demo.push(`Weight: ${data.weightKg} kg`)
   if (data.heightCm && data.weightKg) {
-    const bmi = data.weightKg / ((data.heightCm / 100) ** 2)
+    const bmi = Number(data.weightKg) / ((Number(data.heightCm) / 100) ** 2)
     demo.push(`BMI: ${bmi.toFixed(1)}`)
     if (bmi >= 35) demo.push(`(Class ${bmi >= 40 ? "III" : "II"} obesity)`)
   }
   if (data.bloodType) demo.push(`Blood type: ${data.bloodType}${data.rhFactor === "NEGATIVE" ? "−" : data.rhFactor === "POSITIVE" ? "+" : ""}`)
   if (demo.length) lines.push("**Demographics:** " + demo.join(", "))
 
+  const diagnoses = Array.isArray(data.diagnoses) ? data.diagnoses as Tag[] : []
+  const procedures = Array.isArray(data.procedures) ? data.procedures as Tag[] : []
+  const comorbidities = Array.isArray(data.comorbidities) ? data.comorbidities as Tag[] : []
+  const currentMedications = Array.isArray(data.currentMedications) ? data.currentMedications as Tag[] : []
+
   const surgery: string[] = []
-  if (data.diagnoses?.length) surgery.push(`Diagnoses: ${data.diagnoses.map((t: any) => t.label).join("; ")}`)
-  if (data.procedures?.length) surgery.push(`Planned procedure: ${data.procedures.map((t: any) => t.label).join("; ")}`)
+  if (diagnoses.length) surgery.push(`Diagnoses: ${diagnoses.map(t => t.label).join("; ")}`)
+  if (procedures.length) surgery.push(`Planned procedure: ${procedures.map(t => t.label).join("; ")}`)
   if (data.emergencySurgery) surgery.push("**EMERGENCY SURGERY**")
   if (data.highRiskSurgery) surgery.push("High-risk surgery")
   if (surgery.length) lines.push("\n**Surgical:** " + surgery.join(" | "))
 
-  if (data.comorbidities?.length)
-    lines.push("\n**Comorbidities:** " + data.comorbidities.map((t: any) => t.label).join("; "))
+  if (comorbidities.length)
+    lines.push("\n**Comorbidities:** " + comorbidities.map(t => t.label).join("; "))
 
   if (data.asaScore) {
     const label = (data.emergencySurgery && data.asaScore !== "VI") ? `${data.asaScore}E` : data.asaScore
@@ -296,9 +308,9 @@ function buildPatientSummary(data: any): string {
   }
 
   const safety: string[] = []
-  if (data.allergies) safety.push(`Allergies: ${Array.isArray(data.allergyDetails) ? data.allergyDetails.map((t: any) => t.label).join(", ") : "unspecified"}`)
+  if (data.allergies) safety.push(`Allergies: ${Array.isArray(data.allergyDetails) ? (data.allergyDetails as Tag[]).map(t => t.label).join(", ") : "unspecified"}`)
   if (data.latexAllergy) safety.push("LATEX ALLERGY")
-  if (data.currentMedications?.length) safety.push(`Current medications: ${data.currentMedications.map((t: any) => t.label).join(", ")}`)
+  if (currentMedications.length) safety.push(`Current medications: ${currentMedications.map(t => t.label).join(", ")}`)
   // familyAnesthesiaDetails omitted (free-text, may contain names)
   if (data.familyAnesthesiaProblems) safety.push("Family anaesthesia problems: yes (details withheld)")
   if (data.dentalProsthetics) safety.push("Dental prosthetics present")
@@ -320,8 +332,8 @@ function buildPatientSummary(data: any): string {
   if (data.mallampati) airway.push(`Mallampati ${data.mallampati}`)
   if (data.mouthOpeningCm) airway.push(`Mouth opening ${data.mouthOpeningCm} cm`)
   if (data.thyromental) airway.push(`Thyromental ${data.thyromental} cm`)
-  if (data.neckMobility) airway.push(`Neck mobility: ${data.neckMobility.toLowerCase()}`)
-  if (data.upperLipBiteTest) airway.push(`Upper lip bite test: ${data.upperLipBiteTest.replace("CLASS_", "class ")}`)
+  if (data.neckMobility) airway.push(`Neck mobility: ${String(data.neckMobility).toLowerCase()}`)
+  if (data.upperLipBiteTest) airway.push(`Upper lip bite test: ${String(data.upperLipBiteTest).replace("CLASS_", "class ")}`)
   if (data.retrognathia) airway.push("retrognathia")
   if (data.prominentIncisors) airway.push("prominent incisors")
   if (data.facialHair) airway.push("facial hair")

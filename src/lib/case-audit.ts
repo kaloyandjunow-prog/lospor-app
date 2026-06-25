@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@/generated/prisma/client"
+import type { PrismaClient, Prisma } from "@/generated/prisma/client"
 
 type Db = PrismaClient
 
@@ -64,9 +64,10 @@ async function writeSnapshot(db: Db, caseId: string): Promise<void> {
   })
   if (!c) return
 
+  const snapshotJson = c as unknown as Prisma.InputJsonValue
   await db.caseSnapshot.upsert({
     where:  { caseId },
-    update: { snapshotJson: c as any, finalizedAt: new Date() },
-    create: { caseId, schemaVersion: "2.0.0", snapshotJson: c as any },
+    update: { snapshotJson, finalizedAt: new Date() },
+    create: { caseId, schemaVersion: "3.0.0", snapshotJson },
   })
 }

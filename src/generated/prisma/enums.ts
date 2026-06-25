@@ -48,6 +48,64 @@ export const RequestStatus = {
 export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus]
 
 
+export const LibraryCategory = {
+  POSITION: 'POSITION',
+  AIRWAY_MANAGEMENT: 'AIRWAY_MANAGEMENT',
+  VASCULAR_ACCESS: 'VASCULAR_ACCESS',
+  TECHNIQUE: 'TECHNIQUE',
+  MONITORING: 'MONITORING',
+  PREMED_DRUG: 'PREMED_DRUG',
+  INTRAOP_EVENT: 'INTRAOP_EVENT',
+  INTRAOP_DRUG: 'INTRAOP_DRUG',
+  INTRAOP_INFUSION: 'INTRAOP_INFUSION',
+  INHALATIONAL_AGENT: 'INHALATIONAL_AGENT',
+  INTRAOP_FLUID: 'INTRAOP_FLUID',
+  SEX: 'SEX',
+  BLOOD_GROUP: 'BLOOD_GROUP',
+  NECK_MOBILITY: 'NECK_MOBILITY',
+  MALLAMPATI: 'MALLAMPATI',
+  UPPER_LIP_BITE: 'UPPER_LIP_BITE',
+  CORMACK_LEHANE: 'CORMACK_LEHANE',
+  DISPOSITION: 'DISPOSITION',
+  HANDOVER_ITEM: 'HANDOVER_ITEM',
+  AGE_RANGE: 'AGE_RANGE',
+  HEIGHT_RANGE: 'HEIGHT_RANGE',
+  WEIGHT_RANGE: 'WEIGHT_RANGE',
+  BP_SYSTOLIC_RANGE: 'BP_SYSTOLIC_RANGE',
+  BP_DIASTOLIC_RANGE: 'BP_DIASTOLIC_RANGE',
+  HEART_RATE_RANGE: 'HEART_RATE_RANGE',
+  SPO2_RANGE: 'SPO2_RANGE',
+  TEMPERATURE_RANGE: 'TEMPERATURE_RANGE',
+  RESPIRATORY_RATE_RANGE: 'RESPIRATORY_RATE_RANGE',
+  MOUTH_OPENING_RANGE: 'MOUTH_OPENING_RANGE',
+  THYROMENTAL_RANGE: 'THYROMENTAL_RANGE',
+  ALDRETE_SUBSCORE_RANGE: 'ALDRETE_SUBSCORE_RANGE',
+  PAIN_NRS_RANGE: 'PAIN_NRS_RANGE'
+} as const
+
+export type LibraryCategory = (typeof LibraryCategory)[keyof typeof LibraryCategory]
+
+
+export const ConceptMappingStatus = {
+  MAPPED: 'MAPPED',
+  SOURCE_ONLY: 'SOURCE_ONLY',
+  UNMAPPED: 'UNMAPPED'
+} as const
+
+export type ConceptMappingStatus = (typeof ConceptMappingStatus)[keyof typeof ConceptMappingStatus]
+
+
+export const ClinicalFieldPresence = {
+  PRESENT: 'PRESENT',
+  ABSENT: 'ABSENT',
+  UNKNOWN: 'UNKNOWN',
+  NOT_APPLICABLE: 'NOT_APPLICABLE',
+  NOT_DOCUMENTED: 'NOT_DOCUMENTED'
+} as const
+
+export type ClinicalFieldPresence = (typeof ClinicalFieldPresence)[keyof typeof ClinicalFieldPresence]
+
+
 export const Sex = {
   MALE: 'MALE',
   FEMALE: 'FEMALE',
@@ -224,3 +282,11 @@ export const Disposition = {
 } as const
 
 export type Disposition = (typeof Disposition)[keyof typeof Disposition]
+
+
+export const MedicationKind = {
+  CURRENT: 'CURRENT',
+  ALLERGY: 'ALLERGY'
+} as const
+
+export type MedicationKind = (typeof MedicationKind)[keyof typeof MedicationKind]

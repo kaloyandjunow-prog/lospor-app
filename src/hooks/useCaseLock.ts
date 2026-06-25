@@ -29,6 +29,11 @@ export function useCaseLock(caseId: string | null, enabled = true): {
   useEffect(() => { caseIdRef.current = caseId }, [caseId])
 
   useEffect(() => {
+    // Resetting lock state in response to caseId/enabled changing, then
+    // kicking off the async acquire/heartbeat flow below — this effect's
+    // whole job is reacting to those prop changes, there's no derivable
+    // render-time value to use instead.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!caseId || !enabled) { setLockState("idle"); return }
 
     const deviceId = getDeviceId()

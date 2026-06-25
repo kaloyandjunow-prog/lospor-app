@@ -5,7 +5,7 @@ import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-type Category = "ui" | "automation" | "access" | "privacy"
+type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
 function PillGroup({ options, value, onChange }: {
   options: { value: string; label: string; icon?: React.ReactNode }[]
@@ -88,13 +88,24 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [autoFillBP, setAutoFillBP] = useState(false)
   const [autoFillBg, setAutoFillBg] = useState(false)
   const [locale, setLocale]         = useState(currentLocale ?? "en")
+  // Display-only — the database always stores the canonical value
+  // (cm/kg/°C/mmHg); these just convert what's shown/typed in vitals entry.
+  // Drugs, infusions, fluids, and labs are not affected.
+  const [heightUnit, setHeightUnitState]           = useState<"cm" | "in">("cm")
+  const [weightUnit, setWeightUnitState]           = useState<"kg" | "lb">("kg")
+  const [temperatureUnit, setTemperatureUnitState] = useState<"C" | "F">("C")
+  const [etco2Unit, setEtco2UnitState]             = useState<"mmHg" | "kPa">("mmHg")
   const [, startLangTrans]          = useTransition()
-  const [roleReq, setRoleReq]       = useState<RoleReq>(undefined as any)
+  const [roleReq, setRoleReq]       = useState<RoleReq | undefined>(undefined)
   const [reqLoading, setReqLoading] = useState(false)
   const router   = useRouter()
   const menuRef  = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time mount sync
+       reading many localStorage preference keys into matching state; none of
+       these need cross-tab live updates via useSyncExternalStore, they're
+       just the initial-render values (localStorage isn't readable during SSR). */
     const storedTheme = localStorage.getItem("theme")
     const isDark = storedTheme !== "light" // default to dark when nothing stored
     setDark(isDark)
@@ -118,11 +129,21 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     setAutoFillBP(localStorage.getItem("autoFillBP") === "on")
     setAutoFillBg(localStorage.getItem("autoFillBackground") === "on")
 
+    const hu = localStorage.getItem("heightUnit")
+    if (hu === "cm" || hu === "in") setHeightUnitState(hu)
+    const wu = localStorage.getItem("weightUnit")
+    if (wu === "kg" || wu === "lb") setWeightUnitState(wu)
+    const tu = localStorage.getItem("temperatureUnit")
+    if (tu === "C" || tu === "F") setTemperatureUnitState(tu)
+    const eu = localStorage.getItem("etco2Unit")
+    if (eu === "mmHg" || eu === "kPa") setEtco2UnitState(eu)
+
     // Fetch role request status for non-admin users
     if (role === "MEMBER" || role === "CLINICIAN" || role === "RESEARCHER" || role === "HEAD_OF_DEPT") {
       fetch("/api/role-request").then(r => r.json()).then(setRoleReq).catch(() => setRoleReq(null))
     }
-  }, [])
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [role])
 
   useEffect(() => {
     if (!open) return
@@ -152,6 +173,10 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   function applyAutoFill(val: boolean) { setAutoFill(val); setSetting("autoFillVitals", val ? "on" : "off") }
   function applyAutoFillBP(val: boolean) { setAutoFillBP(val); setSetting("autoFillBP", val ? "on" : "off") }
   function applyAutoFillBg(val: boolean) { setAutoFillBg(val); setSetting("autoFillBackground", val ? "on" : "off") }
+  function applyHeightUnit(u: "cm" | "in") { setHeightUnitState(u); setSetting("heightUnit", u) }
+  function applyWeightUnit(u: "kg" | "lb") { setWeightUnitState(u); setSetting("weightUnit", u) }
+  function applyTemperatureUnit(u: "C" | "F") { setTemperatureUnitState(u); setSetting("temperatureUnit", u) }
+  function applyEtco2Unit(u: "mmHg" | "kPa") { setEtco2UnitState(u); setSetting("etco2Unit", u) }
 
   async function switchLocale(l: string) {
     setLocale(l)
@@ -178,6 +203,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
   const CATS: { id: Category; label: string }[] = [
     { id: "ui",         label: t("settings.cats.ui")         },
+    { id: "units",      label: "Units"                        },
     { id: "automation", label: t("settings.cats.automation")  },
     ...(role !== "ADMIN" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
     { id: "privacy",    label: t("settings.cats.privacy")    },
@@ -346,6 +372,42 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
                     <SettingRow label={t("settings.vitalsChart")} description={t("settings.vitalsChartDesc")}>
                       <Toggle value={vitalsExp} onChange={applyVitalsExp} />
+                    </SettingRow>
+                  </>
+                )}
+
+                {category === "units" && (
+                  <>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 pt-2 pb-1 leading-relaxed">
+                      Display-only — values are always stored in the canonical unit. This only changes what&apos;s shown and typed in vitals entry. Drugs, infusions, fluids, and labs are unaffected.
+                    </p>
+                    <SettingRow label="Height">
+                      <PillGroup value={heightUnit} onChange={v => applyHeightUnit(v as "cm" | "in")}
+                        options={[
+                          { value: "cm", label: "cm" },
+                          { value: "in", label: "in" },
+                        ]} />
+                    </SettingRow>
+                    <SettingRow label="Weight">
+                      <PillGroup value={weightUnit} onChange={v => applyWeightUnit(v as "kg" | "lb")}
+                        options={[
+                          { value: "kg", label: "kg" },
+                          { value: "lb", label: "lb" },
+                        ]} />
+                    </SettingRow>
+                    <SettingRow label="Temperature">
+                      <PillGroup value={temperatureUnit} onChange={v => applyTemperatureUnit(v as "C" | "F")}
+                        options={[
+                          { value: "C", label: "°C" },
+                          { value: "F", label: "°F" },
+                        ]} />
+                    </SettingRow>
+                    <SettingRow label="EtCO₂">
+                      <PillGroup value={etco2Unit} onChange={v => applyEtco2Unit(v as "mmHg" | "kPa")}
+                        options={[
+                          { value: "mmHg", label: "mmHg" },
+                          { value: "kPa",  label: "kPa" },
+                        ]} />
                     </SettingRow>
                   </>
                 )}

@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
 import { syncCaseRelational } from "@/lib/relational-sync"
 
-// Theme A2: validator that detects + repairs JSON/row drift.
-// ADMIN-only. Re-derives relational rows from authoritative JSON for all cases
-// (or a single case if ?caseId=... is provided) and logs mismatches.
+// Repair tool, not a read-only check: re-derives relational rows from the
+// authoritative JSON (delete + recreate, in a transaction) for all cases (or
+// a single case if ?caseId=... is provided). Renamed from
+// "validate-relational" — the old name implied this only inspects for drift,
+// but it actively rewrites the relational mirror every time it runs.
+// ADMIN-only.
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
-  if (!user?.id || user.role !== "ADMIN") {
+  if (!requireRole(user, ["ADMIN"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -25,8 +29,8 @@ export async function POST(req: NextRequest) {
     try {
       await syncCaseRelational(prisma, c.id)
       report.push({ caseId: c.id, status: "repaired" })
-    } catch (err: any) {
-      report.push({ caseId: c.id, status: "error", error: String(err?.message ?? err) })
+    } catch (err: unknown) {
+      report.push({ caseId: c.id, status: "error", error: String(err instanceof Error ? err.message : err) })
     }
   }
 

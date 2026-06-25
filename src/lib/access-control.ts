@@ -11,6 +11,16 @@ type CaseAccessRecord = {
   user?: { institutionId?: string | null } | null
 }
 
+// Centralizes the `!user || user.role !== "X"` check that was copy-pasted
+// across 14+ admin/case routes, so the role gate lives in one audited place.
+// Typed as a predicate so callers keep `user` narrowed to non-null afterward,
+// same as the inline `!user || ...` checks it replaces.
+export function requireRole<U extends { role?: string | null }>(
+  user: U | null | undefined, roles: string[]
+): user is U {
+  return !!user && !!user.role && roles.includes(user.role)
+}
+
 export function canAccessCase(user: AuthUser, record: CaseAccessRecord): boolean {
   if (user.role === "ADMIN") return true
   if (record.userId === user.id) return true

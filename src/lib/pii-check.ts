@@ -36,7 +36,7 @@ function isValidEGN(s: string): boolean {
   //   plain month (1–12):  born 1900–1999
   //   month + 20 (21–32):  historical foreign residents (1800s)
   //   month + 40 (41–52):  born 2000+
-  let yy = parseInt(s.slice(0, 2), 10)
+  const yy = parseInt(s.slice(0, 2), 10)
   let mm = parseInt(s.slice(2, 4), 10)
   const dd = parseInt(s.slice(4, 6), 10)
 
@@ -76,6 +76,33 @@ function isValidEGN(s: string): boolean {
   for (let i = 0; i < 9; i++) sum += parseInt(s[i], 10) * weights[i]
   const check = sum % 11 === 10 ? 0 : sum % 11
   return parseInt(s[9], 10) === check
+}
+
+// Read-time redaction for export/AI paths, where blocking isn't an option
+// (the data already exists) — scrubs the same patterns checkPII detects,
+// replacing matches in place rather than rejecting the whole value.
+export function redactText(value: string): string {
+  let out = value
+  out = out.replace(EGN_RE, (m, g1) => (isValidEGN(g1) ? "[REDACTED]" : m))
+  out = out.replace(new RegExp(DIGIT7_RE, "g"), "[REDACTED]")
+  out = out.replace(new RegExp(DATE_RE, "g"), "[REDACTED]")
+  out = out.replace(new RegExp(EMAIL_RE, "g"), "[REDACTED]")
+  out = out.replace(new RegExp(NAME_RE, "gu"), "[REDACTED]")
+  return out
+}
+
+// Recursively redacts every string leaf in an object/array (export rows,
+// case-event payloads) so free-text fields can't carry PII off the system
+// even when a field wasn't explicitly enumerated by the caller.
+export function deepRedactPII<T>(value: T): T {
+  if (typeof value === "string") return redactText(value) as unknown as T
+  if (Array.isArray(value)) return value.map(deepRedactPII) as unknown as T
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = deepRedactPII(v)
+    return out as T
+  }
+  return value
 }
 
 export function checkPII(fields: Record<string, string | null | undefined>): string | null {

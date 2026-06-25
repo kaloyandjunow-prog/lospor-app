@@ -72,6 +72,10 @@ export type PostoperativeRecordMinAggregateOutputType = {
   painScoreNRS: number | null
   ponv: boolean | null
   temperatureCelsius: number | null
+  recoveryBpUnobtainable: boolean | null
+  recoveryHeartRateUnobtainable: boolean | null
+  recoverySpO2Unobtainable: boolean | null
+  recoveryTemperatureUnobtainable: boolean | null
   complications: string | null
   disposition: $Enums.Disposition | null
   dispositionNotes: string | null
@@ -95,6 +99,10 @@ export type PostoperativeRecordMaxAggregateOutputType = {
   painScoreNRS: number | null
   ponv: boolean | null
   temperatureCelsius: number | null
+  recoveryBpUnobtainable: boolean | null
+  recoveryHeartRateUnobtainable: boolean | null
+  recoverySpO2Unobtainable: boolean | null
+  recoveryTemperatureUnobtainable: boolean | null
   complications: string | null
   disposition: $Enums.Disposition | null
   dispositionNotes: string | null
@@ -118,6 +126,10 @@ export type PostoperativeRecordCountAggregateOutputType = {
   painScoreNRS: number
   ponv: number
   temperatureCelsius: number
+  recoveryBpUnobtainable: number
+  recoveryHeartRateUnobtainable: number
+  recoverySpO2Unobtainable: number
+  recoveryTemperatureUnobtainable: number
   complications: number
   disposition: number
   dispositionNotes: number
@@ -174,6 +186,10 @@ export type PostoperativeRecordMinAggregateInputType = {
   painScoreNRS?: true
   ponv?: true
   temperatureCelsius?: true
+  recoveryBpUnobtainable?: true
+  recoveryHeartRateUnobtainable?: true
+  recoverySpO2Unobtainable?: true
+  recoveryTemperatureUnobtainable?: true
   complications?: true
   disposition?: true
   dispositionNotes?: true
@@ -197,6 +213,10 @@ export type PostoperativeRecordMaxAggregateInputType = {
   painScoreNRS?: true
   ponv?: true
   temperatureCelsius?: true
+  recoveryBpUnobtainable?: true
+  recoveryHeartRateUnobtainable?: true
+  recoverySpO2Unobtainable?: true
+  recoveryTemperatureUnobtainable?: true
   complications?: true
   disposition?: true
   dispositionNotes?: true
@@ -220,6 +240,10 @@ export type PostoperativeRecordCountAggregateInputType = {
   painScoreNRS?: true
   ponv?: true
   temperatureCelsius?: true
+  recoveryBpUnobtainable?: true
+  recoveryHeartRateUnobtainable?: true
+  recoverySpO2Unobtainable?: true
+  recoveryTemperatureUnobtainable?: true
   complications?: true
   disposition?: true
   dispositionNotes?: true
@@ -331,6 +355,10 @@ export type PostoperativeRecordGroupByOutputType = {
   painScoreNRS: number | null
   ponv: boolean
   temperatureCelsius: number | null
+  recoveryBpUnobtainable: boolean
+  recoveryHeartRateUnobtainable: boolean
+  recoverySpO2Unobtainable: boolean
+  recoveryTemperatureUnobtainable: boolean
   complications: string | null
   disposition: $Enums.Disposition | null
   dispositionNotes: string | null
@@ -378,6 +406,10 @@ export type PostoperativeRecordWhereInput = {
   painScoreNRS?: Prisma.IntNullableFilter<"PostoperativeRecord"> | number | null
   ponv?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
   temperatureCelsius?: Prisma.FloatNullableFilter<"PostoperativeRecord"> | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
   complications?: Prisma.StringNullableFilter<"PostoperativeRecord"> | string | null
   disposition?: Prisma.EnumDispositionNullableFilter<"PostoperativeRecord"> | $Enums.Disposition | null
   dispositionNotes?: Prisma.StringNullableFilter<"PostoperativeRecord"> | string | null
@@ -403,6 +435,10 @@ export type PostoperativeRecordOrderByWithRelationInput = {
   painScoreNRS?: Prisma.SortOrderInput | Prisma.SortOrder
   ponv?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrderInput | Prisma.SortOrder
+  recoveryBpUnobtainable?: Prisma.SortOrder
+  recoveryHeartRateUnobtainable?: Prisma.SortOrder
+  recoverySpO2Unobtainable?: Prisma.SortOrder
+  recoveryTemperatureUnobtainable?: Prisma.SortOrder
   complications?: Prisma.SortOrderInput | Prisma.SortOrder
   disposition?: Prisma.SortOrderInput | Prisma.SortOrder
   dispositionNotes?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -431,6 +467,10 @@ export type PostoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   painScoreNRS?: Prisma.IntNullableFilter<"PostoperativeRecord"> | number | null
   ponv?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
   temperatureCelsius?: Prisma.FloatNullableFilter<"PostoperativeRecord"> | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFilter<"PostoperativeRecord"> | boolean
   complications?: Prisma.StringNullableFilter<"PostoperativeRecord"> | string | null
   disposition?: Prisma.EnumDispositionNullableFilter<"PostoperativeRecord"> | $Enums.Disposition | null
   dispositionNotes?: Prisma.StringNullableFilter<"PostoperativeRecord"> | string | null
@@ -456,6 +496,10 @@ export type PostoperativeRecordOrderByWithAggregationInput = {
   painScoreNRS?: Prisma.SortOrderInput | Prisma.SortOrder
   ponv?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrderInput | Prisma.SortOrder
+  recoveryBpUnobtainable?: Prisma.SortOrder
+  recoveryHeartRateUnobtainable?: Prisma.SortOrder
+  recoverySpO2Unobtainable?: Prisma.SortOrder
+  recoveryTemperatureUnobtainable?: Prisma.SortOrder
   complications?: Prisma.SortOrderInput | Prisma.SortOrder
   disposition?: Prisma.SortOrderInput | Prisma.SortOrder
   dispositionNotes?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -488,6 +532,10 @@ export type PostoperativeRecordScalarWhereWithAggregatesInput = {
   painScoreNRS?: Prisma.IntNullableWithAggregatesFilter<"PostoperativeRecord"> | number | null
   ponv?: Prisma.BoolWithAggregatesFilter<"PostoperativeRecord"> | boolean
   temperatureCelsius?: Prisma.FloatNullableWithAggregatesFilter<"PostoperativeRecord"> | number | null
+  recoveryBpUnobtainable?: Prisma.BoolWithAggregatesFilter<"PostoperativeRecord"> | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolWithAggregatesFilter<"PostoperativeRecord"> | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolWithAggregatesFilter<"PostoperativeRecord"> | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolWithAggregatesFilter<"PostoperativeRecord"> | boolean
   complications?: Prisma.StringNullableWithAggregatesFilter<"PostoperativeRecord"> | string | null
   disposition?: Prisma.EnumDispositionNullableWithAggregatesFilter<"PostoperativeRecord"> | $Enums.Disposition | null
   dispositionNotes?: Prisma.StringNullableWithAggregatesFilter<"PostoperativeRecord"> | string | null
@@ -511,6 +559,10 @@ export type PostoperativeRecordCreateInput = {
   painScoreNRS?: number | null
   ponv?: boolean
   temperatureCelsius?: number | null
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: string | null
   disposition?: $Enums.Disposition | null
   dispositionNotes?: string | null
@@ -536,6 +588,10 @@ export type PostoperativeRecordUncheckedCreateInput = {
   painScoreNRS?: number | null
   ponv?: boolean
   temperatureCelsius?: number | null
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: string | null
   disposition?: $Enums.Disposition | null
   dispositionNotes?: string | null
@@ -559,6 +615,10 @@ export type PostoperativeRecordUpdateInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -584,6 +644,10 @@ export type PostoperativeRecordUncheckedUpdateInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -608,6 +672,10 @@ export type PostoperativeRecordCreateManyInput = {
   painScoreNRS?: number | null
   ponv?: boolean
   temperatureCelsius?: number | null
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: string | null
   disposition?: $Enums.Disposition | null
   dispositionNotes?: string | null
@@ -631,6 +699,10 @@ export type PostoperativeRecordUpdateManyMutationInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -655,6 +727,10 @@ export type PostoperativeRecordUncheckedUpdateManyInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -684,6 +760,10 @@ export type PostoperativeRecordCountOrderByAggregateInput = {
   painScoreNRS?: Prisma.SortOrder
   ponv?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrder
+  recoveryBpUnobtainable?: Prisma.SortOrder
+  recoveryHeartRateUnobtainable?: Prisma.SortOrder
+  recoverySpO2Unobtainable?: Prisma.SortOrder
+  recoveryTemperatureUnobtainable?: Prisma.SortOrder
   complications?: Prisma.SortOrder
   disposition?: Prisma.SortOrder
   dispositionNotes?: Prisma.SortOrder
@@ -723,6 +803,10 @@ export type PostoperativeRecordMaxOrderByAggregateInput = {
   painScoreNRS?: Prisma.SortOrder
   ponv?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrder
+  recoveryBpUnobtainable?: Prisma.SortOrder
+  recoveryHeartRateUnobtainable?: Prisma.SortOrder
+  recoverySpO2Unobtainable?: Prisma.SortOrder
+  recoveryTemperatureUnobtainable?: Prisma.SortOrder
   complications?: Prisma.SortOrder
   disposition?: Prisma.SortOrder
   dispositionNotes?: Prisma.SortOrder
@@ -746,6 +830,10 @@ export type PostoperativeRecordMinOrderByAggregateInput = {
   painScoreNRS?: Prisma.SortOrder
   ponv?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrder
+  recoveryBpUnobtainable?: Prisma.SortOrder
+  recoveryHeartRateUnobtainable?: Prisma.SortOrder
+  recoverySpO2Unobtainable?: Prisma.SortOrder
+  recoveryTemperatureUnobtainable?: Prisma.SortOrder
   complications?: Prisma.SortOrder
   disposition?: Prisma.SortOrder
   dispositionNotes?: Prisma.SortOrder
@@ -819,6 +907,10 @@ export type PostoperativeRecordCreateWithoutCaseInput = {
   painScoreNRS?: number | null
   ponv?: boolean
   temperatureCelsius?: number | null
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: string | null
   disposition?: $Enums.Disposition | null
   dispositionNotes?: string | null
@@ -842,6 +934,10 @@ export type PostoperativeRecordUncheckedCreateWithoutCaseInput = {
   painScoreNRS?: number | null
   ponv?: boolean
   temperatureCelsius?: number | null
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: string | null
   disposition?: $Enums.Disposition | null
   dispositionNotes?: string | null
@@ -881,6 +977,10 @@ export type PostoperativeRecordUpdateWithoutCaseInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -904,6 +1004,10 @@ export type PostoperativeRecordUncheckedUpdateWithoutCaseInput = {
   painScoreNRS?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ponv?: Prisma.BoolFieldUpdateOperationsInput | boolean
   temperatureCelsius?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  recoveryBpUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryHeartRateUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoverySpO2Unobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recoveryTemperatureUnobtainable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   disposition?: Prisma.NullableEnumDispositionFieldUpdateOperationsInput | $Enums.Disposition | null
   dispositionNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -930,6 +1034,10 @@ export type PostoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.I
   painScoreNRS?: boolean
   ponv?: boolean
   temperatureCelsius?: boolean
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: boolean
   disposition?: boolean
   dispositionNotes?: boolean
@@ -955,6 +1063,10 @@ export type PostoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtime
   painScoreNRS?: boolean
   ponv?: boolean
   temperatureCelsius?: boolean
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: boolean
   disposition?: boolean
   dispositionNotes?: boolean
@@ -980,6 +1092,10 @@ export type PostoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtime
   painScoreNRS?: boolean
   ponv?: boolean
   temperatureCelsius?: boolean
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: boolean
   disposition?: boolean
   dispositionNotes?: boolean
@@ -1005,6 +1121,10 @@ export type PostoperativeRecordSelectScalar = {
   painScoreNRS?: boolean
   ponv?: boolean
   temperatureCelsius?: boolean
+  recoveryBpUnobtainable?: boolean
+  recoveryHeartRateUnobtainable?: boolean
+  recoverySpO2Unobtainable?: boolean
+  recoveryTemperatureUnobtainable?: boolean
   complications?: boolean
   disposition?: boolean
   dispositionNotes?: boolean
@@ -1013,7 +1133,7 @@ export type PostoperativeRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PostoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "aldreteActivity" | "aldreteRespiration" | "aldreteCirculation" | "aldreteConsciousness" | "aldreteSpO2" | "aldreteTotal" | "recoveryBpSystolic" | "recoveryBpDiastolic" | "recoveryHeartRate" | "recoverySpO2" | "painScoreNRS" | "ponv" | "temperatureCelsius" | "complications" | "disposition" | "dispositionNotes" | "handoverItems" | "createdAt" | "updatedAt", ExtArgs["result"]["postoperativeRecord"]>
+export type PostoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "aldreteActivity" | "aldreteRespiration" | "aldreteCirculation" | "aldreteConsciousness" | "aldreteSpO2" | "aldreteTotal" | "recoveryBpSystolic" | "recoveryBpDiastolic" | "recoveryHeartRate" | "recoverySpO2" | "painScoreNRS" | "ponv" | "temperatureCelsius" | "recoveryBpUnobtainable" | "recoveryHeartRateUnobtainable" | "recoverySpO2Unobtainable" | "recoveryTemperatureUnobtainable" | "complications" | "disposition" | "dispositionNotes" | "handoverItems" | "createdAt" | "updatedAt", ExtArgs["result"]["postoperativeRecord"]>
 export type PostoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -1045,6 +1165,10 @@ export type $PostoperativeRecordPayload<ExtArgs extends runtime.Types.Extensions
     painScoreNRS: number | null
     ponv: boolean
     temperatureCelsius: number | null
+    recoveryBpUnobtainable: boolean
+    recoveryHeartRateUnobtainable: boolean
+    recoverySpO2Unobtainable: boolean
+    recoveryTemperatureUnobtainable: boolean
     complications: string | null
     disposition: $Enums.Disposition | null
     dispositionNotes: string | null
@@ -1490,6 +1614,10 @@ export interface PostoperativeRecordFieldRefs {
   readonly painScoreNRS: Prisma.FieldRef<"PostoperativeRecord", 'Int'>
   readonly ponv: Prisma.FieldRef<"PostoperativeRecord", 'Boolean'>
   readonly temperatureCelsius: Prisma.FieldRef<"PostoperativeRecord", 'Float'>
+  readonly recoveryBpUnobtainable: Prisma.FieldRef<"PostoperativeRecord", 'Boolean'>
+  readonly recoveryHeartRateUnobtainable: Prisma.FieldRef<"PostoperativeRecord", 'Boolean'>
+  readonly recoverySpO2Unobtainable: Prisma.FieldRef<"PostoperativeRecord", 'Boolean'>
+  readonly recoveryTemperatureUnobtainable: Prisma.FieldRef<"PostoperativeRecord", 'Boolean'>
   readonly complications: Prisma.FieldRef<"PostoperativeRecord", 'String'>
   readonly disposition: Prisma.FieldRef<"PostoperativeRecord", 'Disposition'>
   readonly dispositionNotes: Prisma.FieldRef<"PostoperativeRecord", 'String'>

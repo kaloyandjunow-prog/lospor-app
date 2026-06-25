@@ -223,6 +223,8 @@ export type CaseWhereInput = {
   lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
   events?: Prisma.CaseEventListRelationFilter
   selections?: Prisma.CaseSelectionListRelationFilter
+  complications?: Prisma.CaseComplicationListRelationFilter
+  fieldStatuses?: Prisma.ClinicalFieldStatusListRelationFilter
   fieldChanges?: Prisma.CaseFieldChangeListRelationFilter
   snapshot?: Prisma.XOR<Prisma.CaseSnapshotNullableScalarRelationFilter, Prisma.CaseSnapshotWhereInput> | null
 }
@@ -246,6 +248,8 @@ export type CaseOrderByWithRelationInput = {
   lock?: Prisma.CaseLockOrderByWithRelationInput
   events?: Prisma.CaseEventOrderByRelationAggregateInput
   selections?: Prisma.CaseSelectionOrderByRelationAggregateInput
+  complications?: Prisma.CaseComplicationOrderByRelationAggregateInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusOrderByRelationAggregateInput
   fieldChanges?: Prisma.CaseFieldChangeOrderByRelationAggregateInput
   snapshot?: Prisma.CaseSnapshotOrderByWithRelationInput
 }
@@ -273,6 +277,8 @@ export type CaseWhereUniqueInput = Prisma.AtLeast<{
   lock?: Prisma.XOR<Prisma.CaseLockNullableScalarRelationFilter, Prisma.CaseLockWhereInput> | null
   events?: Prisma.CaseEventListRelationFilter
   selections?: Prisma.CaseSelectionListRelationFilter
+  complications?: Prisma.CaseComplicationListRelationFilter
+  fieldStatuses?: Prisma.ClinicalFieldStatusListRelationFilter
   fieldChanges?: Prisma.CaseFieldChangeListRelationFilter
   snapshot?: Prisma.XOR<Prisma.CaseSnapshotNullableScalarRelationFilter, Prisma.CaseSnapshotWhereInput> | null
 }, "id" | "userId_caseCode">
@@ -324,6 +330,8 @@ export type CaseCreateInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -345,6 +353,8 @@ export type CaseUncheckedCreateInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -366,6 +376,8 @@ export type CaseUpdateInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -387,6 +399,8 @@ export type CaseUncheckedUpdateInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -597,6 +611,20 @@ export type CaseUpdateOneRequiredWithoutTransfersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutTransfersInput, Prisma.CaseUpdateWithoutTransfersInput>, Prisma.CaseUncheckedUpdateWithoutTransfersInput>
 }
 
+export type CaseCreateNestedOneWithoutFieldStatusesInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutFieldStatusesInput, Prisma.CaseUncheckedCreateWithoutFieldStatusesInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutFieldStatusesInput
+  connect?: Prisma.CaseWhereUniqueInput
+}
+
+export type CaseUpdateOneRequiredWithoutFieldStatusesNestedInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutFieldStatusesInput, Prisma.CaseUncheckedCreateWithoutFieldStatusesInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutFieldStatusesInput
+  upsert?: Prisma.CaseUpsertWithoutFieldStatusesInput
+  connect?: Prisma.CaseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutFieldStatusesInput, Prisma.CaseUpdateWithoutFieldStatusesInput>, Prisma.CaseUncheckedUpdateWithoutFieldStatusesInput>
+}
+
 export type CaseCreateNestedOneWithoutFieldChangesInput = {
   create?: Prisma.XOR<Prisma.CaseCreateWithoutFieldChangesInput, Prisma.CaseUncheckedCreateWithoutFieldChangesInput>
   connectOrCreate?: Prisma.CaseCreateOrConnectWithoutFieldChangesInput
@@ -681,6 +709,20 @@ export type CaseUpdateOneRequiredWithoutPostopNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutPostopInput, Prisma.CaseUpdateWithoutPostopInput>, Prisma.CaseUncheckedUpdateWithoutPostopInput>
 }
 
+export type CaseCreateNestedOneWithoutComplicationsInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutComplicationsInput, Prisma.CaseUncheckedCreateWithoutComplicationsInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutComplicationsInput
+  connect?: Prisma.CaseWhereUniqueInput
+}
+
+export type CaseUpdateOneRequiredWithoutComplicationsNestedInput = {
+  create?: Prisma.XOR<Prisma.CaseCreateWithoutComplicationsInput, Prisma.CaseUncheckedCreateWithoutComplicationsInput>
+  connectOrCreate?: Prisma.CaseCreateOrConnectWithoutComplicationsInput
+  upsert?: Prisma.CaseUpsertWithoutComplicationsInput
+  connect?: Prisma.CaseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CaseUpdateToOneWithWhereWithoutComplicationsInput, Prisma.CaseUpdateWithoutComplicationsInput>, Prisma.CaseUncheckedUpdateWithoutComplicationsInput>
+}
+
 export type CaseCreateNestedOneWithoutSelectionsInput = {
   create?: Prisma.XOR<Prisma.CaseCreateWithoutSelectionsInput, Prisma.CaseUncheckedCreateWithoutSelectionsInput>
   connectOrCreate?: Prisma.CaseCreateOrConnectWithoutSelectionsInput
@@ -711,6 +753,8 @@ export type CaseCreateWithoutUserInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -731,6 +775,8 @@ export type CaseUncheckedCreateWithoutUserInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -792,6 +838,8 @@ export type CaseCreateWithoutInstitutionInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -812,6 +860,8 @@ export type CaseUncheckedCreateWithoutInstitutionInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -858,6 +908,8 @@ export type CaseCreateWithoutLockInput = {
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -878,6 +930,8 @@ export type CaseUncheckedCreateWithoutLockInput = {
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -914,6 +968,8 @@ export type CaseUpdateWithoutLockInput = {
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -934,6 +990,8 @@ export type CaseUncheckedUpdateWithoutLockInput = {
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -954,6 +1012,8 @@ export type CaseCreateWithoutTransfersInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -974,6 +1034,8 @@ export type CaseUncheckedCreateWithoutTransfersInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1010,6 +1072,8 @@ export type CaseUpdateWithoutTransfersInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1030,6 +1094,112 @@ export type CaseUncheckedUpdateWithoutTransfersInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
+  fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
+  snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
+}
+
+export type CaseCreateWithoutFieldStatusesInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCasesInput
+  institution?: Prisma.InstitutionCreateNestedOneWithoutCasesInput
+  preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
+  selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
+  snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
+}
+
+export type CaseUncheckedCreateWithoutFieldStatusesInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  userId: string
+  institutionId?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
+  selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
+  snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
+}
+
+export type CaseCreateOrConnectWithoutFieldStatusesInput = {
+  where: Prisma.CaseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CaseCreateWithoutFieldStatusesInput, Prisma.CaseUncheckedCreateWithoutFieldStatusesInput>
+}
+
+export type CaseUpsertWithoutFieldStatusesInput = {
+  update: Prisma.XOR<Prisma.CaseUpdateWithoutFieldStatusesInput, Prisma.CaseUncheckedUpdateWithoutFieldStatusesInput>
+  create: Prisma.XOR<Prisma.CaseCreateWithoutFieldStatusesInput, Prisma.CaseUncheckedCreateWithoutFieldStatusesInput>
+  where?: Prisma.CaseWhereInput
+}
+
+export type CaseUpdateToOneWithWhereWithoutFieldStatusesInput = {
+  where?: Prisma.CaseWhereInput
+  data: Prisma.XOR<Prisma.CaseUpdateWithoutFieldStatusesInput, Prisma.CaseUncheckedUpdateWithoutFieldStatusesInput>
+}
+
+export type CaseUpdateWithoutFieldStatusesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutCasesNestedInput
+  preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
+  selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
+  snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
+}
+
+export type CaseUncheckedUpdateWithoutFieldStatusesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
+  selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1051,6 +1221,8 @@ export type CaseCreateWithoutFieldChangesInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
 
@@ -1071,6 +1243,8 @@ export type CaseUncheckedCreateWithoutFieldChangesInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
 
@@ -1107,6 +1281,8 @@ export type CaseUpdateWithoutFieldChangesInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
 
@@ -1127,6 +1303,8 @@ export type CaseUncheckedUpdateWithoutFieldChangesInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
 
@@ -1147,6 +1325,8 @@ export type CaseCreateWithoutSnapshotInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
 }
 
@@ -1167,6 +1347,8 @@ export type CaseUncheckedCreateWithoutSnapshotInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
 }
 
@@ -1203,6 +1385,8 @@ export type CaseUpdateWithoutSnapshotInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
 }
 
@@ -1223,6 +1407,8 @@ export type CaseUncheckedUpdateWithoutSnapshotInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
 }
 
@@ -1242,6 +1428,8 @@ export type CaseCreateWithoutEventsInput = {
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -1262,6 +1450,8 @@ export type CaseUncheckedCreateWithoutEventsInput = {
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1298,6 +1488,8 @@ export type CaseUpdateWithoutEventsInput = {
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1318,6 +1510,8 @@ export type CaseUncheckedUpdateWithoutEventsInput = {
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1338,6 +1532,8 @@ export type CaseCreateWithoutPreopInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -1358,6 +1554,8 @@ export type CaseUncheckedCreateWithoutPreopInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1394,6 +1592,8 @@ export type CaseUpdateWithoutPreopInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1414,6 +1614,8 @@ export type CaseUncheckedUpdateWithoutPreopInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1434,6 +1636,8 @@ export type CaseCreateWithoutIntraopInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -1454,6 +1658,8 @@ export type CaseUncheckedCreateWithoutIntraopInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1490,6 +1696,8 @@ export type CaseUpdateWithoutIntraopInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1510,6 +1718,8 @@ export type CaseUncheckedUpdateWithoutIntraopInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1530,6 +1740,8 @@ export type CaseCreateWithoutPostopInput = {
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -1550,6 +1762,8 @@ export type CaseUncheckedCreateWithoutPostopInput = {
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
   selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1586,6 +1800,8 @@ export type CaseUpdateWithoutPostopInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1606,6 +1822,112 @@ export type CaseUncheckedUpdateWithoutPostopInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
+  fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
+  snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
+}
+
+export type CaseCreateWithoutComplicationsInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCasesInput
+  institution?: Prisma.InstitutionCreateNestedOneWithoutCasesInput
+  preop?: Prisma.PreoperativeAssessmentCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
+  selections?: Prisma.CaseSelectionCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
+  fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
+  snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
+}
+
+export type CaseUncheckedCreateWithoutComplicationsInput = {
+  id?: string
+  caseCode?: string | null
+  notes?: string | null
+  userId: string
+  institutionId?: string | null
+  status?: $Enums.CaseStatus
+  finalizedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedCreateNestedOneWithoutCaseInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  postop?: Prisma.PostoperativeRecordUncheckedCreateNestedOneWithoutCaseInput
+  transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
+  lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
+  events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
+  selections?: Prisma.CaseSelectionUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
+  fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
+  snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
+}
+
+export type CaseCreateOrConnectWithoutComplicationsInput = {
+  where: Prisma.CaseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CaseCreateWithoutComplicationsInput, Prisma.CaseUncheckedCreateWithoutComplicationsInput>
+}
+
+export type CaseUpsertWithoutComplicationsInput = {
+  update: Prisma.XOR<Prisma.CaseUpdateWithoutComplicationsInput, Prisma.CaseUncheckedUpdateWithoutComplicationsInput>
+  create: Prisma.XOR<Prisma.CaseCreateWithoutComplicationsInput, Prisma.CaseUncheckedCreateWithoutComplicationsInput>
+  where?: Prisma.CaseWhereInput
+}
+
+export type CaseUpdateToOneWithWhereWithoutComplicationsInput = {
+  where?: Prisma.CaseWhereInput
+  data: Prisma.XOR<Prisma.CaseUpdateWithoutComplicationsInput, Prisma.CaseUncheckedUpdateWithoutComplicationsInput>
+}
+
+export type CaseUpdateWithoutComplicationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCasesNestedInput
+  institution?: Prisma.InstitutionUpdateOneWithoutCasesNestedInput
+  preop?: Prisma.PreoperativeAssessmentUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
+  selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
+  fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
+  snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
+}
+
+export type CaseUncheckedUpdateWithoutComplicationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  caseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCaseStatusFieldUpdateOperationsInput | $Enums.CaseStatus
+  finalizedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preop?: Prisma.PreoperativeAssessmentUncheckedUpdateOneWithoutCaseNestedInput
+  intraop?: Prisma.IntraoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  postop?: Prisma.PostoperativeRecordUncheckedUpdateOneWithoutCaseNestedInput
+  transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
+  lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
+  events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
+  selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1626,6 +1948,8 @@ export type CaseCreateWithoutSelectionsInput = {
   transfers?: Prisma.CaseTransferCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotCreateNestedOneWithoutCaseInput
 }
@@ -1646,6 +1970,8 @@ export type CaseUncheckedCreateWithoutSelectionsInput = {
   transfers?: Prisma.CaseTransferUncheckedCreateNestedManyWithoutCaseInput
   lock?: Prisma.CaseLockUncheckedCreateNestedOneWithoutCaseInput
   events?: Prisma.CaseEventUncheckedCreateNestedManyWithoutCaseInput
+  complications?: Prisma.CaseComplicationUncheckedCreateNestedManyWithoutCaseInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedCreateNestedManyWithoutCaseInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedCreateNestedManyWithoutCaseInput
   snapshot?: Prisma.CaseSnapshotUncheckedCreateNestedOneWithoutCaseInput
 }
@@ -1682,6 +2008,8 @@ export type CaseUpdateWithoutSelectionsInput = {
   transfers?: Prisma.CaseTransferUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1702,6 +2030,8 @@ export type CaseUncheckedUpdateWithoutSelectionsInput = {
   transfers?: Prisma.CaseTransferUncheckedUpdateManyWithoutCaseNestedInput
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1733,6 +2063,8 @@ export type CaseUpdateWithoutUserInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1753,6 +2085,8 @@ export type CaseUncheckedUpdateWithoutUserInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1795,6 +2129,8 @@ export type CaseUpdateWithoutInstitutionInput = {
   lock?: Prisma.CaseLockUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUpdateOneWithoutCaseNestedInput
 }
@@ -1815,6 +2151,8 @@ export type CaseUncheckedUpdateWithoutInstitutionInput = {
   lock?: Prisma.CaseLockUncheckedUpdateOneWithoutCaseNestedInput
   events?: Prisma.CaseEventUncheckedUpdateManyWithoutCaseNestedInput
   selections?: Prisma.CaseSelectionUncheckedUpdateManyWithoutCaseNestedInput
+  complications?: Prisma.CaseComplicationUncheckedUpdateManyWithoutCaseNestedInput
+  fieldStatuses?: Prisma.ClinicalFieldStatusUncheckedUpdateManyWithoutCaseNestedInput
   fieldChanges?: Prisma.CaseFieldChangeUncheckedUpdateManyWithoutCaseNestedInput
   snapshot?: Prisma.CaseSnapshotUncheckedUpdateOneWithoutCaseNestedInput
 }
@@ -1839,6 +2177,8 @@ export type CaseCountOutputType = {
   transfers: number
   events: number
   selections: number
+  complications: number
+  fieldStatuses: number
   fieldChanges: number
 }
 
@@ -1846,6 +2186,8 @@ export type CaseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   transfers?: boolean | CaseCountOutputTypeCountTransfersArgs
   events?: boolean | CaseCountOutputTypeCountEventsArgs
   selections?: boolean | CaseCountOutputTypeCountSelectionsArgs
+  complications?: boolean | CaseCountOutputTypeCountComplicationsArgs
+  fieldStatuses?: boolean | CaseCountOutputTypeCountFieldStatusesArgs
   fieldChanges?: boolean | CaseCountOutputTypeCountFieldChangesArgs
 }
 
@@ -1883,6 +2225,20 @@ export type CaseCountOutputTypeCountSelectionsArgs<ExtArgs extends runtime.Types
 /**
  * CaseCountOutputType without action
  */
+export type CaseCountOutputTypeCountComplicationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CaseComplicationWhereInput
+}
+
+/**
+ * CaseCountOutputType without action
+ */
+export type CaseCountOutputTypeCountFieldStatusesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClinicalFieldStatusWhereInput
+}
+
+/**
+ * CaseCountOutputType without action
+ */
 export type CaseCountOutputTypeCountFieldChangesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.CaseFieldChangeWhereInput
 }
@@ -1907,6 +2263,8 @@ export type CaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
   events?: boolean | Prisma.Case$eventsArgs<ExtArgs>
   selections?: boolean | Prisma.Case$selectionsArgs<ExtArgs>
+  complications?: boolean | Prisma.Case$complicationsArgs<ExtArgs>
+  fieldStatuses?: boolean | Prisma.Case$fieldStatusesArgs<ExtArgs>
   fieldChanges?: boolean | Prisma.Case$fieldChangesArgs<ExtArgs>
   snapshot?: boolean | Prisma.Case$snapshotArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
@@ -1963,6 +2321,8 @@ export type CaseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   lock?: boolean | Prisma.Case$lockArgs<ExtArgs>
   events?: boolean | Prisma.Case$eventsArgs<ExtArgs>
   selections?: boolean | Prisma.Case$selectionsArgs<ExtArgs>
+  complications?: boolean | Prisma.Case$complicationsArgs<ExtArgs>
+  fieldStatuses?: boolean | Prisma.Case$fieldStatusesArgs<ExtArgs>
   fieldChanges?: boolean | Prisma.Case$fieldChangesArgs<ExtArgs>
   snapshot?: boolean | Prisma.Case$snapshotArgs<ExtArgs>
   _count?: boolean | Prisma.CaseCountOutputTypeDefaultArgs<ExtArgs>
@@ -1988,6 +2348,8 @@ export type $CasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     lock: Prisma.$CaseLockPayload<ExtArgs> | null
     events: Prisma.$CaseEventPayload<ExtArgs>[]
     selections: Prisma.$CaseSelectionPayload<ExtArgs>[]
+    complications: Prisma.$CaseComplicationPayload<ExtArgs>[]
+    fieldStatuses: Prisma.$ClinicalFieldStatusPayload<ExtArgs>[]
     fieldChanges: Prisma.$CaseFieldChangePayload<ExtArgs>[]
     snapshot: Prisma.$CaseSnapshotPayload<ExtArgs> | null
   }
@@ -2404,6 +2766,8 @@ export interface Prisma__CaseClient<T, Null = never, ExtArgs extends runtime.Typ
   lock<T extends Prisma.Case$lockArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$lockArgs<ExtArgs>>): Prisma.Prisma__CaseLockClient<runtime.Types.Result.GetResult<Prisma.$CaseLockPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   events<T extends Prisma.Case$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   selections<T extends Prisma.Case$selectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$selectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseSelectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  complications<T extends Prisma.Case$complicationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$complicationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseComplicationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  fieldStatuses<T extends Prisma.Case$fieldStatusesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$fieldStatusesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalFieldStatusPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   fieldChanges<T extends Prisma.Case$fieldChangesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$fieldChangesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CaseFieldChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   snapshot<T extends Prisma.Case$snapshotArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Case$snapshotArgs<ExtArgs>>): Prisma.Prisma__CaseSnapshotClient<runtime.Types.Result.GetResult<Prisma.$CaseSnapshotPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -3009,6 +3373,54 @@ export type Case$selectionsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.CaseSelectionScalarFieldEnum | Prisma.CaseSelectionScalarFieldEnum[]
+}
+
+/**
+ * Case.complications
+ */
+export type Case$complicationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CaseComplication
+   */
+  select?: Prisma.CaseComplicationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CaseComplication
+   */
+  omit?: Prisma.CaseComplicationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CaseComplicationInclude<ExtArgs> | null
+  where?: Prisma.CaseComplicationWhereInput
+  orderBy?: Prisma.CaseComplicationOrderByWithRelationInput | Prisma.CaseComplicationOrderByWithRelationInput[]
+  cursor?: Prisma.CaseComplicationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CaseComplicationScalarFieldEnum | Prisma.CaseComplicationScalarFieldEnum[]
+}
+
+/**
+ * Case.fieldStatuses
+ */
+export type Case$fieldStatusesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClinicalFieldStatus
+   */
+  select?: Prisma.ClinicalFieldStatusSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClinicalFieldStatus
+   */
+  omit?: Prisma.ClinicalFieldStatusOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClinicalFieldStatusInclude<ExtArgs> | null
+  where?: Prisma.ClinicalFieldStatusWhereInput
+  orderBy?: Prisma.ClinicalFieldStatusOrderByWithRelationInput | Prisma.ClinicalFieldStatusOrderByWithRelationInput[]
+  cursor?: Prisma.ClinicalFieldStatusWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ClinicalFieldStatusScalarFieldEnum | Prisma.ClinicalFieldStatusScalarFieldEnum[]
 }
 
 /**

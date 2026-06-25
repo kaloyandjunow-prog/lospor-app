@@ -1,4 +1,4 @@
-# Email confirmation system — plan (v1.0.1)
+﻿# Email confirmation system - plan (v3.0 backlog)
 
 Status: **plan only, not implemented, not pushed**. Scope agreed with the user:
 **full auth email suite** (email verification at signup + account-approved
@@ -30,7 +30,7 @@ Resend offers EU data residency by region-pinning the *sending domain*
    emails (`${NEXTAUTH_URL}/verify-email?token=...` etc.).
 
 No code changes depend on this being done first, but verification/reset
-emails will silently fail (logged, not thrown — see §6) until the domain is
+emails will silently fail (logged, not thrown вЂ” see В§6) until the domain is
 verified and the key is set.
 
 ---
@@ -66,14 +66,14 @@ enum VerificationTokenType {
 ```
 
 - Tokens are generated as `crypto.randomBytes(32).toString("base64url")`
-  (sent in the email link) and stored **hashed** (`sha256`) in `tokenHash` —
+  (sent in the email link) and stored **hashed** (`sha256`) in `tokenHash` вЂ”
   same pattern as password hashing, so a DB leak doesn't hand out usable
   tokens.
 - Expiry: `EMAIL_VERIFY` = 24h, `PASSWORD_RESET` = 1h.
 - `usedAt` makes tokens single-use; a new request invalidates older
   unused tokens of the same type for that user (delete-then-create).
 - New migration: `prisma/migrations/<ts>_email_verification_and_reset/`.
-  Existing users get `emailVerifiedAt = NULL` — see §7 for how that's
+  Existing users get `emailVerifiedAt = NULL` вЂ” see В§7 for how that's
   handled for accounts that pre-date this feature.
 
 ---
@@ -95,20 +95,20 @@ CORS `OPTIONS` handler where mobile calls them directly).
 ### `register/route.ts` (extend existing, already has CORS)
 - After `prisma.user.create(...)`, create a `VerificationToken`
   (`EMAIL_VERIFY`, 24h) and call `sendVerificationEmail(user, token)`.
-- Response stays `{ id, email, pending: true }` — no behaviour change for
+- Response stays `{ id, email, pending: true }` вЂ” no behaviour change for
   existing callers, just an email side-effect.
 
 ### `admin/users/[id]/approve/route.ts` (extend existing)
 - After `prisma.user.update({ approvedAt: ... })`, call
   `sendApprovalEmail(updated)`. Fire-and-forget with `.catch()` logging
-  (an email failure must never block the approval itself — same
+  (an email failure must never block the approval itself вЂ” same
   fire-and-forget pattern already used for `lastLoginAt` in `auth.ts`).
 
 ### `verify-email/route.ts` (new)
 - Look up `VerificationToken` by `sha256(token)`, type `EMAIL_VERIFY`,
   `usedAt: null`, `expiresAt > now`.
-- Not found/expired → `400 { error: "Invalid or expired link" }`.
-- Found → set `user.emailVerifiedAt = now`, `token.usedAt = now`.
+- Not found/expired в†’ `400 { error: "Invalid or expired link" }`.
+- Found в†’ set `user.emailVerifiedAt = now`, `token.usedAt = now`.
 - Return `{ ok: true, alreadyVerified: boolean }` so the page can show a
   friendly message either way (handles double-clicks / stale tabs).
 
@@ -122,24 +122,24 @@ CORS `OPTIONS` handler where mobile calls them directly).
 
 ### `forgot-password/route.ts` (new)
 - Rate-limited per-email and per-IP (e.g. 3/hour).
-- Generic `{ ok: true }` response always (classic anti-enumeration —
+- Generic `{ ok: true }` response always (classic anti-enumeration вЂ”
   "if an account exists, we've sent a reset link").
 - If user exists and `!deletedAt`: invalidate old `PASSWORD_RESET` tokens,
   issue a new one (1h expiry), send the email.
 
 ### `reset-password/route.ts` (new)
 - Look up `VerificationToken` by `sha256(token)`, type `PASSWORD_RESET`,
-  `usedAt: null`, `expiresAt > now`. Not found/expired →
+  `usedAt: null`, `expiresAt > now`. Not found/expired в†’
   `400 { error: "Invalid or expired link" }`.
 - Validate new password with the **same zod rules** already in
-  `register/route.ts` (≥8 chars, upper, digit, special).
+  `register/route.ts` (в‰Ґ8 chars, upper, digit, special).
 - `bcrypt.hash` the new password, update `user.passwordHash`, mark token
   `usedAt = now`.
 - **Session invalidation**: this is the one place that touches
   `token-blocklist.ts`. NextAuth JWTs carry a `jti` (see `auth.ts:43`), but
-  the DB doesn't currently store a user→jti mapping, so we can't revoke
+  the DB doesn't currently store a userв†’jti mapping, so we can't revoke
   *existing* sessions surgically. For v1, accept that existing sessions
-  remain valid until they expire naturally — call this out in the PR
+  remain valid until they expire naturally вЂ” call this out in the PR
   description as a known limitation. (A future "store last-issued jti per
   user and revoke on password change" change is a separate, larger piece of
   work and out of scope here.)
@@ -158,16 +158,16 @@ if (user.deletedAt)        return null   // soft-deleted account
 
 Order matters for messaging (next section): verification is something the
 *user* controls (click the email link), approval is something an *admin*
-controls — surfacing "verify your email" first gives the user something
+controls вЂ” surfacing "verify your email" first gives the user something
 actionable.
 
 ---
 
-## 5. `check-pending` → richer status for login screens
+## 5. `check-pending` в†’ richer status for login screens
 
 Both web and mobile login currently call `/api/auth/check-pending?email=...`
 on a 401 to decide whether to show "pending approval" vs "invalid
-credentials". Extend the response (backwards compatible — `pending` stays):
+credentials". Extend the response (backwards compatible вЂ” `pending` stays):
 
 ```ts
 // before
@@ -185,10 +185,10 @@ credentials". Extend the response (backwards compatible — `pending` stays):
 **Web** (`(auth)/login/page.tsx`) and **mobile** (`src/lib/api.ts` `login()`,
 already edited this session) both switch on `reason`:
 
-- `unverified` → "Please check your email and click the verification link
+- `unverified` в†’ "Please check your email and click the verification link
   before signing in." + a "Resend email" action calling
   `resend-verification`.
-- `unapproved` → existing "awaiting admin approval" copy (unchanged from
+- `unapproved` в†’ existing "awaiting admin approval" copy (unchanged from
   this session's fix).
 
 ---
@@ -205,7 +205,7 @@ const FROM = process.env.EMAIL_FROM ?? "LOSPOR <noreply@lospor.org>"
 
 async function send(to: string, subject: string, html: string) {
   if (!resend) {
-    console.warn("[email] RESEND_API_KEY not set — skipping send to", to)
+    console.warn("[email] RESEND_API_KEY not set вЂ” skipping send to", to)
     return
   }
   try {
@@ -220,17 +220,17 @@ export function sendApprovalEmail(user: { email: string; firstName: string }) { 
 export function sendPasswordResetEmail(user: { email: string; firstName: string }, token: string) { ... }
 ```
 
-- **Never throws** — a Resend outage must not break registration, approval,
+- **Never throws** вЂ” a Resend outage must not break registration, approval,
   or password-reset *requests* (the request itself still succeeds; only the
   notification is best-effort). This mirrors the existing fire-and-forget
   `lastLoginAt` update in `auth.ts:39`.
 - Plain-HTML templates (inline styles, no `@react-email` dependency needed
-  for three simple transactional emails) — small inline `<table>`-based
+  for three simple transactional emails) вЂ” small inline `<table>`-based
   layout matching LOSPOR's brand colour from `src/theme` / web header.
 - **Language**: v1 ships **English-only** emails. LOSPOR already has en/bg
   UI strings, but the `User` model has no stored locale preference today.
   Bilingual emails are a clean follow-up once a `locale` field is added
-  (could be captured from `Accept-Language` at registration) — flagged as
+  (could be captured from `Accept-Language` at registration) вЂ” flagged as
   out of scope for this pass to avoid scope creep on the first cut.
 
 ### The three emails
@@ -255,13 +255,13 @@ export function sendPasswordResetEmail(user: { email: string; firstName: string 
 
 ## 7. Web pages (new)
 
-- `src/app/(auth)/verify-email/page.tsx` — reads `?token=`, calls
-  `POST /api/auth/verify-email`, shows success ("Email verified — an admin
+- `src/app/(auth)/verify-email/page.tsx` вЂ” reads `?token=`, calls
+  `POST /api/auth/verify-email`, shows success ("Email verified вЂ” an admin
   will review your account next" or "you can sign in now" if already
   approved) or error (expired/invalid + "resend" button).
-- `src/app/(auth)/forgot-password/page.tsx` — single email field, calls
+- `src/app/(auth)/forgot-password/page.tsx` вЂ” single email field, calls
   `forgot-password`, always shows the generic "check your inbox" message.
-- `src/app/(auth)/reset-password/page.tsx` — reads `?token=`, new-password
+- `src/app/(auth)/reset-password/page.tsx` вЂ” reads `?token=`, new-password
   field (reusing the same password-strength hint component as register),
   calls `reset-password`, redirects to `/login` on success.
 
@@ -273,16 +273,16 @@ administrator.") in `messages/en.json:57` / `bg.json:57`.
 ### Existing accounts (pre-migration backfill)
 
 Every current user has `emailVerifiedAt = NULL` after the migration, which
-would lock all existing approved users out under the new gate in §4. Two
+would lock all existing approved users out under the new gate in В§4. Two
 options:
 
 - **Recommended**: one-time data migration sets
   `emailVerifiedAt = approvedAt` (or `createdAt`) for all rows where
-  `approvedAt IS NOT NULL` at migration time — i.e. "already-approved users
+  `approvedAt IS NOT NULL` at migration time вЂ” i.e. "already-approved users
   are grandfathered in as verified." Only *new* registrations after this
   ships go through the verify-email step.
 - Alternative: backfill `emailVerifiedAt = createdAt` for *all* existing
-  users (approved or not) — simpler, slightly less strict for the small
+  users (approved or not) вЂ” simpler, slightly less strict for the small
   number of currently-pending accounts (they'd still need approval, just
   not verification).
 
@@ -297,7 +297,7 @@ Either is a one-line `UPDATE` in the migration SQL; recommend the first.
   admin approval" copy.
 - `app/(auth)/login.tsx`: add a "Forgot password?" link below the sign-in
   button that opens `${API_BASE}/forgot-password` in the system browser via
-  `Linking.openURL` (Expo) — password reset is inherently an email+web-link
+  `Linking.openURL` (Expo) вЂ” password reset is inherently an email+web-link
   flow, no need for an in-app form.
 - `src/lib/api.ts` `login()` (already touched this session): switch on the
   new `reason` field from `check-pending` instead of the boolean `pending`,
@@ -310,10 +310,10 @@ Either is a one-line `UPDATE` in the migration SQL; recommend the first.
 
 New keys in `messages/en.json` / `bg.json` under the `auth` namespace:
 
-- `auth.verifyEmailSent` — "Check your inbox to confirm your email address."
-- `auth.emailVerified` — "Email verified."
-- `auth.emailNotVerified` — "Please verify your email before signing in."
-- `auth.resendVerification` — "Resend verification email"
+- `auth.verifyEmailSent` вЂ” "Check your inbox to confirm your email address."
+- `auth.emailVerified` вЂ” "Email verified."
+- `auth.emailNotVerified` вЂ” "Please verify your email before signing in."
+- `auth.resendVerification` вЂ” "Resend verification email"
 - `auth.forgotPasswordPrompt` / `auth.resetLinkSent` /
   `auth.resetPasswordTitle` / `auth.resetPasswordSuccess`
 
@@ -325,19 +325,19 @@ password?" since it becomes a real link.
 
 ## 10. Rollout phases (for when this is approved)
 
-1. **Schema + email plumbing**: migration (§2), `resend` dependency,
-   `src/lib/email.ts` + 3 templates (§6), env vars (§1). No user-facing
-   behaviour change yet — emails aren't triggered until phase 2/3.
+1. **Schema + email plumbing**: migration (В§2), `resend` dependency,
+   `src/lib/email.ts` + 3 templates (В§6), env vars (В§1). No user-facing
+   behaviour change yet вЂ” emails aren't triggered until phase 2/3.
 2. **Email verification**: register-route hook, `verify-email` route+page,
    `auth.ts` gate, `check-pending` `reason` field, web + mobile login
-   messaging, mobile register success copy, migration backfill (§7).
+   messaging, mobile register success copy, migration backfill (В§7).
 3. **Approval notification**: one-line hook in the approve route.
 4. **Password reset**: forgot/reset routes + pages, login page link, mobile
    "Forgot password?" link, i18n strings.
 5. **Verify**: `npx tsc --noEmit --pretty false` in both `lospor-app` and
-   `lospor-mobile`; manual run-through of register → email → verify →
-   (admin approves) → approval email → login, and forgot-password → email →
-   reset → login, against a real Resend sandbox/test domain.
+   `lospor-mobile`; manual run-through of register в†’ email в†’ verify в†’
+   (admin approves) в†’ approval email в†’ login, and forgot-password в†’ email в†’
+   reset в†’ login, against a real Resend sandbox/test domain.
 
 Each phase is independently shippable and small enough to review on its own;
 recommend doing them in this order as separate commits/PRs once approved.
@@ -347,9 +347,10 @@ recommend doing them in this order as separate commits/PRs once approved.
 ## 11. Open decisions for the user
 
 - Confirm the sending domain/subdomain to verify in Resend (e.g.
-  `lospor.org` vs `mail.lospor.org`) — affects DNS changes on a real domain
+  `lospor.org` vs `mail.lospor.org`) вЂ” affects DNS changes on a real domain
   the user controls.
-- Confirm the existing-user backfill choice in §7 (recommended: grandfather
+- Confirm the existing-user backfill choice in В§7 (recommended: grandfather
   already-approved users as verified).
-- English-only emails for v1 (§6) — confirm that's acceptable for now, with
+- English-only emails for v1 (В§6) вЂ” confirm that's acceptable for now, with
   bilingual templates as a fast-follow once a `locale` field exists.
+

@@ -10,6 +10,11 @@ export function ThemeToggle() {
   useEffect(() => {
     const stored = localStorage.getItem("theme")
     const isDark = stored !== "light" // default to dark
+    // localStorage can't be read during SSR/initial render, so the first
+    // real read has to happen in an effect — this is a one-time mount sync,
+    // not a case where useSyncExternalStore would help (no cross-tab/storage-
+    // event subscription needed here, and a DOM mutation follows below).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(isDark)
     document.documentElement.classList.toggle("dark", isDark)
     if (!stored) document.cookie = "theme=dark; path=/; max-age=31536000; SameSite=Lax"

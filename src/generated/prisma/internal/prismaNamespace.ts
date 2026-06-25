@@ -395,6 +395,16 @@ export const ModelName = {
   LabLoinc: 'LabLoinc',
   Atc: 'Atc',
   Drug: 'Drug',
+  OptionLibrary: 'OptionLibrary',
+  ConceptMap: 'ConceptMap',
+  OmopVocabulary: 'OmopVocabulary',
+  OmopDomain: 'OmopDomain',
+  OmopConcept: 'OmopConcept',
+  OmopConceptRelationship: 'OmopConceptRelationship',
+  OmopConceptAncestor: 'OmopConceptAncestor',
+  OmopConceptSynonym: 'OmopConceptSynonym',
+  OmopVocabularyImport: 'OmopVocabularyImport',
+  ClinicalFieldStatus: 'ClinicalFieldStatus',
   CaseFieldChange: 'CaseFieldChange',
   CaseSnapshot: 'CaseSnapshot',
   RevokedToken: 'RevokedToken',
@@ -411,6 +421,8 @@ export const ModelName = {
   LabResult: 'LabResult',
   Medication: 'Medication',
   VascularAccess: 'VascularAccess',
+  PremedicationAdministration: 'PremedicationAdministration',
+  CaseComplication: 'CaseComplication',
   CaseSelection: 'CaseSelection'
 } as const
 
@@ -427,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10Code" | "icd10Synonym" | "labLoinc" | "atc" | "drug" | "caseFieldChange" | "caseSnapshot" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord" | "preopDiagnosis" | "preopProcedure" | "comorbidity" | "labResult" | "medication" | "vascularAccess" | "caseSelection"
+    modelProps: "user" | "institution" | "case" | "caseLock" | "caseTransfer" | "roleRequest" | "icd10Code" | "icd10Synonym" | "labLoinc" | "atc" | "drug" | "optionLibrary" | "conceptMap" | "omopVocabulary" | "omopDomain" | "omopConcept" | "omopConceptRelationship" | "omopConceptAncestor" | "omopConceptSynonym" | "omopVocabularyImport" | "clinicalFieldStatus" | "caseFieldChange" | "caseSnapshot" | "revokedToken" | "rateLimit" | "caseEvent" | "auditLog" | "customTerm" | "preoperativeAssessment" | "intraoperativeRecord" | "postoperativeRecord" | "preopDiagnosis" | "preopProcedure" | "comorbidity" | "labResult" | "medication" | "vascularAccess" | "premedicationAdministration" | "caseComplication" | "caseSelection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1242,6 +1254,746 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DrugCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DrugCountAggregateOutputType> | number
+        }
+      }
+    }
+    OptionLibrary: {
+      payload: Prisma.$OptionLibraryPayload<ExtArgs>
+      fields: Prisma.OptionLibraryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OptionLibraryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OptionLibraryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        findFirst: {
+          args: Prisma.OptionLibraryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OptionLibraryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        findMany: {
+          args: Prisma.OptionLibraryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>[]
+        }
+        create: {
+          args: Prisma.OptionLibraryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        createMany: {
+          args: Prisma.OptionLibraryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OptionLibraryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>[]
+        }
+        delete: {
+          args: Prisma.OptionLibraryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        update: {
+          args: Prisma.OptionLibraryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        deleteMany: {
+          args: Prisma.OptionLibraryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OptionLibraryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OptionLibraryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>[]
+        }
+        upsert: {
+          args: Prisma.OptionLibraryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OptionLibraryPayload>
+        }
+        aggregate: {
+          args: Prisma.OptionLibraryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOptionLibrary>
+        }
+        groupBy: {
+          args: Prisma.OptionLibraryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OptionLibraryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OptionLibraryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OptionLibraryCountAggregateOutputType> | number
+        }
+      }
+    }
+    ConceptMap: {
+      payload: Prisma.$ConceptMapPayload<ExtArgs>
+      fields: Prisma.ConceptMapFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ConceptMapFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ConceptMapFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        findFirst: {
+          args: Prisma.ConceptMapFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ConceptMapFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        findMany: {
+          args: Prisma.ConceptMapFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>[]
+        }
+        create: {
+          args: Prisma.ConceptMapCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        createMany: {
+          args: Prisma.ConceptMapCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ConceptMapCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>[]
+        }
+        delete: {
+          args: Prisma.ConceptMapDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        update: {
+          args: Prisma.ConceptMapUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        deleteMany: {
+          args: Prisma.ConceptMapDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ConceptMapUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ConceptMapUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>[]
+        }
+        upsert: {
+          args: Prisma.ConceptMapUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConceptMapPayload>
+        }
+        aggregate: {
+          args: Prisma.ConceptMapAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateConceptMap>
+        }
+        groupBy: {
+          args: Prisma.ConceptMapGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConceptMapGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ConceptMapCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConceptMapCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopVocabulary: {
+      payload: Prisma.$OmopVocabularyPayload<ExtArgs>
+      fields: Prisma.OmopVocabularyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopVocabularyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopVocabularyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopVocabularyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopVocabularyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        findMany: {
+          args: Prisma.OmopVocabularyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>[]
+        }
+        create: {
+          args: Prisma.OmopVocabularyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        createMany: {
+          args: Prisma.OmopVocabularyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopVocabularyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopVocabularyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        update: {
+          args: Prisma.OmopVocabularyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopVocabularyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopVocabularyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopVocabularyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopVocabularyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopVocabularyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopVocabulary>
+        }
+        groupBy: {
+          args: Prisma.OmopVocabularyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopVocabularyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopVocabularyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopVocabularyCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopDomain: {
+      payload: Prisma.$OmopDomainPayload<ExtArgs>
+      fields: Prisma.OmopDomainFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopDomainFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopDomainFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopDomainFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopDomainFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        findMany: {
+          args: Prisma.OmopDomainFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>[]
+        }
+        create: {
+          args: Prisma.OmopDomainCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        createMany: {
+          args: Prisma.OmopDomainCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopDomainCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopDomainDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        update: {
+          args: Prisma.OmopDomainUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopDomainDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopDomainUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopDomainUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopDomainUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopDomainPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopDomainAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopDomain>
+        }
+        groupBy: {
+          args: Prisma.OmopDomainGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopDomainGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopDomainCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopDomainCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopConcept: {
+      payload: Prisma.$OmopConceptPayload<ExtArgs>
+      fields: Prisma.OmopConceptFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopConceptFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopConceptFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopConceptFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopConceptFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        findMany: {
+          args: Prisma.OmopConceptFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>[]
+        }
+        create: {
+          args: Prisma.OmopConceptCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        createMany: {
+          args: Prisma.OmopConceptCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopConceptCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopConceptDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        update: {
+          args: Prisma.OmopConceptUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopConceptDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopConceptUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopConceptUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopConceptUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopConceptAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopConcept>
+        }
+        groupBy: {
+          args: Prisma.OmopConceptGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopConceptCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopConceptRelationship: {
+      payload: Prisma.$OmopConceptRelationshipPayload<ExtArgs>
+      fields: Prisma.OmopConceptRelationshipFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopConceptRelationshipFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopConceptRelationshipFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopConceptRelationshipFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopConceptRelationshipFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        findMany: {
+          args: Prisma.OmopConceptRelationshipFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>[]
+        }
+        create: {
+          args: Prisma.OmopConceptRelationshipCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        createMany: {
+          args: Prisma.OmopConceptRelationshipCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopConceptRelationshipCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopConceptRelationshipDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        update: {
+          args: Prisma.OmopConceptRelationshipUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopConceptRelationshipDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopConceptRelationshipUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopConceptRelationshipUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopConceptRelationshipUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptRelationshipPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopConceptRelationshipAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopConceptRelationship>
+        }
+        groupBy: {
+          args: Prisma.OmopConceptRelationshipGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptRelationshipGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopConceptRelationshipCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptRelationshipCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopConceptAncestor: {
+      payload: Prisma.$OmopConceptAncestorPayload<ExtArgs>
+      fields: Prisma.OmopConceptAncestorFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopConceptAncestorFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopConceptAncestorFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopConceptAncestorFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopConceptAncestorFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        findMany: {
+          args: Prisma.OmopConceptAncestorFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>[]
+        }
+        create: {
+          args: Prisma.OmopConceptAncestorCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        createMany: {
+          args: Prisma.OmopConceptAncestorCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopConceptAncestorCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopConceptAncestorDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        update: {
+          args: Prisma.OmopConceptAncestorUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopConceptAncestorDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopConceptAncestorUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopConceptAncestorUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopConceptAncestorUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptAncestorPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopConceptAncestorAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopConceptAncestor>
+        }
+        groupBy: {
+          args: Prisma.OmopConceptAncestorGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptAncestorGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopConceptAncestorCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptAncestorCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopConceptSynonym: {
+      payload: Prisma.$OmopConceptSynonymPayload<ExtArgs>
+      fields: Prisma.OmopConceptSynonymFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopConceptSynonymFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopConceptSynonymFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopConceptSynonymFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopConceptSynonymFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        findMany: {
+          args: Prisma.OmopConceptSynonymFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>[]
+        }
+        create: {
+          args: Prisma.OmopConceptSynonymCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        createMany: {
+          args: Prisma.OmopConceptSynonymCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopConceptSynonymCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopConceptSynonymDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        update: {
+          args: Prisma.OmopConceptSynonymUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopConceptSynonymDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopConceptSynonymUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopConceptSynonymUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopConceptSynonymUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopConceptSynonymPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopConceptSynonymAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopConceptSynonym>
+        }
+        groupBy: {
+          args: Prisma.OmopConceptSynonymGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptSynonymGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopConceptSynonymCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopConceptSynonymCountAggregateOutputType> | number
+        }
+      }
+    }
+    OmopVocabularyImport: {
+      payload: Prisma.$OmopVocabularyImportPayload<ExtArgs>
+      fields: Prisma.OmopVocabularyImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OmopVocabularyImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OmopVocabularyImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        findFirst: {
+          args: Prisma.OmopVocabularyImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OmopVocabularyImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        findMany: {
+          args: Prisma.OmopVocabularyImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>[]
+        }
+        create: {
+          args: Prisma.OmopVocabularyImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        createMany: {
+          args: Prisma.OmopVocabularyImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OmopVocabularyImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>[]
+        }
+        delete: {
+          args: Prisma.OmopVocabularyImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        update: {
+          args: Prisma.OmopVocabularyImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.OmopVocabularyImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OmopVocabularyImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OmopVocabularyImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.OmopVocabularyImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OmopVocabularyImportPayload>
+        }
+        aggregate: {
+          args: Prisma.OmopVocabularyImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOmopVocabularyImport>
+        }
+        groupBy: {
+          args: Prisma.OmopVocabularyImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopVocabularyImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OmopVocabularyImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OmopVocabularyImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    ClinicalFieldStatus: {
+      payload: Prisma.$ClinicalFieldStatusPayload<ExtArgs>
+      fields: Prisma.ClinicalFieldStatusFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ClinicalFieldStatusFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ClinicalFieldStatusFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        findFirst: {
+          args: Prisma.ClinicalFieldStatusFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ClinicalFieldStatusFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        findMany: {
+          args: Prisma.ClinicalFieldStatusFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>[]
+        }
+        create: {
+          args: Prisma.ClinicalFieldStatusCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        createMany: {
+          args: Prisma.ClinicalFieldStatusCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ClinicalFieldStatusCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>[]
+        }
+        delete: {
+          args: Prisma.ClinicalFieldStatusDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        update: {
+          args: Prisma.ClinicalFieldStatusUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        deleteMany: {
+          args: Prisma.ClinicalFieldStatusDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ClinicalFieldStatusUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ClinicalFieldStatusUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>[]
+        }
+        upsert: {
+          args: Prisma.ClinicalFieldStatusUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClinicalFieldStatusPayload>
+        }
+        aggregate: {
+          args: Prisma.ClinicalFieldStatusAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClinicalFieldStatus>
+        }
+        groupBy: {
+          args: Prisma.ClinicalFieldStatusGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClinicalFieldStatusGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ClinicalFieldStatusCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClinicalFieldStatusCountAggregateOutputType> | number
         }
       }
     }
@@ -2429,6 +3181,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PremedicationAdministration: {
+      payload: Prisma.$PremedicationAdministrationPayload<ExtArgs>
+      fields: Prisma.PremedicationAdministrationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PremedicationAdministrationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PremedicationAdministrationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        findFirst: {
+          args: Prisma.PremedicationAdministrationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PremedicationAdministrationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        findMany: {
+          args: Prisma.PremedicationAdministrationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>[]
+        }
+        create: {
+          args: Prisma.PremedicationAdministrationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        createMany: {
+          args: Prisma.PremedicationAdministrationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PremedicationAdministrationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>[]
+        }
+        delete: {
+          args: Prisma.PremedicationAdministrationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        update: {
+          args: Prisma.PremedicationAdministrationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        deleteMany: {
+          args: Prisma.PremedicationAdministrationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PremedicationAdministrationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PremedicationAdministrationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>[]
+        }
+        upsert: {
+          args: Prisma.PremedicationAdministrationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PremedicationAdministrationPayload>
+        }
+        aggregate: {
+          args: Prisma.PremedicationAdministrationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePremedicationAdministration>
+        }
+        groupBy: {
+          args: Prisma.PremedicationAdministrationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PremedicationAdministrationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PremedicationAdministrationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PremedicationAdministrationCountAggregateOutputType> | number
+        }
+      }
+    }
+    CaseComplication: {
+      payload: Prisma.$CaseComplicationPayload<ExtArgs>
+      fields: Prisma.CaseComplicationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CaseComplicationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CaseComplicationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        findFirst: {
+          args: Prisma.CaseComplicationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CaseComplicationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        findMany: {
+          args: Prisma.CaseComplicationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>[]
+        }
+        create: {
+          args: Prisma.CaseComplicationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        createMany: {
+          args: Prisma.CaseComplicationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CaseComplicationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>[]
+        }
+        delete: {
+          args: Prisma.CaseComplicationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        update: {
+          args: Prisma.CaseComplicationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        deleteMany: {
+          args: Prisma.CaseComplicationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CaseComplicationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CaseComplicationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>[]
+        }
+        upsert: {
+          args: Prisma.CaseComplicationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CaseComplicationPayload>
+        }
+        aggregate: {
+          args: Prisma.CaseComplicationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCaseComplication>
+        }
+        groupBy: {
+          args: Prisma.CaseComplicationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseComplicationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CaseComplicationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CaseComplicationCountAggregateOutputType> | number
+        }
+      }
+    }
     CaseSelection: {
       payload: Prisma.$CaseSelectionPayload<ExtArgs>
       fields: Prisma.CaseSelectionFieldRefs
@@ -2675,6 +3575,158 @@ export const DrugScalarFieldEnum = {
 export type DrugScalarFieldEnum = (typeof DrugScalarFieldEnum)[keyof typeof DrugScalarFieldEnum]
 
 
+export const OptionLibraryScalarFieldEnum = {
+  id: 'id',
+  category: 'category',
+  value: 'value',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
+  group: 'group',
+  parentId: 'parentId',
+  drugId: 'drugId',
+  color: 'color',
+  description: 'description',
+  sortOrder: 'sortOrder',
+  active: 'active',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OptionLibraryScalarFieldEnum = (typeof OptionLibraryScalarFieldEnum)[keyof typeof OptionLibraryScalarFieldEnum]
+
+
+export const ConceptMapScalarFieldEnum = {
+  id: 'id',
+  domain: 'domain',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  sourceLabelEn: 'sourceLabelEn',
+  sourceLabelBg: 'sourceLabelBg',
+  standardVocabulary: 'standardVocabulary',
+  standardConceptId: 'standardConceptId',
+  standardLabel: 'standardLabel',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
+  mappingMethod: 'mappingMethod',
+  mappingConfidence: 'mappingConfidence',
+  reviewed: 'reviewed',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  mappingNotes: 'mappingNotes',
+  athenaVersion: 'athenaVersion',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ConceptMapScalarFieldEnum = (typeof ConceptMapScalarFieldEnum)[keyof typeof ConceptMapScalarFieldEnum]
+
+
+export const OmopVocabularyScalarFieldEnum = {
+  vocabularyId: 'vocabularyId',
+  vocabularyName: 'vocabularyName',
+  vocabularyReference: 'vocabularyReference',
+  vocabularyVersion: 'vocabularyVersion',
+  vocabularyConceptId: 'vocabularyConceptId',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopVocabularyScalarFieldEnum = (typeof OmopVocabularyScalarFieldEnum)[keyof typeof OmopVocabularyScalarFieldEnum]
+
+
+export const OmopDomainScalarFieldEnum = {
+  domainId: 'domainId',
+  domainName: 'domainName',
+  domainConceptId: 'domainConceptId'
+} as const
+
+export type OmopDomainScalarFieldEnum = (typeof OmopDomainScalarFieldEnum)[keyof typeof OmopDomainScalarFieldEnum]
+
+
+export const OmopConceptScalarFieldEnum = {
+  conceptId: 'conceptId',
+  conceptName: 'conceptName',
+  domainId: 'domainId',
+  vocabularyId: 'vocabularyId',
+  conceptClassId: 'conceptClassId',
+  standardConcept: 'standardConcept',
+  conceptCode: 'conceptCode',
+  validStartDate: 'validStartDate',
+  validEndDate: 'validEndDate',
+  invalidReason: 'invalidReason',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptScalarFieldEnum = (typeof OmopConceptScalarFieldEnum)[keyof typeof OmopConceptScalarFieldEnum]
+
+
+export const OmopConceptRelationshipScalarFieldEnum = {
+  id: 'id',
+  conceptId1: 'conceptId1',
+  conceptId2: 'conceptId2',
+  relationshipId: 'relationshipId',
+  validStartDate: 'validStartDate',
+  validEndDate: 'validEndDate',
+  invalidReason: 'invalidReason',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptRelationshipScalarFieldEnum = (typeof OmopConceptRelationshipScalarFieldEnum)[keyof typeof OmopConceptRelationshipScalarFieldEnum]
+
+
+export const OmopConceptAncestorScalarFieldEnum = {
+  id: 'id',
+  ancestorConceptId: 'ancestorConceptId',
+  descendantConceptId: 'descendantConceptId',
+  minLevelsOfSeparation: 'minLevelsOfSeparation',
+  maxLevelsOfSeparation: 'maxLevelsOfSeparation',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptAncestorScalarFieldEnum = (typeof OmopConceptAncestorScalarFieldEnum)[keyof typeof OmopConceptAncestorScalarFieldEnum]
+
+
+export const OmopConceptSynonymScalarFieldEnum = {
+  id: 'id',
+  conceptId: 'conceptId',
+  conceptSynonymName: 'conceptSynonymName',
+  languageConceptId: 'languageConceptId',
+  importedAt: 'importedAt'
+} as const
+
+export type OmopConceptSynonymScalarFieldEnum = (typeof OmopConceptSynonymScalarFieldEnum)[keyof typeof OmopConceptSynonymScalarFieldEnum]
+
+
+export const OmopVocabularyImportScalarFieldEnum = {
+  id: 'id',
+  sourceDirectory: 'sourceDirectory',
+  vocabularyVersion: 'vocabularyVersion',
+  importedTables: 'importedTables',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  status: 'status',
+  error: 'error'
+} as const
+
+export type OmopVocabularyImportScalarFieldEnum = (typeof OmopVocabularyImportScalarFieldEnum)[keyof typeof OmopVocabularyImportScalarFieldEnum]
+
+
+export const ClinicalFieldStatusScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  fieldKey: 'fieldKey',
+  presence: 'presence',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ClinicalFieldStatusScalarFieldEnum = (typeof ClinicalFieldStatusScalarFieldEnum)[keyof typeof ClinicalFieldStatusScalarFieldEnum]
+
+
 export const CaseFieldChangeScalarFieldEnum = {
   id: 'id',
   caseId: 'caseId',
@@ -2736,11 +3788,30 @@ export const CaseEventScalarFieldEnum = {
   spO2: 'spO2',
   etco2: 'etco2',
   temp: 'temp',
+  bgl: 'bgl',
+  bglLoincCode: 'bglLoincCode',
+  bglUnitCanon: 'bglUnitCanon',
+  fgfLitersPerMin: 'fgfLitersPerMin',
+  carrierGas: 'carrierGas',
+  fio2Percent: 'fio2Percent',
+  fiAirPercent: 'fiAirPercent',
+  fiN2OPercent: 'fiN2OPercent',
   atcCode: 'atcCode',
   drugId: 'drugId',
+  inn: 'inn',
   drugRoute: 'drugRoute',
+  infId: 'infId',
+  fluidId: 'fluidId',
+  rate: 'rate',
+  concentration: 'concentration',
+  volume: 'volume',
+  fluidCategory: 'fluidCategory',
+  agentPercent: 'agentPercent',
+  clinicalEventCode: 'clinicalEventCode',
   metadataJson: 'metadataJson',
   source: 'source',
+  sourceVersion: 'sourceVersion',
+  schemaVersion: 'schemaVersion',
   idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2789,6 +3860,8 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   proceduresJson: 'proceduresJson',
   icdCode: 'icdCode',
   teamNotes: 'teamNotes',
+  physicalExamReport: 'physicalExamReport',
+  notes: 'notes',
   comorbidities: 'comorbidities',
   allergies: 'allergies',
   allergyDetails: 'allergyDetails',
@@ -2807,6 +3880,11 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   spO2: 'spO2',
   temperature: 'temperature',
   respiratoryRate: 'respiratoryRate',
+  bpUnobtainable: 'bpUnobtainable',
+  heartRateUnobtainable: 'heartRateUnobtainable',
+  spO2Unobtainable: 'spO2Unobtainable',
+  temperatureUnobtainable: 'temperatureUnobtainable',
+  respiratoryRateUnobtainable: 'respiratoryRateUnobtainable',
   mallampati: 'mallampati',
   mouthOpeningCm: 'mouthOpeningCm',
   thyromental: 'thyromental',
@@ -2818,7 +3896,9 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   difficultAirwayHistory: 'difficultAirwayHistory',
   difficultAirwayNotes: 'difficultAirwayNotes',
   cormackLehane: 'cormackLehane',
+  airwayUnobtainable: 'airwayUnobtainable',
   asaScore: 'asaScore',
+  elective: 'elective',
   emergencySurgery: 'emergencySurgery',
   highRiskSurgery: 'highRiskSurgery',
   rcriIschemicHeart: 'rcriIschemicHeart',
@@ -2867,18 +3947,16 @@ export const IntraoperativeRecordScalarFieldEnum = {
   cormackLehane: 'cormackLehane',
   airwayDevices: 'airwayDevices',
   ventilationModes: 'ventilationModes',
+  lmaSize: 'lmaSize',
+  oralTubeSize: 'oralTubeSize',
+  oralCuffed: 'oralCuffed',
+  nasalTubeSize: 'nasalTubeSize',
+  nasalCuffed: 'nasalCuffed',
   dltType: 'dltType',
   dltSide: 'dltSide',
   dltSize: 'dltSize',
   endobronchialSize: 'endobronchialSize',
   volatileAgent: 'volatileAgent',
-  n2oPercent: 'n2oPercent',
-  o2Percent: 'o2Percent',
-  n2oLitersPerMin: 'n2oLitersPerMin',
-  o2LitersPerMin: 'o2LitersPerMin',
-  fgfLitersPerMin: 'fgfLitersPerMin',
-  carrierGas: 'carrierGas',
-  fio2Percent: 'fio2Percent',
   plexusBlock: 'plexusBlock',
   cvkSite: 'cvkSite',
   arterialLineSite: 'arterialLineSite',
@@ -2936,6 +4014,10 @@ export const PostoperativeRecordScalarFieldEnum = {
   painScoreNRS: 'painScoreNRS',
   ponv: 'ponv',
   temperatureCelsius: 'temperatureCelsius',
+  recoveryBpUnobtainable: 'recoveryBpUnobtainable',
+  recoveryHeartRateUnobtainable: 'recoveryHeartRateUnobtainable',
+  recoverySpO2Unobtainable: 'recoverySpO2Unobtainable',
+  recoveryTemperatureUnobtainable: 'recoveryTemperatureUnobtainable',
   complications: 'complications',
   disposition: 'disposition',
   dispositionNotes: 'dispositionNotes',
@@ -2953,7 +4035,15 @@ export const PreopDiagnosisScalarFieldEnum = {
   caseId: 'caseId',
   code: 'code',
   label: 'label',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
   system: 'system',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -2969,6 +4059,12 @@ export const PreopProcedureScalarFieldEnum = {
   group: 'group',
   domain: 'domain',
   description: 'description',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -2981,9 +4077,17 @@ export const ComorbidityScalarFieldEnum = {
   preopId: 'preopId',
   caseId: 'caseId',
   label: 'label',
+  labelEn: 'labelEn',
+  labelBg: 'labelBg',
   code: 'code',
   icd10Code: 'icd10Code',
   system: 'system',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -3006,6 +4110,11 @@ export const LabResultScalarFieldEnum = {
   abnormalFlag: 'abnormalFlag',
   takenAt: 'takenAt',
   source: 'source',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -3017,6 +4126,7 @@ export const MedicationScalarFieldEnum = {
   id: 'id',
   preopId: 'preopId',
   caseId: 'caseId',
+  kind: 'kind',
   drugId: 'drugId',
   nameRaw: 'nameRaw',
   inn: 'inn',
@@ -3024,6 +4134,12 @@ export const MedicationScalarFieldEnum = {
   dose: 'dose',
   route: 'route',
   frequency: 'frequency',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -3039,11 +4155,65 @@ export const VascularAccessScalarFieldEnum = {
   siteLabel: 'siteLabel',
   size: 'size',
   sizeUnit: 'sizeUnit',
+  depthCm: 'depthCm',
+  lumens: 'lumens',
+  preexisting: 'preexisting',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
 
 export type VascularAccessScalarFieldEnum = (typeof VascularAccessScalarFieldEnum)[keyof typeof VascularAccessScalarFieldEnum]
+
+
+export const PremedicationAdministrationScalarFieldEnum = {
+  id: 'id',
+  intraopId: 'intraopId',
+  caseId: 'caseId',
+  phase: 'phase',
+  drugId: 'drugId',
+  nameRaw: 'nameRaw',
+  inn: 'inn',
+  atcCode: 'atcCode',
+  dose: 'dose',
+  route: 'route',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type PremedicationAdministrationScalarFieldEnum = (typeof PremedicationAdministrationScalarFieldEnum)[keyof typeof PremedicationAdministrationScalarFieldEnum]
+
+
+export const CaseComplicationScalarFieldEnum = {
+  id: 'id',
+  caseId: 'caseId',
+  section: 'section',
+  label: 'label',
+  note: 'note',
+  timestamp: 'timestamp',
+  source: 'source',
+  eventId: 'eventId',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  sourceVersion: 'sourceVersion',
+  ordinal: 'ordinal',
+  createdAt: 'createdAt'
+} as const
+
+export type CaseComplicationScalarFieldEnum = (typeof CaseComplicationScalarFieldEnum)[keyof typeof CaseComplicationScalarFieldEnum]
 
 
 export const CaseSelectionScalarFieldEnum = {
@@ -3052,6 +4222,12 @@ export const CaseSelectionScalarFieldEnum = {
   section: 'section',
   category: 'category',
   value: 'value',
+  sourceVocabulary: 'sourceVocabulary',
+  sourceCode: 'sourceCode',
+  standardConceptId: 'standardConceptId',
+  mappingStatus: 'mappingStatus',
+  source: 'source',
+  sourceVersion: 'sourceVersion',
   ordinal: 'ordinal',
   createdAt: 'createdAt'
 } as const
@@ -3067,19 +4243,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -3226,6 +4402,27 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'LibraryCategory'
+ */
+export type EnumLibraryCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryCategory'>
+    
+
+
+/**
+ * Reference to a field of type 'LibraryCategory[]'
+ */
+export type ListEnumLibraryCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryCategory[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -3236,6 +4433,34 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'ConceptMappingStatus'
+ */
+export type EnumConceptMappingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConceptMappingStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ConceptMappingStatus[]'
+ */
+export type ListEnumConceptMappingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConceptMappingStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ClinicalFieldPresence'
+ */
+export type EnumClinicalFieldPresenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClinicalFieldPresence'>
+    
+
+
+/**
+ * Reference to a field of type 'ClinicalFieldPresence[]'
+ */
+export type ListEnumClinicalFieldPresenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ClinicalFieldPresence[]'>
     
 
 
@@ -3278,13 +4503,6 @@ export type EnumRhFactorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
  * Reference to a field of type 'RhFactor[]'
  */
 export type ListEnumRhFactorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RhFactor[]'>
-    
-
-
-/**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -3441,6 +4659,20 @@ export type EnumDispositionFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
 export type ListEnumDispositionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Disposition[]'>
     
 
+
+/**
+ * Reference to a field of type 'MedicationKind'
+ */
+export type EnumMedicationKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MedicationKind'>
+    
+
+
+/**
+ * Reference to a field of type 'MedicationKind[]'
+ */
+export type ListEnumMedicationKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MedicationKind[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -3562,6 +4794,16 @@ export type GlobalOmitConfig = {
   labLoinc?: Prisma.LabLoincOmit
   atc?: Prisma.AtcOmit
   drug?: Prisma.DrugOmit
+  optionLibrary?: Prisma.OptionLibraryOmit
+  conceptMap?: Prisma.ConceptMapOmit
+  omopVocabulary?: Prisma.OmopVocabularyOmit
+  omopDomain?: Prisma.OmopDomainOmit
+  omopConcept?: Prisma.OmopConceptOmit
+  omopConceptRelationship?: Prisma.OmopConceptRelationshipOmit
+  omopConceptAncestor?: Prisma.OmopConceptAncestorOmit
+  omopConceptSynonym?: Prisma.OmopConceptSynonymOmit
+  omopVocabularyImport?: Prisma.OmopVocabularyImportOmit
+  clinicalFieldStatus?: Prisma.ClinicalFieldStatusOmit
   caseFieldChange?: Prisma.CaseFieldChangeOmit
   caseSnapshot?: Prisma.CaseSnapshotOmit
   revokedToken?: Prisma.RevokedTokenOmit
@@ -3578,6 +4820,8 @@ export type GlobalOmitConfig = {
   labResult?: Prisma.LabResultOmit
   medication?: Prisma.MedicationOmit
   vascularAccess?: Prisma.VascularAccessOmit
+  premedicationAdministration?: Prisma.PremedicationAdministrationOmit
+  caseComplication?: Prisma.CaseComplicationOmit
   caseSelection?: Prisma.CaseSelectionOmit
 }
 

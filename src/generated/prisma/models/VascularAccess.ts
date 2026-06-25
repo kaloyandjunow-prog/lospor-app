@@ -27,10 +27,12 @@ export type AggregateVascularAccess = {
 }
 
 export type VascularAccessAvgAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
 export type VascularAccessSumAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
@@ -42,6 +44,15 @@ export type VascularAccessMinAggregateOutputType = {
   siteLabel: string | null
   size: string | null
   sizeUnit: string | null
+  depthCm: string | null
+  lumens: string | null
+  preexisting: boolean | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -54,6 +65,15 @@ export type VascularAccessMaxAggregateOutputType = {
   siteLabel: string | null
   size: string | null
   sizeUnit: string | null
+  depthCm: string | null
+  lumens: string | null
+  preexisting: boolean | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -66,6 +86,15 @@ export type VascularAccessCountAggregateOutputType = {
   siteLabel: number
   size: number
   sizeUnit: number
+  depthCm: number
+  lumens: number
+  preexisting: number
+  sourceVocabulary: number
+  sourceCode: number
+  standardConceptId: number
+  mappingStatus: number
+  source: number
+  sourceVersion: number
   ordinal: number
   createdAt: number
   _all: number
@@ -73,10 +102,12 @@ export type VascularAccessCountAggregateOutputType = {
 
 
 export type VascularAccessAvgAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
 export type VascularAccessSumAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
@@ -88,6 +119,15 @@ export type VascularAccessMinAggregateInputType = {
   siteLabel?: true
   size?: true
   sizeUnit?: true
+  depthCm?: true
+  lumens?: true
+  preexisting?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -100,6 +140,15 @@ export type VascularAccessMaxAggregateInputType = {
   siteLabel?: true
   size?: true
   sizeUnit?: true
+  depthCm?: true
+  lumens?: true
+  preexisting?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -112,6 +161,15 @@ export type VascularAccessCountAggregateInputType = {
   siteLabel?: true
   size?: true
   sizeUnit?: true
+  depthCm?: true
+  lumens?: true
+  preexisting?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
   _all?: true
@@ -211,6 +269,15 @@ export type VascularAccessGroupByOutputType = {
   siteLabel: string | null
   size: string | null
   sizeUnit: string | null
+  depthCm: string | null
+  lumens: string | null
+  preexisting: boolean
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus
+  source: string
+  sourceVersion: string | null
   ordinal: number
   createdAt: Date
   _count: VascularAccessCountAggregateOutputType | null
@@ -246,6 +313,15 @@ export type VascularAccessWhereInput = {
   siteLabel?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   size?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   sizeUnit?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  depthCm?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  lumens?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  preexisting?: Prisma.BoolFilter<"VascularAccess"> | boolean
+  sourceVocabulary?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"VascularAccess"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"VascularAccess"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"VascularAccess"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   ordinal?: Prisma.IntFilter<"VascularAccess"> | number
   createdAt?: Prisma.DateTimeFilter<"VascularAccess"> | Date | string
   intraop?: Prisma.XOR<Prisma.IntraoperativeRecordScalarRelationFilter, Prisma.IntraoperativeRecordWhereInput>
@@ -259,6 +335,15 @@ export type VascularAccessOrderByWithRelationInput = {
   siteLabel?: Prisma.SortOrderInput | Prisma.SortOrder
   size?: Prisma.SortOrderInput | Prisma.SortOrder
   sizeUnit?: Prisma.SortOrderInput | Prisma.SortOrder
+  depthCm?: Prisma.SortOrderInput | Prisma.SortOrder
+  lumens?: Prisma.SortOrderInput | Prisma.SortOrder
+  preexisting?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   intraop?: Prisma.IntraoperativeRecordOrderByWithRelationInput
@@ -275,6 +360,15 @@ export type VascularAccessWhereUniqueInput = Prisma.AtLeast<{
   siteLabel?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   size?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   sizeUnit?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  depthCm?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  lumens?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  preexisting?: Prisma.BoolFilter<"VascularAccess"> | boolean
+  sourceVocabulary?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"VascularAccess"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"VascularAccess"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"VascularAccess"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   ordinal?: Prisma.IntFilter<"VascularAccess"> | number
   createdAt?: Prisma.DateTimeFilter<"VascularAccess"> | Date | string
   intraop?: Prisma.XOR<Prisma.IntraoperativeRecordScalarRelationFilter, Prisma.IntraoperativeRecordWhereInput>
@@ -288,6 +382,15 @@ export type VascularAccessOrderByWithAggregationInput = {
   siteLabel?: Prisma.SortOrderInput | Prisma.SortOrder
   size?: Prisma.SortOrderInput | Prisma.SortOrder
   sizeUnit?: Prisma.SortOrderInput | Prisma.SortOrder
+  depthCm?: Prisma.SortOrderInput | Prisma.SortOrder
+  lumens?: Prisma.SortOrderInput | Prisma.SortOrder
+  preexisting?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.VascularAccessCountOrderByAggregateInput
@@ -308,6 +411,15 @@ export type VascularAccessScalarWhereWithAggregatesInput = {
   siteLabel?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
   size?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
   sizeUnit?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
+  depthCm?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
+  lumens?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
+  preexisting?: Prisma.BoolWithAggregatesFilter<"VascularAccess"> | boolean
+  sourceVocabulary?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
+  sourceCode?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
+  standardConceptId?: Prisma.IntNullableWithAggregatesFilter<"VascularAccess"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusWithAggregatesFilter<"VascularAccess"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringWithAggregatesFilter<"VascularAccess"> | string
+  sourceVersion?: Prisma.StringNullableWithAggregatesFilter<"VascularAccess"> | string | null
   ordinal?: Prisma.IntWithAggregatesFilter<"VascularAccess"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"VascularAccess"> | Date | string
 }
@@ -319,6 +431,15 @@ export type VascularAccessCreateInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
   intraop: Prisma.IntraoperativeRecordCreateNestedOneWithoutVascularAccessRowsInput
@@ -332,6 +453,15 @@ export type VascularAccessUncheckedCreateInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -343,6 +473,15 @@ export type VascularAccessUpdateInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   intraop?: Prisma.IntraoperativeRecordUpdateOneRequiredWithoutVascularAccessRowsNestedInput
@@ -356,6 +495,15 @@ export type VascularAccessUncheckedUpdateInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -368,6 +516,15 @@ export type VascularAccessCreateManyInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -379,6 +536,15 @@ export type VascularAccessUpdateManyMutationInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -391,6 +557,15 @@ export type VascularAccessUncheckedUpdateManyInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -413,11 +588,21 @@ export type VascularAccessCountOrderByAggregateInput = {
   siteLabel?: Prisma.SortOrder
   size?: Prisma.SortOrder
   sizeUnit?: Prisma.SortOrder
+  depthCm?: Prisma.SortOrder
+  lumens?: Prisma.SortOrder
+  preexisting?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type VascularAccessAvgOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -429,6 +614,15 @@ export type VascularAccessMaxOrderByAggregateInput = {
   siteLabel?: Prisma.SortOrder
   size?: Prisma.SortOrder
   sizeUnit?: Prisma.SortOrder
+  depthCm?: Prisma.SortOrder
+  lumens?: Prisma.SortOrder
+  preexisting?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -441,11 +635,21 @@ export type VascularAccessMinOrderByAggregateInput = {
   siteLabel?: Prisma.SortOrder
   size?: Prisma.SortOrder
   sizeUnit?: Prisma.SortOrder
+  depthCm?: Prisma.SortOrder
+  lumens?: Prisma.SortOrder
+  preexisting?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type VascularAccessSumOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -498,6 +702,15 @@ export type VascularAccessCreateWithoutIntraopInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -509,6 +722,15 @@ export type VascularAccessUncheckedCreateWithoutIntraopInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -550,6 +772,15 @@ export type VascularAccessScalarWhereInput = {
   siteLabel?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   size?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   sizeUnit?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  depthCm?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  lumens?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  preexisting?: Prisma.BoolFilter<"VascularAccess"> | boolean
+  sourceVocabulary?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"VascularAccess"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"VascularAccess"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"VascularAccess"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"VascularAccess"> | string | null
   ordinal?: Prisma.IntFilter<"VascularAccess"> | number
   createdAt?: Prisma.DateTimeFilter<"VascularAccess"> | Date | string
 }
@@ -561,6 +792,15 @@ export type VascularAccessCreateManyIntraopInput = {
   siteLabel?: string | null
   size?: string | null
   sizeUnit?: string | null
+  depthCm?: string | null
+  lumens?: string | null
+  preexisting?: boolean
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -572,6 +812,15 @@ export type VascularAccessUpdateWithoutIntraopInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -583,6 +832,15 @@ export type VascularAccessUncheckedUpdateWithoutIntraopInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -594,6 +852,15 @@ export type VascularAccessUncheckedUpdateManyWithoutIntraopInput = {
   siteLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeUnit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depthCm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lumens?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preexisting?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -608,6 +875,15 @@ export type VascularAccessSelect<ExtArgs extends runtime.Types.Extensions.Intern
   siteLabel?: boolean
   size?: boolean
   sizeUnit?: boolean
+  depthCm?: boolean
+  lumens?: boolean
+  preexisting?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   intraop?: boolean | Prisma.IntraoperativeRecordDefaultArgs<ExtArgs>
@@ -621,6 +897,15 @@ export type VascularAccessSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   siteLabel?: boolean
   size?: boolean
   sizeUnit?: boolean
+  depthCm?: boolean
+  lumens?: boolean
+  preexisting?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   intraop?: boolean | Prisma.IntraoperativeRecordDefaultArgs<ExtArgs>
@@ -634,6 +919,15 @@ export type VascularAccessSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   siteLabel?: boolean
   size?: boolean
   sizeUnit?: boolean
+  depthCm?: boolean
+  lumens?: boolean
+  preexisting?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   intraop?: boolean | Prisma.IntraoperativeRecordDefaultArgs<ExtArgs>
@@ -647,11 +941,20 @@ export type VascularAccessSelectScalar = {
   siteLabel?: boolean
   size?: boolean
   sizeUnit?: boolean
+  depthCm?: boolean
+  lumens?: boolean
+  preexisting?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
 }
 
-export type VascularAccessOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "intraopId" | "caseId" | "site" | "siteLabel" | "size" | "sizeUnit" | "ordinal" | "createdAt", ExtArgs["result"]["vascularAccess"]>
+export type VascularAccessOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "intraopId" | "caseId" | "site" | "siteLabel" | "size" | "sizeUnit" | "depthCm" | "lumens" | "preexisting" | "sourceVocabulary" | "sourceCode" | "standardConceptId" | "mappingStatus" | "source" | "sourceVersion" | "ordinal" | "createdAt", ExtArgs["result"]["vascularAccess"]>
 export type VascularAccessInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   intraop?: boolean | Prisma.IntraoperativeRecordDefaultArgs<ExtArgs>
 }
@@ -675,6 +978,15 @@ export type $VascularAccessPayload<ExtArgs extends runtime.Types.Extensions.Inte
     siteLabel: string | null
     size: string | null
     sizeUnit: string | null
+    depthCm: string | null
+    lumens: string | null
+    preexisting: boolean
+    sourceVocabulary: string | null
+    sourceCode: string | null
+    standardConceptId: number | null
+    mappingStatus: $Enums.ConceptMappingStatus
+    source: string
+    sourceVersion: string | null
     ordinal: number
     createdAt: Date
   }, ExtArgs["result"]["vascularAccess"]>
@@ -1108,6 +1420,15 @@ export interface VascularAccessFieldRefs {
   readonly siteLabel: Prisma.FieldRef<"VascularAccess", 'String'>
   readonly size: Prisma.FieldRef<"VascularAccess", 'String'>
   readonly sizeUnit: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly depthCm: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly lumens: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly preexisting: Prisma.FieldRef<"VascularAccess", 'Boolean'>
+  readonly sourceVocabulary: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly sourceCode: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly standardConceptId: Prisma.FieldRef<"VascularAccess", 'Int'>
+  readonly mappingStatus: Prisma.FieldRef<"VascularAccess", 'ConceptMappingStatus'>
+  readonly source: Prisma.FieldRef<"VascularAccess", 'String'>
+  readonly sourceVersion: Prisma.FieldRef<"VascularAccess", 'String'>
   readonly ordinal: Prisma.FieldRef<"VascularAccess", 'Int'>
   readonly createdAt: Prisma.FieldRef<"VascularAccess", 'DateTime'>
 }

@@ -43,7 +43,7 @@ const schema = z.object({
 type FormData     = z.infer<typeof schema>
 type Institution  = { id: string; name: string; city: string }
 
-// в"Ђв"Ђ Searchable institution picker в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Searchable institution picker ─────────────────────────────────────────────
 function InstitutionPicker({
   institutions, value, onChange, placeholder, disabled,
 }: {
@@ -132,7 +132,7 @@ function InstitutionPicker({
   )
 }
 
-// в"Ђв"Ђ Password strength checklist в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Password strength checklist ───────────────────────────────────────────────
 function PasswordStrength({ value }: { value: string }) {
   const t = useTranslations()
   const checks = [
@@ -153,7 +153,7 @@ function PasswordStrength({ value }: { value: string }) {
   )
 }
 
-// в"Ђв"Ђ Page в"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђв"Ђ
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function RegisterPage() {
   const router  = useRouter()
   const t       = useTranslations()

@@ -27,10 +27,12 @@ export type AggregateCaseSelection = {
 }
 
 export type CaseSelectionAvgAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
 export type CaseSelectionSumAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
@@ -40,6 +42,12 @@ export type CaseSelectionMinAggregateOutputType = {
   section: string | null
   category: string | null
   value: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -50,6 +58,12 @@ export type CaseSelectionMaxAggregateOutputType = {
   section: string | null
   category: string | null
   value: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -60,6 +74,12 @@ export type CaseSelectionCountAggregateOutputType = {
   section: number
   category: number
   value: number
+  sourceVocabulary: number
+  sourceCode: number
+  standardConceptId: number
+  mappingStatus: number
+  source: number
+  sourceVersion: number
   ordinal: number
   createdAt: number
   _all: number
@@ -67,10 +87,12 @@ export type CaseSelectionCountAggregateOutputType = {
 
 
 export type CaseSelectionAvgAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
 export type CaseSelectionSumAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
@@ -80,6 +102,12 @@ export type CaseSelectionMinAggregateInputType = {
   section?: true
   category?: true
   value?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -90,6 +118,12 @@ export type CaseSelectionMaxAggregateInputType = {
   section?: true
   category?: true
   value?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -100,6 +134,12 @@ export type CaseSelectionCountAggregateInputType = {
   section?: true
   category?: true
   value?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
   _all?: true
@@ -197,6 +237,12 @@ export type CaseSelectionGroupByOutputType = {
   section: string
   category: string
   value: string
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus
+  source: string
+  sourceVersion: string | null
   ordinal: number
   createdAt: Date
   _count: CaseSelectionCountAggregateOutputType | null
@@ -230,6 +276,12 @@ export type CaseSelectionWhereInput = {
   section?: Prisma.StringFilter<"CaseSelection"> | string
   category?: Prisma.StringFilter<"CaseSelection"> | string
   value?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVocabulary?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"CaseSelection"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"CaseSelection"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
   ordinal?: Prisma.IntFilter<"CaseSelection"> | number
   createdAt?: Prisma.DateTimeFilter<"CaseSelection"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
@@ -241,6 +293,12 @@ export type CaseSelectionOrderByWithRelationInput = {
   section?: Prisma.SortOrder
   category?: Prisma.SortOrder
   value?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
@@ -255,6 +313,12 @@ export type CaseSelectionWhereUniqueInput = Prisma.AtLeast<{
   section?: Prisma.StringFilter<"CaseSelection"> | string
   category?: Prisma.StringFilter<"CaseSelection"> | string
   value?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVocabulary?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"CaseSelection"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"CaseSelection"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
   ordinal?: Prisma.IntFilter<"CaseSelection"> | number
   createdAt?: Prisma.DateTimeFilter<"CaseSelection"> | Date | string
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
@@ -266,6 +330,12 @@ export type CaseSelectionOrderByWithAggregationInput = {
   section?: Prisma.SortOrder
   category?: Prisma.SortOrder
   value?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.CaseSelectionCountOrderByAggregateInput
@@ -284,6 +354,12 @@ export type CaseSelectionScalarWhereWithAggregatesInput = {
   section?: Prisma.StringWithAggregatesFilter<"CaseSelection"> | string
   category?: Prisma.StringWithAggregatesFilter<"CaseSelection"> | string
   value?: Prisma.StringWithAggregatesFilter<"CaseSelection"> | string
+  sourceVocabulary?: Prisma.StringNullableWithAggregatesFilter<"CaseSelection"> | string | null
+  sourceCode?: Prisma.StringNullableWithAggregatesFilter<"CaseSelection"> | string | null
+  standardConceptId?: Prisma.IntNullableWithAggregatesFilter<"CaseSelection"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusWithAggregatesFilter<"CaseSelection"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringWithAggregatesFilter<"CaseSelection"> | string
+  sourceVersion?: Prisma.StringNullableWithAggregatesFilter<"CaseSelection"> | string | null
   ordinal?: Prisma.IntWithAggregatesFilter<"CaseSelection"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CaseSelection"> | Date | string
 }
@@ -293,6 +369,12 @@ export type CaseSelectionCreateInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
   case: Prisma.CaseCreateNestedOneWithoutSelectionsInput
@@ -304,6 +386,12 @@ export type CaseSelectionUncheckedCreateInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -313,6 +401,12 @@ export type CaseSelectionUpdateInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   case?: Prisma.CaseUpdateOneRequiredWithoutSelectionsNestedInput
@@ -324,6 +418,12 @@ export type CaseSelectionUncheckedUpdateInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -334,6 +434,12 @@ export type CaseSelectionCreateManyInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -343,6 +449,12 @@ export type CaseSelectionUpdateManyMutationInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -353,6 +465,12 @@ export type CaseSelectionUncheckedUpdateManyInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -373,11 +491,18 @@ export type CaseSelectionCountOrderByAggregateInput = {
   section?: Prisma.SortOrder
   category?: Prisma.SortOrder
   value?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type CaseSelectionAvgOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -387,6 +512,12 @@ export type CaseSelectionMaxOrderByAggregateInput = {
   section?: Prisma.SortOrder
   category?: Prisma.SortOrder
   value?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -397,11 +528,18 @@ export type CaseSelectionMinOrderByAggregateInput = {
   section?: Prisma.SortOrder
   category?: Prisma.SortOrder
   value?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type CaseSelectionSumOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -452,6 +590,12 @@ export type CaseSelectionCreateWithoutCaseInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -461,6 +605,12 @@ export type CaseSelectionUncheckedCreateWithoutCaseInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -500,6 +650,12 @@ export type CaseSelectionScalarWhereInput = {
   section?: Prisma.StringFilter<"CaseSelection"> | string
   category?: Prisma.StringFilter<"CaseSelection"> | string
   value?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVocabulary?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"CaseSelection"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"CaseSelection"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"CaseSelection"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"CaseSelection"> | string | null
   ordinal?: Prisma.IntFilter<"CaseSelection"> | number
   createdAt?: Prisma.DateTimeFilter<"CaseSelection"> | Date | string
 }
@@ -509,6 +665,12 @@ export type CaseSelectionCreateManyCaseInput = {
   section: string
   category: string
   value: string
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -518,6 +680,12 @@ export type CaseSelectionUpdateWithoutCaseInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -527,6 +695,12 @@ export type CaseSelectionUncheckedUpdateWithoutCaseInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -536,6 +710,12 @@ export type CaseSelectionUncheckedUpdateManyWithoutCaseInput = {
   section?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -548,6 +728,12 @@ export type CaseSelectionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   section?: boolean
   category?: boolean
   value?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -559,6 +745,12 @@ export type CaseSelectionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   section?: boolean
   category?: boolean
   value?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -570,6 +762,12 @@ export type CaseSelectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   section?: boolean
   category?: boolean
   value?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
@@ -581,11 +779,17 @@ export type CaseSelectionSelectScalar = {
   section?: boolean
   category?: boolean
   value?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
 }
 
-export type CaseSelectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "section" | "category" | "value" | "ordinal" | "createdAt", ExtArgs["result"]["caseSelection"]>
+export type CaseSelectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "section" | "category" | "value" | "sourceVocabulary" | "sourceCode" | "standardConceptId" | "mappingStatus" | "source" | "sourceVersion" | "ordinal" | "createdAt", ExtArgs["result"]["caseSelection"]>
 export type CaseSelectionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -607,6 +811,12 @@ export type $CaseSelectionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     section: string
     category: string
     value: string
+    sourceVocabulary: string | null
+    sourceCode: string | null
+    standardConceptId: number | null
+    mappingStatus: $Enums.ConceptMappingStatus
+    source: string
+    sourceVersion: string | null
     ordinal: number
     createdAt: Date
   }, ExtArgs["result"]["caseSelection"]>
@@ -1038,6 +1248,12 @@ export interface CaseSelectionFieldRefs {
   readonly section: Prisma.FieldRef<"CaseSelection", 'String'>
   readonly category: Prisma.FieldRef<"CaseSelection", 'String'>
   readonly value: Prisma.FieldRef<"CaseSelection", 'String'>
+  readonly sourceVocabulary: Prisma.FieldRef<"CaseSelection", 'String'>
+  readonly sourceCode: Prisma.FieldRef<"CaseSelection", 'String'>
+  readonly standardConceptId: Prisma.FieldRef<"CaseSelection", 'Int'>
+  readonly mappingStatus: Prisma.FieldRef<"CaseSelection", 'ConceptMappingStatus'>
+  readonly source: Prisma.FieldRef<"CaseSelection", 'String'>
+  readonly sourceVersion: Prisma.FieldRef<"CaseSelection", 'String'>
   readonly ordinal: Prisma.FieldRef<"CaseSelection", 'Int'>
   readonly createdAt: Prisma.FieldRef<"CaseSelection", 'DateTime'>
 }

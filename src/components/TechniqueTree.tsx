@@ -1,153 +1,32 @@
 "use client"
 
+import { useMemo } from "react"
 import { useState } from "react"
 import { ChevronRight, Plus, X } from "lucide-react"
+import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
 
-// ── Tree data (Combined removed — combine by adding multiple) ─────────────────
-interface Node { v: string; label: string; children?: Node[] }
+// ── Tree data ──────────────────────────────────────────────────────────────────
+// Built from the OptionLibrary TECHNIQUE category via buildTree (exported so
+// IntraopForm.tsx can build its own copy for techniqueDisplayLabel, which
+// takes the tree as an explicit parameter rather than reading module state).
+export interface TechniqueNode { v: string; label: string; children?: TechniqueNode[] }
 
-const TREE: Node[] = [
-  {
-    v: "GENERAL", label: "General Anaesthesia",
-    children: [
-      { v: "GENERAL_INHALATION", label: "Inhalational" },
-      { v: "GENERAL_TIVA",       label: "TIVA" },
-      { v: "GENERAL_BALANCED",   label: "Balanced (inhaled + IV)" },
-    ],
-  },
-  {
-    v: "REGIONAL", label: "Regional Anaesthesia",
-    children: [
-      {
-        v: "NEURAXIAL", label: "Neuraxial",
-        children: [
-          {
-            v: "SPINAL", label: "Spinal (SAB)",
-            children: [
-              {
-                v: "SPINAL_SINGLE", label: "Single shot",
-                children: [
-                  { v: "SPINAL_SINGLE_LUMBAR",        label: "Lumbar" },
-                  { v: "SPINAL_SINGLE_LOW_THORACIC",  label: "Low thoracic" },
-                  { v: "SPINAL_SINGLE_MID_THORACIC",  label: "Mid thoracic" },
-                  { v: "SPINAL_SINGLE_HIGH_THORACIC", label: "High thoracic" },
-                ],
-              },
-              {
-                v: "SPINAL_CONTINUOUS", label: "Continuous",
-                children: [
-                  { v: "SPINAL_CONT_LUMBAR",        label: "Lumbar" },
-                  { v: "SPINAL_CONT_LOW_THORACIC",  label: "Low thoracic" },
-                  { v: "SPINAL_CONT_MID_THORACIC",  label: "Mid thoracic" },
-                  { v: "SPINAL_CONT_HIGH_THORACIC", label: "High thoracic" },
-                ],
-              },
-            ],
-          },
-          {
-            v: "EPIDURAL", label: "Epidural",
-            children: [
-              { v: "EPIDURAL_CAUDAL",        label: "Caudal" },
-              { v: "EPIDURAL_LUMBAR",        label: "Lumbar" },
-              { v: "EPIDURAL_LOW_THORACIC",  label: "Low thoracic" },
-              { v: "EPIDURAL_MID_THORACIC",  label: "Mid thoracic" },
-              { v: "EPIDURAL_HIGH_THORACIC", label: "High thoracic" },
-            ],
-          },
-          {
-            v: "CSE", label: "Combined spinal-epidural (CSE)",
-            children: [
-              { v: "CSE_LUMBAR",        label: "Lumbar" },
-              { v: "CSE_LOW_THORACIC",  label: "Low thoracic" },
-              { v: "CSE_MID_THORACIC",  label: "Mid thoracic" },
-              { v: "CSE_HIGH_THORACIC", label: "High thoracic" },
-            ],
-          },
-          { v: "DPE", label: "Dural Puncture Epidural (DPE)" },
-        ],
-      },
-      {
-        v: "PERIPHERAL", label: "Peripheral nerve block",
-        children: [
-          {
-            v: "BLOCK_UPPER", label: "Upper extremity",
-            children: [
-              { v: "BLOCK_INTERSCALENE",    label: "Interscalene" },
-              { v: "BLOCK_SUPRACLAVICULAR", label: "Supraclavicular" },
-              { v: "BLOCK_INFRACLAVICULAR", label: "Infraclavicular" },
-              { v: "BLOCK_AXILLARY",        label: "Axillary" },
-              { v: "BLOCK_WRIST",           label: "Wrist block" },
-              { v: "BLOCK_DIGITAL",         label: "Digital block" },
-              { v: "BLOCK_BIER",            label: "Bier block (IVRA)" },
-              { v: "BLOCK_ELBOW",           label: "Elbow block" },
-            ],
-          },
-          {
-            v: "BLOCK_LOWER", label: "Lower extremity",
-            children: [
-              { v: "BLOCK_FEMORAL",       label: "Femoral nerve" },
-              { v: "BLOCK_ADDUCTOR",      label: "Adductor canal (saphenous)" },
-              { v: "BLOCK_SCIATIC",       label: "Sciatic nerve" },
-              { v: "BLOCK_POPLITEAL",     label: "Popliteal sciatic" },
-              { v: "BLOCK_ANKLE",         label: "Ankle block" },
-              { v: "BLOCK_OBTURATOR",     label: "Obturator nerve" },
-              { v: "BLOCK_LAT_FEMORAL",   label: "Lateral femoral cutaneous" },
-              { v: "BLOCK_LUMBAR_PLEXUS", label: "Lumbar plexus (psoas)" },
-              { v: "BLOCK_IPACK",         label: "IPACK" },
-              { v: "BLOCK_GENICULAR",     label: "Genicular nerves" },
-              { v: "BLOCK_FOOT",          label: "Foot block" },
-            ],
-          },
-          {
-            v: "BLOCK_TRUNK", label: "Trunk / Abdominal wall",
-            children: [
-              { v: "BLOCK_TAP",            label: "TAP block" },
-              { v: "BLOCK_RECTUS",         label: "Rectus sheath block" },
-              { v: "BLOCK_PARAVERTEBRAL",  label: "Paravertebral block" },
-              { v: "BLOCK_ESP",            label: "Erector spinae plane (ESP)" },
-              { v: "BLOCK_SERRATUS",       label: "Serratus anterior plane" },
-              { v: "BLOCK_PECS1",          label: "PECS I" },
-              { v: "BLOCK_PECS2",          label: "PECS II" },
-              { v: "BLOCK_QL",             label: "Quadratus lumborum (QL)" },
-              { v: "BLOCK_ILIOINGUINAL",   label: "Ilioinguinal / iliohypogastric" },
-              { v: "BLOCK_INTERCOSTAL",    label: "Intercostal block" },
-            ],
-          },
-          {
-            v: "BLOCK_HEAD_NECK", label: "Head & Neck",
-            children: [
-              { v: "BLOCK_SUPERFICIAL_CERVICAL", label: "Superficial cervical plexus" },
-              { v: "BLOCK_DEEP_CERVICAL",        label: "Deep cervical plexus" },
-              { v: "BLOCK_SCALP",                label: "Scalp block" },
-              { v: "BLOCK_TRIGEMINAL",           label: "Trigeminal nerve" },
-              { v: "BLOCK_SPHENOPALATINE",       label: "Sphenopalatine ganglion" },
-              { v: "BLOCK_GLOSSOPHARYNGEAL",     label: "Glossopharyngeal nerve" },
-            ],
-          },
-          {
-            v: "BLOCK_OPHTHALMIC", label: "Ophthalmic",
-            children: [
-              { v: "BLOCK_PERIBULBAR",  label: "Peribulbar block" },
-              { v: "BLOCK_RETROBULBAR", label: "Retrobulbar block" },
-              { v: "BLOCK_SUB_TENONS",  label: "Sub-Tenon's block" },
-              { v: "BLOCK_TOPICAL_EYE", label: "Topical (eye)" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    v: "SEDATION", label: "Sedation / MAC",
-    children: [
-      { v: "SEDATION_CONSCIOUS", label: "Conscious sedation" },
-      { v: "SEDATION_DEEP",      label: "Deep sedation" },
-      { v: "SEDATION_MAC",       label: "Monitored anesthesia care (MAC)" },
-    ],
-  },
-  { v: "LOCAL",  label: "Local infiltration" },
-  { v: "OTHER",  label: "Other…" },
-]
+export function buildTree(rows: LibraryOption[]): TechniqueNode[] {
+  const byParent = new Map<string | null, LibraryOption[]>()
+  for (const r of rows) {
+    const key = r.parentId
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(r)
+  }
+  function build(parentId: string | null): TechniqueNode[] {
+    return (byParent.get(parentId) ?? []).map(r => ({
+      v: r.value,
+      label: r.label,
+      children: byParent.has(r.id) ? build(r.id) : undefined,
+    }))
+  }
+  return build(null)
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function techniqueColor(v: string): string {
@@ -160,18 +39,13 @@ function techniqueColor(v: string): string {
   return "bg-slate-600 dark:bg-slate-500 border-slate-600 dark:border-slate-500 text-white"
 }
 
-function findPath(nodes: Node[], target: string, path: Node[] = []): Node[] | null {
+function findPath(nodes: TechniqueNode[], target: string, path: TechniqueNode[] = []): TechniqueNode[] | null {
   for (const n of nodes) {
     const curr = [...path, n]
     if (n.v === target) return curr
     if (n.children) { const f = findPath(n.children, target, curr); if (f) return f }
   }
   return null
-}
-
-function labelFor(v: string): string {
-  const path = findPath(TREE, v)
-  return path ? path[path.length - 1].label : v
 }
 
 // Grouping nodes that add no clinical value in a compact pill label
@@ -187,10 +61,11 @@ const TECH_ROOT_SHORT: Record<string, string> = {
 }
 
 // Category-aware label: e.g. "General Inhalational", "Regional Femoral nerve",
-// "Regional Neuraxial Epidural Lumbar".
-export function techniqueDisplayLabel(v: string): string {
+// "Regional Neuraxial Epidural Lumbar". Takes the tree explicitly — callers
+// get it from useOptionLibrary("TECHNIQUE") + buildTree, not module state.
+export function techniqueDisplayLabel(v: string, tree: TechniqueNode[]): string {
   if (v.startsWith("OTHER:")) return v.slice(6) || "Other"
-  const path = findPath(TREE, v)
+  const path = findPath(tree, v)
   if (!path) return v
   const parts = path
     .map((n, i) => (i === 0 ? (TECH_ROOT_SHORT[n.label] ?? n.label) : n.label))
@@ -202,13 +77,13 @@ export function techniqueDisplayLabel(v: string): string {
 }
 
 // ── Inline tree picker ────────────────────────────────────────────────────────
-function TreePicker({ onSelect, exclude }: { onSelect: (v: string) => void; exclude: string[] }) {
-  const [path, setPath]           = useState<Node[]>([])
+function TreePicker({ onSelect, exclude, tree }: { onSelect: (v: string) => void; exclude: string[]; tree: TechniqueNode[] }) {
+  const [path, setPath]           = useState<TechniqueNode[]>([])
   const [showOther, setShowOther] = useState(false)
   const [otherText, setOtherText] = useState("")
-  const nodes = path.length === 0 ? TREE : path[path.length - 1].children ?? []
+  const nodes = path.length === 0 ? tree : path[path.length - 1].children ?? []
 
-  function pick(node: Node) {
+  function pick(node: TechniqueNode) {
     if (node.v === "OTHER") { setShowOther(true); return }
     if (node.children?.length) { setPath(p => [...p, node]) }
     else { onSelect(node.v) }
@@ -278,6 +153,9 @@ export function TechniqueTree({ value = [], onChange }: {
   value?: string[]
   onChange: (v: string[]) => void
 }) {
+  const { options: techniqueOpts } = useOptionLibrary("TECHNIQUE")
+  const tree = useMemo(() => buildTree(techniqueOpts), [techniqueOpts])
+
   const [adding, setAdding] = useState(false)
 
   function add(v: string) {
@@ -296,7 +174,7 @@ export function TechniqueTree({ value = [], onChange }: {
         {value.map(v => (
           <div key={v}
             className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border ${techniqueColor(v)}`}>
-            <span className="text-[11px] leading-tight">{techniqueDisplayLabel(v)}</span>
+            <span className="text-[11px] leading-tight">{techniqueDisplayLabel(v, tree)}</span>
             <button type="button" onClick={() => remove(v)}
               className="opacity-70 hover:opacity-100 transition-opacity">
               <X className="h-3 w-3" />
@@ -323,7 +201,7 @@ export function TechniqueTree({ value = [], onChange }: {
       {/* Tree picker */}
       {adding && (
         <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#1a1a1a] p-3">
-          <TreePicker onSelect={add} exclude={value} />
+          <TreePicker onSelect={add} exclude={value} tree={tree} />
         </div>
       )}
     </div>

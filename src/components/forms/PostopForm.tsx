@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, type Resolver } from "react-hook-form"
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { ChevronLeft, Save } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
+import { ConvertedStepper } from "@/components/ConvertedStepper"
+import { useOptionLibrary, useRangeSpec } from "@/hooks/useOptionLibrary"
 
 const schema = z.object({
   aldreteActivity:      z.coerce.number().min(0).max(2).optional(),
@@ -28,6 +29,10 @@ const schema = z.object({
   painScoreNRS:       z.coerce.number().min(0).max(10).optional(),
   ponv:               z.boolean().default(false),
   temperatureCelsius: z.coerce.number().optional(),
+  recoveryBpUnobtainable:          z.boolean().default(false),
+  recoveryHeartRateUnobtainable:   z.boolean().default(false),
+  recoverySpO2Unobtainable:        z.boolean().default(false),
+  recoveryTemperatureUnobtainable: z.boolean().default(false),
   disposition:      z.enum(["WARD", "PACU", "ICU"]).optional(),
   dispositionNotes: z.string().optional(),
   handoverItems:    z.array(z.string()).default([]),
@@ -76,7 +81,7 @@ export const HANDOVER_GROUPS_EN: HandoverGroup[] = [
     { code: "alert_bp",     label: "Blood pressure — target range communicated" },
     { code: "temp_monitor", label: "Temperature monitoring / active warming" },
     { code: "urine_output", label: "Urine output monitoring (IDC in situ)" },
-    { code: "glucose",      label: "Blood glucose monitoring" },
+    { code: "glucose",      label: "Serum/peripheral glucose monitoring" },
   ]},
   { group: "Airway & Oxygen", items: [
     { code: "o2_supp",        label: "Supplemental O₂ — rate and duration specified" },
@@ -199,7 +204,7 @@ export const HANDOVER_GROUPS_BG: HandoverGroup[] = [
   ]},
 ]
 
-export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialComplicationsText, defaultValues }: {
+export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues }: {
   onSubmit: (data: PostopData) => void
   onBack: () => void
   submitting?: boolean
@@ -209,9 +214,24 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
 }) {
   const t      = useTranslations()
   const locale = useLocale()
-  const HANDOVER_GROUPS = locale === "bg" ? HANDOVER_GROUPS_BG : HANDOVER_GROUPS_EN
+  const lbl = (opt: { label: string; labelBg: string | null }) => (locale === "bg" && opt.labelBg) ? opt.labelBg : opt.label
+  const { options: dispositionOptions } = useOptionLibrary("DISPOSITION")
+  const { options: handoverOptions }    = useOptionLibrary("HANDOVER_ITEM")
+  const HANDOVER_GROUPS: HandoverGroup[] = handoverOptions
+    .filter(o => !o.parentId)
+    .map(group => ({
+      group: lbl(group),
+      items: handoverOptions.filter(o => o.parentId === group.id).map(item => ({ code: item.value, label: lbl(item) })),
+    }))
+  const recoveryBpSystolicRange  = useRangeSpec("BP_SYSTOLIC_RANGE")
+  const recoveryBpDiastolicRange = useRangeSpec("BP_DIASTOLIC_RANGE")
+  const recoveryHeartRateRange   = useRangeSpec("HEART_RATE_RANGE")
+  const recoverySpo2Range        = useRangeSpec("SPO2_RANGE")
+  const recoveryTemperatureRange = useRangeSpec("TEMPERATURE_RANGE")
+  const painNrsRange             = useRangeSpec("PAIN_NRS_RANGE")
   const { register, handleSubmit, control, watch, setValue, getValues } = useForm<PostopData>({
-    resolver: zodResolver(schema) as any,
+    // Same zod-v4/react-hook-form resolver-typing friction as IntraopForm.tsx/PreopForm.tsx
+    resolver: zodResolver(schema) as Resolver<PostopData>,
     defaultValues: {
       ponv: false,
       handoverItems: [],
@@ -226,19 +246,28 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
     },
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const allValues = watch()
+  const allValuesKey = JSON.stringify(allValues)
   useEffect(() => {
     if (!onAutoSave) return
     const timer = setTimeout(() => onAutoSave(getValues()), 1500)
     return () => clearTimeout(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(allValues)])
+  }, [allValuesKey, getValues, onAutoSave])
 
   const aldreteVals = watch(["aldreteActivity","aldreteRespiration","aldreteCirculation","aldreteConsciousness","aldreteSpO2"])
   const aldreteTotal = aldreteVals.reduce<number>((sum, v) => sum + (v != null ? parseInt(String(v), 10) || 0 : 0), 0)
   const aldreteColor = aldreteTotal >= 9 ? "default" : aldreteTotal >= 7 ? "secondary" : "destructive"
   const disposition   = watch("disposition")
   const handoverItems = watch("handoverItems") ?? []
+  const [recoveryBpUTO, recoveryHeartRateUTO, recoverySpo2UTO, recoveryTemperatureUTO] =
+    watch(["recoveryBpUnobtainable", "recoveryHeartRateUnobtainable", "recoverySpO2Unobtainable", "recoveryTemperatureUnobtainable"])
+
+  useEffect(() => {
+    if (disposition === "WARD" || disposition === "PACU") return
+    if (handoverItems.length) setValue("handoverItems", [], { shouldDirty: true })
+    if (getValues("dispositionNotes")) setValue("dispositionNotes", "", { shouldDirty: true })
+  }, [disposition, getValues, handoverItems.length, setValue])
 
   const ALDRETE_CRITERIA: { key: AldreteKey; labelKey: string; scoreKeys: string[] }[] = [
     { key: "aldreteActivity",      labelKey: "postop.activity",      scoreKeys: ["postop.aldrete.activity0",      "postop.aldrete.activity1",      "postop.aldrete.activity2"] },
@@ -258,7 +287,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
           {ALDRETE_CRITERIA.map(({ key, labelKey, scoreKeys }) => (
             <Controller key={key} name={key} control={control} render={({ field }) => (
               <div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t(labelKey as any)}</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t(labelKey)}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {scoreKeys.map((sk, i) => {
                     const selected = Number(field.value) === i
@@ -267,7 +296,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
                         onClick={() => field.onChange(selected ? undefined : i)}
                         className={`rounded-xl border-2 p-2.5 text-center transition-all ${selected ? SCORE_COLORS[i] + " scale-105 shadow-sm" : UNSELECTED}`}>
                         <div className="text-xl font-bold leading-none">{i}</div>
-                        <div className="text-[10px] mt-1 leading-tight opacity-90">{String(t(sk as any)).replace(/^\d+\s*[—–-]\s*/, '')}</div>
+                        <div className="text-[10px] mt-1 leading-tight opacity-90">{String(t(sk)).replace(/^\d+\s*[—–-]\s*/, '')}</div>
                       </button>
                     )
                   })}
@@ -293,53 +322,97 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* BP */}
           <div className="space-y-2 sm:col-span-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.bloodPressure")}</Label>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
-                <Controller name="recoveryBpSystolic" control={control} render={({ field }) => (
-                  <NumberStepper value={field.value} onChange={field.onChange} min={0} max={260} showSlider />
-                )} />
-              </div>
-              <span className="text-2xl font-light text-slate-300 mt-4">/</span>
-              <div className="flex-1">
-                <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
-                <Controller name="recoveryBpDiastolic" control={control} render={({ field }) => (
-                  <NumberStepper value={field.value} onChange={field.onChange} min={0} max={160} showSlider />
-                )} />
-              </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.bloodPressure")}</Label>
+              <button type="button"
+                onClick={() => { const next = !recoveryBpUTO; setValue("recoveryBpUnobtainable", next); if (next) { setValue("recoveryBpSystolic", undefined); setValue("recoveryBpDiastolic", undefined) } }}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all ${recoveryBpUTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                {t("preop.unableToObtain")}
+              </button>
             </div>
+            {recoveryBpUTO ? (
+              <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
+                  <Controller name="recoveryBpSystolic" control={control} render={({ field }) => (
+                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpSystolicRange?.min ?? 1} max={recoveryBpSystolicRange?.max ?? 300} step={recoveryBpSystolicRange?.step ?? 1} showSlider />
+                  )} />
+                </div>
+                <span className="text-2xl font-light text-slate-300 mt-4">/</span>
+                <div className="flex-1">
+                  <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
+                  <Controller name="recoveryBpDiastolic" control={control} render={({ field }) => (
+                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpDiastolicRange?.min ?? 1} max={recoveryBpDiastolicRange?.max ?? 200} step={recoveryBpDiastolicRange?.step ?? 1} showSlider />
+                  )} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Heart rate */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.heartRate")}</Label>
-            <Controller name="recoveryHeartRate" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={250} step={1} unit="bpm" showSlider />
-            )} />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.heartRate")}</Label>
+              <button type="button"
+                onClick={() => { const next = !recoveryHeartRateUTO; setValue("recoveryHeartRateUnobtainable", next); if (next) setValue("recoveryHeartRate", undefined) }}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all ${recoveryHeartRateUTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                {t("preop.unableToObtain")}
+              </button>
+            </div>
+            {recoveryHeartRateUTO ? (
+              <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
+            ) : (
+              <Controller name="recoveryHeartRate" control={control} render={({ field }) => (
+                <NumberStepper value={field.value} onChange={field.onChange} min={recoveryHeartRateRange?.min ?? 1} max={recoveryHeartRateRange?.max ?? 300} step={recoveryHeartRateRange?.step ?? 1} unit="bpm" showSlider />
+              )} />
+            )}
           </div>
 
           {/* SpO₂ */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.spO2")}</Label>
-            <Controller name="recoverySpO2" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={100} step={1} unit="%" showSlider />
-            )} />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.spO2")}</Label>
+              <button type="button"
+                onClick={() => { const next = !recoverySpo2UTO; setValue("recoverySpO2Unobtainable", next); if (next) setValue("recoverySpO2", undefined) }}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all ${recoverySpo2UTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                {t("preop.unableToObtain")}
+              </button>
+            </div>
+            {recoverySpo2UTO ? (
+              <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
+            ) : (
+              <Controller name="recoverySpO2" control={control} render={({ field }) => (
+                <NumberStepper value={field.value} onChange={field.onChange} min={recoverySpo2Range?.min ?? 0} max={recoverySpo2Range?.max ?? 100} step={recoverySpo2Range?.step ?? 1} unit="%" showSlider />
+              )} />
+            )}
           </div>
 
           {/* Temperature */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("postop.temperatureC")}</Label>
-            <Controller name="temperatureCelsius" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={0} max={42} step={0.1} unit="°C" showSlider />
-            )} />
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("postop.temperatureC")}</Label>
+              <button type="button"
+                onClick={() => { const next = !recoveryTemperatureUTO; setValue("recoveryTemperatureUnobtainable", next); if (next) setValue("temperatureCelsius", undefined) }}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all ${recoveryTemperatureUTO ? "bg-slate-200 border-slate-400 text-slate-700 font-semibold" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                {t("preop.unableToObtain")}
+              </button>
+            </div>
+            {recoveryTemperatureUTO ? (
+              <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
+            ) : (
+              <Controller name="temperatureCelsius" control={control} render={({ field }) => (
+                <ConvertedStepper measurement="temperature" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={recoveryTemperatureRange?.min ?? 0} canonicalMax={recoveryTemperatureRange?.max ?? 45} canonicalStep={recoveryTemperatureRange?.step ?? 0.1} showSlider />
+              )} />
+            )}
           </div>
 
           {/* Pain NRS */}
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("postop.painNRS")}</Label>
             <div className="flex items-center gap-2">
-              <input type="range" min={0} max={10} step={1}
+              <input type="range" min={painNrsRange?.min ?? 0} max={painNrsRange?.max ?? 10} step={painNrsRange?.step ?? 1}
                 {...register("painScoreNRS")}
                 className="flex-1 h-2 rounded-lg appearance-none bg-slate-200 dark:bg-[#333] accent-blue-600 cursor-pointer" />
               <span className="text-sm font-bold w-6 text-center text-slate-700 dark:text-slate-200">{watch("painScoreNRS") ?? 0}</span>
@@ -348,7 +421,9 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
         </div>
 
         <div className="flex items-center gap-2">
-          <Checkbox id="ponv" {...register("ponv")} />
+          <Controller name="ponv" control={control} render={({ field }) => (
+            <Checkbox id="ponv" checked={!!field.value} onCheckedChange={v => field.onChange(v === true)} />
+          )} />
           <Label htmlFor="ponv" className="font-normal cursor-pointer">{t("postop.ponv")}</Label>
         </div>
       </SectionCard>
@@ -361,19 +436,22 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
           <Label>{t("postop.dispatchTo")}</Label>
           <Controller name="disposition" control={control} render={({ field }) => (
             <div className="flex gap-3">
-              {[
-                { value: "WARD", labelKey: "postop.ward", color: "bg-green-100 border-green-400 text-green-800 dark:bg-green-900/30 dark:border-green-600 dark:text-green-300" },
-                { value: "PACU", labelKey: "postop.pacu", color: "bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-300" },
-                { value: "ICU",  labelKey: "postop.icu",  color: "bg-red-100 border-red-400 text-red-800 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300" },
-              ].map(({ value, labelKey, color }) => (
-                <button key={value} type="button"
-                  onClick={() => field.onChange(field.value === value ? undefined : value)}
+              {dispositionOptions.map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => {
+                    const next = field.value === opt.value ? undefined : opt.value
+                    field.onChange(next)
+                    if (next !== "WARD" && next !== "PACU") {
+                      setValue("handoverItems", [], { shouldDirty: true })
+                      setValue("dispositionNotes", "", { shouldDirty: true })
+                    }
+                  }}
                   className={`flex-1 rounded-lg border-2 py-3 font-semibold text-sm transition-all ${
-                    field.value === value
-                      ? color + " scale-105 shadow-sm"
+                    field.value === opt.value
+                      ? opt.color + " scale-105 shadow-sm"
                       : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
                   }`}>
-                  {t(labelKey as any)}
+                  {lbl(opt)}
                 </button>
               ))}
             </div>
@@ -417,14 +495,16 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, initialCo
           </div>
         )}
 
+        {(disposition === "WARD" || disposition === "PACU") && (
         <div className="space-y-1">
           <Label>{t("postop.handoverNotes")}</Label>
           <Textarea
-            placeholder="No patient-identifying information — additional handover notes…"
+              placeholder="No patient-identifying information - additional handover notes..."
             rows={3}
             {...register("dispositionNotes")}
           />
         </div>
+        )}
       </SectionCard>
       </div>{/* /postop-disposition */}
 

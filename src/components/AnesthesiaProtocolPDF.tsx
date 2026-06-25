@@ -1,26 +1,35 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import type { ComponentType, ReactNode } from "react"
 import {
   PDFViewer, Document, Page, Text, View, StyleSheet,
   Svg, Line, Polyline, Rect, Circle, G, Polygon,
 } from "@react-pdf/renderer"
+import type { Style } from "@react-pdf/types"
 import { format } from "date-fns"
 import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
+import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
+import type {
+  LegacyKeyEvents, VitalsEntry, TimetableDrug, AgentSegment,
+  TimetableInfusion, TimetableFluid,
+} from "@/types/timetable"
+import type { Tag as TagType } from "@/components/TagInput"
 
-// SVG Text alias — react-pdf v4 types don't fully expose SVG text attributes
-const ST = Text as any
+// SVG Text alias — react-pdf v4's Text component type doesn't expose the SVG
+// positioning/text props (x/y/fontSize/fill/textAnchor) it accepts at runtime
+// inside an <Svg>, so this narrows the cast to exactly what's used here.
+type SvgTextProps = { x: number; y: number; fontSize: number; fill: string; textAnchor?: "start" | "middle" | "end"; children?: ReactNode }
+const ST = Text as unknown as ComponentType<SvgTextProps>
 
 // ── Layout constants (pt) ────────────────────────────────────────────────────
 const PAD = 20          // page padding
 const L_W = 841.89      // landscape A4 width
-const L_H = 595.28      // landscape A4 height
-const P_W = 595.28      // portrait A4 width
 
 const GW  = L_W - PAD * 2 - 24  // graph data area width (~778)
 const YAXIS_W = 24               // Y-axis label column
 
-const MONITORING_FIELDS = [
+const MONITORING_FIELDS: { f: keyof CaseDetailIntraop; l: string }[] = [
   { f: "ecg",             l: "ECG"       },
   { f: "spO2Monitor",     l: "SpO₂"      },
   { f: "nbpMonitor",      l: "NBP"       },
@@ -35,7 +44,7 @@ const MONITORING_FIELDS = [
   { f: "nirsMonitor",     l: "NIRS"      },
   { f: "evokedPotentials",l: "SSEP/MEP"  },
   { f: "tofMonitor",      l: "TOF/NMT"  },
-  { f: "bglMonitor",      l: "BGL"       },
+  { f: "bglMonitor",      l: "Serum/peripheral glucose" },
   { f: "bloodGasMonitor", l: "ABG"       },
   { f: "urinaryCatheter", l: "Urine"     },
   { f: "stomachTube",     l: "NGT"       },
@@ -90,8 +99,8 @@ function F({ label, value }: { label: string; value?: string | number | null }) 
   )
 }
 
-function Tag({ children, style }: { children: string; style?: any }) {
-  return <View style={[S.tag, style]}><Text>{children}</Text></View>
+function Tag({ children, style }: { children: string; style?: Style }) {
+  return <View style={style ? [S.tag, style] : [S.tag]}><Text>{children}</Text></View>
 }
 
 function colToTime(col: number, startISO?: string | null): string {
@@ -104,16 +113,20 @@ function colToTime(col: number, startISO?: string | null): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`
 }
 
-function deviceStr(i: any): string {
+function deviceStr(i: CaseDetailIntraop | null | undefined): string {
   const devs: string[] = Array.isArray(i?.airwayDevices) ? i.airwayDevices : []
   return devs.map(d => {
-    if (d === "ORAL_ETT" || d === "NASAL_ETT") {
-      const type = d === "ORAL_ETT" ? "Oral" : "Nasal"
-      const size = i?.tubeSize ? ` ${i.tubeSize}mm` : ""
-      const cuff = i?.cuffed != null ? (i.cuffed ? " cuffed" : " uncuffed") : ""
-      return `${type} ETT${size}${cuff}`
+    if (d === "ORAL_ETT") {
+      const size = i?.oralTubeSize ? ` ${i.oralTubeSize}mm` : ""
+      const cuff = i?.oralCuffed != null ? (i.oralCuffed ? " cuffed" : " uncuffed") : ""
+      return `Oral ETT${size}${cuff}`
     }
-    if (d === "LMA")               return `LMA${i?.tubeSize ? " " + i.tubeSize : ""}`
+    if (d === "NASAL_ETT") {
+      const size = i?.nasalTubeSize ? ` ${i.nasalTubeSize}mm` : ""
+      const cuff = i?.nasalCuffed != null ? (i.nasalCuffed ? " cuffed" : " uncuffed") : ""
+      return `Nasal ETT${size}${cuff}`
+    }
+    if (d === "LMA")               return `LMA${i?.lmaSize ? " " + i.lmaSize : ""}`
     if (d === "DOUBLE_LUMEN_TUBE") return `DLT${i?.dltType ? " " + i.dltType : ""}${i?.dltSide ? " " + i.dltSide : ""}${i?.dltSize ? " " + i.dltSize + "Fr" : ""}`
     if (d === "ENDOBRONCHIAL_TUBE")return `Endobronchial${i?.endobronchialSize ? " " + i.endobronchialSize + "mm" : ""}`
     return d.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
@@ -121,12 +134,12 @@ function deviceStr(i: any): string {
 }
 
 // ── Clinical Chart SVG ───────────────────────────────────────────────────────
-function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: string | null }) {
-  const vitals: any[]    = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
-  const drugs: any[]     = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
-  const agents: any[]    = Array.isArray(timetable?.agents)    ? timetable.agents    : []
-  const infusions: any[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
-  const fluids: any[]    = Array.isArray(timetable?.fluids)    ? timetable.fluids    : []
+function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; startISO?: string | null }) {
+  const vitals: VitalsEntry[]          = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
+  const drugs: TimetableDrug[]         = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
+  const agents: AgentSegment[]         = Array.isArray(timetable?.agents)    ? timetable.agents    : []
+  const infusions: TimetableInfusion[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
+  const fluids: TimetableFluid[]       = Array.isArray(timetable?.fluids)    ? timetable.fluids    : []
 
   const hasData = vitals.length || drugs.length || agents.length || infusions.length || fluids.length
 
@@ -141,10 +154,10 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
   // Calculate total columns
   const maxCols = Math.max(
     vitals.length,
-    drugs.length  > 0 ? Math.max(...drugs.map((d: any)     => d.colIdx ?? 0)) + 1 : 0,
-    agents.length > 0 ? Math.max(...agents.map((a: any)    => a.endCol ?? a.startCol ?? 0)) + 1 : 0,
-    infusions.length > 0 ? Math.max(...infusions.map((f: any) => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
-    fluids.length > 0 ? Math.max(...fluids.map((f: any)   => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
+    drugs.length  > 0 ? Math.max(...drugs.map(d => d.colIdx ?? 0)) + 1 : 0,
+    agents.length > 0 ? Math.max(...agents.map(a => a.endCol ?? a.startCol ?? 0)) + 1 : 0,
+    infusions.length > 0 ? Math.max(...infusions.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
+    fluids.length > 0 ? Math.max(...fluids.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
     24
   ) + 4
   const colW = GW / maxCols
@@ -170,10 +183,10 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
   const yBP = (v: number) => GH - (v / 240) * GH
 
   // Build polyline segments (skip null values)
-  function segs(key: string, xFn: (i: number) => number, yFn: (v: number) => number) {
+  function segs(key: keyof VitalsEntry, xFn: (i: number) => number, yFn: (v: number) => number) {
     const out: string[][] = []
     let cur: string[] = []
-    vitals.forEach((v: any, i: number) => {
+    vitals.forEach((v, i) => {
       const val = v?.[key]
       if (val != null && !isNaN(Number(val))) {
         cur.push(`${xFn(i)},${yFn(Number(val))}`)
@@ -240,7 +253,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
       {sysSeg.map((pts, k) => (
         <Polyline key={k} points={pts.join(" ")} fill="none" stroke="#dc2626" strokeWidth={0.8} />
       ))}
-      {vitals.map((v: any, i: number) =>
+      {vitals.map((v, i) =>
         v?.systolic != null ? <Circle key={i} cx={xOf(i)} cy={yBP(v.systolic)} r={1.2} fill="#dc2626" /> : null
       )}
 
@@ -248,7 +261,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
       {diaSeg.map((pts, k) => (
         <Polyline key={k} points={pts.join(" ")} fill="none" stroke="#f87171" strokeWidth={0.8} strokeDasharray="2,1" />
       ))}
-      {vitals.map((v: any, i: number) =>
+      {vitals.map((v, i) =>
         v?.diastolic != null ? <Circle key={i} cx={xOf(i)} cy={yBP(v.diastolic)} r={1.2} fill="none" stroke="#f87171" strokeWidth={0.8} /> : null
       )}
 
@@ -256,7 +269,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
       {hrSeg.map((pts, k) => (
         <Polyline key={k} points={pts.join(" ")} fill="none" stroke="#16a34a" strokeWidth={0.8} />
       ))}
-      {vitals.map((v: any, i: number) =>
+      {vitals.map((v, i) =>
         v?.heartRate != null ? (
           <Polygon key={i}
             points={`${xOf(i)},${yBP(v.heartRate) - 2} ${xOf(i) - 1.8},${yBP(v.heartRate) + 1.5} ${xOf(i) + 1.8},${yBP(v.heartRate) + 1.5}`}
@@ -267,7 +280,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
       {/* ── SpO₂ strip ─────────────────────────────────────── */}
       <Rect x={YAXIS_W} y={GH + 2} width={GW} height={SPO2H - 2} fill="#f0f9ff" />
       <ST x={YAXIS_W - 2} y={GH + 2 + (SPO2H - 2) / 2 + 2} fontSize={4.5} fill="#0369a1" textAnchor="end">SpO₂</ST>
-      {vitals.map((v: any, i: number) =>
+      {vitals.map((v, i) =>
         v?.spO2 != null ? (
           <G key={i}>
             <Circle cx={xOf(i)} cy={GH + 2 + (SPO2H - 2) / 2} r={1.2} fill="#0369a1" />
@@ -301,7 +314,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 
       {/* ── Drug boluses ───────────────────────────────────── */}
       <ST x={1} y={drugY + DRUG_H / 2 + 2} fontSize={4.5} fill="#7c3aed" textAnchor="start">Drugs</ST>
-      {drugs.map((d: any, i: number) => {
+      {drugs.map((d, i) => {
         const x = xOf(d.colIdx ?? 0)
         const above = i % 2 === 0
         const labelY = above ? drugY + 6 : drugY + DRUG_H - 2
@@ -321,7 +334,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 
       {/* ── Volatile agent bars ────────────────────────────── */}
       <ST x={1} y={agentY0 + BAR_H / 2 + 2} fontSize={4} fill="#0f766e" textAnchor="start">Agent</ST>
-      {agents.slice(0, agentRows).map((a: any, i: number) => {
+      {agents.slice(0, agentRows).map((a, i) => {
         const x1 = xOf(a.startCol ?? 0)
         const x2 = xOf(a.endCol ?? a.startCol ?? 0)
         const y  = agentY0 + i * BAR_H
@@ -337,7 +350,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 
       {/* ── Infusion bars ──────────────────────────────────── */}
       <ST x={1} y={infY0 + BAR_H / 2 + 2} fontSize={4} fill="#0369a1" textAnchor="start">Inf.</ST>
-      {infusions.slice(0, infRows).map((inf: any, i: number) => {
+      {infusions.slice(0, infRows).map((inf, i) => {
         const x1 = xOf(inf.startCol ?? 0)
         const x2 = xOf(inf.endCol ?? inf.startCol ?? 0)
         const y  = infY0 + i * BAR_H
@@ -353,7 +366,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 
       {/* ── Fluid bars ─────────────────────────────────────── */}
       <ST x={1} y={fluidY0 + BAR_H / 2 + 2} fontSize={4} fill="#374151" textAnchor="start">Fluids</ST>
-      {fluids.slice(0, fluidRows).map((f: any, i: number) => {
+      {fluids.slice(0, fluidRows).map((f, i) => {
         const x1  = xOf(f.startCol ?? 0)
         const x2  = xOf(f.endCol ?? f.startCol ?? 0)
         const y   = fluidY0 + i * BAR_H
@@ -377,7 +390,41 @@ function ClinicalChart({ timetable, startISO }: { timetable: any; startISO?: str
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
-type CaseData = any
+type CaseData = CaseDetail
+
+function _PageHeader({
+  page,
+  institutionName,
+  institutionCity,
+  dateStr,
+  diagnosis,
+  plannedProcedure,
+  patientLine,
+}: {
+  page: number
+  institutionName?: string | null
+  institutionCity?: string | null
+  dateStr: string
+  diagnosis?: string | null
+  plannedProcedure?: string | null
+  patientLine: string
+}) {
+  return (
+    <View style={S.header}>
+      <View>
+        <Text style={S.title}>ANAESTHESIA PROTOCOL - LOSPOR</Text>
+        <Text style={S.subtitle}>{institutionName}{institutionCity ? " - " + institutionCity : ""} - {dateStr}</Text>
+        {diagnosis && <Text style={[S.subtitle, { marginTop: 2, fontFamily: "Helvetica-Bold", color: "#1e293b" }]}>{diagnosis}</Text>}
+        {plannedProcedure && <Text style={[S.subtitle, { color: "#475569" }]}>{plannedProcedure}</Text>}
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <View style={{ borderBottom: "0.5pt solid #cbd5e1", width: 120, marginBottom: 2 }} />
+        <Text style={S.subtitle}>{patientLine}</Text>
+        <Text style={[S.subtitle, { marginTop: 2, color: "#94a3b8" }]}>Page {page} of 2</Text>
+      </View>
+    </View>
+  )
+}
 
 export function AnesthesiaProtocolPDF({
   caseId, height = "600px",
@@ -405,9 +452,29 @@ export function AnesthesiaProtocolPDF({
   const positions:    string[] = Array.isArray(i?.positions)        ? i.positions        : []
   const ventModes:    string[] = Array.isArray(i?.ventilationModes) ? i.ventilationModes : []
   const airwayTools:  string[] = Array.isArray(i?.airwayTools)      ? i.airwayTools      : []
-  const vascular:     any[]    = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
-  const comorbidities: any[]   = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
-  const labResults:   any[]    = Array.isArray(p?.labResults)       ? p.labResults.filter((l: any) => l.value) : []
+  type VascularAccessItem = { site?: string; siteLabel?: string; size?: string; sizeUnit?: string }
+  type LabResultItem = { test?: string; value?: string; unit?: string }
+  const vascular:     VascularAccessItem[] = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
+  const comorbidities: TagType[]           = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
+  const currentMedicationsText = (() => {
+    const raw = p?.currentMedications
+    if (!raw) return null
+    const trimmed = raw.trim()
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown[]
+        if (Array.isArray(parsed)) return parsed
+          .map((item) => {
+            const med = item as { label?: unknown; inn?: unknown; name?: unknown }
+            return med.label ?? med.inn ?? med.name
+          })
+          .filter((label): label is string => typeof label === "string" && label.length > 0)
+          .join(", ")
+      } catch {}
+    }
+    return raw
+  })()
+  const labResults:   LabResultItem[]      = Array.isArray(p?.labResults)       ? (p.labResults as LabResultItem[]).filter(l => l.value) : []
   const handoverItems: string[] = Array.isArray(o?.handoverItems)   ? o.handoverItems    : []
 
   const activeMonitors = MONITORING_FIELDS.filter(m => i?.[m.f]).map(m => m.l)
@@ -428,9 +495,7 @@ export function AnesthesiaProtocolPDF({
     return vascular.map(a => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).join(" · ") || null
   }
 
-  // Postop Aldrete badge style
   const aldreteTotal = o?.aldreteTotal ?? 0
-  const aldreteBadge = aldreteTotal >= 9 ? S.badgeGreen : aldreteTotal >= 7 ? S.badgeAmber : S.badgeRed
 
   const patientLine = `${p?.ageYears ?? ""}y · ${p?.sex === "MALE" ? "M" : p?.sex === "FEMALE" ? "F" : p?.sex ?? "—"}`
     + (p?.bloodType ? ` · ${p.bloodType}${p.rhFactor === "POSITIVE" ? "+" : p.rhFactor === "NEGATIVE" ? "−" : ""}` : "")
@@ -442,7 +507,7 @@ export function AnesthesiaProtocolPDF({
     return `${months[parseInt(m, 10) - 1] ?? ""} ${y}`
   })()
 
-  function PageHeader({ page }: { page: number }) {
+  function renderPageHeader(page: number) {
     return (
       <View style={S.header}>
         <View>
@@ -469,7 +534,7 @@ export function AnesthesiaProtocolPDF({
               PAGE 1 — LANDSCAPE — INTRAOPERATIVE
           ══════════════════════════════════════════════════════ */}
           <Page size="A4" orientation="landscape" style={S.page1}>
-            <PageHeader page={1} />
+            {renderPageHeader(1)}
 
             {/* GDPR */}
             <View style={S.disclaimer}>
@@ -496,11 +561,8 @@ export function AnesthesiaProtocolPDF({
                 )}
                 {i?.peepCmH2O   && <F label="PEEP"    value={`${i.peepCmH2O} cmH₂O`} />}
                 {i?.volatileAgent && <F label="Agent"  value={i.volatileAgent} />}
-                {i?.fgfLitersPerMin != null && <F label="Fresh gas flow" value={`${i.fgfLitersPerMin} L/min`} />}
-                {i?.carrierGas && <F label="Carrier gas" value={`O₂ + ${i.carrierGas === "n2o" ? "N₂O" : "Air"}`} />}
-                {i?.fio2Percent != null && <F label="FiO₂" value={`${i.fio2Percent}%`} />}
-                {p?.premedicationEvening && <F label="Premed. eve." value={p.premedicationEvening} />}
-                {p?.premedicationMorning && <F label="Premed. morn." value={p.premedicationMorning} />}
+                {i?.premedicationEvening && <F label="Premed. eve." value={i.premedicationEvening} />}
+                {i?.premedicationMorning && <F label="Premed. morn." value={i.premedicationMorning} />}
               </View>
 
               {/* Monitoring */}
@@ -591,7 +653,7 @@ export function AnesthesiaProtocolPDF({
               PAGE 2 — PORTRAIT — PREOP + POSTOP
           ══════════════════════════════════════════════════════ */}
           <Page size="A4" style={S.page2}>
-            <PageHeader page={2} />
+            {renderPageHeader(2)}
 
             {/* ── PREOPERATIVE ─────────────────────────────────── */}
             <View style={S.row}>
@@ -636,17 +698,17 @@ export function AnesthesiaProtocolPDF({
                   <>
                     <Text style={[S.sec, { marginTop: 5 }]}>Comorbidities</Text>
                     <View style={S.tagRow}>
-                      {comorbidities.map((c: any, idx: number) => (
+                      {comorbidities.map((c, idx) => (
                         <Tag key={idx} style={S.tagAmber}>{c.label ?? String(c)}</Tag>
                       ))}
                     </View>
                   </>
                 )}
 
-                {p?.currentMedications && (
+                {currentMedicationsText && (
                   <>
                     <Text style={[S.sec, { marginTop: 5 }]}>Current medications</Text>
-                    <Text style={{ fontSize: 6.5, color: "#1e293b", lineHeight: 1.4 }}>{p.currentMedications}</Text>
+                    <Text style={{ fontSize: 6.5, color: "#1e293b", lineHeight: 1.4 }}>{currentMedicationsText}</Text>
                   </>
                 )}
 
@@ -663,7 +725,7 @@ export function AnesthesiaProtocolPDF({
                 {labResults.length > 0 && (
                   <>
                     <Text style={[S.sec, { marginTop: 5 }]}>Laboratory results</Text>
-                    {labResults.map((l: any, idx: number) => (
+                    {labResults.map((l, idx) => (
                       <View key={idx} style={S.field}>
                         <Text style={S.lbl}>{l.test}</Text>
                         <Text style={S.val}>{l.value}{l.unit ? " " + l.unit : ""}</Text>

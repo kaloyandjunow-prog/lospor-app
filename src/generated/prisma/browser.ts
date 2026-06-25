@@ -73,6 +73,56 @@ export type Atc = Prisma.AtcModel
  */
 export type Drug = Prisma.DrugModel
 /**
+ * Model OptionLibrary
+ * 
+ */
+export type OptionLibrary = Prisma.OptionLibraryModel
+/**
+ * Model ConceptMap
+ * 
+ */
+export type ConceptMap = Prisma.ConceptMapModel
+/**
+ * Model OmopVocabulary
+ * 
+ */
+export type OmopVocabulary = Prisma.OmopVocabularyModel
+/**
+ * Model OmopDomain
+ * 
+ */
+export type OmopDomain = Prisma.OmopDomainModel
+/**
+ * Model OmopConcept
+ * 
+ */
+export type OmopConcept = Prisma.OmopConceptModel
+/**
+ * Model OmopConceptRelationship
+ * 
+ */
+export type OmopConceptRelationship = Prisma.OmopConceptRelationshipModel
+/**
+ * Model OmopConceptAncestor
+ * 
+ */
+export type OmopConceptAncestor = Prisma.OmopConceptAncestorModel
+/**
+ * Model OmopConceptSynonym
+ * 
+ */
+export type OmopConceptSynonym = Prisma.OmopConceptSynonymModel
+/**
+ * Model OmopVocabularyImport
+ * 
+ */
+export type OmopVocabularyImport = Prisma.OmopVocabularyImportModel
+/**
+ * Model ClinicalFieldStatus
+ * 
+ */
+export type ClinicalFieldStatus = Prisma.ClinicalFieldStatusModel
+/**
  * Model CaseFieldChange
  * 
  */
@@ -152,6 +202,16 @@ export type Medication = Prisma.MedicationModel
  * 
  */
 export type VascularAccess = Prisma.VascularAccessModel
+/**
+ * Model PremedicationAdministration
+ * 
+ */
+export type PremedicationAdministration = Prisma.PremedicationAdministrationModel
+/**
+ * Model CaseComplication
+ * 
+ */
+export type CaseComplication = Prisma.CaseComplicationModel
 /**
  * Model CaseSelection
  * 

@@ -4,26 +4,30 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
-export type Tag = { label: string; sub?: string; code?: string; system?: string; labelEn?: string; labelBg?: string }
+export type Tag = { label: string; sub?: string; code?: string; system?: string; labelEn?: string; labelBg?: string; inn?: string; atcCode?: string }
 
-interface Props {
+interface Props<T> {
   value: Tag[]
   onChange: (tags: Tag[]) => void
   searchUrl: string
-  renderSuggestion: (item: any) => { label: string; sub?: string }
+  renderSuggestion: (item: T) => Tag
   placeholder?: string
   disabled?: boolean
+  allowFreeText?: boolean
+  minSearchLength?: number
 }
 
 // Module-level client cache — persists for the browser session
-const clientCache = new Map<string, any[]>()
+const clientCache = new Map<string, unknown[]>()
 
-export function TagInput({
+export function TagInput<T>({
   value, onChange, searchUrl, renderSuggestion,
   placeholder = "Type to search…", disabled,
-}: Props) {
+  allowFreeText = true,
+  minSearchLength = 3,
+}: Props<T>) {
   const [query, setQuery]             = useState("")
-  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [suggestions, setSuggestions] = useState<T[]>([])
   const [open, setOpen]               = useState(false)
   const [highlighted, setHighlighted] = useState(0)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
@@ -43,27 +47,27 @@ export function TagInput({
 
   const search = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (q.trim().length < 3) {
+    if (q.trim().length < minSearchLength) {
       setSuggestions([])
       return
     }
     const cacheKey = `${searchUrl}::${q.toLowerCase()}`
     if (clientCache.has(cacheKey)) {
-      setSuggestions(clientCache.get(cacheKey)!)
+      setSuggestions(clientCache.get(cacheKey)! as T[])
       return
     }
     debounceRef.current = setTimeout(async () => {
       try {
         const sep  = searchUrl.includes("?") ? "&" : "?"
         const res  = await fetch(`${searchUrl}${sep}q=${encodeURIComponent(q)}`)
-        const data = await res.json()
+        const data: T[] = await res.json()
         if (Array.isArray(data) && data.length > 0) clientCache.set(cacheKey, data)
         setSuggestions(data)
       } catch {
         setSuggestions([])
       }
     }, 150)
-  }, [searchUrl])
+  }, [minSearchLength, searchUrl])
 
   function openDropdown() {
     updatePos()
@@ -77,7 +81,7 @@ export function TagInput({
     if (debounceRef.current) clearTimeout(debounceRef.current)
   }
 
-  function addTag(item: any) {
+  function addTag(item: T) {
     const tag = renderSuggestion(item)
     if ((value ?? []).some(t => t.label === tag.label)) { closeDropdown(); return }
     onChange([...(value ?? []), tag])
@@ -109,12 +113,12 @@ export function TagInput({
     if (e.key === "Enter") {
       e.preventDefault()
       if (open && suggestions[highlighted]) addTag(suggestions[highlighted])
-      else if (query.trim()) addFreeText(query)
+      else if (allowFreeText && query.trim()) addFreeText(query)
       return
     }
     if (e.key === ",") {
       e.preventDefault()
-      if (query.trim()) addFreeText(query)
+      if (allowFreeText && query.trim()) addFreeText(query)
       return
     }
     if (e.key === "Backspace" && query === "" && (value ?? []).length > 0) {
@@ -125,7 +129,7 @@ export function TagInput({
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value
     setQuery(q)
-    if (q.trim().length >= 3) {
+    if (q.trim().length >= minSearchLength) {
       openDropdown()
       search(q)
     } else {
@@ -225,7 +229,7 @@ export function TagInput({
             value={query}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => { if (query.trim().length >= 3) { openDropdown(); search(query) } }}
+            onFocus={() => { if (query.trim().length >= minSearchLength) { openDropdown(); search(query) } }}
             placeholder={(value ?? []).length === 0 ? placeholder : ""}
             disabled={disabled}
             className="flex-1 min-w-[140px] bg-transparent outline-none placeholder:text-muted-foreground text-sm"

@@ -27,10 +27,12 @@ export type AggregatePreopProcedure = {
 }
 
 export type PreopProcedureAvgAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
 export type PreopProcedureSumAggregateOutputType = {
+  standardConceptId: number | null
   ordinal: number | null
 }
 
@@ -42,6 +44,12 @@ export type PreopProcedureMinAggregateOutputType = {
   group: string | null
   domain: string | null
   description: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -54,6 +62,12 @@ export type PreopProcedureMaxAggregateOutputType = {
   group: string | null
   domain: string | null
   description: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus | null
+  source: string | null
+  sourceVersion: string | null
   ordinal: number | null
   createdAt: Date | null
 }
@@ -66,6 +80,12 @@ export type PreopProcedureCountAggregateOutputType = {
   group: number
   domain: number
   description: number
+  sourceVocabulary: number
+  sourceCode: number
+  standardConceptId: number
+  mappingStatus: number
+  source: number
+  sourceVersion: number
   ordinal: number
   createdAt: number
   _all: number
@@ -73,10 +93,12 @@ export type PreopProcedureCountAggregateOutputType = {
 
 
 export type PreopProcedureAvgAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
 export type PreopProcedureSumAggregateInputType = {
+  standardConceptId?: true
   ordinal?: true
 }
 
@@ -88,6 +110,12 @@ export type PreopProcedureMinAggregateInputType = {
   group?: true
   domain?: true
   description?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -100,6 +128,12 @@ export type PreopProcedureMaxAggregateInputType = {
   group?: true
   domain?: true
   description?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
 }
@@ -112,6 +146,12 @@ export type PreopProcedureCountAggregateInputType = {
   group?: true
   domain?: true
   description?: true
+  sourceVocabulary?: true
+  sourceCode?: true
+  standardConceptId?: true
+  mappingStatus?: true
+  source?: true
+  sourceVersion?: true
   ordinal?: true
   createdAt?: true
   _all?: true
@@ -211,6 +251,12 @@ export type PreopProcedureGroupByOutputType = {
   group: string | null
   domain: string | null
   description: string | null
+  sourceVocabulary: string | null
+  sourceCode: string | null
+  standardConceptId: number | null
+  mappingStatus: $Enums.ConceptMappingStatus
+  source: string
+  sourceVersion: string | null
   ordinal: number
   createdAt: Date
   _count: PreopProcedureCountAggregateOutputType | null
@@ -246,6 +292,12 @@ export type PreopProcedureWhereInput = {
   group?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   domain?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   description?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"PreopProcedure"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"PreopProcedure"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"PreopProcedure"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   ordinal?: Prisma.IntFilter<"PreopProcedure"> | number
   createdAt?: Prisma.DateTimeFilter<"PreopProcedure"> | Date | string
   preop?: Prisma.XOR<Prisma.PreoperativeAssessmentScalarRelationFilter, Prisma.PreoperativeAssessmentWhereInput>
@@ -259,6 +311,12 @@ export type PreopProcedureOrderByWithRelationInput = {
   group?: Prisma.SortOrderInput | Prisma.SortOrder
   domain?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   preop?: Prisma.PreoperativeAssessmentOrderByWithRelationInput
@@ -275,6 +333,12 @@ export type PreopProcedureWhereUniqueInput = Prisma.AtLeast<{
   group?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   domain?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   description?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"PreopProcedure"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"PreopProcedure"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"PreopProcedure"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   ordinal?: Prisma.IntFilter<"PreopProcedure"> | number
   createdAt?: Prisma.DateTimeFilter<"PreopProcedure"> | Date | string
   preop?: Prisma.XOR<Prisma.PreoperativeAssessmentScalarRelationFilter, Prisma.PreoperativeAssessmentWhereInput>
@@ -288,6 +352,12 @@ export type PreopProcedureOrderByWithAggregationInput = {
   group?: Prisma.SortOrderInput | Prisma.SortOrder
   domain?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.PreopProcedureCountOrderByAggregateInput
@@ -308,6 +378,12 @@ export type PreopProcedureScalarWhereWithAggregatesInput = {
   group?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
   domain?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
+  sourceVocabulary?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
+  sourceCode?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
+  standardConceptId?: Prisma.IntNullableWithAggregatesFilter<"PreopProcedure"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusWithAggregatesFilter<"PreopProcedure"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringWithAggregatesFilter<"PreopProcedure"> | string
+  sourceVersion?: Prisma.StringNullableWithAggregatesFilter<"PreopProcedure"> | string | null
   ordinal?: Prisma.IntWithAggregatesFilter<"PreopProcedure"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PreopProcedure"> | Date | string
 }
@@ -319,6 +395,12 @@ export type PreopProcedureCreateInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
   preop: Prisma.PreoperativeAssessmentCreateNestedOneWithoutProcedureRowsInput
@@ -332,6 +414,12 @@ export type PreopProcedureUncheckedCreateInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -343,6 +431,12 @@ export type PreopProcedureUpdateInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preop?: Prisma.PreoperativeAssessmentUpdateOneRequiredWithoutProcedureRowsNestedInput
@@ -356,6 +450,12 @@ export type PreopProcedureUncheckedUpdateInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -368,6 +468,12 @@ export type PreopProcedureCreateManyInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -379,6 +485,12 @@ export type PreopProcedureUpdateManyMutationInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -391,6 +503,12 @@ export type PreopProcedureUncheckedUpdateManyInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -413,11 +531,18 @@ export type PreopProcedureCountOrderByAggregateInput = {
   group?: Prisma.SortOrder
   domain?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type PreopProcedureAvgOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -429,6 +554,12 @@ export type PreopProcedureMaxOrderByAggregateInput = {
   group?: Prisma.SortOrder
   domain?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -441,11 +572,18 @@ export type PreopProcedureMinOrderByAggregateInput = {
   group?: Prisma.SortOrder
   domain?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  sourceVocabulary?: Prisma.SortOrder
+  sourceCode?: Prisma.SortOrder
+  standardConceptId?: Prisma.SortOrder
+  mappingStatus?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  sourceVersion?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type PreopProcedureSumOrderByAggregateInput = {
+  standardConceptId?: Prisma.SortOrder
   ordinal?: Prisma.SortOrder
 }
 
@@ -498,6 +636,12 @@ export type PreopProcedureCreateWithoutPreopInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -509,6 +653,12 @@ export type PreopProcedureUncheckedCreateWithoutPreopInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -550,6 +700,12 @@ export type PreopProcedureScalarWhereInput = {
   group?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   domain?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   description?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceVocabulary?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  sourceCode?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
+  standardConceptId?: Prisma.IntNullableFilter<"PreopProcedure"> | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFilter<"PreopProcedure"> | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFilter<"PreopProcedure"> | string
+  sourceVersion?: Prisma.StringNullableFilter<"PreopProcedure"> | string | null
   ordinal?: Prisma.IntFilter<"PreopProcedure"> | number
   createdAt?: Prisma.DateTimeFilter<"PreopProcedure"> | Date | string
 }
@@ -561,6 +717,12 @@ export type PreopProcedureCreateManyPreopInput = {
   group?: string | null
   domain?: string | null
   description?: string | null
+  sourceVocabulary?: string | null
+  sourceCode?: string | null
+  standardConceptId?: number | null
+  mappingStatus?: $Enums.ConceptMappingStatus
+  source?: string
+  sourceVersion?: string | null
   ordinal?: number
   createdAt?: Date | string
 }
@@ -572,6 +734,12 @@ export type PreopProcedureUpdateWithoutPreopInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -583,6 +751,12 @@ export type PreopProcedureUncheckedUpdateWithoutPreopInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -594,6 +768,12 @@ export type PreopProcedureUncheckedUpdateManyWithoutPreopInput = {
   group?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceVocabulary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  standardConceptId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  mappingStatus?: Prisma.EnumConceptMappingStatusFieldUpdateOperationsInput | $Enums.ConceptMappingStatus
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ordinal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -608,6 +788,12 @@ export type PreopProcedureSelect<ExtArgs extends runtime.Types.Extensions.Intern
   group?: boolean
   domain?: boolean
   description?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -621,6 +807,12 @@ export type PreopProcedureSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   group?: boolean
   domain?: boolean
   description?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -634,6 +826,12 @@ export type PreopProcedureSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   group?: boolean
   domain?: boolean
   description?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
@@ -647,11 +845,17 @@ export type PreopProcedureSelectScalar = {
   group?: boolean
   domain?: boolean
   description?: boolean
+  sourceVocabulary?: boolean
+  sourceCode?: boolean
+  standardConceptId?: boolean
+  mappingStatus?: boolean
+  source?: boolean
+  sourceVersion?: boolean
   ordinal?: boolean
   createdAt?: boolean
 }
 
-export type PreopProcedureOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "code" | "group" | "domain" | "description" | "ordinal" | "createdAt", ExtArgs["result"]["preopProcedure"]>
+export type PreopProcedureOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "preopId" | "caseId" | "code" | "group" | "domain" | "description" | "sourceVocabulary" | "sourceCode" | "standardConceptId" | "mappingStatus" | "source" | "sourceVersion" | "ordinal" | "createdAt", ExtArgs["result"]["preopProcedure"]>
 export type PreopProcedureInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   preop?: boolean | Prisma.PreoperativeAssessmentDefaultArgs<ExtArgs>
 }
@@ -675,6 +879,12 @@ export type $PreopProcedurePayload<ExtArgs extends runtime.Types.Extensions.Inte
     group: string | null
     domain: string | null
     description: string | null
+    sourceVocabulary: string | null
+    sourceCode: string | null
+    standardConceptId: number | null
+    mappingStatus: $Enums.ConceptMappingStatus
+    source: string
+    sourceVersion: string | null
     ordinal: number
     createdAt: Date
   }, ExtArgs["result"]["preopProcedure"]>
@@ -1108,6 +1318,12 @@ export interface PreopProcedureFieldRefs {
   readonly group: Prisma.FieldRef<"PreopProcedure", 'String'>
   readonly domain: Prisma.FieldRef<"PreopProcedure", 'String'>
   readonly description: Prisma.FieldRef<"PreopProcedure", 'String'>
+  readonly sourceVocabulary: Prisma.FieldRef<"PreopProcedure", 'String'>
+  readonly sourceCode: Prisma.FieldRef<"PreopProcedure", 'String'>
+  readonly standardConceptId: Prisma.FieldRef<"PreopProcedure", 'Int'>
+  readonly mappingStatus: Prisma.FieldRef<"PreopProcedure", 'ConceptMappingStatus'>
+  readonly source: Prisma.FieldRef<"PreopProcedure", 'String'>
+  readonly sourceVersion: Prisma.FieldRef<"PreopProcedure", 'String'>
   readonly ordinal: Prisma.FieldRef<"PreopProcedure", 'Int'>
   readonly createdAt: Prisma.FieldRef<"PreopProcedure", 'DateTime'>
 }

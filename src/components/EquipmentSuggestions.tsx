@@ -1,11 +1,17 @@
 "use client"
 
+import { suggestsDifficultAirwayEquipment } from "@/lib/risk-derivation"
+
 interface Props {
   ageYears?: number | null
   weightKg?: number | null
   heightCm?: number | null
   sex?: string | null
   bmi?: number | null
+  mallampati?: string | null
+  neckMobility?: string | null
+  mouthOpeningCm?: number | null
+  cormackLehane?: string | null
 }
 
 interface Item { label: string; value: string; note?: string }
@@ -32,7 +38,6 @@ function calculate(p: Props): Category[] {
     return Math.round(Math.max(base + 0.906 * (ht - 152.4), 0) * 10) / 10
   }
   const ibwKg = isPed ? null : ibw()
-  const dosingWt = ibwKg ?? w   // IBW for adults if available, actual otherwise
 
   // ── Airway ────────────────────────────────────────────────────────────────
   function ettSize(): { size: string; cuffed: boolean; depth: string } {
@@ -172,6 +177,16 @@ function calculate(p: Props): Category[] {
     return "Adult pads"
   }
 
+  // ── Difficult airway (from today's exam findings, not history) ─────────────
+  const difficultAirway = suggestsDifficultAirwayEquipment({
+    mallampati: p.mallampati, neckMobility: p.neckMobility,
+    mouthOpeningCm: p.mouthOpeningCm, cormackLehane: p.cormackLehane,
+  })
+  function backupEttSize(): string {
+    const primary = parseFloat(ett.size.split("/")[0].trim())
+    return Number.isFinite(primary) ? `${primary - 0.5}` : ett.size
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   return [
     {
@@ -219,6 +234,16 @@ function calculate(p: Props): Category[] {
         { label: "Defibrillator",   value: defibPads() },
       ],
     },
+    ...(difficultAirway ? [{
+      cat: "Difficult Airway",
+      color: "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40",
+      items: [
+        { label: "Video laryngoscope", value: "Have available", note: "from today's airway exam" },
+        { label: "Bougie / stylet",    value: "Have available" },
+        { label: "Backup ETT",         value: `${backupEttSize()} (0.5 smaller)` },
+        { label: "Difficult airway trolley", value: "Confirm location" },
+      ],
+    }] : []),
   ]
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import type { Prisma } from "@/generated/prisma/client"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { checkPII } from "@/lib/pii-check"
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const institutionId = user.institutionId
 
-  const where: any = {
+  const where: Prisma.CustomTermWhereInput = {
     term: { contains: q, mode: "insensitive" },
     OR: [{ institutionId }, { institutionId: null }],
   }
@@ -89,8 +90,8 @@ export async function POST(req: NextRequest) {
         })
       })
       return NextResponse.json({ code: created.code, term: created.term }, { status: 201 })
-    } catch (e: any) {
-      if (e?.code === "P2002") {
+    } catch (e: unknown) {
+      if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
         // Unique constraint on code — another concurrent request got here first.
         attempts++
         continue

@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress"
 import { PreopForm, type PreopData } from "@/components/forms/PreopForm"
 import { IntraopForm, type IntraopData } from "@/components/forms/IntraopForm"
 import { type TimetableData } from "@/components/IntraopTimetable"
+import type { LogEvent } from "@/types/timetable"
+import type { CaseDetail, CaseDetailPreop, CaseDetailIntraop, CaseDetailPostop } from "@/types/case-detail"
 import { PostopForm, type PostopData } from "@/components/forms/PostopForm"
 import { UserRound, CheckCircle2 } from "lucide-react"
 import { CaseMeta } from "@/components/CaseMeta"
@@ -26,7 +28,7 @@ interface ConflictState {
   localValues: Record<string, unknown>
   serverValues: Record<string, unknown>
   section: "preop" | "intraop" | "postop"
-  pendingData: any
+  pendingData: PreopData | IntraopData | PostopData
   nextStep?: number
   showToast?: boolean
 }
@@ -44,17 +46,89 @@ export default function NewCasePage() {
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
-  const [eventLog, setEventLog] = useState<any[]>([])
+  const [eventLog, setEventLog] = useState<LogEvent[]>([])
 
   async function handleDeleteEvent(evId: string) {
     if (!caseId) return
     const newLog = eventLog.filter(e => e.id !== evId)
+    const previousLog = eventLog
     setEventLog(newLog)
-    await fetch(`/api/cases/${caseId}/events`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ log: newLog }),
-    })
+    try {
+      const res = await fetch(`/api/cases/${caseId}/events`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(intraopUpdatedAtRef.current ? { "x-lospor-intraop-updated-at": intraopUpdatedAtRef.current } : {}),
+        },
+        body: JSON.stringify({ log: newLog }),
+      })
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}))
+        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
+      } else {
+        setEventLog(previousLog)
+        console.error("[intraop event] delete failed", await res.text().catch(() => ""))
+      }
+    } catch (err) {
+      setEventLog(previousLog)
+      console.error("[intraop event] delete failed", err)
+    }
+  }
+  // Per-action event from the intraop timetable (bolus/infusion/agent/fluid/
+  // clinical event) - posts one CaseEvent row, mirroring how mobile already
+  // persists these, instead of only the legacy keyEvents JSON blob.
+  async function handleLogEvent(event: LogEvent) {
+    if (!caseIdRef.current) return
+    setEventLog(prev => [event, ...prev])
+    try {
+      const res = await fetch(`/api/cases/${caseIdRef.current}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      })
+      if (!res.ok) console.error("[intraop event] save failed", await res.text().catch(() => ""))
+      else {
+        const body = await res.json().catch(() => ({}))
+        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
+      }
+    } catch (err) {
+      console.error("[intraop event] save failed", err)
+    }
+  }
+  // Deleting an infusion/fluid bar removes ALL events that share its
+  // infId/fluidId (start + any rate changes/stop), via the full-log PUT
+  // reconcile - same mechanism handleDeleteEvent already uses, generalized
+  // to a correlation-id match instead of a single event id.
+  async function handleLogEventDelete(match: { infId?: string; fluidId?: string }) {
+    if (!caseIdRef.current) return
+    const key = match.infId ? "infId" : "fluidId"
+    const value = match.infId ?? match.fluidId
+    if (!value) return
+    const newLog = eventLog.filter(e => e[key] !== value)
+    if (newLog.length === eventLog.length) return
+    const previousLog = eventLog
+    setEventLog(newLog)
+    try {
+      const res = await fetch(`/api/cases/${caseIdRef.current}/events`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(intraopUpdatedAtRef.current ? { "x-lospor-intraop-updated-at": intraopUpdatedAtRef.current } : {}),
+        },
+        body: JSON.stringify({ log: newLog }),
+      })
+      if (!res.ok) {
+        setEventLog(previousLog)
+        console.error("[intraop event] delete failed", await res.text().catch(() => ""))
+      }
+      else {
+        const body = await res.json().catch(() => ({}))
+        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
+      }
+    } catch (err) {
+      setEventLog(previousLog)
+      console.error("[intraop event] delete failed", err)
+    }
   }
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
@@ -65,6 +139,10 @@ export default function NewCasePage() {
   const closeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
+    // One-time mount sync from localStorage (can't read it during SSR), plus
+    // a storage-event listener for cross-tab updates - same pattern as
+    // SettingsMenu.tsx/ThemeToggle.tsx.
+    /* eslint-disable react-hooks/set-state-in-effect */
     const stored = localStorage.getItem("layoutMode")
     if (stored === "tabs" || stored === "scroll") setLayoutMode(stored)
     const storedPreop = localStorage.getItem("preopLayout")
@@ -76,6 +154,7 @@ export default function NewCasePage() {
         setPreopLayout(e.newValue)
     }
     window.addEventListener("storage", handler)
+    /* eslint-enable react-hooks/set-state-in-effect */
     return () => window.removeEventListener("storage", handler)
   }, [])
   const [submitting, setSubmitting]   = useState(false)
@@ -88,6 +167,7 @@ export default function NewCasePage() {
   // Tracks the last known server updatedAt timestamps so conflict headers are sent correctly
   const preopUpdatedAtRef  = useRef<string | null>(null)
   const postopUpdatedAtRef = useRef<string | null>(null)
+  const intraopUpdatedAtRef = useRef<string | null>(null)
   // Undo finalization state
   const [finalizedCaseId,   setFinalizedCaseId]   = useState<string | null>(null)
   const [undoSecsLeft,      setUndoSecsLeft]       = useState<number | null>(null)
@@ -109,12 +189,16 @@ export default function NewCasePage() {
   // Refs for synchronous access inside async callbacks
   const caseIdRef  = useRef<string | null>(null)
   const savingRef  = useRef(false)
+  const startCloseCountdownRef = useRef<() => void>(() => {})
+  const dbIntraopToFormRef = useRef<(intraop: CaseDetailIntraop) => Partial<IntraopData>>(() => ({}))
 
-  // Load existing draft when ?continue=<id> is in the URL
+  // Load existing draft when -continue=<id> is in the URL
   useEffect(() => {
     const continueId = searchParams.get("continue")
     const stepParam  = searchParams.get("step")
     if (!continueId) return
+    // Async fetch-on-mount with a loading flag - standard data-fetching effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch(`/api/cases/${continueId}`)
       .then(async r => {
@@ -124,7 +208,7 @@ export default function NewCasePage() {
         }
         return r.json()
       })
-      .then(record => {
+      .then((record: CaseDetail) => {
         if (record.status === "COMPLETE") {
           toast(t("case.caseFinalisedRedirect"))
           router.replace(`/cases/${continueId}`)
@@ -135,9 +219,12 @@ export default function NewCasePage() {
         if (record.caseCode) setCaseCode(record.caseCode)
         if (record.preop)   setPreopData(dbPreopToForm(record.preop) as PreopData)
         if (record.postop)  setPostopData(dbPostopToForm(record.postop))
+        preopUpdatedAtRef.current = record.preop?.updatedAt ? new Date(record.preop.updatedAt).toISOString() : null
+        postopUpdatedAtRef.current = record.postop?.updatedAt ? new Date(record.postop.updatedAt).toISOString() : null
+        intraopUpdatedAtRef.current = record.intraop?.updatedAt ? new Date(record.intraop.updatedAt).toISOString() : null
         if (record.intraop) {
-          setIntraopData(dbIntraopToForm(record.intraop) as IntraopData)
-          // keyEvents must be a non-array object with a "vitals" key — the old
+          setIntraopData(dbIntraopToFormRef.current(record.intraop) as IntraopData)
+          // keyEvents must be a non-array object with a "vitals" key - the old
           // Prisma default was "[]" which is an array; skip that gracefully.
           const ke = record.intraop.keyEvents
           if (ke && typeof ke === "object" && !Array.isArray(ke) && "vitals" in (ke as object)) {
@@ -145,7 +232,7 @@ export default function NewCasePage() {
           }
           // Extract mobile event log if present
           if (ke && typeof ke === "object" && !Array.isArray(ke) && "log" in (ke as object)) {
-            const mobileLog = (ke as any).log
+            const mobileLog = (ke as { log?: unknown }).log
             if (Array.isArray(mobileLog) && mobileLog.length > 0) {
               setEventLog(mobileLog)
             }
@@ -157,8 +244,8 @@ export default function NewCasePage() {
           : record.postop ? 3 : record.intraop ? 1 : 0
         setStep(target)
         // Re-enter the 30-min window when reopening a case that had postop but isn't finalised
-        if (target === 3 && record.status !== "COMPLETE") {
-          startCloseCountdown()
+        if (target === 3) {
+          startCloseCountdownRef.current()
         }
       })
       .catch((error: Error & { status?: number }) => {
@@ -172,24 +259,24 @@ export default function NewCasePage() {
         toast.error(error.message || t("case.saveFailed"))
       })
       .finally(() => setLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [router, searchParams, t])
 
-  // Keep ?step= in sync so refresh lands on the right step
+  // Keep -step= in sync so refresh lands on the right step
   useEffect(() => {
     if (!caseId) return
-    router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
-  }, [step, caseId])
+    router.replace(`/cases/new-continue=${caseId}&step=${step}`, { scroll: false })
+  }, [step, caseId, router])
 
   // Cleanup countdowns on unmount
   useEffect(() => () => { if (closeTimerRef.current) clearInterval(closeTimerRef.current) }, [])
   useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
 
-  // Convert Prisma DateTime → HH:MM. DB values are stored in UTC (ref date 2000-01-01),
+  // Convert Prisma DateTime -> HH:MM. DB values are stored in UTC (ref date 2000-01-01),
   // so read UTC hours/minutes to recover the original local time the user entered.
-  function isoToHHMM(iso: any): string | undefined {
+  function isoToHHMM(iso: unknown): string | undefined {
     if (!iso) return undefined
     if (typeof iso === "string" && /^\d{2}:\d{2}$/.test(iso)) return iso
+    if (typeof iso !== "string" && typeof iso !== "number" && !(iso instanceof Date)) return undefined
     try {
       const d = new Date(iso)
       if (!isNaN(d.getTime())) return `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`
@@ -198,15 +285,24 @@ export default function NewCasePage() {
   }
 
 
-  // Convert flat DB preop record → PreopForm defaultValues shape
-  // Only map fields that exist in the PreopForm schema — strip all DB-only fields
+  // Convert flat DB preop record -> PreopForm defaultValues shape
+  // Only map fields that exist in the PreopForm schema - strip all DB-only fields
   // (id, caseId, bmi, rcriScore, gutaScore, apfelScore, stopBangScore, createdAt, etc.)
-  function dbPreopToForm(p: any): Partial<PreopData> {
+  function dbPreopToForm(p: CaseDetailPreop): Partial<PreopData> {
     // Comma-joined fields (allergyDetails, currentMedications)
-    const toTags = (str: string | null | undefined) =>
-      str ? str.split(",").map(s => s.trim()).filter(Boolean).map(label => ({ label })) : []
-    // Semicolon-joined fields — diagnoses/procedure names can contain commas
-    const toTagsSemi = (json: any, str: string | null | undefined) => {
+    const toTags = (str: string | null | undefined) => {
+      if (!str) return []
+      const trimmed = str.trim()
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed)
+          if (Array.isArray(parsed)) return parsed
+        } catch {}
+      }
+      return str.split(",").map(s => s.trim()).filter(Boolean).map(label => ({ label }))
+    }
+    // Semicolon-joined fields - diagnoses/procedure names can contain commas
+    const toTagsSemi = (json: unknown, str: string | null | undefined) => {
       if (Array.isArray(json) && json.length > 0) return json as { label: string; sub?: string }[]
       return str ? str.split(";").map(s => s.trim()).filter(Boolean).map(label => ({ label })) : []
     }
@@ -220,7 +316,7 @@ export default function NewCasePage() {
       bloodType: p.bloodType ?? undefined,
       rhFactor:  p.rhFactor  ?? undefined,
 
-      // Case — prefer JSON arrays; fall back to semicolon-split string (never comma-split)
+      // Case - prefer JSON arrays; fall back to semicolon-split string (never comma-split)
       diagnoses:          toTagsSemi(p.diagnosesJson, p.diagnosis),
       procedures:         toTagsSemi(p.proceduresJson, p.plannedProcedure),
       teamNotes:            p.teamNotes            ?? undefined,
@@ -229,7 +325,7 @@ export default function NewCasePage() {
 
       // Medical history
       comorbidities: Array.isArray(p.comorbidities)
-        ? p.comorbidities.map((c: any) => typeof c === "string" ? { label: c } : c)
+        ? p.comorbidities.map(c => typeof c === "string" ? { label: c } : c)
         : [],
 
       // Safety
@@ -269,20 +365,16 @@ export default function NewCasePage() {
       // Scores
       asaScore: p.asaScore ?? undefined,
 
-      // Free text
-      physicalExamReport: p.physicalExamReport ?? undefined,
-      notes:              p.notes              ?? undefined,
-
       labResults: Array.isArray(p.labResults) ? p.labResults : [],
 
-      // Patient fields (never saved to DB — intentionally left empty for GDPR)
+      // Patient fields (never saved to DB - intentionally left empty for GDPR)
       patientFirstName: undefined,
       patientLastName:  undefined,
       patientId:        undefined,
     }
   }
 
-  function dbPostopToForm(o: any): PostopData {
+  function dbPostopToForm(o: CaseDetailPostop): PostopData {
     return {
       aldreteActivity:      o.aldreteActivity      ?? undefined,
       aldreteRespiration:   o.aldreteRespiration   ?? undefined,
@@ -296,13 +388,17 @@ export default function NewCasePage() {
       recoveryBpDiastolic:  o.recoveryBpDiastolic  ?? undefined,
       recoveryHeartRate:    o.recoveryHeartRate    ?? undefined,
       recoverySpO2:         o.recoverySpO2         ?? undefined,
+      recoveryBpUnobtainable:          o.recoveryBpUnobtainable          ?? false,
+      recoveryHeartRateUnobtainable:   o.recoveryHeartRateUnobtainable   ?? false,
+      recoverySpO2Unobtainable:        o.recoverySpO2Unobtainable        ?? false,
+      recoveryTemperatureUnobtainable: o.recoveryTemperatureUnobtainable ?? false,
       disposition:          o.disposition          ?? undefined,
       dispositionNotes:     o.dispositionNotes     ?? undefined,
       handoverItems:        Array.isArray(o.handoverItems) ? o.handoverItems : [],
     }
   }
 
-  function dbIntraopToForm(intraop: any): Partial<IntraopData> {
+  function dbIntraopToForm(intraop: CaseDetailIntraop): Partial<IntraopData> {
     // Strip DB-only fields that don't belong in the form and would cause autosave
     // ZodErrors: keyEvents is a TimetableData object but intraopSchema expects an array;
     // id/caseId/createdAt/updatedAt are DB metadata; timeSeriesData/durationMinutes are computed.
@@ -311,24 +407,30 @@ export default function NewCasePage() {
     const endTimeNextDay = !!(intraop.endTime &&
       new Date(intraop.endTime).getTime() - new Date(intraop.startTime).getTime() > 12 * 60 * 60 * 1000)
     return {
-      ...formFields,
+      // JSON-blob fields (positions, techniques, airwayDevices, etc.) are
+      // unknown on CaseDetailIntraop - genuinely loosely shaped at the DB
+      // level - but always arrays/scalars matching IntraopData's shape in
+      // practice, same boundary as the rest of this file's DB?>form mapping.
+      ...(formFields as Partial<IntraopData>),
       monthYear:      intraop.monthYear ?? undefined,
       startTime:      isoToHHMM(intraop.startTime),
       endTime:        intraop.endTime ? isoToHHMM(intraop.endTime) : undefined,
       endTimeNextDay,
     }
   }
+  dbIntraopToFormRef.current = dbIntraopToForm
 
   // ── Core save / patch function ──────────────────────────────────────────────
   const saveSection = useCallback(async (
     section: "preop" | "intraop" | "postop",
-    data: any,
+    data: PreopData | IntraopData | PostopData,
     { showToast = false, nextStep, forceUpdate = false }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean } = {}
   ) => {
     try {
       if (!caseIdRef.current) {
         // First save: create the case
-        const bmi = data.heightCm && data.weightKg ? calcBMI(data.heightCm, data.weightKg) : 0
+        const preopData = data as PreopData
+        const bmi = preopData.heightCm && preopData.weightKg ? calcBMI(preopData.heightCm, preopData.weightKg) : 0
         const res = await fetch("/api/cases", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -341,17 +443,19 @@ export default function NewCasePage() {
         if (code) setCaseCode(code)
         if (preopUpdatedAt) preopUpdatedAtRef.current = new Date(preopUpdatedAt).toISOString()
         // Update URL so page refresh restores the correct step
-        router.replace(`/cases/new?continue=${id}`, { scroll: false })
+        router.replace(`/cases/new-continue=${id}`, { scroll: false })
       } else {
         // Update existing case
-        const bmi = section === "preop" && data.heightCm && data.weightKg
-          ? calcBMI(data.heightCm, data.weightKg) : undefined
+        const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
+          ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
         const payload = section === "preop" ? { ...data, bmi } : data
         const headers: Record<string, string> = { "Content-Type": "application/json" }
         if (preopUpdatedAtRef.current && section === "preop")
           headers["x-lospor-preop-updated-at"] = preopUpdatedAtRef.current
         if (postopUpdatedAtRef.current && section === "postop")
           headers["x-lospor-postop-updated-at"] = postopUpdatedAtRef.current
+        if (intraopUpdatedAtRef.current && section === "intraop")
+          headers["x-lospor-intraop-updated-at"] = intraopUpdatedAtRef.current
         if (forceUpdate) headers["x-lospor-force-update"] = "true"
         const res = await fetch(`/api/cases/${caseIdRef.current}`, {
           method: "PATCH",
@@ -373,14 +477,15 @@ export default function NewCasePage() {
             })
             return false
           }
-          // Unknown 409 — treat as error
-          throw new Error("Save conflict — please reload and try again.")
+          // Unknown 409 - treat as error
+          throw new Error("Save conflict - please reload and try again.")
         }
         if (res.status === 404 && section === "preop") {
           caseIdRef.current = null
           setCaseId(null)
           preopUpdatedAtRef.current = null
           postopUpdatedAtRef.current = null
+          intraopUpdatedAtRef.current = null
           const createRes = await fetch("/api/cases", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -395,10 +500,10 @@ export default function NewCasePage() {
           setCaseId(created.id)
           if (created.caseCode) setCaseCode(created.caseCode)
           if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
-          router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
+          router.replace(`/cases/new-continue=${created.id}`, { scroll: false })
         } else if (!res.ok) {
           const text = await res.text().catch(() => "")
-          let body: any = {}
+          let body: { error?: string } = {}
           try { body = JSON.parse(text) } catch {}
           console.error(`[saveSection] ${res.status} ${res.statusText}`, text.slice(0, 500))
           throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
@@ -407,6 +512,7 @@ export default function NewCasePage() {
           const result = await res.json().catch(() => ({}))
           if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
           if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
+          if (result.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(result.intraopUpdatedAt).toISOString()
         }
       }
 
@@ -415,15 +521,15 @@ export default function NewCasePage() {
         section === "intraop" ? t("case.intraopSaved") : t("case.savedSuccess")
       )
       return true
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("saveSection error:", err)
-      if (showToast) toast.error(err?.message ?? t("case.saveFailed"))
+      if (showToast) toast.error(err instanceof Error ? err.message : t("case.saveFailed"))
       return false
     }
-  }, [t])
+  }, [t, router])
 
   // ── Auto-save (debounced, called by each form) ──────────────────────────────
-  const handleAutoSave = useCallback(async (section: "preop" | "intraop" | "postop", data: any) => {
+  const handleAutoSave = useCallback(async (section: "preop" | "intraop" | "postop", data: PreopData | IntraopData | PostopData) => {
     if (savingRef.current) return
     savingRef.current = true
     setSaveStatus("saving")
@@ -436,11 +542,11 @@ export default function NewCasePage() {
     }
   }, [saveSection])
 
-  // ── Manual submit handlers — step advances regardless of save result ─────────
+  // ── Manual submit handlers - step advances regardless of save result ─────────
   async function handlePreopSubmit(data: PreopData) {
     setPreopData(data)
     setStep(1); window.scrollTo(0, 0)
-    // Save in background — don't block navigation on success/failure
+    // Save in background - don't block navigation on success/failure
     setSubmitting(true)
     await saveSection("preop", data, { showToast: true })
     setSubmitting(false)
@@ -504,6 +610,7 @@ export default function NewCasePage() {
       })
     }, 1000)
   }
+  startCloseCountdownRef.current = startCloseCountdown
 
   async function finaliseCase() {
     const id = caseIdRef.current
@@ -567,7 +674,7 @@ export default function NewCasePage() {
         return
       }
       if (!res.ok) throw new Error()
-      // Undo succeeded — restore editing state
+      // Undo succeeded - restore editing state
       setUndoSecsLeft(null)
       setFinalizedCaseId(null)
       setUndoExpired(false)
@@ -583,7 +690,7 @@ export default function NewCasePage() {
     if (!conflict) return
     setConflict(null)
     // Retry the save with forceUpdate so the server accepts it
-    const ok = await saveSection(conflict.section, resolved, {
+    const ok = await saveSection(conflict.section, resolved as PreopData | IntraopData | PostopData, {
       showToast: conflict.showToast,
       nextStep: conflict.nextStep,
       forceUpdate: true,
@@ -605,7 +712,7 @@ export default function NewCasePage() {
           onResolve={handleConflictResolve}
         />
       )}
-      {/* Undo finalization banner — shown for 5 minutes after finalizing */}
+      {/* Undo finalization banner - shown for 5 minutes after finalizing */}
       {(undoSecsLeft !== null || undoExpired) && (
         <div className={`no-print rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${
           undoExpired
@@ -646,7 +753,7 @@ export default function NewCasePage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-800">
             {patientName
-              ? <>{patientName}{patientId && <span className="text-slate-400 font-normal text-lg"> — ID: {patientId}</span>}</>
+              ? <>{patientName}{patientId && <span className="text-slate-400 font-normal text-lg"> - ID: {patientId}</span>}</>
               : t("case.newTitle")
             }
           </h1>
@@ -686,7 +793,7 @@ export default function NewCasePage() {
         </div>
       </div>
 
-      {/* Compact pending-close banner — visible at steps 0/1/2 while countdown is running */}
+      {/* Compact pending-close banner - visible at steps 0/1/2 while countdown is running */}
       {closeSecsLeft !== null && step < 3 && (
         <div className="no-print rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -739,13 +846,17 @@ export default function NewCasePage() {
               heartRate:             preopData.heartRate,
               spO2:                  preopData.spO2,
               mallampati:            preopData.mallampati,
+              neckMobility:          preopData.neckMobility,
+              mouthOpeningCm:        preopData.mouthOpeningCm,
+              cormackLehane:         preopData.cormackLehane,
               difficultAirwayHistory: preopData.difficultAirwayHistory,
               allergies:             preopData.allergies,
-              allergyDetails:        preopData.allergyDetails as any,
-              comorbidities:         preopData.comorbidities as any,
-              labResults:            (preopData as any).labResults,
-              diagnosis:             (preopData.diagnoses as any[])?.map((t: any) => t.label).join("; ") || null,
-              plannedProcedure:      (preopData.procedures as any[])?.map((t: any) => t.label).join("; ") || null,
+              allergyDetails:        preopData.allergyDetails,
+              comorbidities:         preopData.comorbidities,
+              currentMedications:    preopData.currentMedications,
+              labResults:            preopData.labResults,
+              diagnosis:             preopData.diagnoses?.map(t => t.label).join("; ") || null,
+              plannedProcedure:      preopData.procedures?.map(t => t.label).join("; ") || null,
               emergencySurgery:      preopData.emergencySurgery ?? null,
             } : null}
             caseStarted={!!(intraopData?.startTime)}
@@ -756,6 +867,8 @@ export default function NewCasePage() {
             layoutMode={layoutMode}
             eventLog={eventLog}
             onDeleteEvent={handleDeleteEvent}
+            onLogEvent={handleLogEvent}
+            onLogEventDelete={handleLogEventDelete}
           />
         )}
         {!loading && step === 2 && (
@@ -773,7 +886,7 @@ export default function NewCasePage() {
       {/* Step 3: Case summary / protocol preview */}
       {step === 3 && caseId && (
         <div className="space-y-4">
-          {/* Graceful close countdown banner — hidden once finalized */}
+          {/* Graceful close countdown banner - hidden once finalized */}
           {closeSecsLeft !== null && (
           <div className="no-print rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
@@ -802,11 +915,11 @@ export default function NewCasePage() {
           </div>
           )}
 
-          {/* Case summary — patient name dialog is inside CaseSummary */}
+          {/* Case summary - patient name dialog is inside CaseSummary */}
           <div data-tour="summary-print" className="no-print absolute opacity-0 pointer-events-none" aria-hidden />
           <CaseSummary caseId={caseId} />
 
-          {/* Navigation — hidden on print */}
+          {/* Navigation - hidden on print */}
           <div className="no-print flex justify-between items-center pt-2">
             <Button variant="outline" onClick={() => setStep(2)}>{t("case.editPostop")}</Button>
             <div className="flex gap-3">

@@ -1,6 +1,7 @@
 "use client"
 
-import { useRef } from "react"
+/* eslint-disable react-hooks/refs */
+import { useEffect, useRef } from "react"
 import { Minus, Plus } from "lucide-react"
 
 interface Props {
@@ -18,8 +19,8 @@ interface Props {
 export function NumberStepper({ value, onChange, min, max, step = 1, stepFn, unit, placeholder = "—", showSlider = false }: Props) {
   const valueRef    = useRef(value)
   const onChangeRef = useRef(onChange)
-  valueRef.current    = value
-  onChangeRef.current = onChange
+  useEffect(() => { valueRef.current = value }, [value])
+  useEffect(() => { onChangeRef.current = onChange }, [onChange])
 
   const timerRef = useRef<{
     initial: ReturnType<typeof setTimeout> | null

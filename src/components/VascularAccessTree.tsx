@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
 
 export type VascularAccess = {
   site:        string
@@ -16,56 +17,24 @@ export type VascularAccess = {
 
 interface Node { v: string; label: string; children?: Node[] }
 
-const TREE: Node[] = [
-  {
-    v: "ARTERIAL", label: "Arterial",
-    children: [
-      { v: "ART_RADIAL",   label: "Radial"    },
-      { v: "ART_ULNAR",    label: "Ulnar"     },
-      { v: "ART_BRACHIAL", label: "Brachial"  },
-      { v: "ART_AXILLARY", label: "Axillary"  },
-      { v: "ART_CAROTID",  label: "Carotid"   },
-      { v: "ART_FEMORAL",  label: "Femoral"   },
-    ],
-  },
-  {
-    v: "VENOUS", label: "Venous",
-    children: [
-      { v: "VEN_PERIPHERAL", label: "Peripheral IV" },
-      {
-        v: "VEN_CENTRAL", label: "Central",
-        children: [
-          {
-            v: "PICC", label: "PICC",
-            children: [
-              { v: "PICC_BRACHIAL", label: "Brachial" },
-              { v: "PICC_BASILIC",  label: "Basilic"  },
-              { v: "PICC_CEPHALIC", label: "Cephalic" },
-            ],
-          },
-          {
-            v: "CVK", label: "Central line",
-            children: [
-              { v: "CVK_AXILLARY",   label: "Axillary"         },
-              { v: "CVK_IJV",        label: "Internal jugular"  },
-              { v: "CVK_EJV",        label: "External jugular"  },
-              { v: "CVK_SUBCLAVIAN", label: "Subclavian"        },
-              { v: "CVK_FEMORAL",    label: "Femoral"           },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]
-
-function findPath(nodes: Node[], target: string, path: Node[] = []): Node[] | null {
-  for (const n of nodes) {
-    const curr = [...path, n]
-    if (n.v === target) return curr
-    if (n.children) { const f = findPath(n.children, target, curr); if (f) return f }
+// Populated in place from the OptionLibrary VASCULAR_ACCESS category (see
+// buildTree below, called from VascularAccessTree) instead of a hardcoded
+// literal — same pattern as TechniqueTree.tsx.
+function buildTree(rows: LibraryOption[]): Node[] {
+  const byParent = new Map<string | null, LibraryOption[]>()
+  for (const r of rows) {
+    const key = r.parentId
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(r)
   }
-  return null
+  function build(parentId: string | null): Node[] {
+    return (byParent.get(parentId) ?? []).map(r => ({
+      v: r.value,
+      label: r.label,
+      children: byParent.has(r.id) ? build(r.id) : undefined,
+    }))
+  }
+  return build(null)
 }
 
 function defaultUnit(site: string) {
@@ -86,9 +55,9 @@ function breadcrumb(path: Node[]): string {
 }
 
 // ── Tree picker ───────────────────────────────────────────────────────────────
-function TreePicker({ onLeaf }: { onLeaf: (v: string, label: string, crumb: string) => void }) {
+function TreePicker({ onLeaf, tree }: { onLeaf: (v: string, label: string, crumb: string) => void; tree: Node[] }) {
   const [path, setPath] = useState<Node[]>([])
-  const nodes = path.length === 0 ? TREE : path[path.length - 1].children ?? []
+  const nodes = path.length === 0 ? tree : path[path.length - 1].children ?? []
 
   function pick(node: Node) {
     if (node.children?.length) { setPath(p => [...p, node]); return }
@@ -243,6 +212,9 @@ export function VascularAccessTree({
   value?: VascularAccess[]
   onChange: (v: VascularAccess[]) => void
 }) {
+  const { options: vascularOpts } = useOptionLibrary("VASCULAR_ACCESS")
+  const tree = useMemo(() => buildTree(vascularOpts), [vascularOpts])
+
   const [adding, setAdding]           = useState(false)
   const [pending, setPending]         = useState<{ v: string; label: string; crumb: string } | null>(null)
   const [preexisting, setPreexisting] = useState(false)
@@ -316,7 +288,7 @@ export function VascularAccessTree({
               onCancel={() => setPending(null)}
             />
           ) : (
-            <TreePicker onLeaf={handleLeaf} />
+            <TreePicker onLeaf={handleLeaf} tree={tree} />
           )}
         </div>
       )}
