@@ -37,20 +37,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
           <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
             <Link href="/dashboard"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors">
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
               <LayoutDashboard className="h-4 w-4" />
               {t("nav.dashboard")}
             </Link>
             <span data-tour="nav-ongoing"><OngoingCasesButton /></span>
             {session.user.role === "ADMIN" && (
               <Link href="/admin"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-50 dark:active:bg-blue-900/20 transition-colors">
                 <Shield className="h-4 w-4" />
                 {t("nav.admin")}
               </Link>
             )}
             <Link href="/cases/new" data-tour="nav-new-case"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors">
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
               <FilePlus className="h-4 w-4" />
               {t("nav.newCase")}
             </Link>
@@ -63,7 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </span>
             <form action={handleSignOut}>
               <button type="submit" title={t("nav.signOut")}
-                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors">
+                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
                 <LogOut className="h-4 w-4" />
               </button>
             </form>
