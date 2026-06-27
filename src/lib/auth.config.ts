@@ -11,7 +11,9 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user
       const isPublicPage =
         nextUrl.pathname.startsWith("/privacy") ||
-        nextUrl.pathname.startsWith("/terms")
+        nextUrl.pathname.startsWith("/terms") ||
+        nextUrl.pathname === "/manifest.webmanifest" ||
+        nextUrl.pathname === "/sw.js"
       const isLoginPage =
         nextUrl.pathname.startsWith("/login") ||
         nextUrl.pathname.startsWith("/register")

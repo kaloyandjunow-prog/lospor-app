@@ -101,5 +101,5 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
 
 export const config = {
   // Include /api/* now (for CORS preflight handling), still exclude static assets
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)"],
 }
