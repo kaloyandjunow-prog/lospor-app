@@ -1,5 +1,10 @@
 # Changelog - LOSPOR Web App
 
+## [3.3.1] - 2026-06-28
+
+### Fixed
+- `GET /sw.js` was returning 404 in production because `@ducanh2912/next-pwa` silently fails to generate a service worker under Next.js 16. Browsers that had the old service worker installed continued to serve a stale cached 307 redirect (`/admin → /login?callbackUrl=/manifest.webmanifest`) which caused login to land on `/manifest.webmanifest` → 404, not on `/admin`. Fix: a minimal `public/sw.js` is now committed that immediately clears all caches from the broken old SW and passes every fetch through to the network unchanged, restoring correct post-login navigation.
+
 ## [3.3.0] - 2026-06-27
 
 ### Security / Integrity
