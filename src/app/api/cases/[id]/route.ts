@@ -179,8 +179,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // across multiple statements → P2028. The outer check already catches the
     // overwhelming majority of conflicts; the sub-millisecond race window that a
     // true serialised transaction would close is acceptable for clinical charting.
-    let finalStatus: CaseStatus | undefined
-
     if (preop) {
       // Partial update: only touch fields present in the payload, so a stale
       // or partial save never wipes existing preop data. Create still uses
@@ -251,7 +249,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     //   3. No explicit status + postop data + current IN_PROGRESS -> promote to AWAITING_REVIEW
     //   4. Never implicitly demote a status
     //   COMPLETE requires POST /api/cases/:id/finalize (not allowed here)
-    finalStatus = computeNextStatus(existing.status)
+    const finalStatus = computeNextStatus(existing.status)
     if (finalStatus) {
       await prisma.case.update({
         where: { id },

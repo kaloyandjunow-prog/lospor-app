@@ -16,7 +16,11 @@
 
 ### UX
 - Case summary page (`/cases/[id]`) now shows a review bar above the protocol for all case states. Non-COMPLETE cases show a status chip, edit links (Preop / Intraop / Postop), and a Close Now button that calls the finalize endpoint. COMPLETE cases within the undo window show an Unfinalize button. Print PDF is always accessible from the bar.
+- Nav buttons (Dashboard, New Case, Admin, Sign Out) now show press/tap feedback on touch screens via `active:` Tailwind classes, matching the existing hover effects on desktop.
 - AI provider wording in changelog corrected to clarify that EU-region inference is preferred but Mistral's global endpoint may be used as a fallback.
+
+### Fixed (late additions)
+- `/manifest.webmanifest` and `/sw.js` are now exempted from NextAuth auth middleware. Previously, when a session expired the browser's auto-request for the manifest was intercepted, redirected to `/login?callbackUrl=/manifest.webmanifest`, and the PWA shell navigated the entire tab away — causing the admin panel (and any other deep page) to show a 404. Both the middleware matcher regex and the `authorized` callback's `isPublicPage` guard were updated.
 
 ## [3.2.1] - 2026-06-27
 

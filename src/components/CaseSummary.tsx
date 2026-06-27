@@ -768,6 +768,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   const [loading,    setLoading]    = useState(true)
   const [showWarning, setShowWarning] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
+  const [nowAtMount] = useState<number>(Date.now)
 
   useEffect(() => {
     let cancelled = false
@@ -939,7 +940,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
         {(() => {
           const status = data?.status
           const finalizedAt = data?.finalizedAt ? new Date(data.finalizedAt).getTime() : null
-          const withinUndoWindow = finalizedAt != null && Date.now() - finalizedAt < FINALIZE_UNDO_WINDOW_MS
+          const withinUndoWindow = finalizedAt != null && nowAtMount - finalizedAt < FINALIZE_UNDO_WINDOW_MS
           const statusConfig: Record<string, { label: string; cls: string }> = {
             COMPLETE:        { label: "Finalised",        cls: "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400" },
             AWAITING_REVIEW: { label: "Awaiting review",  cls: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400" },
