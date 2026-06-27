@@ -21,8 +21,14 @@ function handleCorsOptions(req: NextRequest): NextResponse | null {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// These paths issue or revoke tokens — they can't send a Bearer token to prove
+// themselves, so they're exempt from the cookie-write origin check. Each is
+// already protected by rate limiting and bcrypt/token verification.
+const CSRF_EXEMPT = ["/api/auth/token", "/api/auth/register", "/api/auth/logout"]
+
 function csrfCheck(req: NextRequest): NextResponse | null {
   if (req.method === "OPTIONS") return null
+  if (CSRF_EXEMPT.includes(req.nextUrl.pathname)) return null
   const result = validateCookieWriteOrigin(req)
   if (result === "skip") {
     console.warn("[proxy] CSRF origin check skipped: NEXTAUTH_URL and NEXT_PUBLIC_APP_URL are both unset.")
