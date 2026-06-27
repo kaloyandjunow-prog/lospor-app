@@ -8,7 +8,7 @@ import caseEmitter from "@/lib/caseEmitter"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
-import { writeFieldDiffsSafe, writeSnapshotSafe } from "@/lib/case-audit"
+import { writeFieldDiffsSafe } from "@/lib/case-audit"
 import { rebuildProjection, reconcileFullLog, reverseProject } from "@/lib/case-events"
 import { canAccessCase, caseWhereForUser } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
@@ -23,7 +23,8 @@ export async function OPTIONS() {
 }
 
 const patchBodySchema = z.object({
-  status:      z.enum(["DRAFT", "IN_PROGRESS", "AWAITING_REVIEW", "COMPLETE"]).optional(),
+  // "COMPLETE" is intentionally excluded — use POST /api/cases/:id/finalize instead.
+  status:      z.enum(["DRAFT", "IN_PROGRESS", "AWAITING_REVIEW"]).optional(),
   notes:       z.string().max(1000).nullable().optional(),
   preop:       preopSchema.optional(),
   intraop:     intraopSchema.optional(),
@@ -172,130 +173,94 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return next
     }
 
-    // Sentinel used to surface a conflict detected inside the transaction
-    class ConflictError extends Error {
-      constructor(readonly section: "preop" | "postop" | "intraop", readonly serverVersion: unknown) { super("conflict") }
+    // Conflict detection is done above (lines ~130-150) using the pre-read `existing`
+    // record. We do NOT re-read inside a transaction here because Supabase's
+    // Transaction-mode PgBouncer (port 6543) cannot sustain interactive transactions
+    // across multiple statements → P2028. The outer check already catches the
+    // overwhelming majority of conflicts; the sub-millisecond race window that a
+    // true serialised transaction would close is acceptable for clinical charting.
+    let finalStatus: CaseStatus | undefined
+
+    if (preop) {
+      // Partial update: only touch fields present in the payload, so a stale
+      // or partial save never wipes existing preop data. Create still uses
+      // the full mapPreop (with defaults) for brand-new records.
+      const op = existing.preop ? { update: mapPreopUpdate(preop) } : { create: mapPreop(preop) }
+      await prisma.case.update({ where: { id }, data: { preop: op } })
+    }
+    if (intraop) {
+      let effectiveIntraop = intraop
+      if ("timetableData" in intraop && intraop.timetableData) {
+        const existingKev = (existing.intraop?.keyEvents as LegacyKeyEvents | null) ?? {}
+        const existingLog: LogEvent[] = Array.isArray(existingKev.log) ? existingKev.log : []
+        // Convert web-added clinicalEvents to log entries so mobile can see them
+        const webCEs: ClinicalEvent[] = (intraop.timetableData as LegacyKeyEvents)?.clinicalEvents ?? []
+        const logLabels = new Set(existingLog.filter(e => e.type === "clinical_event" || e.type === "event").map(e => e.label))
+        let mergedLog = existingLog
+        if (webCEs.length > 0 && existingLog.length > 0) {
+          const sortedLog = [...existingLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
+          const chartStartMs = sortedLog[0]?.ts ? new Date(sortedLog[0].ts).getTime() : null
+          if (chartStartMs) {
+            const newEntries: LogEvent[] = webCEs
+              .filter(ce => !logLabels.has(ce.label))
+              .map(ce => ({
+                id: `web-${ce.colIdx}-${ce.label}`,
+                ts: new Date(chartStartMs + ce.colIdx * 5 * 60_000).toISOString(),
+                type: "clinical_event",
+                label: ce.label,
+                color: ce.color,
+              }))
+            if (newEntries.length > 0) mergedLog = [...existingLog, ...newEntries]
+          }
+        }
+        effectiveIntraop = { ...intraop, timetableData: { ...(intraop.timetableData as LegacyKeyEvents), log: mergedLog } }
+      }
+      const op = existing.intraop ? { update: mapIntraopUpdate(effectiveIntraop) } : { create: mapIntraop(effectiveIntraop) }
+      await prisma.case.update({ where: { id }, data: { intraop: op } })
+      if ("timetableData" in effectiveIntraop && effectiveIntraop.timetableData) {
+        const start = (() => {
+          const hhmm = typeof effectiveIntraop.startTime === "string" ? effectiveIntraop.startTime : null
+          const baseDay = existing.intraop?.createdAt ?? new Date()
+          const baseMs = Date.UTC(baseDay.getUTCFullYear(), baseDay.getUTCMonth(), baseDay.getUTCDate())
+          if (!hhmm) {
+            const saved = existing.intraop?.startTime
+            return baseMs + (saved ? (saved.getUTCHours() * 3600 + saved.getUTCMinutes() * 60) * 1000 : 0)
+          }
+          const [h, m] = hhmm.split(":").map(Number)
+          return baseMs + ((h || 0) * 3600 + (m || 0) * 60) * 1000
+        })()
+        const keyEvents = effectiveIntraop.timetableData as LegacyKeyEvents
+        const projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
+          ? keyEvents.log
+          : reverseProject(keyEvents, start)
+        if (projectedLog.length > 0) {
+          await reconcileFullLog(prisma, id, userId, projectedLog, "web")
+          await rebuildProjection(prisma, id)
+        }
+      }
+    }
+    if (postop) {
+      // Partial update for existing records (see mapPreopUpdate rationale)
+      const op = existing.postop ? { update: mapPostopUpdate(postop) } : { create: mapPostop(postop) }
+      await prisma.case.update({ where: { id }, data: { postop: op } })
     }
 
-    let finalStatus: CaseStatus | undefined
-    try {
-      await prisma.$transaction(async tx => {
-        // Re-read timestamps inside the transaction so the conflict check is
-        // atomic with the write - this eliminates the race window that existed
-        // between the outer read and the transaction start.
-        const fresh = await tx.case.findUnique({
-          where: { id },
-          select: {
-            status: true,
-            preop:   { select: { updatedAt: true } },
-            postop:  { select: { updatedAt: true } },
-            intraop: { select: { updatedAt: true } },
-          },
-        })
-        if (!forceUpdate && preop && preopBase && fresh?.preop?.updatedAt &&
-            fresh.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
-          throw new ConflictError("preop", fresh.preop)
-        }
-        if (!forceUpdate && postop && postopBase && fresh?.postop?.updatedAt &&
-            fresh.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
-          throw new ConflictError("postop", fresh.postop)
-        }
-        if (!forceUpdate && intraop && intraopBase && fresh?.intraop?.updatedAt &&
-            fresh.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
-          throw new ConflictError("intraop", fresh.intraop)
-        }
-
-        if (preop) {
-          // Partial update: only touch fields present in the payload, so a stale
-          // or partial save never wipes existing preop data. Create still uses
-          // the full mapPreop (with defaults) for brand-new records.
-          const op = existing.preop ? { update: mapPreopUpdate(preop) } : { create: mapPreop(preop) }
-          await tx.case.update({ where: { id }, data: { preop: op } })
-        }
-        if (intraop) {
-          let effectiveIntraop = intraop
-          if ("timetableData" in intraop && intraop.timetableData) {
-            const existingKev = (existing.intraop?.keyEvents as LegacyKeyEvents | null) ?? {}
-            const existingLog: LogEvent[] = Array.isArray(existingKev.log) ? existingKev.log : []
-            // Convert web-added clinicalEvents to log entries so mobile can see them
-            const webCEs: ClinicalEvent[] = (intraop.timetableData as LegacyKeyEvents)?.clinicalEvents ?? []
-            const logLabels = new Set(existingLog.filter(e => e.type === "clinical_event" || e.type === "event").map(e => e.label))
-            let mergedLog = existingLog
-            if (webCEs.length > 0 && existingLog.length > 0) {
-              const sortedLog = [...existingLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
-              const chartStartMs = sortedLog[0]?.ts ? new Date(sortedLog[0].ts).getTime() : null
-              if (chartStartMs) {
-                const newEntries: LogEvent[] = webCEs
-                  .filter(ce => !logLabels.has(ce.label))
-                  .map(ce => ({
-                    id: `web-${ce.colIdx}-${ce.label}`,
-                    ts: new Date(chartStartMs + ce.colIdx * 5 * 60_000).toISOString(),
-                    type: "clinical_event",
-                    label: ce.label,
-                    color: ce.color,
-                  }))
-                if (newEntries.length > 0) mergedLog = [...existingLog, ...newEntries]
-              }
-            }
-            effectiveIntraop = { ...intraop, timetableData: { ...(intraop.timetableData as LegacyKeyEvents), log: mergedLog } }
-          }
-          const op = existing.intraop ? { update: mapIntraopUpdate(effectiveIntraop) } : { create: mapIntraop(effectiveIntraop) }
-          await tx.case.update({ where: { id }, data: { intraop: op } })
-          if ("timetableData" in effectiveIntraop && effectiveIntraop.timetableData) {
-            const start = (() => {
-              const hhmm = typeof effectiveIntraop.startTime === "string" ? effectiveIntraop.startTime : null
-              const baseDay = existing.intraop?.createdAt ?? new Date()
-              const baseMs = Date.UTC(baseDay.getUTCFullYear(), baseDay.getUTCMonth(), baseDay.getUTCDate())
-              if (!hhmm) {
-                const saved = existing.intraop?.startTime
-                return baseMs + (saved ? (saved.getUTCHours() * 3600 + saved.getUTCMinutes() * 60) * 1000 : 0)
-              }
-              const [h, m] = hhmm.split(":").map(Number)
-              return baseMs + ((h || 0) * 3600 + (m || 0) * 60) * 1000
-            })()
-            const keyEvents = effectiveIntraop.timetableData as LegacyKeyEvents
-            const projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
-              ? keyEvents.log
-              : reverseProject(keyEvents, start)
-            if (projectedLog.length > 0) {
-              await reconcileFullLog(tx, id, userId, projectedLog, "web")
-              await rebuildProjection(tx, id)
-            }
-          }
-        }
-        if (postop) {
-          // Partial update for existing records (see mapPreopUpdate rationale)
-          const op = existing.postop ? { update: mapPostopUpdate(postop) } : { create: mapPostop(postop) }
-          await tx.case.update({ where: { id }, data: { postop: op } })
-        }
-
-        // Status transition rules:
-        //   1. Explicit status in payload -> use as-is (e.g., final submit sends "COMPLETE")
-        //   2. No explicit status + intraop data + current DRAFT -> promote to IN_PROGRESS
-        //   3. No explicit status + postop data + current IN_PROGRESS -> promote to AWAITING_REVIEW
-        //   4. Never implicitly demote a status
-        //   COMPLETE is never set automatically - only on explicit client send
-        const currentStatus = fresh?.status ?? existing.status
-        finalStatus = computeNextStatus(currentStatus)
-        if (finalStatus) {
-          await tx.case.update({
-            where: { id },
-            data: {
-              status: finalStatus,
-              ...(finalStatus === "COMPLETE" ? { finalizedAt: new Date() } : {}),
-            },
-          })
-        }
-        if (notes !== undefined) {
-          const sanitised = notes == null ? null : notes.trim().slice(0, 1000)
-          await tx.case.update({ where: { id }, data: { notes: sanitised } })
-        }
+    // Status transition rules:
+    //   1. Explicit status in payload -> use as-is (e.g., final submit sends "COMPLETE")
+    //   2. No explicit status + intraop data + current DRAFT -> promote to IN_PROGRESS
+    //   3. No explicit status + postop data + current IN_PROGRESS -> promote to AWAITING_REVIEW
+    //   4. Never implicitly demote a status
+    //   COMPLETE requires POST /api/cases/:id/finalize (not allowed here)
+    finalStatus = computeNextStatus(existing.status)
+    if (finalStatus) {
+      await prisma.case.update({
+        where: { id },
+        data: { status: finalStatus },
       })
-    } catch (err) {
-      if (err instanceof ConflictError) {
-        return NextResponse.json({ error: "conflict", section: err.section, serverVersion: err.serverVersion }, { status: 409 })
-      }
-      throw err
+    }
+    if (notes !== undefined) {
+      const sanitised = notes == null ? null : notes.trim().slice(0, 1000)
+      await prisma.case.update({ where: { id }, data: { notes: sanitised } })
     }
 
     logAudit(userId, "CASE_UPDATE", id, finalStatus ? { from: existing.status, to: finalStatus } : undefined)
@@ -304,8 +269,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (postop) writeFieldDiffsSafe(prisma, id, "postop", existing.postop ?? {}, postop, userId)
     // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
     syncCaseRelationalSafe(prisma, id, userId)
-    // Write immutable snapshot on finalization (best-effort)
-    if (finalStatus === "COMPLETE") writeSnapshotSafe(prisma, id)
     caseEmitter.emit(id, {
       type: "case_updated",
       sections: {

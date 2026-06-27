@@ -618,10 +618,9 @@ export default function NewCasePage() {
     if (closeTimerRef.current) { clearInterval(closeTimerRef.current); closeTimerRef.current = null }
     localStorage.removeItem(`summaryOpenedAt_${id}`)
     try {
-      const res = await fetch(`/api/cases/${id}`, {
-        method: "PATCH",
+      const res = await fetch(`/api/cases/${id}/finalize`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "COMPLETE" }),
       })
       if (!res.ok) throw new Error()
       // Use server finalizedAt if available, otherwise use current timestamp

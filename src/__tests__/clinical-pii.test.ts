@@ -40,4 +40,16 @@ describe("clinical PII gate", () => {
   it("checks free-text event notes before event append", () => {
     expect(checkEventPII({ label: "Complication", notes: "Ivan Petrov" })).toContain("notes")
   })
+
+  it("allows drug names with two capitalised words in allergyDetails and currentMedications", () => {
+    // Drug names like "Morphine Sulfate" or "Sodium Chloride" must not trigger the name check
+    expect(checkClinicalPayloadPII({ preop: { allergyDetails: [{ label: "Morphine Sulfate" }] } })).toBeNull()
+    expect(checkClinicalPayloadPII({ preop: { currentMedications: [{ label: "Sodium Chloride" }] } })).toBeNull()
+    expect(checkClinicalPayloadPII({ preop: { allergyDetails: [{ label: "Potassium Chloride" }] } })).toBeNull()
+  })
+
+  it("still blocks EGN and long digit strings inside drug fields", () => {
+    // Even in structured fields, clear PII like EGNs must be caught
+    expect(checkClinicalPayloadPII({ preop: { allergyDetails: [{ label: "1234567890" }] } })).toBeTruthy()
+  })
 })

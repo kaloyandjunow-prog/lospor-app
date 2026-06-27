@@ -63,6 +63,7 @@ model Case {
   institution   Institution? @relation(fields: [institutionId], references: [id])
   status        CaseStatus   @default(DRAFT)
   finalizedAt   DateTime?
+  clientDraftId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -79,6 +80,7 @@ model Case {
   snapshot      CaseSnapshot?
 
   @@unique([userId, caseCode])
+  @@unique([userId, clientDraftId])
   @@index([status])
   @@index([userId, createdAt])
 }

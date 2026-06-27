@@ -57,6 +57,11 @@ export function writeSnapshotSafe(db: Db, caseId: string): void {
     .catch(err => console.error("[case-audit:snapshot]", caseId, err))
 }
 
+// Throwing version used by the finalize endpoint — caller must handle errors.
+export async function writeSnapshotAsync(db: Db, caseId: string): Promise<void> {
+  return writeSnapshot(db, caseId)
+}
+
 async function writeSnapshot(db: Db, caseId: string): Promise<void> {
   const c = await db.case.findUnique({
     where: { id: caseId },

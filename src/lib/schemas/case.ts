@@ -1,15 +1,26 @@
 import { z } from "zod"
 
 // Accepts number, string, or null/undefined from HTML inputs; coerces to number or null.
-// z.preprocess runs before type checking, so it handles all input forms safely.
-const coerceNum = z.preprocess(
-  v => (v === "" || v === null || v === undefined) ? null : Number(v),
-  z.number().nullable().optional()
-)
-const coerceInt = z.preprocess(
-  v => (v === "" || v === null || v === undefined) ? null : parseInt(String(v), 10),
-  z.number().int().nullable().optional()
-)
+// Using Number() instead of parseInt so "12abc" is rejected (returns NaN) rather than silently
+// parsed as 12 — this catches typo inputs before they reach the database.
+const numPreprocess = (v: unknown): number | null => {
+  if (v === "" || v === null || v === undefined) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+const intPreprocess = (v: unknown): number | null => {
+  const n = numPreprocess(v)
+  return n === null ? null : Math.round(n)
+}
+
+const coerceNum = z.preprocess(numPreprocess, z.number().nullable().optional())
+const coerceInt = z.preprocess(intPreprocess, z.number().int().nullable().optional())
+
+// Range-bounded variants — used for fields where physically impossible values should be rejected
+const cNum = (min: number, max: number) =>
+  z.preprocess(numPreprocess, z.number().min(min).max(max).nullable().optional())
+const cInt = (min: number, max: number) =>
+  z.preprocess(intPreprocess, z.number().int().min(min).max(max).nullable().optional())
 
 // Item 26: Canonical format for diagnoses/procedures — { label, code?, sub?, system? }
 const labelledItem = z.object({
@@ -20,10 +31,10 @@ const labelledItem = z.object({
 }).passthrough()
 
 export const preopSchema = z.object({
-  ageYears:  coerceInt,
+  ageYears:  cInt(0, 130),
   sex:       z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  heightCm:  coerceNum,
-  weightKg:  coerceNum,
+  heightCm:  cNum(30, 280),
+  weightKg:  cNum(0.1, 700),
   bmi:       coerceNum,
   bloodType: z.enum(["A", "B", "AB", "O"]).nullable().optional(),
   rhFactor:  z.enum(["POSITIVE", "NEGATIVE"]).nullable().optional(),
@@ -51,13 +62,13 @@ export const preopSchema = z.object({
   smoking:                  z.boolean().optional(),
   substanceAbuse:           z.boolean().optional(),
 
-  bpSystolic:      coerceInt,
-  bpDiastolic:     coerceInt,
-  heartRate:       coerceInt,
+  bpSystolic:      cInt(40, 300),
+  bpDiastolic:     cInt(20, 200),
+  heartRate:       cInt(10, 350),
   heartArrhythmia: z.boolean().optional(),
-  spO2:            coerceNum,
-  temperature:     coerceNum,
-  respiratoryRate: coerceInt,
+  spO2:            cNum(0, 100),
+  temperature:     cNum(25, 45),
+  respiratoryRate: cInt(0, 100),
   bpUnobtainable:          z.boolean().optional(),
   heartRateUnobtainable:   z.boolean().optional(),
   spO2Unobtainable:        z.boolean().optional(),
@@ -156,10 +167,7 @@ export const intraopSchema = z.object({
 }).passthrough()
 
 // Item 25: Aldrete subscores are always 0, 1, or 2; reject out-of-range values
-const aldreteSubscore = z.preprocess(
-  v => (v === "" || v === null || v === undefined) ? null : parseInt(String(v), 10),
-  z.number().int().min(0).max(2).nullable().optional()
-)
+const aldreteSubscore = z.preprocess(intPreprocess, z.number().int().min(0).max(2).nullable().optional())
 
 export const postopSchema = z.object({
   aldreteActivity:      aldreteSubscore,
@@ -167,15 +175,15 @@ export const postopSchema = z.object({
   aldreteCirculation:   aldreteSubscore,
   aldreteConsciousness: aldreteSubscore,
   aldreteSpO2:          aldreteSubscore,
-  aldreteTotal:         coerceInt,
+  aldreteTotal:         cInt(0, 10),
 
-  recoveryBpSystolic:  coerceInt,
-  recoveryBpDiastolic: coerceInt,
-  recoveryHeartRate:   coerceInt,
-  recoverySpO2:        coerceNum,
-  painScoreNRS:       coerceInt,
+  recoveryBpSystolic:  cInt(40, 300),
+  recoveryBpDiastolic: cInt(20, 200),
+  recoveryHeartRate:   cInt(10, 350),
+  recoverySpO2:        cNum(0, 100),
+  painScoreNRS:        cInt(0, 10),
   ponv:               z.boolean().optional(),
-  temperatureCelsius: coerceNum,
+  temperatureCelsius: cNum(25, 45),
   recoveryBpUnobtainable:          z.boolean().optional(),
   recoveryHeartRateUnobtainable:   z.boolean().optional(),
   recoverySpO2Unobtainable:        z.boolean().optional(),

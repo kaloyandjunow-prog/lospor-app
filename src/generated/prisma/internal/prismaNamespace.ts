@@ -3483,6 +3483,7 @@ export const CaseScalarFieldEnum = {
   institutionId: 'institutionId',
   status: 'status',
   finalizedAt: 'finalizedAt',
+  clientDraftId: 'clientDraftId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

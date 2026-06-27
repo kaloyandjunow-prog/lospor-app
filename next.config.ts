@@ -4,9 +4,18 @@ import withPWAInit from "@ducanh2912/next-pwa"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 const isDev = process.env.NODE_ENV !== "production"
-// In production set CORS_ALLOW_ORIGIN to the PWA/mobile origin (e.g. https://app.lospor.eu).
+const isProdVercel = !isDev && process.env.VERCEL_ENV === "production"
+// In production set CORS_ALLOW_ORIGIN (or CORS_ALLOW_ORIGINS) to the PWA/mobile origin.
 // Dev defaults to * so the local PWA on :3001 can reach the API on :3000.
-const corsOrigin = isDev ? "*" : (process.env.CORS_ALLOW_ORIGIN ?? "*")
+// Production Vercel deployments throw at build time if the env var is missing — same
+// behaviour as allowedCorsOrigin() in src/lib/cors.ts (one source of truth).
+const corsOrigin = isDev
+  ? "*"
+  : (process.env.CORS_ALLOW_ORIGINS?.split(",")[0]?.trim() ??
+     process.env.CORS_ALLOW_ORIGIN?.trim() ??
+     (isProdVercel
+       ? (() => { throw new Error("CORS_ALLOW_ORIGIN or CORS_ALLOW_ORIGINS must be set in production") })()
+       : "*"))
 
 const withPWA = withPWAInit({
   dest: "public",

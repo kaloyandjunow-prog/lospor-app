@@ -41,6 +41,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     if (!body.preop) return NextResponse.json({ error: "preop required" }, { status: 400 })
 
+    // Idempotency: mobile sends X-Idempotency-Key (= localDraftId) on case creation.
+    // If we find an existing case with this key, return it without creating a duplicate.
+    const idempotencyKey = req.headers.get("x-idempotency-key")
+    if (idempotencyKey) {
+      const existing = await prisma.case.findFirst({
+        where: { userId, clientDraftId: idempotencyKey },
+        select: { id: true, caseCode: true, preop: { select: { updatedAt: true } } },
+      })
+      if (existing) {
+        return NextResponse.json({
+          id: existing.id,
+          caseCode: existing.caseCode,
+          preopUpdatedAt: existing.preop?.updatedAt,
+        }, { status: 200 })
+      }
+    }
+
     const preop   = preopSchema.parse(body.preop)
     const intraop = body.intraop ? intraopSchema.parse(body.intraop) : undefined
     const postop  = body.postop  ? postopSchema.parse(body.postop)   : undefined
@@ -62,6 +79,7 @@ export async function POST(req: NextRequest) {
             status,
             institutionId: user.institutionId ?? null,
             caseCode: await generateCaseCode(userId),
+            ...(idempotencyKey ? { clientDraftId: idempotencyKey } : {}),
             preop: { create: mapPreop(preop) },
             ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
             ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),

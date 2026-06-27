@@ -24,23 +24,26 @@ export function checkClinicalPayloadPII(payload: {
   const intraop = payload.intraop ?? {}
   const postop = payload.postop ?? {}
 
-  return checkPII({
-    notes: text(payload.notes),
-    teamNotes: text(preop.teamNotes),
-    allergyDetails: labelList(preop.allergyDetails),
-    currentMedications: labelList(preop.currentMedications),
-    familyAnesthesiaDetails: text(preop.familyAnesthesiaDetails),
-    difficultAirwayNotes: text(preop.difficultAirwayNotes),
-    physicalExamReport: text(preop.physicalExamReport),
-    preopNotes: text(preop.notes),
-    premedicationEvening: text(intraop.premedicationEvening),
-    premedicationMorning: text(intraop.premedicationMorning),
-    airwayNotes: text(intraop.airwayNotes),
-    bloodProductsNote: text(intraop.bloodProductsNote),
-    intraopComplications: text(intraop.complications),
-    postopComplications: text(postop.complications),
-    dispositionNotes: text(postop.dispositionNotes),
-  })
+  return checkPII(
+    {
+      notes: text(payload.notes),
+      teamNotes: text(preop.teamNotes),
+      allergyDetails: labelList(preop.allergyDetails),
+      currentMedications: labelList(preop.currentMedications),
+      familyAnesthesiaDetails: text(preop.familyAnesthesiaDetails),
+      difficultAirwayNotes: text(preop.difficultAirwayNotes),
+      physicalExamReport: text(preop.physicalExamReport),
+      preopNotes: text(preop.notes),
+      premedicationEvening: text(intraop.premedicationEvening),
+      premedicationMorning: text(intraop.premedicationMorning),
+      airwayNotes: text(intraop.airwayNotes),
+      bloodProductsNote: text(intraop.bloodProductsNote),
+      intraopComplications: text(intraop.complications),
+      postopComplications: text(postop.complications),
+      dispositionNotes: text(postop.dispositionNotes),
+    },
+    { skipNameCheck: new Set(["allergyDetails", "currentMedications"]) },
+  )
 }
 
 export function checkEventPII(ev: Record<string, unknown>): string | null {

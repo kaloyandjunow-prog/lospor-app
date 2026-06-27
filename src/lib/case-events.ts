@@ -14,7 +14,9 @@ import type {
 // reading keyEvents unchanged — only the thing that fills it changed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Tx = Prisma.TransactionClient
+// Accepts both a transaction client (inside $transaction) and a plain PrismaClient
+// so callers that skip transactions for pgbouncer compatibility can pass prisma directly.
+type Tx = Prisma.TransactionClient | { caseEvent: Prisma.TransactionClient["caseEvent"]; intraoperativeRecord: Prisma.TransactionClient["intraoperativeRecord"] }
 
 export type { LogEvent }
 

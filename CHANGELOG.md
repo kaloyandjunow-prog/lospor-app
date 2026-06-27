@@ -1,5 +1,26 @@
 # Changelog - LOSPOR Web App
 
+## [3.2.0] - 2026-06-27
+
+### Added
+- **Dedicated finalize endpoint** — `POST /api/cases/:id/finalize` validates that preop, intraop (with startTime and at least one technique), and postop (with ≥1 Aldrete subscore and a disposition) are present before setting the case to COMPLETE. The immutable snapshot is written first; status is only committed after the snapshot succeeds.
+- **Case creation idempotency** — `POST /api/cases` now accepts an `X-Idempotency-Key` header. If a case already exists for this user with that draft key, the existing case is returned rather than creating a duplicate. Useful when the mobile app creates a case while offline and the network drops before the response arrives.
+- **`clientDraftId` on Case** — new nullable column + `@@unique([userId, clientDraftId])` constraint. Migration: `20260627000000_case_client_draft_id`.
+
+### Changed
+- **CORS production guard** — `next.config.ts` now throws at startup on Vercel production if `CORS_ALLOW_ORIGIN`/`CORS_ALLOW_ORIGINS` is unset, matching the behaviour of `lib/cors.ts`. Previously it silently fell back to `*`.
+- **Case PATCH no longer accepts `status: "COMPLETE"`** — use `POST /api/cases/:id/finalize` instead. PATCH returns 400 with guidance if "COMPLETE" is sent.
+- **Zod coercion** — `parseInt` replaced with `Number()` in all schema coerce helpers so `"12abc"` is rejected rather than silently parsed as `12`. Range validation added: `ageYears (0–130)`, `heightCm (30–280)`, `weightKg (0.1–700)`, `bpSystolic (40–300)`, `bpDiastolic (20–200)`, `heartRate (10–350)`, `spO2 (0–100)`, `temperature (25–45 °C)`, `respiratoryRate (0–100)`, `painScoreNRS (0–10)`, `aldreteTotal (0–10)`, and matching recovery vitals.
+
+### Fixed
+- Drug allergy and current medications autosave was rejected by the server PII filter because multi-word drug names (e.g. "Morphine Sulfate", "Sodium Chloride") matched the two-capitalised-words name heuristic. Those structured drug-catalogue fields now skip the name check; EGN, long digit sequences, dates, and email detection still apply to them.
+- Intraoperative event autosave returned 500 (Prisma P2028 transaction timeout) because Supabase's Transaction-mode PgBouncer (port 6543) cannot sustain interactive multi-statement transactions. The case PATCH handler now runs all writes sequentially without an interactive transaction; the existing pre-read conflict detection is unchanged.
+
+## [3.1.0-hotfix] - 2026-06-27
+
+### Fixed
+- PWA and mobile login was blocked with 403 because the new CSRF origin check applied to `/api/auth/token`, which is called cross-origin by the PWA. Auth token-issuance endpoints (`/api/auth/token`, `/api/auth/register`, `/api/auth/logout`) are now exempt from the origin check — they are protected by rate limiting and bcrypt instead.
+
 ## [3.1.0] - 2026-06-25
 
 ### Security and privacy hardening

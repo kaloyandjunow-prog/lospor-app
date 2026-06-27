@@ -105,7 +105,10 @@ export function deepRedactPII<T>(value: T): T {
   return value
 }
 
-export function checkPII(fields: Record<string, string | null | undefined>): string | null {
+export function checkPII(
+  fields: Record<string, string | null | undefined>,
+  opts: { skipNameCheck?: Set<string> } = {},
+): string | null {
   for (const [field, value] of Object.entries(fields)) {
     if (!value || typeof value !== "string") continue
 
@@ -130,8 +133,11 @@ export function checkPII(fields: Record<string, string | null | undefined>): str
       return `"${field}" appears to contain an email address.`
     }
 
-    // Two consecutive capitalised words — likely a person's name
-    if (NAME_RE.test(value)) {
+    // Two consecutive capitalised words — likely a person's name.
+    // Skipped for structured drug-catalogue fields (allergyDetails,
+    // currentMedications) because drug names legitimately contain two
+    // capitalised words (e.g. "Morphine Sulfate", "Sodium Chloride").
+    if (!opts.skipNameCheck?.has(field) && NAME_RE.test(value)) {
       return `"${field}" appears to contain a name (two capitalised words).`
     }
   }
