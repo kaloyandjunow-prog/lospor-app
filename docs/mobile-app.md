@@ -85,7 +85,7 @@ Medication/search chips use stable keys to avoid duplicate-label warnings from d
 
 ### Lab Scan
 
-`LabScanPanel` (`src/components/LabScanPanel.tsx`) adds camera/gallery lab report scanning. Images are sent to the Mistral vision API (EU-hosted). Extracted values are shown for review before being imported into the labs section. A GDPR warning instructs the user to crop patient identifiers before uploading.
+`LabScanPanel` (`src/components/LabScanPanel.tsx`) adds camera/gallery lab report scanning. Images are sent to the configured Mistral vision API. Extracted values are shown for review before being imported into the labs section. A GDPR warning instructs the user to crop patient identifiers before uploading.
 
 `expo-image-picker` is a native module and must be included in the APK build. The panel uses a lazy `require()` wrapped in try-catch so that an older APK (built before the panel was added) degrades gracefully with a "not available" alert rather than crashing.
 

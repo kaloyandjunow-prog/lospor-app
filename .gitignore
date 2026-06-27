@@ -54,3 +54,9 @@ dev-current.*.log
 
 # Temporary one-off scripts
 scripts/clean-dev-db.ts
+
+# Local MCP server config (contains project refs, not for public repos)
+.mcp.json
+
+# Codex workspace artefacts
+.codex/

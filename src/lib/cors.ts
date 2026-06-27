@@ -11,10 +11,11 @@ const DEFAULT_HEADERS = [
 ].join(", ")
 
 export function allowedCorsOrigin(): string {
-  const configured = process.env.CORS_ALLOW_ORIGIN?.trim()
+  const configuredList = process.env.CORS_ALLOW_ORIGINS?.split(",").map(origin => origin.trim()).filter(Boolean) ?? []
+  const configured = configuredList[0] ?? process.env.CORS_ALLOW_ORIGIN?.trim()
   if (configured) return configured
   if (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production") {
-    throw new Error("CORS_ALLOW_ORIGIN must be set in production")
+    throw new Error("CORS_ALLOW_ORIGIN or CORS_ALLOW_ORIGINS must be set in production")
   }
   return "*"
 }

@@ -138,7 +138,7 @@ export function LabResults({
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
-            Lab report images are sent to Mistral AI (EU) for text extraction. Before uploading, crop out all patient names, date of birth, ID or MRN numbers, and any other identifying information. Do not upload the image if patient identifiers cannot be removed.
+            Lab report images are sent to the configured AI provider for text extraction. Before uploading, crop out all patient names, date of birth, ID or MRN numbers, and any other identifying information. Do not upload the image if patient identifiers cannot be removed.
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             <button

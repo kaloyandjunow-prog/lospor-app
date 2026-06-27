@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { logAudit } from "@/lib/audit"
+import { fetchMistralChatCompletions } from "@/lib/mistral"
 import { redactText } from "@/lib/pii-check"
 import {
   AI_MAX_REQUESTS_PER_HOUR,
@@ -34,8 +35,6 @@ function checkBurst(userId: string): boolean {
   }
   return true
 }
-
-const MISTRAL_URL_SUFFIX = "/chat/completions"
 
 const SYSTEM_PROMPT = `You are a board-certified anesthesiologist reviewing pre-operative clinical data and producing a structured summary for a fellow anaesthesiologist. This output is informational only — it does not constitute clinical advice, replace clinical judgement, or fulfill any regulatory function. The responsible anaesthesiologist retains full clinical responsibility. You receive structured patient data and produce a concise clinical summary. Use correct medical terminology, be direct, and do not over-explain basics.
 
@@ -146,23 +145,16 @@ export async function POST(req: NextRequest) {
 
   let mistralRes: Response
   try {
-    const base = (process.env.MISTRAL_API_BASE ?? "https://api.mistral.ai/v1").replace(/\/$/, "")
-    mistralRes = await fetch(`${base}${MISTRAL_URL_SUFFIX}`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.MISTRAL_MODEL ?? "open-mistral-7b",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Please analyse this patient's pre-operative data:\n\n${patientSummary}` },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-        stream: true,
-      }),
+    mistralRes = await fetchMistralChatCompletions(apiKey, {
+      model: process.env.MISTRAL_MODEL ?? "open-mistral-7b",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `Please analyse this patient's pre-operative data:\n\n${patientSummary}` },
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      stream: true,
+    }, {
       signal: controller.signal,
     })
   } catch (err) {

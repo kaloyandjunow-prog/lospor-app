@@ -29,7 +29,7 @@ LOSPOR is intended for perioperative documentation, research, and workflow suppo
 - 30-minute review window — after submitting postop the case stays open for 30 minutes; navigate back to any step to correct data; timer persists across page reloads
 - Printable protocol — auto-generated two-page A4 landscape summary; patient identity left blank for hand-writing, never stored
 - Case handover — transfer cases between colleagues; HOD can assign instantly within their institution
-- AI pre-operative advisor — opt-in per case; EU-hosted (Mistral La Plateforme), structured fields only, no free-text forwarded
+- AI pre-operative advisor — opt-in per case; configured Mistral provider, structured fields only, no free-text forwarded
 - GDPR rights — data export (Article 15) and account deletion (Article 17) from Settings → Privacy & Data
 - Server-side PII detection — EGN, ID sequences, date patterns, email addresses, and name patterns blocked at the API level
 - Privacy & Terms pages — accessible without login; sub-processors, legal basis, retention, user rights
@@ -66,14 +66,14 @@ See [.env.example](.env.example) for all required variables.
 | DIRECT_URL | Yes | Supabase direct connection string (port 5432) |
 | NEXTAUTH_SECRET | Yes | Random secret: `openssl rand -base64 32` |
 | NEXTAUTH_URL | Yes | Full public URL of your deployment |
-| MISTRAL_API_KEY | Optional | AI advisor and lab scan — Mistral La Plateforme (EU), free tier available |
-| MISTRAL_API_BASE | Optional | Override Mistral API endpoint (default: `https://api.mistral.ai/v1`) |
+| MISTRAL_API_KEY | Optional | AI advisor and lab scan — Mistral La Plateforme, free tier available |
+| MISTRAL_API_BASE | Optional | Override Mistral API endpoint; regional overrides fall back to `https://api.mistral.ai/v1` if inference is not allowed |
 | MISTRAL_MODEL | Optional | Override model for AI advisor (default: `open-mistral-7b`) |
 | CORS_ALLOW_ORIGIN | Required in production | Explicit browser/PWA origin allowlist |
 
 ## Tech stack
 
-Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI (EU) · Vercel Analytics
+Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI · Vercel Analytics
 
 ## Licence
 

@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function GET(req: NextRequest) {
-  const email = req.nextUrl.searchParams.get("email") ?? ""
   const start = Date.now()
-
-  const user = email
-    ? await prisma.user.findUnique({
-        where: { email },
-        select: { approvedAt: true, deletedAt: true },
-      })
-    : null
-
-  const pending = !!(user && !user.approvedAt && !user.deletedAt)
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown"
+  const rl = await rateLimit(`check-pending:${ip}`, 20, 15 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ pending: false }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } })
+  }
 
   // Constant-time floor: always respond after at least 200ms to prevent
-  // timing-based email enumeration (DB miss is faster than DB hit).
+  // timing-based enumeration and preserve the legacy response shape.
   const elapsed = Date.now() - start
   if (elapsed < 200) await new Promise(r => setTimeout(r, 200 - elapsed))
 
-  return NextResponse.json({ pending })
+  return NextResponse.json({ pending: false })
 }

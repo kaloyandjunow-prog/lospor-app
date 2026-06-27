@@ -2,60 +2,61 @@
 
 ## Authentication
 
-- Web app: NextAuth.js session cookie (httpOnly, sameSite=strict).
-- Mobile / PWA: short-lived JWT (8h) issued by `/api/auth/token`, stored in `expo-secure-store` (Keychain on iOS, Keystore on Android, localStorage on PWA).
-- All API routes check `getAuthUser`, which accepts Bearer token first and cookie session as fallback.
-- Revoked JWTs are tracked in the `RevokedToken` table with in-memory cache (5-minute refresh).
+- Web app: NextAuth.js session cookie (`httpOnly`, same-site).
+- Mobile native: short-lived bearer JWT (8h) issued by `/api/auth/token`, stored in `expo-secure-store` using Keychain/Keystore.
+- Mobile PWA: short-lived bearer JWT (8h) stored by the web secure-store shim in browser `localStorage`.
+- All protected API routes use `getAuthUser`, which accepts bearer token first and cookie session as fallback.
+- Revoked JWTs are tracked in the `RevokedToken` table with an in-memory refresh cache.
 
-## GDPR / Patient Identifiers
+## CSRF
+
+`src/proxy.ts` protects state-changing cookie-authenticated requests.
+
+- `POST`, `PATCH`, `PUT`, and `DELETE` requests without bearer auth must have a same-origin `Origin` or `Referer` matching `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, or `VERCEL_URL`.
+- Requests with `Authorization: Bearer ...` are exempt because mobile/PWA clients do not rely on ambient browser cookies.
+- Hostile-origin cookie API writes are rejected before the route handler runs.
+
+## Patient Identifiers
 
 By design, no patient names or national IDs are collected or stored.
-- Patient identity fields (name, DOB, national ID) are intentionally absent from all forms and schemas.
-- Printed protocols leave patient-identity lines blank for hand-written completion — keeping the database free of directly identifying data.
-- All free-text fields (team notes, airway notes) are scanned server-side by `checkPII` before persistence.
-  `checkPII` rejects entries containing email addresses, long numeric strings (≥7 digits), common date patterns, EGN (Bulgarian personal ID), and two consecutive capitalised words (likely a name).
+
+- Patient identity fields are absent from the clinical forms and database schema.
+- Printed protocols leave patient-identity lines blank for handwritten completion.
+- Free-text fields are scanned server-side by `checkPII` before persistence.
+- Controlled clinical vocabulary labels are not checked with the same name heuristic because labels such as `Face Mask`, `To PACU`, or `General Anaesthesia` are valid clinical terms.
+- Free-text event notes are still checked for EGN, long numeric identifiers, email addresses, dates, and likely names.
 
 ## Data Storage
 
 | Surface | What is stored | Technology |
-|---------|---------------|------------|
-| Server DB | Clinical case data (no patient names) | PostgreSQL via Prisma |
-| Mobile native | Bearer token, offline patch queue | expo-secure-store (Keychain/Keystore) |
-| Mobile PWA | Bearer token, offline patch queue | localStorage (plain HTTP dev; HTTPS prod) |
+| --- | --- | --- |
+| Server DB | Clinical case data without direct patient identifiers | PostgreSQL via Prisma |
+| Mobile native | Bearer token, offline case drafts, queued saves/events | expo-secure-store |
+| Mobile PWA | Bearer token, offline case drafts, queued saves/events | browser localStorage |
 
-**localStorage security note (PWA):** The bearer token and offline clinical drafts are stored in `localStorage` on the PWA. This is an intentional trade-off: tokens are short-lived (8h), contain no patient data, and the app is served over HTTPS in production. `localStorage` does not persist across browser data wipes and is isolated by origin. iOS Safari may evict storage under memory pressure — this is acceptable because all data is eventually server-persisted and offline drafts are clearly labelled "Saved locally — syncs when online."
+**PWA storage note:** browser `localStorage` is weaker than native Keychain/Keystore storage. Logout clears the token, offline drafts, queued case patches, and queued intraoperative events. Shared or hospital-managed browser devices should prefer the web app or require strict logout/device-cleanup policy.
 
 ## CORS
 
 All `/api/*` routes include CORS headers.
-- Development: `Access-Control-Allow-Origin: *` (allows the local PWA dev server at `:3001`).
-- Production: set `CORS_ALLOW_ORIGIN=https://mobile.lospor.org` (or wherever the PWA is deployed) in Vercel environment variables to restrict the allowed origin.
-- All mutating routes (`POST`, `PATCH`, `PUT`, `DELETE`) require `Authorization: Bearer <token>`, so wildcard CORS does not allow unauthenticated state-changing requests.
 
-## CSRF
-
-`src/proxy.ts` enforces origin-check CSRF protection on all web-app routes.
-- Requests with `Authorization: Bearer` are exempt (mobile/PWA path).
-- Requests without a matching `Origin` or `Referer` header are rejected with 403.
-- API routes (`/api/*`) are excluded from the proxy matcher — they rely on Bearer auth.
-
-## Content Security Policy
-
-`next.config.ts` sets CSP headers on all responses:
-- `script-src 'self' 'unsafe-inline'` (dev adds `'unsafe-eval'` for source maps).
-- `connect-src 'self'` (dev adds WebSocket endpoints for HMR).
-- No external script sources, no `data:` scripts.
+- Development: `Access-Control-Allow-Origin: *` is allowed for local PWA development.
+- Production: set `CORS_ALLOW_ORIGIN=https://pwa.lospor.org` in Vercel.
+- `CORS_ALLOW_ORIGINS` is also accepted as a comma-list; the current header helper uses the first configured origin.
+- CORS is not treated as CSRF protection. Cookie-authenticated writes are separately same-origin checked by the proxy.
 
 ## AI Provider
 
-Mistral AI (EU-hosted) is the only permitted AI provider. All clinical data sent for AI analysis stays within EU infrastructure. Groq and other US-based AI providers are banned.
+Mistral AI is the permitted AI provider for opt-in lab, vitals, and advisor features. Image endpoints enforce request-size limits before sending data to the provider. If a configured regional endpoint rejects inference, the app retries against the global Mistral API base. Users must crop or obscure identifiers before upload.
 
-## Recommended production checklist
+## Recommended Production Checklist
 
-- [ ] `CORS_ALLOW_ORIGIN` set to the production PWA domain in Vercel.
-- [ ] `NEXTAUTH_SECRET` is a random 32+ byte secret, not the default.
-- [ ] `DATABASE_URL` uses SSL (`?sslmode=require`).
-- [ ] Database backups enabled (automated daily minimum).
-- [ ] Error monitoring configured (Sentry EU region recommended).
-- [ ] Audit logs reviewed periodically — all case mutations are logged.
-- [ ] Token expiry reviewed: current 8h. Adjust to match institutional policy.
+- [ ] `NEXTAUTH_SECRET` is a random 32+ byte secret.
+- [ ] `NEXTAUTH_URL=https://app.lospor.org`.
+- [ ] `MOBILE_PWA_URL=https://pwa.lospor.org`.
+- [ ] `CORS_ALLOW_ORIGIN` or `CORS_ALLOW_ORIGINS` is set to the production PWA origin.
+- [ ] Database connection strings require SSL.
+- [ ] Database backups are enabled.
+- [ ] Error monitoring is configured in an EU-compatible setup if used.
+- [ ] Audit logs are reviewed periodically.
+- [ ] Token expiry and local-storage policy match institutional requirements.

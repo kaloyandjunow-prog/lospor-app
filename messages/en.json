@@ -48,7 +48,7 @@
     "haveAccount": "Already have an account?",
     "signingIn": "Signing in…",
     "creatingAccount": "Creating account…",
-    "invalidCredentials": "Invalid email or password",
+    "invalidCredentials": "Invalid email or password, or the account is not yet approved",
     "pendingApproval": "Your account is awaiting admin approval",
     "registrationPending": "Account created — you will be notified when an admin approves your account",
     "emailRegistered": "Email already registered",
@@ -225,7 +225,7 @@
     "exportDataDesc": "Download a JSON copy of your account, all cases, and the audit log (GDPR Article 15).",
     "downloadData": "Download my data",
     "deleteAccount": "Delete my account",
-    "deleteAccountDesc": "Your account will be deactivated immediately. Cases are retained for 30 days then permanently deleted (GDPR Article 17). This cannot be undone.",
+    "deleteAccountDesc": "Your account access will be disabled immediately and the current mobile token revoked. Further deletion or anonymisation is processed according to the retention policy. This cannot be undone.",
     "typeDeleteToConfirm": "Type DELETE to confirm",
     "confirmDeletion": "Confirm deletion",
     "deleting": "Deleting…"

@@ -1188,7 +1188,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             Enable AI pre-operative advisor for this case
           </label>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            Optional. The AI receives only structured clinical fields — no names, notes, or free-text. EU-hosted (Mistral).
+            Optional. The AI receives only structured clinical fields — no names, notes, or free-text.
           </p>
         </div>
       </div>

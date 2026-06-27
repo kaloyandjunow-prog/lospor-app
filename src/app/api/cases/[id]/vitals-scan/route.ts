@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { canAccessCase } from "@/lib/access-control"
+import { fetchMistralChatCompletions } from "@/lib/mistral"
 import { prisma } from "@/lib/prisma"
 import { rateLimit } from "@/lib/rate-limit"
 
@@ -60,32 +61,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${MISTRAL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.MISTRAL_VISION_MODEL ?? "mistral-small-latest",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: `data:${mimeType};base64,${image}` },
-              },
-              {
-                type: "text",
-                text: "Extract numeric vital sign readings from this patient monitor screen. Return ONLY valid JSON in exactly this format: {\"systolic\":null,\"diastolic\":null,\"heartRate\":null,\"spO2\":null,\"etco2\":null,\"temp\":null,\"rr\":null}. Replace null with the numeric value for each parameter you can clearly read. Return null for any parameter not visible or not legible. No explanation, no markdown, no extra text.",
-              },
-            ],
-          },
-        ],
-        max_tokens: 120,
-        temperature: 0,
-      }),
+    const res = await fetchMistralChatCompletions(MISTRAL_API_KEY, {
+      model: process.env.MISTRAL_VISION_MODEL ?? "mistral-small-latest",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: `data:${mimeType};base64,${image}` },
+            },
+            {
+              type: "text",
+              text: "Extract numeric vital sign readings from this patient monitor screen. Return ONLY valid JSON in exactly this format: {\"systolic\":null,\"diastolic\":null,\"heartRate\":null,\"spO2\":null,\"etco2\":null,\"temp\":null,\"rr\":null}. Replace null with the numeric value for each parameter you can clearly read. Return null for any parameter not visible or not legible. No explanation, no markdown, no extra text.",
+            },
+          ],
+        },
+      ],
+      max_tokens: 120,
+      temperature: 0,
     })
 
     if (!res.ok) {

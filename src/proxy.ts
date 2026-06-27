@@ -3,6 +3,7 @@ import type { NextFetchEvent, NextMiddleware } from "next/server"
 import NextAuth, { type NextAuthRequest } from "next-auth"
 import { authConfig } from "@/lib/auth.config"
 import { corsHeaders } from "@/lib/cors"
+import { validateCookieWriteOrigin } from "@/lib/csrf"
 
 // ── CORS preflight handler ────────────────────────────────────────────────────
 // Handles OPTIONS for every /api/* route centrally so individual route files
@@ -20,35 +21,14 @@ function handleCorsOptions(req: NextRequest): NextResponse | null {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STATE_CHANGING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
-
-function appOrigin(): string | null {
-  const raw = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? null
-  if (!raw) return null
-  try { return new URL(raw).origin } catch { return null }
-}
-
 function csrfCheck(req: NextRequest): NextResponse | null {
-  if (!STATE_CHANGING_METHODS.has(req.method)) return null
-  if ((req.headers.get("authorization") ?? "").startsWith("Bearer ")) return null
   if (req.method === "OPTIONS") return null
-
-  const expected = appOrigin()
-  if (!expected) {
+  const result = validateCookieWriteOrigin(req)
+  if (result === "skip") {
     console.warn("[proxy] CSRF origin check skipped: NEXTAUTH_URL and NEXT_PUBLIC_APP_URL are both unset.")
     return null
   }
-
-  const origin = req.headers.get("origin")
-  if (!origin) {
-    const referer = req.headers.get("referer")
-    if (referer) {
-      try { if (new URL(referer).origin === expected) return null } catch { /* fall through */ }
-    }
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
-  return origin !== expected ? NextResponse.json({ error: "Forbidden" }, { status: 403 }) : null
+  return result === "fail" ? NextResponse.json({ error: "Forbidden" }, { status: 403 }) : null
 }
 
 // ── Mobile PWA redirect ───────────────────────────────────────────────────────
@@ -91,8 +71,12 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   const corsOptions = handleCorsOptions(req)
   if (corsOptions) return corsOptions
 
-  // 2. API routes pass through; CSRF + auth apply only to web-app page routes
-  if (req.nextUrl.pathname.startsWith("/api/")) return NextResponse.next()
+  // 2. API routes pass through after rejecting cross-site cookie-authenticated writes.
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    const csrfError = csrfCheck(req)
+    if (csrfError) return csrfError
+    return NextResponse.next()
+  }
 
   const redirect = mobileRedirect(req)
   if (redirect) return redirect

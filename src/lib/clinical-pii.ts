@@ -43,10 +43,13 @@ export function checkClinicalPayloadPII(payload: {
   })
 }
 
-export function checkEventPII(ev: { name?: unknown; label?: unknown; value?: unknown }): string | null {
+export function checkEventPII(ev: Record<string, unknown>): string | null {
   return checkPII({
-    name: text(ev.name),
-    label: text(ev.label),
-    value: text(ev.value),
+    notes: text(ev.notes),
+    note: text(ev.note),
+    comment: text(ev.comment),
+    description: text(ev.description),
+    complicationNote: text(ev.complicationNote),
+    customText: text(ev.customText),
   })
 }

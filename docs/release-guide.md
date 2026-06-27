@@ -12,7 +12,7 @@ Before anything else:
 - [ ] Dev web server runs without errors: `npm run dev` in `lospor-app`
 - [ ] Mobile app connects to local web server and all features work on emulator
 - [ ] Postop, intraop, preop round-trip tested (save on mobile, check on web and vice versa)
-- [ ] GDPR: confirm only Mistral AI (EU) endpoints are used вЂ” no Groq or US providers anywhere
+- [ ] GDPR: confirm only the configured Mistral provider is used - no Groq, OpenAI, Anthropic API, or other providers anywhere
 - [ ] `.env.local` is in `.gitignore` (it contains secrets)
 - [ ] `MISTRAL_API_KEY` and `DATABASE_URL` and `NEXTAUTH_SECRET` are NOT committed to git
 
@@ -192,16 +192,16 @@ The `dist/` folder is a complete static web app with its own manifest and servic
 4. **Output directory**: `dist`
 5. **Build command**: `npm run export:web`  в†ђ must use this, not `npx expo export --platform web`
 6. **Environment variable**: `EXPO_PUBLIC_API_BASE = https://app.lospor.org`
-7. Set the custom domain to `mobile.lospor.org`
+7. Set the custom domain to `pwa.lospor.org`
 
 ### 5.3 Enable the mobile redirect on the web app
 
 In Vercel project settings for `lospor-app`, add:
 ```
-MOBILE_PWA_URL = https://mobile.lospor.org
+MOBILE_PWA_URL = https://pwa.lospor.org
 ```
 
-This enables the middleware in `src/proxy.ts` that redirects Android/iOS browsers from `app.lospor.org` to `mobile.lospor.org`.
+This enables the middleware in `src/proxy.ts` that redirects Android/iOS browsers from `app.lospor.org` to `pwa.lospor.org`.
 
 During local dev the redirect is disabled (no `MOBILE_PWA_URL` in `.env.local`).
 

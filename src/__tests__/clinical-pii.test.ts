@@ -17,7 +17,27 @@ describe("clinical PII gate", () => {
     expect(checkClinicalPayloadPII({ postop: { dispositionNotes: "Seen on 01.02.2026" } })).toContain("dispositionNotes")
   })
 
-  it("checks free-text event labels before event append", () => {
-    expect(checkEventPII({ label: "Ivan Petrov" })).toContain("label")
+  it("does not treat controlled event labels as free-text PII", () => {
+    const labels = [
+      "Face Mask",
+      "Oral ETT",
+      "Double Lumen Tube",
+      "Surgical Airway",
+      "General Anaesthesia",
+      "Regional Anaesthesia",
+      "To PACU",
+      "To ICU",
+      "Vital Signs & Monitoring",
+      "Angiotensin II",
+      "Lloyd Davies",
+    ]
+
+    for (const label of labels) {
+      expect(checkEventPII({ label })).toBeNull()
+    }
+  })
+
+  it("checks free-text event notes before event append", () => {
+    expect(checkEventPII({ label: "Complication", notes: "Ivan Petrov" })).toContain("notes")
   })
 })

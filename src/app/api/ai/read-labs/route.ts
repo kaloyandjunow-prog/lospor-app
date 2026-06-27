@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { LAB_LIBRARY } from "@/lib/labs"
 import { getAuthUser } from "@/lib/mobile-auth"
+import { fetchMistralChatCompletions } from "@/lib/mistral"
 import { rateLimit } from "@/lib/rate-limit"
 
 const MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
 const MAX_BYTES = 10_485_760 // 10 MB
+const MAX_BASE64_CHARS = Math.ceil(MAX_BYTES * 4 / 3)
 
 const LIBRARY_MAP = new Map(LAB_LIBRARY.map(test => [test.name, test.unit]))
 const LIBRARY_TABLE = LAB_LIBRARY.map(test => `${test.name} | ${test.unit || "-"}`).join("\n")
@@ -121,29 +123,24 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
+  if (imageBase64.length > MAX_BASE64_CHARS) {
+    return NextResponse.json({ error: "Image too large" }, { status: 413 })
+  }
 
   let mistralRes: Response
   try {
-    const base = (process.env.MISTRAL_API_BASE ?? "https://api.mistral.ai/v1").replace(/\/$/, "")
-    mistralRes = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "pixtral-12b-2409",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
-            { type: "text", text: EXTRACT_PROMPT },
-          ],
-        }],
-        temperature: 0.1,
-        max_tokens: 2000,
-        stream: false,
-      }),
+    mistralRes = await fetchMistralChatCompletions(apiKey, {
+      model: process.env.MISTRAL_VISION_MODEL ?? "pixtral-12b-2409",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+          { type: "text", text: EXTRACT_PROMPT },
+        ],
+      }],
+      temperature: 0.1,
+      max_tokens: 2000,
+      stream: false,
     })
   } catch (err) {
     console.error("[ai/read-labs] Mistral fetch error:", err)

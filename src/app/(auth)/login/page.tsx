@@ -59,8 +59,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", { email: data.email, password: data.password, redirect: false })
     setLoading(false)
     if (result?.error) {
-      const check = await fetch(`/api/auth/check-pending?email=${encodeURIComponent(data.email)}`).then(r => r.json()).catch(() => ({ pending: false }))
-      toast.error(check.pending ? t("auth.pendingApproval") : t("auth.invalidCredentials"))
+      toast.error(t("auth.invalidCredentials"))
       return
     }
     router.push("/dashboard")

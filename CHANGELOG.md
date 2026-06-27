@@ -1,5 +1,18 @@
 # Changelog - LOSPOR Web App
 
+## [3.1.0] - 2026-06-25
+
+### Security and privacy hardening
+- Cookie-authenticated state-changing API requests now require a same-origin `Origin` or `Referer`; bearer-token mobile/PWA requests remain supported.
+- Clinical PII validation is now field-aware for intraoperative events: controlled labels such as `Face Mask`, `To PACU`, and `General Anaesthesia` are allowed, while free-text event notes remain checked.
+- AI lab-reading uploads now enforce the actual parsed base64 payload size instead of relying only on `Content-Length`.
+- Login no longer probes pending-registration state after failed credentials, and the legacy pending-check endpoint now returns a generic response, reducing account-state enumeration.
+- Account deletion/privacy copy now matches the implemented soft-delete behavior: access is disabled immediately and tokens are revoked; further deletion/anonymisation follows retention policy.
+- CORS deployment examples are aligned to `pwa.lospor.org`, with `CORS_ALLOW_ORIGINS` documented as a future multi-origin comma-list.
+- Mistral API calls now retry against the global Mistral API base if a configured regional endpoint returns `regional_inference_not_allowed` (`code: 1914`), covering lab scan, vitals scan, and the pre-operative AI advisor.
+- AI privacy copy now describes the configured AI provider without overclaiming a fixed inference region.
+- Added synced `User.preferences` storage for mobile/PWA intraoperative favourite bolus drugs and infusions.
+
 ## [3.0.0] - 2026-06-25
 
 ### Summary

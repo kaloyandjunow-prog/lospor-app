@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LosporBrand } from "@/components/LosporBrand"
 
-export const metadata = { title: "Terms of Service — LOSPOR" }
+export const metadata = { title: "Terms of Service - LOSPOR" }
 
 export default function TermsPage() {
   return (
@@ -15,76 +15,55 @@ export default function TermsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Terms of Service</CardTitle>
-            <p className="text-xs text-slate-400 mt-1">Effective date: 1 June 2026 · Version 1.1</p>
+            <p className="text-xs text-slate-400 mt-1">Effective date: 25 June 2026 - Version 3.1</p>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-sm leading-relaxed">
-
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">1. What LOSPOR is for</h3>
-              <p>LOSPOR is a personal anaesthetic case log for anaesthesiologists. It is designed for recording de-identified/pseudonymised perioperative cases for the purposes of learning, professional development, portfolio building, and clinical audit.</p>
+              <p>LOSPOR is a personal anaesthetic case log and perioperative data platform for documentation, learning, professional development, audit, and pseudonymised research export.</p>
             </section>
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">2. What you must not enter</h3>
-              <p>By using LOSPOR you agree that you will <strong>not</strong> enter any of the following into any field:</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>Patient names (first name, last name, or any combination)</li>
-                <li>National identification numbers (e.g. Bulgarian EGN, NHS number, passport number)</li>
-                <li>Hospital record numbers or file references</li>
-                <li>Dates of birth</li>
-                <li>Contact information (phone numbers, email addresses, home addresses)</li>
-                <li>Any other information that could directly or indirectly identify a patient</li>
-              </ul>
-              <p className="text-amber-700 dark:text-amber-400 text-xs font-medium">LOSPOR is not a clinical record system. Your hospital&apos;s medical records system remains the authoritative source for patient data.</p>
+              <p>By using LOSPOR you agree that you will not enter patient names, national identifiers, hospital record numbers, dates of birth, contact details, addresses, or any other direct patient-identifying information into any field or uploaded image.</p>
+              <p className="text-amber-700 dark:text-amber-400 text-xs font-medium">LOSPOR is not a hospital medical record system. Your hospital medical record remains the authoritative patient record.</p>
             </section>
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">3. Your account</h3>
-              <p>Accounts are for individual use only. You are responsible for keeping your credentials secure. Accounts are subject to approval by a LOSPOR administrator before use.</p>
+              <p>Accounts are for individual use only. You are responsible for keeping your credentials secure. Accounts are subject to administrator approval before use. Account deletion disables access immediately; additional deletion or anonymisation is handled according to the retention policy.</p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">3a. AI image scanning</h3>
-              <p>LOSPOR provides optional AI-powered image scanning for lab reports and anaesthesia monitor readings. When you use these features:</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>You must crop or obscure any patient-identifiable information (names, dates of birth, ID numbers, barcodes) from the image before uploading.</li>
-                <li>Images are sent to Mistral AI (EU-hosted) for text extraction and are not retained beyond the request.</li>
-                <li>The extracted values are a starting point — you remain responsible for reviewing and correcting them before saving.</li>
-                <li>These features are opt-in and require an explicit action each time.</li>
-              </ul>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">4. AI image scanning</h3>
+              <p>LOSPOR provides optional AI-powered image scanning for lab reports and anaesthesia monitor readings. AI output is a draft extraction for clinician review and must not be used as the sole basis for diagnosis, treatment, or documentation. You must crop or obscure identifiers before upload.</p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">4. Medical disclaimer</h3>
-              <p>LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is <strong>not intended</strong> to replace clinical judgment, provide autonomous clinical decision-making, or serve as a certified medical device. The AI advisor feature is a supplementary educational tool — it does not constitute medical advice and must not be used as the sole basis for clinical decisions.</p>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">5. Medical disclaimer</h3>
+              <p>LOSPOR is intended for perioperative documentation, research, and workflow support only. It is not intended to replace clinical judgment, provide autonomous clinical decision-making, or serve as a certified medical device.</p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">5. Liability</h3>
-              <p>LOSPOR is provided &quot;as is&quot; without warranty of any kind. The operator accepts no liability for clinical decisions made using or based on LOSPOR. You use the service at your own professional risk.</p>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">6. Liability</h3>
+              <p>LOSPOR is provided as is without warranty of any kind. The operator accepts no liability for clinical decisions made using or based on LOSPOR. You use the service at your own professional risk.</p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">6. Open source</h3>
-              <p>LOSPOR is published under the <strong>AGPL-3.0</strong> licence. If you self-host a modified version, you must publish the source code of your modifications under the same licence. See the <a href="https://github.com/kaloyandjunow-prog/lospor-app/blob/main/LICENSE" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">LICENSE file</a> for details.</p>
-            </section>
-
-            <section>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">7. Changes</h3>
-              <p>These terms may be updated. Continued use after a new version is posted constitutes acceptance. The current version and effective date are shown at the top of this page.</p>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">7. Open source</h3>
+              <p>LOSPOR is published under the <strong>AGPL-3.0</strong> licence. If you self-host a modified version, you must publish the source code of your modifications under the same licence.</p>
             </section>
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">8. Contact</h3>
               <p><a href="mailto:kaloyandjunow@gmail.com" className="text-blue-600 hover:underline">kaloyandjunow@gmail.com</a></p>
             </section>
-
           </CardContent>
         </Card>
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-600">
           <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-          {" · "}
+          {" - "}
           <Link href="/login" className="hover:underline">Back to login</Link>
         </p>
       </div>
