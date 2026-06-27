@@ -13,6 +13,7 @@ import { PostopForm, type PostopData } from "@/components/forms/PostopForm"
 import { UserRound, CheckCircle2 } from "lucide-react"
 import { CaseMeta } from "@/components/CaseMeta"
 import { calcBMI } from "@/lib/scores"
+import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { CaseSummary } from "@/components/CaseSummary"
@@ -264,7 +265,7 @@ export default function NewCasePage() {
   // Keep -step= in sync so refresh lands on the right step
   useEffect(() => {
     if (!caseId) return
-    router.replace(`/cases/new-continue=${caseId}&step=${step}`, { scroll: false })
+    router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId, router])
 
   // Cleanup countdowns on unmount
@@ -443,7 +444,7 @@ export default function NewCasePage() {
         if (code) setCaseCode(code)
         if (preopUpdatedAt) preopUpdatedAtRef.current = new Date(preopUpdatedAt).toISOString()
         // Update URL so page refresh restores the correct step
-        router.replace(`/cases/new-continue=${id}`, { scroll: false })
+        router.replace(`/cases/new?continue=${id}`, { scroll: false })
       } else {
         // Update existing case
         const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
@@ -510,7 +511,7 @@ export default function NewCasePage() {
           setCaseId(created.id)
           if (created.caseCode) setCaseCode(created.caseCode)
           if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
-          router.replace(`/cases/new-continue=${created.id}`, { scroll: false })
+          router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
         } else if (!res.ok) {
           const text = await res.text().catch(() => "")
           let body: { error?: string } = {}
@@ -641,7 +642,7 @@ export default function NewCasePage() {
       } catch {}
       // Start 5-minute undo countdown
       finalizedAtRef.current = serverFinalizedAt
-      const UNDO_WINDOW_SECS = 5 * 60
+      const UNDO_WINDOW_SECS = FINALIZE_UNDO_WINDOW_MS / 1000
       const elapsed = Math.floor((Date.now() - serverFinalizedAt) / 1000)
       const remaining = Math.max(0, UNDO_WINDOW_SECS - elapsed)
       setFinalizedCaseId(id)

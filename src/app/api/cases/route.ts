@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
     }
 
-    const status = postop ? "COMPLETE" : intraop ? "IN_PROGRESS" : "DRAFT"
+    const status = postop ? "AWAITING_REVIEW" : intraop ? "IN_PROGRESS" : "DRAFT"
 
     let caseRecord
     for (let attempt = 0; ; attempt++) {

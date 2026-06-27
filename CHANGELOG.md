@@ -1,5 +1,23 @@
 # Changelog - LOSPOR Web App
 
+## [3.3.0] - 2026-06-27
+
+### Security / Integrity
+- `POST /api/cases` can no longer create a case with `COMPLETE` status directly. Cases with postop data now enter `AWAITING_REVIEW`; `COMPLETE` is reserved exclusively for `POST /api/cases/:id/finalize` which runs full validation and generates an immutable snapshot.
+- Finalization undo window standardized to 30 minutes everywhere. `constants.ts` `FINALIZE_UNDO_WINDOW_MS` corrected from 5 min to 30 min; `unfinalize/route.ts` now imports the constant instead of a hardcoded local value; web new-case undo banner now counts down 30 minutes, matching what the backend actually allows.
+- CORS centralized in `unfinalize/route.ts` and `lock/route.ts` — both now use `corsHeaders()` from `src/lib/cors` instead of inline CORS objects.
+
+### Fixed
+- Case summary page (`/cases/[id]`) now redirects unauthenticated users to `/login?callbackUrl=/cases/:id` instead of silently returning an empty render. The previous `return null` left the Next.js layout hydrating with no session, causing 20+ parallel API calls returning 401 and a blank or broken page.
+- Opening a case summary URL while not logged in (e.g., shared link from PWA) now correctly returns to the case after login.
+- URLs with the legacy `/cases/new-continue=${id}` pattern (created by a previous router.replace bug) now redirect to `/cases/${id}` instead of 404-ing.
+- New case page (`/cases/new`) URL now uses `?continue=${id}` query params instead of the `/cases/new-continue=${id}` path pattern. Shared/bookmarked URLs during case creation now reload the correct case instead of 404-ing.
+- Allergy details field now parses JSON-encoded drug catalogue entries (e.g. `[{"label":"Analgin",...}]`) and displays the drug names as a comma-separated list, matching the behaviour already in place for current medications.
+
+### UX
+- Case summary page (`/cases/[id]`) now shows a review bar above the protocol for all case states. Non-COMPLETE cases show a status chip, edit links (Preop / Intraop / Postop), and a Close Now button that calls the finalize endpoint. COMPLETE cases within the undo window show an Unfinalize button. Print PDF is always accessible from the bar.
+- AI provider wording in changelog corrected to clarify that EU-region inference is preferred but Mistral's global endpoint may be used as a fallback.
+
 ## [3.2.1] - 2026-06-27
 
 ### Fixed
@@ -285,7 +303,7 @@ This is the first stable, publicly tagged release of LOSPOR. It consolidates all
 - Security headers: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, Content Security Policy
 - Server-side PII detector on all free-text fields: Bulgarian EGN (with checksum), 7+ digit sequences, date patterns, email addresses, two consecutive capitalised words (name heuristic). PII blocks are logged to the audit trail and returned as a 400 with a plain-language explanation
 - GDPR design: no patient identifiers ever stored. Case codes are auto-generated (`YYYY-NNNN`). The printable protocol renders blank fields for patient name and ID — the clinician fills them in by hand after printing
-- All AI inference uses **Mistral AI (EU — La Plateforme)** exclusively. US-hosted providers (Groq, OpenAI, etc.) are not used anywhere in the codebase
+- All AI inference uses **Mistral AI (La Plateforme)**. EU-region inference is preferred; requests may fall back to Mistral's global endpoint if the regional API is unavailable. US-hosted providers (Groq, OpenAI, etc.) are not used anywhere in the codebase
 - Privacy Policy v1.1 — sub-processors section now explicitly covers Mistral AI image processing for lab scan and monitor scan
 - Terms of Service v1.1 — new clause 3a documents user obligations when using AI image scanning features
 - AGPL-3.0 `LICENSE` file with `Copyright (C) 2026 Kaloyan Dzhunov`

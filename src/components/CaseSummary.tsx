@@ -8,6 +8,7 @@ import { useLocale } from "next-intl"
 import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/PostopForm"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
+import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import type {
   LegacyKeyEvents, TimetableDrug, TimetableInfusion, VitalsEntry,
   AgentSegment, TimetableFluid,
@@ -763,9 +764,10 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     return map
   })()
 
-  const [data,    setData]    = useState<CaseDetail | null>(null)
-  const [loading, setLoading]     = useState(true)
+  const [data,       setData]       = useState<CaseDetail | null>(null)
+  const [loading,    setLoading]    = useState(true)
   const [showWarning, setShowWarning] = useState(false)
+  const [finalizing, setFinalizing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -809,6 +811,24 @@ export function CaseSummary({ caseId }: { caseId: string }) {
           .map((item) => {
             const med = item as { label?: unknown; inn?: unknown; name?: unknown }
             return med.label ?? med.inn ?? med.name
+          })
+          .filter((label): label is string => typeof label === "string" && label.length > 0)
+          .join(", ")
+      } catch {}
+    }
+    return raw
+  })()
+  const allergyDetailsText = (() => {
+    const raw = p?.allergyDetails
+    if (!raw) return null
+    const trimmed = raw.trim()
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown[]
+        if (Array.isArray(parsed)) return parsed
+          .map((item) => {
+            const med = item as { label?: unknown; name?: unknown }
+            return med.label ?? med.name
           })
           .filter((label): label is string => typeof label === "string" && label.length > 0)
           .join(", ")
@@ -914,6 +934,81 @@ export function CaseSummary({ caseId }: { caseId: string }) {
 
 
       <div className="protocol-root space-y-3">
+
+        {/* Review bar — screen only */}
+        {(() => {
+          const status = data?.status
+          const finalizedAt = data?.finalizedAt ? new Date(data.finalizedAt).getTime() : null
+          const withinUndoWindow = finalizedAt != null && Date.now() - finalizedAt < FINALIZE_UNDO_WINDOW_MS
+          const statusConfig: Record<string, { label: string; cls: string }> = {
+            COMPLETE:        { label: "Finalised",        cls: "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400" },
+            AWAITING_REVIEW: { label: "Awaiting review",  cls: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400" },
+            IN_PROGRESS:     { label: "In progress",      cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400" },
+            DRAFT:           { label: "Draft",            cls: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400" },
+          }
+          const sc = statusConfig[status ?? "DRAFT"] ?? statusConfig.DRAFT
+          return (
+            <div className={`no-print rounded-xl border px-4 py-3 space-y-2 ${sc.cls}`}>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className={`text-xs font-bold uppercase tracking-wide ${sc.cls.split(" ").filter(c => c.startsWith("text-")).join(" ")}`}>
+                  {sc.label}
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {status !== "COMPLETE" && (
+                    <>
+                      <span className="text-xs text-slate-400">Edit:</span>
+                      <a href={`/cases/new?continue=${caseId}&step=0`}
+                        className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
+                        Preop
+                      </a>
+                      <a href={`/cases/new?continue=${caseId}&step=1`}
+                        className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
+                        Intraop
+                      </a>
+                      <a href={`/cases/new?continue=${caseId}&step=2`}
+                        className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
+                        Postop
+                      </a>
+                      <button
+                        disabled={finalizing}
+                        onClick={async () => {
+                          setFinalizing(true)
+                          try {
+                            const res = await fetch(`/api/cases/${caseId}/finalize`, { method: "POST" })
+                            if (res.ok) {
+                              const body = await res.json().catch(() => null)
+                              setData(prev => prev ? { ...prev, status: "COMPLETE", finalizedAt: body?.finalizedAt ?? new Date().toISOString() } : prev)
+                            }
+                          } finally {
+                            setFinalizing(false)
+                          }
+                        }}
+                        className="text-xs font-bold px-3 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 transition-colors">
+                        {finalizing ? "Closing…" : "Close Now"}
+                      </button>
+                    </>
+                  )}
+                  {status === "COMPLETE" && withinUndoWindow && (
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`/api/cases/${caseId}/unfinalize`, { method: "POST" })
+                        if (res.ok) {
+                          setData(prev => prev ? { ...prev, status: "IN_PROGRESS", finalizedAt: null } : prev)
+                        }
+                      }}
+                      className="text-xs font-semibold px-3 py-1 rounded border border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                      Unfinalize
+                    </button>
+                  )}
+                  <button onClick={() => setShowWarning(true)}
+                    className="text-xs font-semibold px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    Print PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Print button + privacy notice — screen only */}
         <div className="no-print space-y-2">
@@ -1145,7 +1240,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
               {(p?.allergies || p?.latexAllergy) && (
                 <>
                   <Sec title={L.allergies} />
-                  {p?.allergyDetails && <p className="text-[10px] font-semibold text-red-700 dark:text-red-400">{p.allergyDetails}</p>}
+                  {allergyDetailsText && <p className="text-[10px] font-semibold text-red-700 dark:text-red-400">{allergyDetailsText}</p>}
                   {p?.latexAllergy   && <p className="text-[9px] text-red-600 dark:text-red-400">{L.latexAllergy}</p>}
                 </>
               )}

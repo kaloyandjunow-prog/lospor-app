@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
+import { corsHeaders } from "@/lib/cors"
+import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age":       "86400",
-}
+const CORS = corsHeaders()
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })
 }
 
-// POST — undo finalization within a 5-minute window
+// POST — undo finalization within the shared FINALIZE_UNDO_WINDOW_MS window
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -51,8 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Undo window expired" }, { status: 403 })
   }
 
-  const UNDO_WINDOW_MS = 30 * 60 * 1000   // matches the 30-min window shown in the apps
-  if (Date.now() - caseRecord.finalizedAt.getTime() >= UNDO_WINDOW_MS) {
+  if (Date.now() - caseRecord.finalizedAt.getTime() >= FINALIZE_UNDO_WINDOW_MS) {
     return NextResponse.json({ error: "Undo window expired" }, { status: 403 })
   }
 

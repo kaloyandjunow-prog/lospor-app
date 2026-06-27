@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { jwtVerify } from "jose"
 import { prisma } from "@/lib/prisma"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { CaseSummary } from "@/components/CaseSummary"
 import { CaseMeta } from "@/components/CaseMeta"
 import { format } from "date-fns"
@@ -37,6 +37,13 @@ export default async function CasePage({
   const { id } = await params
   const sp     = await searchParams
 
+  // Handle legacy browser URLs where the new-case page used path-encoded IDs
+  // instead of query params. Redirect to the actual case summary.
+  if (id.startsWith("new-continue=")) {
+    const realId = id.slice("new-continue=".length).split("&")[0]
+    redirect(`/cases/${realId}`)
+  }
+
   // ── Auth path 1: short-lived print token (mobile "Print PDF" flow) ─────────
   // If a valid print_token is in the query string, bypass the web session check
   // so the user can print directly from their phone browser without logging in.
@@ -54,7 +61,7 @@ export default async function CasePage({
     role   = "MEMBER"  // print tokens are always member-scoped to the case owner
   } else {
     const session = await auth()
-    if (!session) return null
+    if (!session) redirect(`/login?callbackUrl=/cases/${id}`)
     const me  = session.user
     userId    = me.id
     role      = me.role
