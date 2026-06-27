@@ -1,5 +1,11 @@
 # Changelog - LOSPOR Web App
 
+## [3.2.1] - 2026-06-27
+
+### Fixed
+- Relational-sync background mirror (diagnoses, procedures, comorbidities, labs, medications, vascular accesses, complications, selections, field-status) returned Prisma P2028 on every case save because `syncCaseRelational` wrapped all writes in `db.$transaction([...])`, which is incompatible with Supabase's Transaction-mode PgBouncer (port 6543). All four transaction blocks are now sequential `await` calls; the JSON columns remain the source of truth so atomicity is not required.
+- Preop autosave returned a spurious 409 conflict when the conflict-base timestamp was not yet initialised (race condition where the case ID was available from the URL before the case data fetch completed). The client now silently recovers on `reason: "missing_conflict_timestamp"` by adopting the server's current timestamp and retrying once without user intervention.
+
 ## [3.2.0] - 2026-06-27
 
 ### Added

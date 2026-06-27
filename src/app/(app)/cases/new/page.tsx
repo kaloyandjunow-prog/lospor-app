@@ -424,7 +424,7 @@ export default function NewCasePage() {
   const saveSection = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
-    { showToast = false, nextStep, forceUpdate = false }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean } = {}
+    { showToast = false, nextStep, forceUpdate = false, _retryOnce = false }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; _retryOnce?: boolean } = {}
   ) => {
     try {
       if (!caseIdRef.current) {
@@ -464,6 +464,16 @@ export default function NewCasePage() {
         })
         if (res.status === 409) {
           const body = await res.json().catch(() => ({}))
+          // missing_conflict_timestamp happens when the client's ref was not yet
+          // initialized (e.g. case-ID was set from URL params before the case fetch
+          // completed). Recover the base from the server and retry once silently.
+          if (!_retryOnce && body.error === "conflict" && body.reason === "missing_conflict_timestamp" && body.serverVersion?.updatedAt) {
+            const recovered = new Date(body.serverVersion.updatedAt).toISOString()
+            if (section === "preop")   preopUpdatedAtRef.current   = recovered
+            if (section === "postop")  postopUpdatedAtRef.current  = recovered
+            if (section === "intraop") intraopUpdatedAtRef.current = recovered
+            return saveSection(section, data, { showToast, nextStep, forceUpdate, _retryOnce: true })
+          }
           if (body.error === "conflict" && body.serverVersion) {
             // Open conflict resolution modal instead of throwing
             setConflict({

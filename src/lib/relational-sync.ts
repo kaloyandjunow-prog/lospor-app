@@ -442,21 +442,22 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
       fieldStatus(caseId, "preop", "aiOptIn", p.aiOptIn),
     )
 
-    await db.$transaction([
-      db.preopDiagnosis.deleteMany({ where: { preopId: p.id } }),
-      db.preopDiagnosis.createMany({ data: diagnosisRows(p.id, caseId, p.diagnosesJson, concepts) }),
-      db.preopProcedure.deleteMany({ where: { preopId: p.id } }),
-      db.preopProcedure.createMany({ data: procedureRows(p.id, caseId, p.proceduresJson, concepts) }),
-      db.comorbidity.deleteMany({ where: { preopId: p.id } }),
-      db.comorbidity.createMany({ data: comorbidityRows(p.id, caseId, p.comorbidities, concepts) }),
-      db.labResult.deleteMany({ where: { preopId: p.id } }),
-      db.labResult.createMany({ data: labData }),
-      db.medication.deleteMany({ where: { preopId: p.id } }),
-      db.medication.createMany({ data: [
-        ...medicationRows(p.id, caseId, medJson, "CURRENT", concepts),
-        ...medicationRows(p.id, caseId, allergyJson, "ALLERGY", concepts),
-      ] }),
-    ])
+    // Sequential writes — PgBouncer Transaction-mode (port 6543) cannot sustain
+    // interactive $transaction([...]) calls → P2028. Atomicity is not required here
+    // because this is a research mirror; the JSON columns stay authoritative.
+    await db.preopDiagnosis.deleteMany({ where: { preopId: p.id } })
+    await db.preopDiagnosis.createMany({ data: diagnosisRows(p.id, caseId, p.diagnosesJson, concepts) })
+    await db.preopProcedure.deleteMany({ where: { preopId: p.id } })
+    await db.preopProcedure.createMany({ data: procedureRows(p.id, caseId, p.proceduresJson, concepts) })
+    await db.comorbidity.deleteMany({ where: { preopId: p.id } })
+    await db.comorbidity.createMany({ data: comorbidityRows(p.id, caseId, p.comorbidities, concepts) })
+    await db.labResult.deleteMany({ where: { preopId: p.id } })
+    await db.labResult.createMany({ data: labData })
+    await db.medication.deleteMany({ where: { preopId: p.id } })
+    await db.medication.createMany({ data: [
+      ...medicationRows(p.id, caseId, medJson, "CURRENT", concepts),
+      ...medicationRows(p.id, caseId, allergyJson, "ALLERGY", concepts),
+    ] })
   }
 
   if (c.intraop) {
@@ -521,19 +522,17 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
       fieldStatus(caseId, "intraop", "keyEvents", it.keyEvents),
       fieldStatus(caseId, "intraop", "complications", it.complications),
     )
-    await db.$transaction([
-      db.vascularAccess.deleteMany({ where: { intraopId: it.id } }),
-      db.vascularAccess.createMany({ data: vascularRows(it.id, caseId, it.vascularAccesses, concepts) }),
-      db.premedicationAdministration.deleteMany({ where: { intraopId: it.id } }),
-      db.premedicationAdministration.createMany({ data: [
-        ...premedRows(it.id, caseId, "evening", it.premedicationEvening, concepts),
-        ...premedRows(it.id, caseId, "morning", it.premedicationMorning, concepts),
-      ] }),
-      db.caseComplication.deleteMany({ where: { caseId, section: "intraop" } }),
-      db.caseComplication.createMany({ data: complicationRows(caseId, "intraop", it.complications, concepts) }),
-      db.caseSelection.deleteMany({ where: { caseId, section: "intraop" } }),
-      db.caseSelection.createMany({ data: selections }),
-    ])
+    await db.vascularAccess.deleteMany({ where: { intraopId: it.id } })
+    await db.vascularAccess.createMany({ data: vascularRows(it.id, caseId, it.vascularAccesses, concepts) })
+    await db.premedicationAdministration.deleteMany({ where: { intraopId: it.id } })
+    await db.premedicationAdministration.createMany({ data: [
+      ...premedRows(it.id, caseId, "evening", it.premedicationEvening, concepts),
+      ...premedRows(it.id, caseId, "morning", it.premedicationMorning, concepts),
+    ] })
+    await db.caseComplication.deleteMany({ where: { caseId, section: "intraop" } })
+    await db.caseComplication.createMany({ data: complicationRows(caseId, "intraop", it.complications, concepts) })
+    await db.caseSelection.deleteMany({ where: { caseId, section: "intraop" } })
+    await db.caseSelection.createMany({ data: selections })
   }
 
   if (c.postop) {
@@ -557,18 +556,14 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
       fieldStatus(caseId, "postop", "handoverItems", c.postop.handoverItems),
       fieldStatus(caseId, "postop", "complications", c.postop.complications),
     )
-    await db.$transaction([
-      db.caseComplication.deleteMany({ where: { caseId, section: "postop" } }),
-      db.caseComplication.createMany({ data: complicationRows(caseId, "postop", c.postop.complications, concepts) }),
-      db.caseSelection.deleteMany({ where: { caseId, section: "postop" } }),
-      db.caseSelection.createMany({ data: selections }),
-    ])
+    await db.caseComplication.deleteMany({ where: { caseId, section: "postop" } })
+    await db.caseComplication.createMany({ data: complicationRows(caseId, "postop", c.postop.complications, concepts) })
+    await db.caseSelection.deleteMany({ where: { caseId, section: "postop" } })
+    await db.caseSelection.createMany({ data: selections })
   }
 
-  await db.$transaction([
-    db.clinicalFieldStatus.deleteMany({ where: { caseId } }),
-    db.clinicalFieldStatus.createMany({ data: statuses }),
-  ])
+  await db.clinicalFieldStatus.deleteMany({ where: { caseId } })
+  await db.clinicalFieldStatus.createMany({ data: statuses })
 }
 
 // userId is optional context for the audit trail only — sync itself is not
