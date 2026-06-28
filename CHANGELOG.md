@@ -1,5 +1,10 @@
 # Changelog - LOSPOR Web App
 
+## [3.4.9] - 2026-06-28
+
+### Fixed
+- **"Continue to Intraoperative" blocked by stale 409 baseline on mobile/PWA**: When a preop autosave returned 409 (server has a newer preop timestamp), the mobile app saved locally and cleared the error — but kept the stale `basePreopUpdatedAtRef` baseline. Clicking Continue then sent a final PATCH with the same stale timestamp, got another 409 from the server, and showed an "Error: conflict" alert instead of navigating to the intraop screen. Fix: the autosave catch block now adopts `serverVersion.preopUpdatedAt` from the 409 response, and `onSubmit`'s final PATCH now handles 409 with a one-shot retry using the server's timestamp before giving up.
+
 ## [3.4.8] - 2026-06-28
 
 ### Fixed
