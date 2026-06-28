@@ -4,13 +4,9 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { revokeToken } from "@/lib/token-blocklist"
 import { logAudit } from "@/lib/audit"
+import { corsHeaders } from "@/lib/cors"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age":       "86400",
-}
+const CORS = corsHeaders()
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })

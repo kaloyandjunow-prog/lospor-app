@@ -43,6 +43,8 @@ export default function AdminPage() {
       setPending(pend ?? [])
       setRequests(reqs ?? [])
       setLoading(false)
+    }).catch(() => {
+      setLoading(false)
     })
   }, [router])
 
@@ -127,7 +129,7 @@ export default function AdminPage() {
                     <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{displayName}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      {u.institution.name} — {u.institution.city}
+                      {u.institution?.name ?? "—"} — {u.institution?.city ?? "—"}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                       {t("admin.registered")} {new Date(u.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
@@ -174,7 +176,7 @@ export default function AdminPage() {
                     <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{displayName}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      {u.institution.name} — {u.institution.city}
+                      {u.institution?.name ?? "—"} — {u.institution?.city ?? "—"}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                       {t("admin.requested")} {new Date(req.requestedAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
@@ -225,8 +227,8 @@ export default function AdminPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{u.email}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                      {u.institution.name}
-                      <span className="text-slate-400 ml-1 text-xs">({u.institution.city})</span>
+                      {u.institution?.name ?? "—"}
+                      {u.institution?.city && <span className="text-slate-400 ml-1 text-xs">({u.institution.city})</span>}
                     </td>
                     <td className="px-4 py-3">
                       {u.role === "ADMIN" ? (

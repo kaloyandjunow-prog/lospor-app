@@ -197,13 +197,14 @@ function SectionCard({ title, children, action, error }: { title: string; childr
 function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll" }: {
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
   onIdChange?: (id: string) => void
   onAutoSave?: (data: PreopData) => void
   layoutMode?: "tabs" | "scroll"
+  caseId?: string | null
 }) {
   const t      = useTranslations()
   const locale = useLocale()
@@ -1193,7 +1194,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         </div>
       </div>
 
-      {watch("aiOptIn") && <AIAdvisor getFormData={getValues} />}
+      {watch("aiOptIn") && <AIAdvisor getFormData={getValues} caseId={caseId} />}
       </div>
 
       {fieldErrors.size > 0 && (

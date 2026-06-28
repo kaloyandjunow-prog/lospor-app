@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
+import { corsHeaders } from "@/lib/cors"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { Prisma } from "@/generated/prisma/client"
 
-const CORS = {
-  "Access-Control-Allow-Origin":  process.env.CORS_ALLOW_ORIGIN ?? (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV === "production" ? (() => { throw new Error("CORS_ALLOW_ORIGIN must be set in production") })() : "*"),
-  "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-}
+const CORS = corsHeaders("GET, PATCH, OPTIONS")
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS })

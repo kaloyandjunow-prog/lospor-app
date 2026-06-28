@@ -838,6 +838,7 @@ export default function NewCasePage() {
             onIdChange={setPatientId}
             onAutoSave={data => handleAutoSave("preop", data)}
             layoutMode={preopLayout}
+            caseId={caseId}
           />
         )}
         {!loading && step === 1 && (
