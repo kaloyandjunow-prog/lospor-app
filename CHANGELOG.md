@@ -1,5 +1,17 @@
 # Changelog - LOSPOR Web App
 
+## [3.4.8] - 2026-06-28
+
+### Fixed
+- `PATCH /api/cases/:id` no longer returns 500 when a concurrent case deletion races with an in-flight auto-save. The handler now calls `prisma.case.update` (intraop section) before `reconcileFullLog`; if the case is deleted between those two calls, `caseEvent.create` fails with Prisma P2003 (FK constraint). The error is now caught specifically for P2003/P2025, logged as a warning, and the PATCH proceeds — the auto-save was already written and will be cascade-deleted with the case. Previously this surfaced as a "Save failed" (Internal server error 500) toast for users who deleted a case while its auto-save was in flight.
+
+## [3.4.7] - 2026-06-28
+
+### Fixed
+- **Drug dose autofill and roundTo rounding** were silently missing from the main intraop drug-entry sheet (`DrugSheet` + `useDrugEntry`). The v3.4.5 fix had targeted only the old inline timetable-column picker. `DrugSheet` now pre-fills doses using IBW (Devine formula, capped at TBW) for `perKg` drugs and flat values for fixed-dose entries; `useDrugEntry` now rounds the saved dose to the library `roundTo` increment.
+- **Runtime 409 "Sync failed" badge**: `POST /api/cases/:id/events` bumps `intraop.updatedAt` via `rebuildProjection`, causing a concurrent fluid-totals `PATCH` (carrying the old baseline) to be rejected with 409. The mobile `patchIntraopSection` now catches 409, reads `serverVersion.updatedAt` from the response body, updates its baseline, and retries the patch once silently. `ApiError` was extended with a `serverVersion` field; `patchCase` propagates the parsed server body through it.
+- **Intraop timetable viewport**: reopening a case with past-timestamped events (e.g. backdated intraop entries) auto-scrolled to the current time, leaving all events off-screen. The scroll target now biases toward the last event column when events are more than 30 minutes before the current time marker.
+
 ## [3.3.1] - 2026-06-28
 
 ### Fixed
