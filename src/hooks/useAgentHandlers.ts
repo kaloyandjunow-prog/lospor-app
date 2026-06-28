@@ -25,11 +25,23 @@ export function useAgentHandlers(
 
   function closeAgentPicker() { setAgentPicker(null); setAgentPickerRect(null); setPendingAgentName(null) }
 
-  function startAgent(col: number, name: string) {
-    const filtered = agents.filter(a => !(a.startCol <= col && col <= a.endCol) && a.startCol !== col)
-    const n2o = pickerN2o !== null ? pickerN2o : undefined
-    const percent = pickerPercent !== null ? pickerPercent : undefined
-    onChange({ ...data, agents: [...filtered, { name, startCol: col, endCol: col, n2o, percent }] })
+  function startAgent(col: number, name: string, percentParam?: number | null) {
+    const n2o     = pickerN2o !== null ? pickerN2o : undefined
+    const percent = percentParam !== undefined
+      ? (percentParam !== null ? percentParam : undefined)
+      : (pickerPercent !== null ? pickerPercent : undefined)
+    const terminatedNames: string[] = []
+    const updated = agents
+      .map(a => {
+        if (a.startCol < col && col <= a.endCol) {
+          terminatedNames.push(a.name)
+          return { ...a, endCol: col - 1, stopped: true as const }
+        }
+        return a
+      })
+      .filter(a => a.startCol !== col)
+    for (const n of terminatedNames) emitLogEvent({ type: "agent_stop", name: n })
+    onChange({ ...data, agents: [...updated, { name, startCol: col, endCol: col, n2o, percent }] })
     emitLogEvent({ type: "agent_start", name, value: percent !== undefined ? String(percent) : undefined })
     closeAgentPicker(); setPickerN2o(null); setPickerPercent(null)
   }

@@ -217,6 +217,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const [timetableDirty, setTimetableDirty] = useState(false)
   const [manualSaved, setManualSaved] = useState(false)
 
+  function handleDeleteEventWithTimetable(evId: string) {
+    const ev = eventLog?.find(e => e.id === evId)
+    if (ev?.type === "fluid_start" && ev.fluidId) {
+      setTimetable(prev => ({ ...prev, fluids: (prev.fluids ?? []).filter(f => f.id !== ev.fluidId) }))
+    } else if (ev?.type === "infusion_start" && ev.infId) {
+      setTimetable(prev => ({ ...prev, infusions: (prev.infusions ?? []).filter(i => i.id !== ev.infId) }))
+    }
+    onDeleteEvent?.(evId)
+  }
+
   // Compute IBW/TBW from preop for weight-adjusted infusion totals
   const calcIbw = preop?.heightCm && preop?.sex ? calcIBW(preop.heightCm, preop.sex as "MALE" | "FEMALE" | "OTHER") : null
   const calcTbw = preop?.weightKg ?? null
@@ -728,7 +738,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabFinish = (<>
 
       {/* Complications */}
-      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} onDeleteEvent={onDeleteEvent} />
+      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} onDeleteEvent={onDeleteEvent ? handleDeleteEventWithTimetable : undefined} />
 
         </>)
         if (layoutMode === "scroll") return (

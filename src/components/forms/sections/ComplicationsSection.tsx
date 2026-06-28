@@ -76,7 +76,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, onDeleteEven
                     <button
                       type="button"
                       onClick={() => ev.id && onDeleteEvent(ev.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-sm leading-none px-1 py-0.5 rounded"
+                      className="opacity-40 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-sm leading-none px-1 py-0.5 rounded"
                       title="Delete event"
                     >x</button>
                   )}

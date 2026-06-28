@@ -979,6 +979,21 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                             if (res.ok) {
                               const body = await res.json().catch(() => null)
                               setData(prev => prev ? { ...prev, status: "COMPLETE", finalizedAt: body?.finalizedAt ?? new Date().toISOString() } : prev)
+                            } else {
+                              const body = await res.json().catch(() => ({}))
+                              const REASON_LABELS: Record<string, string> = {
+                                missing_technique:      "No anaesthesia technique recorded",
+                                missing_postop:         "Post-op record not completed",
+                                missing_aldrete:        "Aldrete score missing",
+                                missing_disposition:    "Patient disposition not recorded",
+                                missing_intraop:        "Intraop record not started",
+                                missing_preop:          "Pre-op assessment missing",
+                                invalid_intraop_times:  "End time is before start time",
+                              }
+                              const msg = body?.reason
+                                ? (REASON_LABELS[body.reason] ?? body.reason)
+                                : "Could not finalize — check all required fields are complete."
+                              alert(msg)
                             }
                           } finally {
                             setFinalizing(false)

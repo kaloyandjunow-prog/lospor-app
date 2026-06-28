@@ -654,13 +654,20 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }
   function fpCommitBolus() {
     if (!fp) return
+    const cfg    = BOLUS_DOSES[fp.name]
+    const active = fp.route ? cfg?.byRoute?.[fp.route] : undefined
+    const rt     = active?.roundTo ?? cfg?.roundTo ?? 1
+    const rawDose = Number(fp.dose)
+    const dose = rt > 1 && fp.dose !== "" && !isNaN(rawDose)
+      ? String(Math.round(rawDose / rt) * rt)
+      : fp.dose
     // Coded identity (drugId/atcCode/inn) comes from the matching catalog
     // row when the library has it — currently empty, so these are
     // undefined today, but the field flows all the way through to the
     // chart/cache/export once the drug library is populated.
     const lib = drugLibOpts.find(o => o.label === fp.name)
-    onChange({ ...data, drugs: [...data.drugs, { colIdx: fp.col, name: fp.name, dose: fp.dose, unit: fp.unit, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, route: fp.route }] })
-    emitLogEvent({ type: "drug", name: fp.name, dose: fp.dose, unit: fp.unit, drugRoute: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined })
+    onChange({ ...data, drugs: [...data.drugs, { colIdx: fp.col, name: fp.name, dose, unit: fp.unit, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, route: fp.route }] })
+    emitLogEvent({ type: "drug", name: fp.name, dose, unit: fp.unit, drugRoute: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined })
     setFp(null)
   }
   function addFluidDirect(name: string, cat: string, vol: string, col: number) {
@@ -1546,7 +1553,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       <div key={gi} draggable
                         title={`${d.name}${d.dose ? " — " + d.dose + " " + d.unit : ""}`}
                         onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("item-type","move-drug"); e.dataTransfer.setData("item-idx", String(gi)); e.dataTransfer.effectAllowed="move" }}
-                        onClick={e => { e.stopPropagation(); setSel({ type:"drug", idx:gi }) }}
+                        onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }); setDpSearch("") }}
                         onDoubleClick={e => { e.stopPropagation(); setDoseEditDrug({ idx: gi, dose: d.dose, unit: d.unit, rect: e.currentTarget.getBoundingClientRect() }) }}
                         className={`flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${sel?.type === "drug" && sel.idx === gi ? "bg-violet-400 dark:bg-violet-600 ring-2 ring-violet-500 dark:ring-violet-400" : "bg-violet-100 dark:bg-violet-900/40 hover:bg-violet-200 dark:hover:bg-violet-800/40"}`}>
                         <span className="text-[10px] font-semibold text-violet-800 dark:text-violet-300 leading-tight truncate flex-1">
@@ -2057,15 +2064,20 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                           onClick={() => {
                             const { ci, rect } = fluidPicker!
                             setFluidPicker(null)
-                            const isCrystColloid = ["Crystalloids","Colloids"].includes(cat.cat)
-                            const routes = FLUID_ROUTES[fluid.name] ?? ["IV"]
-                            setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
-                              dose: isCrystColloid ? "500" : "", doseHint: "", fluidScale: "L",
-                              rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
-                              color: "#06b6d4",
-                              quickDoses: FLUID_QUICK_VOLUMES[fluid.name], routes, route: routes[0],
-                              anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
-                            })
+                            const defaultVol = FLUID_QUICK_VOLUMES[fluid.name]?.[0]
+                            if (defaultVol != null) {
+                              addFluidDirect(fluid.name, cat.cat, String(defaultVol), ci)
+                            } else {
+                              const isCrystColloid = ["Crystalloids","Colloids"].includes(cat.cat)
+                              const routes = FLUID_ROUTES[fluid.name] ?? ["IV"]
+                              setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
+                                dose: isCrystColloid ? "500" : "", doseHint: "", fluidScale: "L",
+                                rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
+                                color: "#06b6d4",
+                                quickDoses: FLUID_QUICK_VOLUMES[fluid.name], routes, route: routes[0],
+                                anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
+                              })
+                            }
                           }}
                           className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
                           {fluid.name}
@@ -2514,10 +2526,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 <div className="space-y-0.5">
                   {INH_AGENTS.map(agent => (
                     <button key={agent} type="button"
-                      onClick={() => { setPendingAgentName(agent); setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null) }}
-                      className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors ${
-                        pendingAgentName === agent ? "bg-slate-100 dark:bg-[#333]" : "hover:bg-slate-100 dark:hover:bg-[#333]"
-                      } ${AGENT_STYLE[agent]?.text ?? ""}`}>
+                      onClick={() => startAgent(agentPicker!, agent, AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)}
+                      className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-[#333] ${AGENT_STYLE[agent]?.text ?? ""}`}>
                       {agent}
                     </button>
                   ))}
