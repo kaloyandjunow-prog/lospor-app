@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { useForm, Controller, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -202,7 +202,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
   onIdChange?: (id: string) => void
-  onAutoSave?: (data: PreopData) => void
+  onAutoSave?: (data: PreopData) => void | Promise<void>
   layoutMode?: "tabs" | "scroll"
   caseId?: string | null
 }) {
@@ -335,19 +335,38 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   }
 
   // ── Debounced auto-save — subscription callback instead of JSON.stringify ────
+  const autosaveTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveInFlightRef   = useRef<Promise<void> | null>(null)
+
   useEffect(() => {
     if (!onAutoSave) return
-    let timer: ReturnType<typeof setTimeout>
     // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values) => {
       const { sex, ageYears, diagnoses } = values
       const hasData = sex || ageYears != null || (diagnoses?.length ?? 0) > 0
       if (!hasData) return
-      clearTimeout(timer)
-      timer = setTimeout(() => onAutoSave(getValues()), 1500)
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = setTimeout(() => {
+        autosaveTimerRef.current = null
+        const p = Promise.resolve(onAutoSave(getValues()) ?? undefined)
+        saveInFlightRef.current = p.finally(() => { saveInFlightRef.current = null }) as Promise<void>
+      }, 1500)
     })
-    return () => { subscription.unsubscribe(); clearTimeout(timer) }
+    return () => { subscription.unsubscribe(); if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current) }
   }, [getValues, onAutoSave, watch])
+
+  // Flush any pending or in-flight autosave immediately; used by AIAdvisor before
+  // calling the consent-checked endpoint so aiOptIn is persisted before the DB read.
+  const flushSave = useCallback((): Promise<void> => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = null
+      const p = Promise.resolve(onAutoSave?.(getValues()) ?? undefined)
+      saveInFlightRef.current = p.finally(() => { saveInFlightRef.current = null }) as Promise<void>
+      return saveInFlightRef.current
+    }
+    return saveInFlightRef.current ?? Promise.resolve()
+  }, [getValues, onAutoSave])
   const airwayUTO = !!watch("airwayUnobtainable")
   const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">("patient")
 
@@ -1194,7 +1213,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         </div>
       </div>
 
-      {watch("aiOptIn") && <AIAdvisor getFormData={getValues} caseId={caseId} />}
+      {watch("aiOptIn") && <AIAdvisor getFormData={getValues} caseId={caseId} onSaveBeforeAI={onAutoSave ? flushSave : undefined} />}
       </div>
 
       {fieldErrors.size > 0 && (

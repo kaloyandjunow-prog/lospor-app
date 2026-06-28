@@ -9,11 +9,12 @@ import type { PreopData } from "@/components/forms/PreopForm"
 interface Props {
   getFormData: () => PreopData
   caseId?: string | null
+  onSaveBeforeAI?: () => Promise<void>
 }
 
 type Status = "idle" | "loading" | "done" | "error"
 
-export function AIAdvisor({ getFormData, caseId }: Props) {
+export function AIAdvisor({ getFormData, caseId, onSaveBeforeAI }: Props) {
   const t = useTranslations()
   const [open, setOpen]     = useState(false)
   const [status, setStatus] = useState<Status>("idle")
@@ -32,6 +33,7 @@ export function AIAdvisor({ getFormData, caseId }: Props) {
     abortRef.current = ac
 
     try {
+      if (caseId) await onSaveBeforeAI?.()
       const res = caseId
         ? await fetch(`/api/cases/${caseId}/ai/advise`, { method: "POST", signal: ac.signal })
         : await fetch("/api/ai/advise", {
