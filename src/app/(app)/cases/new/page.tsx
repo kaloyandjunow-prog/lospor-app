@@ -160,6 +160,7 @@ export default function NewCasePage() {
   }, [])
   const [submitting, setSubmitting]   = useState(false)
   const [saveStatus, setSaveStatus]   = useState<SaveStatus>("idle")
+  const [autoSaveErrMsg, setAutoSaveErrMsg] = useState<string | null>(null)
   const [loading, setLoading]         = useState(false)
   const [patientName, setPatientName] = useState("")
   const [patientId,   setPatientId]   = useState("")
@@ -425,7 +426,7 @@ export default function NewCasePage() {
   const saveSection = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
-    { showToast = false, nextStep, forceUpdate = false, _retryOnce = false }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; _retryOnce?: boolean } = {}
+    { showToast = false, nextStep, forceUpdate = false, _retryOnce = false, onError }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; _retryOnce?: boolean; onError?: (msg: string) => void } = {}
   ) => {
     try {
       if (!caseIdRef.current) {
@@ -437,7 +438,10 @@ export default function NewCasePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ preop: { ...data, bmi } }),
         })
-        if (!res.ok) throw new Error()
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
+        }
         const { id, caseCode: code, preopUpdatedAt } = await res.json()
         caseIdRef.current = id
         setCaseId(id)
@@ -473,7 +477,7 @@ export default function NewCasePage() {
             if (section === "preop")   preopUpdatedAtRef.current   = recovered
             if (section === "postop")  postopUpdatedAtRef.current  = recovered
             if (section === "intraop") intraopUpdatedAtRef.current = recovered
-            return saveSection(section, data, { showToast, nextStep, forceUpdate, _retryOnce: true })
+            return saveSection(section, data, { showToast, nextStep, forceUpdate, _retryOnce: true, onError })
           }
           if (body.error === "conflict" && body.serverVersion) {
             // Open conflict resolution modal instead of throwing
@@ -534,7 +538,9 @@ export default function NewCasePage() {
       return true
     } catch (err: unknown) {
       console.error("saveSection error:", err)
-      if (showToast) toast.error(err instanceof Error ? err.message : t("case.saveFailed"))
+      const errMsg = err instanceof Error ? err.message : t("case.saveFailed")
+      if (showToast) toast.error(errMsg)
+      onError?.(errMsg)
       return false
     }
   }, [t, router])
@@ -544,7 +550,8 @@ export default function NewCasePage() {
     if (savingRef.current) return
     savingRef.current = true
     setSaveStatus("saving")
-    const ok = await saveSection(section, data)
+    const ok = await saveSection(section, data, { onError: msg => setAutoSaveErrMsg(msg) })
+    if (ok) setAutoSaveErrMsg(null)
     setSaveStatus(ok ? "saved" : "error")
     savingRef.current = false
     if (ok) {
@@ -776,7 +783,7 @@ export default function NewCasePage() {
           <div className="text-xs">
             {saveStatus === "saving" && <span className="text-slate-400 animate-pulse">{t("case.savingDraft")}</span>}
             {saveStatus === "saved"  && <span className="text-green-500">{t("case.draftSaved")}</span>}
-            {saveStatus === "error"  && <span className="text-red-400">{t("case.autoSaveFailed")}</span>}
+            {saveStatus === "error"  && <span className="text-red-400">{autoSaveErrMsg ?? t("case.autoSaveFailed")}</span>}
           </div>
         </div>
       </div>

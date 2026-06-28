@@ -1417,7 +1417,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       )}
                       {isStart && seg && (
                         <button type="button" onClick={e => { e.stopPropagation(); removeSegment(seg.startCol) }}
-                          className="absolute top-0.5 right-3 z-10 opacity-0 hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity">
+                          className="absolute top-0.5 right-3 z-10 opacity-0 hover:opacity-100 [@media(hover:none)]:opacity-100 text-slate-400 hover:text-red-500 transition-opacity">
                           <X className="h-2.5 w-2.5" />
                         </button>
                       )}
@@ -1559,8 +1559,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                         <span className="text-[10px] font-semibold text-violet-800 dark:text-violet-300 leading-tight truncate flex-1">
                           {d.name}{d.dose && <><br /><span className="font-normal font-mono text-[9px] opacity-90">{d.dose} {d.unit}</span></>}
                         </span>
-                        <button type="button" tabIndex={-1} onClick={() => removeDrug(gi)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-violet-400 hover:text-violet-700 shrink-0 mt-0.5">
+                        <button type="button" tabIndex={-1} onClick={e => { e.stopPropagation(); removeDrug(gi) }}
+                          className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity text-violet-400 hover:text-violet-700 shrink-0 mt-0.5">
                           <X className="h-2.5 w-2.5" />
                         </button>
                       </div>
@@ -1862,7 +1862,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       )}
                       {(isActualStart || isRowCont) && seg && (
                         <button type="button" onClick={e => { e.stopPropagation(); removeFluid(seg.id) }}
-                          className="absolute top-0.5 right-4 z-10 opacity-0 hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity">
+                          className="absolute top-0.5 right-4 z-10 opacity-0 hover:opacity-100 [@media(hover:none)]:opacity-100 text-slate-400 hover:text-red-500 transition-opacity">
                           <X className="h-2.5 w-2.5" />
                         </button>
                       )}
