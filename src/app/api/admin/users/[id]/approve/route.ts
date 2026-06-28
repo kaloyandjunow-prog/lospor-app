@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
@@ -25,6 +25,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     select: { id: true, email: true, name: true },
   })
 
-  logAudit(user.id, "USER_APPROVE", id)
+  after(() => logAudit(user.id, "USER_APPROVE", id))
   return NextResponse.json(updated)
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { corsHeaders } from "@/lib/cors"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { caseWhereForUser } from "@/lib/access-control"
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data:  { userId: toUserId },
     }),
   ])
-  logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true })
+  after(() => logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true }))
   return NextResponse.json({ instant: true, transfer })
 }
 
@@ -102,7 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         data:  { userId: user.id },
       }),
     ])
-    logAudit(user.id, "CASE_TRANSFER_ACCEPT", caseId)
+    after(() => logAudit(user.id, "CASE_TRANSFER_ACCEPT", caseId))
     return NextResponse.json({ accepted: true })
   }
 
@@ -110,6 +110,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { id: transfer.id },
     data:  { status: "DECLINED", resolvedAt: new Date() },
   })
-  logAudit(user.id, "CASE_TRANSFER_DECLINE", caseId)
+  after(() => logAudit(user.id, "CASE_TRANSFER_DECLINE", caseId))
   return NextResponse.json({ declined: true })
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes: body.notes })
     if (piiError) {
-      logAudit(userId, "PII_BLOCKED", "new", { error: piiError })
+      after(() => logAudit(userId, "PII_BLOCKED", "new", { error: piiError }))
       return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
     }
 
@@ -97,9 +97,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    logAudit(userId, "CASE_CREATE", caseRecord.id)
-    // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
-    syncCaseRelationalSafe(prisma, caseRecord.id, userId)
+    after(() => logAudit(userId, "CASE_CREATE", caseRecord.id))
+    after(() => syncCaseRelationalSafe(prisma, caseRecord.id, userId))
     return NextResponse.json({
       id: caseRecord.id,
       caseCode: caseRecord.caseCode,

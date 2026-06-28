@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { mapPreop, mapPreopUpdate, mapIntraop, mapIntraopUpdate, mapPostop, mapPostopUpdate } from "../_mappers"
@@ -152,7 +152,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes })
     if (piiError) {
-      logAudit(userId, "PII_BLOCKED", id, { error: piiError })
+      after(() => logAudit(userId, "PII_BLOCKED", id, { error: piiError }))
       return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
     }
 
@@ -261,12 +261,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await prisma.case.update({ where: { id }, data: { notes: sanitised } })
     }
 
-    logAudit(userId, "CASE_UPDATE", id, finalStatus ? { from: existing.status, to: finalStatus } : undefined)
-    // Field-level audit diffs for preop/postop (best-effort; never blocks the save)
-    if (preop)  writeFieldDiffsSafe(prisma, id, "preop",  existing.preop  ?? {}, preop,  userId)
-    if (postop) writeFieldDiffsSafe(prisma, id, "postop", existing.postop ?? {}, postop, userId)
-    // Mirror JSON clinical arrays into queryable rows (best-effort; never blocks the save)
-    syncCaseRelationalSafe(prisma, id, userId)
+    after(() => logAudit(userId, "CASE_UPDATE", id, finalStatus ? { from: existing.status, to: finalStatus } : undefined))
+    if (preop)  after(() => writeFieldDiffsSafe(prisma, id, "preop",  existing.preop  ?? {}, preop,  userId))
+    if (postop) after(() => writeFieldDiffsSafe(prisma, id, "postop", existing.postop ?? {}, postop, userId))
+    after(() => syncCaseRelationalSafe(prisma, id, userId))
     caseEmitter.emit(id, {
       type: "case_updated",
       sections: {
@@ -324,7 +322,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Cannot delete a completed case" }, { status: 400 })
 
   await prisma.case.delete({ where: { id } })
-  logAudit(userId, "CASE_DELETE", id)
+  after(() => logAudit(userId, "CASE_DELETE", id))
   caseEmitter.emit(id, { type: "case_deleted" })
   return NextResponse.json({ ok: true })
 }

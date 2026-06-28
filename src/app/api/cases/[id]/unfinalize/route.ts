@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: { status: "IN_PROGRESS", finalizedAt: null },
   })
 
-  logAudit(user.id, "CASE_UNFINALIZED", id, { by: user.id })
+  after(() => logAudit(user.id, "CASE_UNFINALIZED", id, { by: user.id }))
 
   return NextResponse.json(updated)
 }

@@ -570,8 +570,8 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
 // scoped to a user. Passing it lets failures show up in the audit log
 // (admin-visible drift signal) instead of only a server console line that's
 // lost on the next deploy/restart and invisible across serverless instances.
-export function syncCaseRelationalSafe(db: Db, caseId: string, userId?: string): void {
-  syncCaseRelational(db, caseId).catch(err => {
+export function syncCaseRelationalSafe(db: Db, caseId: string, userId?: string): Promise<void> {
+  return syncCaseRelational(db, caseId).catch(err => {
     console.error("[relational-sync]", caseId, err)
     if (userId) {
       import("@/lib/audit").then(({ logAudit }) =>

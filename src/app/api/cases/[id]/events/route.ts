@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/generated/prisma/client"
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         await prisma.case.update({ where: { id }, data: { status: "IN_PROGRESS" } })
       }
       if (added) {
-        logAudit(user.id, "CASE_EVENT_ADD", id, { type: event.type, source })
+        after(() => logAudit(user.id, "CASE_EVENT_ADD", id, { type: event.type, source }))
         caseEmitter.emit(id, { type: "event", event })
       }
       const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
@@ -183,7 +183,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         await rebuildProjection(tx, id)
       }, SERIALIZABLE)
 
-      logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source })
+      after(() => logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source }))
       caseEmitter.emit(id, { type: "log_updated" })
       const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
       return NextResponse.json({ ok: true, intraopUpdatedAt: intraop?.updatedAt })

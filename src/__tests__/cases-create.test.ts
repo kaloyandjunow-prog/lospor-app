@@ -6,6 +6,10 @@ const findUniqueMock    = vi.fn()
 const createMock        = vi.fn()
 const logAuditMock      = vi.fn()
 
+vi.mock("next/server", async importOriginal => {
+  const actual = await importOriginal<typeof import("next/server")>()
+  return { ...actual, after: vi.fn() }
+})
 vi.mock("@/lib/mobile-auth", () => ({ getAuthUser: getAuthUserMock }))
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -32,7 +36,7 @@ function makeRequest(body: Record<string, unknown>, idempotencyKey?: string) {
   }) as Parameters<typeof POST>[0]
 }
 
-let POST: Awaited<ReturnType<typeof import("@/app/api/cases/route")>>["POST"]
+let POST: (req: never, ctx?: unknown) => Promise<Response>
 
 describe("POST /api/cases", () => {
   beforeEach(async () => {

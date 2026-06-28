@@ -20,8 +20,8 @@ export function writeFieldDiffsSafe(
   existing: Record<string, unknown>,
   incoming: Record<string, unknown>,
   userId: string
-): void {
-  writeFieldDiffs(db, caseId, section, existing, incoming, userId)
+): Promise<void> {
+  return writeFieldDiffs(db, caseId, section, existing, incoming, userId)
     .catch(err => console.error("[case-audit:diff]", caseId, section, err))
 }
 

@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
 import { writeSnapshotAsync } from "@/lib/case-audit"
+import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import caseEmitter from "@/lib/caseEmitter"
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Cannot finalise: patient disposition (Ward/PACU/ICU) must be recorded", reason: "missing_disposition" }, { status: 422 })
   }
 
+  // Reconcile the relational mirror before locking the case, so the snapshot
+  // and any subsequent OMOP export agree with the queryable rows.
+  await syncCaseRelationalSafe(prisma, id, userId)
+
   // Write the immutable snapshot first (upsert = idempotent). If this throws,
   // the case status is not changed — caller can retry.
   try {
@@ -98,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: { status: "COMPLETE", finalizedAt },
   })
 
-  logAudit(userId, "CASE_FINALIZED", id, { from: c.status, to: "COMPLETE" })
+  after(() => logAudit(userId, "CASE_FINALIZED", id, { from: c.status, to: "COMPLETE" }))
   caseEmitter.emit(id, { type: "case_updated", sections: { status: true, preop: false, intraop: false, postop: false, notes: false } })
 
   return NextResponse.json({ id, status: "COMPLETE", finalizedAt })

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { signOut } from "@/lib/auth"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     data:  { deletedAt: new Date() },
   })
 
-  logAudit(user.id, "ACCOUNT_DELETE_REQUEST", user.id)
+  after(() => logAudit(user.id, "ACCOUNT_DELETE_REQUEST", user.id))
 
   if (user.jti) {
     await revokeToken(user.jti, new Date(Date.now() + 8 * 60 * 60 * 1000))

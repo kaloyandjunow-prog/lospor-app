@@ -7,6 +7,10 @@ const writeSnapshotAsyncMock = vi.fn()
 const canAccessCaseMock = vi.fn()
 const logAuditMock    = vi.fn()
 
+vi.mock("next/server", async importOriginal => {
+  const actual = await importOriginal<typeof import("next/server")>()
+  return { ...actual, after: vi.fn() }
+})
 vi.mock("@/lib/mobile-auth", () => ({ getAuthUser: getAuthUserMock }))
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -14,6 +18,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 vi.mock("@/lib/case-audit", () => ({ writeSnapshotAsync: writeSnapshotAsyncMock }))
+vi.mock("@/lib/relational-sync", () => ({ syncCaseRelationalSafe: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@/lib/access-control", () => ({ canAccessCase: canAccessCaseMock }))
 vi.mock("@/lib/audit", () => ({ logAudit: logAuditMock }))
 vi.mock("@/lib/caseEmitter", () => ({ default: { emit: vi.fn() } }))
@@ -43,7 +48,7 @@ function makeRequest(caseId = "case-1") {
   return new Request(`http://localhost/api/cases/${caseId}/finalize`, { method: "POST" }) as Parameters<typeof POST>[0]
 }
 
-let POST: Awaited<ReturnType<typeof import("@/app/api/cases/[id]/finalize/route")>>["POST"]
+let POST: (req: never, ctx: { params: Promise<{ id: string }> }) => Promise<Response>
 
 describe("POST /api/cases/:id/finalize", () => {
   beforeEach(async () => {
