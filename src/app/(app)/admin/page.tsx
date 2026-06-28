@@ -397,7 +397,7 @@ function AuditLogSection() {
         </div>
         <div className="px-5 py-4 space-y-3">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Export all finalised cases as an OMOP CDM v5.4 bundle. All person identifiers are replaced with deterministic anonymous hashes. Suitable for observational research and OHDSI tooling.
+            Export all finalised cases as an OMOP CDM v5.4 bundle. All person identifiers are replaced with deterministic pseudonymised case-level hashes. Suitable for observational research and OHDSI tooling.
           </p>
           <div className="flex flex-wrap gap-3">
             <a

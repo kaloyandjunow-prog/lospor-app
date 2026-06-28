@@ -11,6 +11,8 @@
  * (vitals and their LOINC codes are the exception - those have real concept_ids).
  */
 
+import { DICTIONARY_VERSION } from "@/lib/data-dictionary"
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 let _counter = 1
@@ -49,12 +51,22 @@ const VITAL_CONCEPTS: Record<string, { concept_id: number; loinc: string; unit: 
 
 export interface OmopBundle {
   metadata: {
+    export_id: string
     omop_cdm_version: string
     generated_at: string
+    generated_by_user_id: string
+    generated_by_role: string
     source: string
     source_version: string
     schema_version: string
     concept_map_version: string
+    data_dictionary_version: string
+    case_status_filter: string[]
+    date_range: { from: string; to: string } | null
+    included_case_count: number
+    excluded_case_count: number
+    app_git_commit: string
+    forced_override: boolean
     case_count: number
     mapping_summary: {
       mapped_rows: number
@@ -63,9 +75,12 @@ export interface OmopBundle {
     }
     table_counts: Record<string, number>
     quality_warnings: ExportQualityWarning[]
+    data_quality_status: "PASS" | "WARNING" | "FAIL"
     deidentification: {
+      mode: string
       person_id_strategy: string
       direct_patient_identifiers_stored: boolean
+      event_timestamp_precision: string
       residual_linkage_risks: string[]
     }
     note: string
@@ -80,7 +95,7 @@ export interface OmopBundle {
 
 export type ExportQualityWarning = {
   code: string
-  severity: "info" | "warning" | "high"
+  severity: "info" | "warning" | "error"
   message: string
   count?: number
 }
@@ -356,6 +371,9 @@ type CaseRow = {
     fieldKey: string
     presence: string
   }[]
+  snapshot?: { id: string } | null
+  updatedAt?: Date
+  finalizedAt?: Date | null
 }
 
 function buildQualityWarnings(
@@ -363,6 +381,57 @@ function buildQualityWarnings(
   mappingSummary: { mapped_rows: number; source_only_rows: number; unmapped_rows: number },
 ): ExportQualityWarning[] {
   const warnings: ExportQualityWarning[] = []
+
+  // ── Error-level (FAIL) checks ──────────────────────────────────────────────
+
+  const nonFinalizedCount = cases.filter(c => c.status !== "COMPLETE").length
+  if (nonFinalizedCount > 0) {
+    warnings.push({
+      code: "NON_FINALIZED_CASES",
+      severity: "error",
+      message: "Export includes cases that have not been finalised (status !== COMPLETE). Research integrity requires finalised cases only.",
+      count: nonFinalizedCount,
+    })
+  }
+
+  const missingSnapshotCount = cases.filter(c => c.status === "COMPLETE" && !c.snapshot).length
+  if (missingSnapshotCount > 0) {
+    warnings.push({
+      code: "MISSING_FINALIZATION_SNAPSHOT",
+      severity: "error",
+      message: "Some finalised cases have no immutable snapshot. The snapshot is written at finalisation; its absence indicates a corrupted or interrupted finalisation.",
+      count: missingSnapshotCount,
+    })
+  }
+
+  const relationalDriftCount = cases.filter(c => {
+    if (!c.updatedAt || !c.finalizedAt) return false
+    return c.updatedAt.getTime() > c.finalizedAt.getTime() + 5_000
+  }).length
+  if (relationalDriftCount > 0) {
+    warnings.push({
+      code: "RELATIONAL_DRIFT",
+      severity: "error",
+      message: "Some cases were edited after finalisation (updatedAt > finalizedAt). The snapshot may not match the exported data.",
+      count: relationalDriftCount,
+    })
+  }
+
+  const impossibleTimestampCount = cases.filter(c => {
+    if (!c.intraop?.startTime || !c.intraop?.endTime) return false
+    return c.intraop.endTime < c.intraop.startTime
+  }).length
+  if (impossibleTimestampCount > 0) {
+    warnings.push({
+      code: "IMPOSSIBLE_TIMESTAMPS",
+      severity: "error",
+      message: "Some cases have intraoperative end time before start time, indicating a data entry error.",
+      count: impossibleTimestampCount,
+    })
+  }
+
+  // ── Warning-level checks ───────────────────────────────────────────────────
+
   const casesWithoutFieldStatus = cases.filter(c => (c.fieldStatuses ?? []).length === 0).length
   const exactTimestampRows = cases.reduce((sum, c) => sum + (c.events ?? []).length, 0)
   const freeTextComplications = cases.reduce((sum, c) => sum + (c.complications ?? []).filter(comp => Boolean(comp.note)).length, 0)
@@ -386,9 +455,9 @@ function buildQualityWarnings(
   }
   if (casesWithoutFieldStatus > 0) {
     warnings.push({
-      code: "MISSING_FIELD_STATUS_ROWS",
-      severity: "warning",
-      message: "Some cases have no ClinicalFieldStatus rows, so missingness may be incomplete.",
+      code: "NO_FIELD_STATUS_ROWS",
+      severity: "error",
+      message: "Some cases have no ClinicalFieldStatus rows. Field-level missingness cannot be determined; relational sync may not have run.",
       count: casesWithoutFieldStatus,
     })
   }
@@ -411,15 +480,30 @@ function buildQualityWarnings(
   if (freeTextComplications > 0) {
     warnings.push({
       code: "REDACTED_FREE_TEXT_PRESENT",
-      severity: "info",
-      message: "Free-text complication notes existed and were passed through the export redaction pipeline.",
+      severity: "warning",
+      message: "Free-text complication notes existed and were passed through the export redaction pipeline. Review redacted output before sharing.",
       count: freeTextComplications,
     })
   }
   return warnings
 }
 
-export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
+export interface ExportContext {
+  userId: string
+  userRole: string
+  statusFilter: string[]
+  excludedCaseCount: number
+  gitCommit: string
+  forcedOverride: boolean
+}
+
+function deriveQualityStatus(warnings: ExportQualityWarning[]): "PASS" | "WARNING" | "FAIL" {
+  if (warnings.some(w => w.severity === "error"))   return "FAIL"
+  if (warnings.some(w => w.severity === "warning")) return "WARNING"
+  return "PASS"
+}
+
+export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundle {
   resetIds()
 
   const visits: OmopVisit[] = []
@@ -840,28 +924,45 @@ export function mapCasesToOmop(cases: CaseRow[]): OmopBundle {
   }
   const qualityWarnings = buildQualityWarnings(cases, mappingSummary)
 
+  const dateRange = cases.length
+    ? { from: cases[0].createdAt.toISOString(), to: cases[cases.length - 1].createdAt.toISOString() }
+    : null
+
   return {
     metadata: {
-      omop_cdm_version: "5.4",
-      generated_at: new Date().toISOString(),
-      source: "LOSPOR",
-      source_version: "3.0.0",
-      schema_version: "3.0.0",
-      concept_map_version: "local-bilingual-map-v2",
-      case_count: cases.length,
-      mapping_summary: mappingSummary,
-      table_counts: tableCounts,
-      quality_warnings: qualityWarnings,
+      export_id:               crypto.randomUUID(),
+      omop_cdm_version:        "5.4",
+      generated_at:            new Date().toISOString(),
+      generated_by_user_id:    ctx?.userId ?? "unknown",
+      generated_by_role:       ctx?.userRole ?? "unknown",
+      source:                  "LOSPOR",
+      source_version:          "3.4.3",
+      schema_version:          "3.4.3",
+      concept_map_version:     "local-bilingual-map-v2",
+      data_dictionary_version: DICTIONARY_VERSION,
+      case_status_filter:      ctx?.statusFilter ?? [],
+      date_range:              dateRange,
+      included_case_count:     cases.length,
+      excluded_case_count:     ctx?.excludedCaseCount ?? 0,
+      app_git_commit:          ctx?.gitCommit ?? "untracked",
+      forced_override:         ctx?.forcedOverride ?? false,
+      case_count:              cases.length,
+      mapping_summary:         mappingSummary,
+      table_counts:            tableCounts,
+      quality_warnings:        qualityWarnings,
+      data_quality_status:     deriveQualityStatus(qualityWarnings),
       deidentification: {
-        person_id_strategy: "deterministic pseudonymised hash of internal case id",
+        mode:                              "pseudonymised",
+        person_id_strategy:               "deterministic SHA-256 hash of internal case ID — not reversible without the source DB",
         direct_patient_identifiers_stored: false,
+        event_timestamp_precision:        "exact_datetime",
         residual_linkage_risks: [
-          "exact event timestamps",
+          "exact intraoperative event timestamps (not rounded or shifted)",
           "case-level institution/care-site linkage",
           "rare procedure, complication, and timeline combinations",
         ],
       },
-      note: "OMOP concept IDs are emitted only where LOSPOR has a confident local mapping. Source vocabulary, source code, English/Bulgarian labels, and source-only rows are preserved for research traceability. person_id is a deterministic pseudonymised hash of the internal case ID - no patient identifiers are stored or exported.",
+      note: "OMOP concept IDs are emitted only where LOSPOR has a confident local mapping. Source vocabulary, source code, English/Bulgarian labels, and source-only rows are preserved for research traceability. person_id is a deterministic pseudonymised hash of the internal case ID — no patient names, national IDs, or direct identifiers are stored. Intraoperative event timestamps are preserved at exact DateTime precision for clinical sequence analysis — see residual_linkage_risks.",
     },
     visit_occurrence:      visits,
     condition_occurrence:  conditions,
