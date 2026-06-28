@@ -1,5 +1,10 @@
 # Changelog - LOSPOR Web App
 
+## [3.4.10] - 2026-06-29
+
+### Fixed
+- **"Continue to Intraoperative" — session expiry during preop now handled gracefully**: When the bearer token expires or is cleared while the user is filling the preop form, the Continue button's final PATCH returns 401. Previously this showed a confusing "Save failed" alert and left the user stuck without their draft being preserved. Now the app shows "Session expired — your work has been saved locally", persists the draft, and lets the auth guard navigate to login. The same guard is applied to the 409-retry PATCH path added in v3.4.9. On re-login, the user can return to the case and the draft will be pre-populated.
+
 ## [3.4.9] - 2026-06-28
 
 ### Fixed
