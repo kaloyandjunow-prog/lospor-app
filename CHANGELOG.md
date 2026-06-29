@@ -1,5 +1,14 @@
 # Changelog - LOSPOR Web App
 
+## [3.4.12] - 2026-06-29
+
+### Fixed
+- **"Continue to Intraoperative" failed silently on the PWA** — the real root cause across previous attempts. `react-native-web`'s `Alert.alert` is a no-op (`class Alert { static alert() {} }`), so every preop validation/error message was invisible on `pwa.lospor.org`. When a required field was missing, clicking Continue ran the check, called the dead `Alert.alert`, and returned — no popup, no inline error, no navigation. Added a cross-platform `notify()` helper (`window.alert` on web, `Alert.alert` on native) and routed all preop messages through it.
+- **Required preop fields now enforced with visible inline errors + jump-to-section.** Diagnosis, Procedure, and Mallampati (unless airway-unobtainable) are validated in the zod schema with `*` markers, inline red errors, and an `onInvalid` handler that scrolls to the first offending section and lists what's missing.
+
+### Changed
+- **Mobile/PWA preop required-field parity with web.** Respiratory rate, heart rate, and blood pressure are now required (unless marked unobtainable), matching `forms/PreopForm.tsx`. Respiratory rate was previously not enforced on mobile.
+
 ## [3.4.11] - 2026-06-29
 
 ### Fixed
