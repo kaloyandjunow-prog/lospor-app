@@ -1,5 +1,20 @@
 # Changelog - LOSPOR Web App
 
+## [3.5.0] - 2026-06-29
+
+Pre-Play-Store release: intraop bug fixes + a PWA-wide dialog fix.
+
+### Fixed
+- **PWA dialogs now work everywhere.** `react-native-web`'s `Alert.alert` is a no-op, so confirmations, error messages, and action menus silently did nothing on `pwa.lospor.org`. Added cross-platform `notify`/`confirmAction`/`actionSheet` helpers (web-native `window.alert`/`window.confirm` + an in-app action-sheet host; OS `Alert` on native) and routed all ~64 mobile dialog sites through them. This restores, among others, the intraop **event-log delete** (the X button was unresponsive on the PWA).
+- **Intraop "add / change / stop" menus collapse immediately.** Drug/fluid/infusion/agent sheets previously stayed open until the network autosave resolved, which allowed accidental duplicate entries. They now close optimistically and persist in the background.
+- **Drug & infusion pickers reopen on the home menu.** After adding e.g. an Induction drug, the next "Add drug" wrongly reopened on that subcategory; the picker now resets to the home menu (Favourites / scenarios / Browse) each time it opens.
+- **Drug picker "Back" returns to where you came from.** Choosing a drug from a scenario/favourites/browse and pressing Back dropped you into the drug's library category ("Local/regional anesthetics") instead of the menu you started in; Back now returns to that menu.
+- **Local-anaesthetic dosing autofill.** Per-route dose rules (`routeModes`) are now consumed for **infusions** in both apps and for **boluses** in the web timetable (mobile already read them) — so e.g. Lidocaine bolus IV autofills 1 mg/kg (IBW, round 10) and regional routes show concentration pills. Previously these fell back to defaults (Lidocaine infusion showed `mcg/kg/min`, LA bolus autofill was dead).
+
+### Changed
+- **Fluid/infusion library autofill.** Infusion selection now prefills the library's `suggestedRate` (e.g. Propofol 6 mg/kg/hr) instead of the first quick value, and fluids apply the library `defaultConcentration` (e.g. HES 10%). Applied on mobile/PWA and the web timetable.
+- **Local-anaesthetic infusions.** Lidocaine infusion is now route-specific (IV `mg/kg/hr` autofill 1; PD/IT/Perineural `mL/hr` autofill 6 with 0.25–4% concentration pills, default 1%), and Bupivacaine/Levobupivacaine/Ropivacaine infusions were added (PD/IT/Perineural, 0.1–0.5% pills default 0.2%, 6 mL/hr). New **Perineural** infusion route.
+
 ## [3.4.12] - 2026-06-29
 
 ### Fixed

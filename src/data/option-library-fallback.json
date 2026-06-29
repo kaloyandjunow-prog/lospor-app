@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-27T21:59:55.403Z",
-  "sourceHash": "dcd827bed869b28539f200e7eb562750ce58f4a6a9b9cab123907b9de1003396",
+  "generatedAt": "2026-06-29T10:33:56.291Z",
+  "sourceHash": "759c435df8d7c7099233af2da7dfe93af6a000f3ccbf33d60c8fe518c4f73272",
   "POSITION": [
     {
       "id": "cmqmekf8y0000w0u8qmnvkphq",
@@ -2057,7 +2057,7 @@
     {
       "id": "cmqmekgkw000yw0u849o7clhb",
       "value": "bglMonitor",
-      "label": "Blood glucose",
+      "label": "Serum/peripheral glucose",
       "labelBg": null,
       "group": "other",
       "parentId": null,
@@ -11320,70 +11320,394 @@
         "routes": [
           "IV",
           "PD",
-          "IT"
+          "IT",
+          "Perineural"
         ],
         "rounding": "nearest_step",
         "routeModes": {
           "IT": {
-            "max": 20,
+            "max": 50,
             "min": 0,
             "mode": "concentration-rate",
             "step": 1,
             "unit": "mL/hr",
             "quickValues": [
               2,
-              5,
+              4,
+              6,
               8,
-              10,
-              12
+              10
             ],
             "weightBasis": "none",
-            "suggestedRate": 2,
+            "suggestedRate": 6,
             "concentrationOptions": [
+              "0.25%",
               "0.5%",
               "1%",
-              "1.5%",
-              "2%"
+              "2%",
+              "4%"
             ],
-            "suggestedConcentration": "0.5%"
+            "suggestedConcentration": "1%"
           },
           "IV": {
-            "max": 2,
+            "max": 10,
             "min": 0,
             "mode": "rate",
             "step": 0.1,
             "unit": "mg/kg/hr",
             "quickValues": [
-              0.5,
               1,
-              1.5,
-              2
+              2,
+              4,
+              6
             ],
             "weightBasis": "IBW",
             "suggestedRate": 1
           },
           "PD": {
-            "max": 20,
+            "max": 50,
             "min": 0,
             "mode": "concentration-rate",
             "step": 1,
             "unit": "mL/hr",
             "quickValues": [
               2,
-              5,
+              4,
+              6,
               8,
-              10,
-              12
+              10
             ],
             "weightBasis": "none",
-            "suggestedRate": 5,
+            "suggestedRate": 6,
             "concentrationOptions": [
+              "0.25%",
               "0.5%",
               "1%",
-              "1.5%",
-              "2%"
+              "2%",
+              "4%"
             ],
             "suggestedConcentration": "1%"
+          },
+          "Perineural": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.25%",
+              "0.5%",
+              "1%",
+              "2%",
+              "4%"
+            ],
+            "suggestedConcentration": "1%"
+          }
+        },
+        "quickValues": [],
+        "weightBasis": "none"
+      }
+    },
+    {
+      "id": "cmqz2xxuz00858ku8lh1t5bvk",
+      "value": "BUPIVACAINE",
+      "label": "Bupivacaine",
+      "labelBg": null,
+      "group": null,
+      "parentId": null,
+      "color": "#0ea5e9",
+      "description": null,
+      "drugId": null,
+      "atcCode": null,
+      "inn": null,
+      "metadata": {
+        "kind": "infusion",
+        "mode": "dose",
+        "routes": [
+          "PD",
+          "IT",
+          "Perineural"
+        ],
+        "rounding": "nearest_step",
+        "routeModes": {
+          "IT": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "PD": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "Perineural": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          }
+        },
+        "quickValues": [],
+        "weightBasis": "none"
+      }
+    },
+    {
+      "id": "cmqz2xxwc00868ku8emfr493o",
+      "value": "LEVOBUPIVACAINE",
+      "label": "Levobupivacaine",
+      "labelBg": null,
+      "group": null,
+      "parentId": null,
+      "color": "#6366f1",
+      "description": null,
+      "drugId": null,
+      "atcCode": null,
+      "inn": null,
+      "metadata": {
+        "kind": "infusion",
+        "mode": "dose",
+        "routes": [
+          "PD",
+          "IT",
+          "Perineural"
+        ],
+        "rounding": "nearest_step",
+        "routeModes": {
+          "IT": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "PD": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "Perineural": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          }
+        },
+        "quickValues": [],
+        "weightBasis": "none"
+      }
+    },
+    {
+      "id": "cmqz2xxxs00878ku8tmncluiu",
+      "value": "ROPIVACAINE",
+      "label": "Ropivacaine",
+      "labelBg": null,
+      "group": null,
+      "parentId": null,
+      "color": "#a855f7",
+      "description": null,
+      "drugId": null,
+      "atcCode": null,
+      "inn": null,
+      "metadata": {
+        "kind": "infusion",
+        "mode": "dose",
+        "routes": [
+          "PD",
+          "IT",
+          "Perineural"
+        ],
+        "rounding": "nearest_step",
+        "routeModes": {
+          "IT": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "PD": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
+          },
+          "Perineural": {
+            "max": 50,
+            "min": 0,
+            "mode": "concentration-rate",
+            "step": 1,
+            "unit": "mL/hr",
+            "quickValues": [
+              2,
+              4,
+              6,
+              8,
+              10
+            ],
+            "weightBasis": "none",
+            "suggestedRate": 6,
+            "concentrationOptions": [
+              "0.1%",
+              "0.125%",
+              "0.2%",
+              "0.25%",
+              "0.5%"
+            ],
+            "suggestedConcentration": "0.2%"
           }
         },
         "quickValues": [],
@@ -13929,8 +14253,8 @@
     {
       "id": "cmqoqzh09009l3cu87l2v3duo",
       "value": "glucose",
-      "label": "Blood glucose monitoring",
-      "labelBg": "Мониториране на кръвна захар",
+      "label": "Serum/peripheral glucose monitoring",
+      "labelBg": "Мониториране на серумна/периферна глюкоза",
       "group": null,
       "parentId": "cmqoqzgry009f3cu83dsup5db",
       "color": null,

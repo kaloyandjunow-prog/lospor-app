@@ -186,19 +186,20 @@ export const INFUSION_CATALOG: InfusionCatalogEntry[] = [
       "routes": [
         "IV",
         "PD",
-        "IT"
+        "IT",
+        "Perineural"
       ],
       "routeModes": {
         "IV": {
           "mode": "rate",
           "min": 0,
-          "max": 2,
+          "max": 10,
           "step": 0.1,
           "quickValues": [
-            0.5,
             1,
-            1.5,
-            2
+            2,
+            4,
+            6
           ],
           "unit": "mg/kg/hr",
           "weightBasis": "IBW",
@@ -207,46 +208,317 @@ export const INFUSION_CATALOG: InfusionCatalogEntry[] = [
         "PD": {
           "mode": "concentration-rate",
           "min": 0,
-          "max": 20,
+          "max": 50,
           "step": 1,
           "quickValues": [
             2,
-            5,
+            4,
+            6,
             8,
-            10,
-            12
+            10
           ],
           "unit": "mL/hr",
           "concentrationOptions": [
+            "0.25%",
             "0.5%",
             "1%",
-            "1.5%",
-            "2%"
+            "2%",
+            "4%"
           ],
-          "suggestedRate": 5,
+          "suggestedRate": 6,
           "suggestedConcentration": "1%"
         },
         "IT": {
           "mode": "concentration-rate",
           "min": 0,
-          "max": 20,
+          "max": 50,
           "step": 1,
           "quickValues": [
             2,
-            5,
+            4,
+            6,
             8,
-            10,
-            12
+            10
           ],
           "unit": "mL/hr",
           "concentrationOptions": [
+            "0.25%",
             "0.5%",
             "1%",
-            "1.5%",
-            "2%"
+            "2%",
+            "4%"
           ],
-          "suggestedRate": 2,
-          "suggestedConcentration": "0.5%"
+          "suggestedRate": 6,
+          "suggestedConcentration": "1%"
+        },
+        "Perineural": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.25%",
+            "0.5%",
+            "1%",
+            "2%",
+            "4%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "1%"
+        }
+      }
+    }
+  },
+  {
+    "name": "Bupivacaine",
+    "color": "#0ea5e9",
+    "profile": {
+      "routes": [
+        "PD",
+        "IT",
+        "Perineural"
+      ],
+      "routeModes": {
+        "PD": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "IT": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "Perineural": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        }
+      }
+    }
+  },
+  {
+    "name": "Levobupivacaine",
+    "color": "#6366f1",
+    "profile": {
+      "routes": [
+        "PD",
+        "IT",
+        "Perineural"
+      ],
+      "routeModes": {
+        "PD": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "IT": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "Perineural": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        }
+      }
+    }
+  },
+  {
+    "name": "Ropivacaine",
+    "color": "#a855f7",
+    "profile": {
+      "routes": [
+        "PD",
+        "IT",
+        "Perineural"
+      ],
+      "routeModes": {
+        "PD": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "IT": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
+        },
+        "Perineural": {
+          "mode": "concentration-rate",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "quickValues": [
+            2,
+            4,
+            6,
+            8,
+            10
+          ],
+          "unit": "mL/hr",
+          "concentrationOptions": [
+            "0.1%",
+            "0.125%",
+            "0.2%",
+            "0.25%",
+            "0.5%"
+          ],
+          "suggestedRate": 6,
+          "suggestedConcentration": "0.2%"
         }
       }
     }

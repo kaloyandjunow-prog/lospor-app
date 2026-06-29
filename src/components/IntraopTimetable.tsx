@@ -297,30 +297,44 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
   const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
 
-  const { QUICK_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES } = useMemo(() => {
+  const { QUICK_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES, BOLUS_ROUTE_PROFILES } = useMemo(() => {
     const byGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string }[] }>()
     const bolusDoses: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number; hint: string; byRoute?: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }> }> = {}
     const bolusConfigs: Record<string, { min: number; max: number; step: number }> = {}
     const laConcentrations: Record<string, string[]> = {}
     const drugRoutes: Record<string, string[]> = {}
     const quickDoses: Record<string, number[]> = {}
+    // Per-route dose surface for drugs whose unit/range/concentration mode
+    // varies by route (e.g. Lidocaine: IV mg dose vs PD/IT/perineural %+mL).
+    const routeProfiles: Record<string, Record<string, { mode?: string; min: number; max: number; step: number; unit: string; quickValues?: number[]; concentrationOptions?: string[] }>> = {}
     for (const o of drugLibOpts) {
       const cat = o.group ?? "Other"
       const m = (o.metadata ?? {}) as DoseProfileInput
       if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", drugs: [] })
       byGroup.get(cat)!.drugs.push({ name: o.label, unit: m.unit ?? "mg" })
-      if (m.hint || m.doseCalc || m.doseCalcByRoute) {
+      // Merge per-route doseCalc from doseCalcByRoute and routeModes[route].doseCalc.
+      const byRoute: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }> = { ...(m.doseCalcByRoute ?? {}) }
+      if (m.routeModes) for (const [r, prof] of Object.entries(m.routeModes)) if (prof?.doseCalc) byRoute[r] = prof.doseCalc as { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }
+      const hasByRoute = Object.keys(byRoute).length > 0
+      if (m.hint || m.doseCalc || hasByRoute) {
         bolusDoses[o.label] = {
           hint: m.hint ?? "", perKg: m.doseCalc?.perKg, flat: m.doseCalc?.flat, basis: m.doseCalc?.basis,
-          roundTo: m.doseCalc?.roundTo, cap: m.doseCalc?.cap, byRoute: m.doseCalcByRoute,
+          roundTo: m.doseCalc?.roundTo, cap: m.doseCalc?.cap, byRoute: hasByRoute ? byRoute : undefined,
         }
       }
       if (m.min != null && m.max != null && m.step != null) bolusConfigs[o.label] = { min: m.min, max: m.max, step: m.step }
       if (m.concentrationOptions?.length) laConcentrations[o.label] = m.concentrationOptions
       drugRoutes[o.label] = m.routes ?? ["IV"]
       if (m.quickValues?.length) quickDoses[o.label] = m.quickValues
+      if (m.routeModes) {
+        routeProfiles[o.label] = {}
+        for (const [r, prof] of Object.entries(m.routeModes)) {
+          if (prof?.min == null || prof?.max == null || !prof?.unit) continue
+          routeProfiles[o.label][r] = { mode: prof.mode, min: prof.min, max: prof.max, step: prof.step ?? 1, unit: prof.unit, quickValues: prof.quickValues, concentrationOptions: prof.concentrationOptions }
+        }
+      }
     }
-    return { QUICK_DRUGS: [...byGroup.values()], BOLUS_DOSES: bolusDoses, BOLUS_CONFIGS: bolusConfigs, LA_CONCENTRATIONS: laConcentrations, DRUG_ROUTES: drugRoutes, QUICK_DOSES: quickDoses }
+    return { QUICK_DRUGS: [...byGroup.values()], BOLUS_DOSES: bolusDoses, BOLUS_CONFIGS: bolusConfigs, LA_CONCENTRATIONS: laConcentrations, DRUG_ROUTES: drugRoutes, QUICK_DOSES: quickDoses, BOLUS_ROUTE_PROFILES: routeProfiles }
   }, [drugLibOpts])
 
   const { QUICK_FLUIDS, FLUID_QUICK_VOLUMES, FLUID_ROUTES } = useMemo(() => {
@@ -390,20 +404,30 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     return [...byGroup.values()]
   }, [eventLibOpts])
 
-  const { INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES } = useMemo(() => {
-    const configs: Record<string, { units: string[]; min: number; max: number; step: number; color: string }> = {}
+  const { INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES, INFUSION_ROUTE_PROFILES } = useMemo(() => {
+    const configs: Record<string, { units: string[]; min: number; max: number; step: number; color: string; suggestedRate?: number }> = {}
     const weightBasis: WeightBasisMap = {}
     const routes: Record<string, string[]> = {}
     const quickRates: Record<string, number[]> = {}
+    // Per-route rate surface for infusions whose unit/range/concentration vary
+    // by route (e.g. Lidocaine IV mg/kg/hr vs PD/IT/perineural %+mL/hr).
+    const routeProfiles: Record<string, Record<string, { mode?: string; min: number; max: number; step: number; unit: string; quickValues?: number[]; concentrationOptions?: string[]; suggestedRate?: number; suggestedConcentration?: string }>> = {}
     for (const o of infusionLibOpts) {
       const m = (o.metadata ?? {}) as DoseProfileInput
       const unit = m.unit ?? "mg/hr"
-      configs[o.label] = { units: [unit], min: m.min ?? 0, max: m.max ?? 100, step: m.step ?? 1, color: o.color ?? "#64748b" }
+      configs[o.label] = { units: [unit], min: m.min ?? 0, max: m.max ?? 100, step: m.step ?? 1, color: o.color ?? "#64748b", suggestedRate: m.suggestedRate }
       weightBasis[o.label] = m.weightBasis ?? "IBW"
       routes[o.label] = m.routes ?? ["IV"]
       if (m.quickValues?.length) quickRates[o.label] = m.quickValues
+      if (m.routeModes) {
+        routeProfiles[o.label] = {}
+        for (const [r, prof] of Object.entries(m.routeModes)) {
+          if (prof?.min == null || prof?.max == null || !prof?.unit) continue
+          routeProfiles[o.label][r] = { mode: prof.mode, min: prof.min, max: prof.max, step: prof.step ?? 1, unit: prof.unit, quickValues: prof.quickValues, concentrationOptions: prof.concentrationOptions, suggestedRate: prof.suggestedRate, suggestedConcentration: prof.suggestedConcentration }
+        }
+      }
     }
-    return { INFUSION_CONFIGS: configs, INFUSION_WEIGHT_BASIS: weightBasis, INFUSION_ROUTES: routes, QUICK_RATES: quickRates }
+    return { INFUSION_CONFIGS: configs, INFUSION_WEIGHT_BASIS: weightBasis, INFUSION_ROUTES: routes, QUICK_RATES: quickRates, INFUSION_ROUTE_PROFILES: routeProfiles }
   }, [infusionLibOpts])
 
   const { INH_AGENTS, AGENT_STYLE, AGENT_QUICK_PERCENTS } = useMemo(() => {
@@ -448,6 +472,16 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     if (unit === "ml")  return { min:0, max:100,  step:1 }
     if (unit === "IU")  return { min:0, max:200,  step:5 }
     return { min:0, max:500, step:5 }
+  }
+
+  // Resolve the effective per-route surface for a drug/infusion, merging the
+  // route's profile (if any) over the flat fields. Returns undefined when the
+  // drug has no routeModes so callers fall back to their flat lookups.
+  function bolusRouteSurface(name: string, route?: string) {
+    return route ? BOLUS_ROUTE_PROFILES[name]?.[route] : undefined
+  }
+  function infusionRouteSurface(name: string, route?: string) {
+    return route ? INFUSION_ROUTE_PROFILES[name]?.[route] : undefined
   }
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
@@ -640,15 +674,24 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     const r    = anchorEl.getBoundingClientRect()
     const cfg  = INFUSION_CONFIGS[name]
     const routes = mode === "infusion" ? (INFUSION_ROUTES[name] ?? ["IV"]) : (DRUG_ROUTES[name] ?? ["IV"])
-    const sugg = calcSuggestedDose(name, ibw ?? null, tbw ?? null, routes[0])
-    setFp({ col, name, unit,
+    const route0 = routes[0]
+    const sugg = calcSuggestedDose(name, ibw ?? null, tbw ?? null, route0)
+    // Per-route surfaces let route-varying drugs (Lidocaine etc.) open on the
+    // first route's correct unit/range/concentration instead of flat defaults.
+    const isurf = mode === "infusion" ? infusionRouteSurface(name, route0) : undefined
+    const bsurf = mode === "bolus" ? bolusRouteSurface(name, route0) : undefined
+    setFp({ col, name,
+      unit: bsurf?.unit ?? unit,
       mode,
       dose: sugg.dose, doseHint: sugg.hint,
-      rate: cfg?.min ?? 0, rateUnit: cfg?.units[0] ?? "mg/hr", rateUnits: cfg?.units ?? DEFAULT_INF.units,
-      rateMin: cfg?.min ?? DEFAULT_INF.min, rateMax: cfg?.max ?? DEFAULT_INF.max, rateStep: cfg?.step ?? DEFAULT_INF.step,
+      rate: isurf?.suggestedRate ?? cfg?.suggestedRate ?? isurf?.min ?? cfg?.min ?? 0,
+      rateUnit: isurf?.unit ?? cfg?.units[0] ?? "mg/hr",
+      rateUnits: isurf ? [isurf.unit] : cfg?.units ?? DEFAULT_INF.units,
+      rateMin: isurf?.min ?? cfg?.min ?? DEFAULT_INF.min, rateMax: isurf?.max ?? cfg?.max ?? DEFAULT_INF.max, rateStep: isurf?.step ?? cfg?.step ?? DEFAULT_INF.step,
       color: cfg?.color ?? DEFAULT_INF.color,
-      quickDoses: QUICK_DOSES[name], quickRates: QUICK_RATES[name],
-      routes, route: routes[0],
+      concentration: isurf?.suggestedConcentration,
+      quickDoses: bsurf?.quickValues ?? QUICK_DOSES[name], quickRates: isurf?.quickValues ?? QUICK_RATES[name],
+      routes, route: route0,
       anchor: { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width },
     })
   }
@@ -2666,7 +2709,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           const showAbove  = spaceBelow < 260
           const left = Math.max(8, Math.min(fp.anchor.left + fp.anchor.width / 2 - POP_W / 2, window.innerWidth - POP_W - 8))
           const top  = showAbove ? fp.anchor.top - 4 : fp.anchor.bottom + 6
-          const br   = bolusRange(fp.name, fp.unit)
+          const bsurf = bolusRouteSurface(fp.name, fp.route)
+          const br   = bsurf ? { min: bsurf.min, max: bsurf.max, step: bsurf.step } : bolusRange(fp.name, fp.unit)
           return (
             <div
               style={{ position:"fixed", left, top, width:POP_W, zIndex:9999, transform: showAbove ? "translateY(-100%)" : undefined }}
@@ -2693,14 +2737,19 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               )}
 
               {fp.mode === "bolus" && (() => {
-                const isLA = !!LA_CONCENTRATIONS[fp.name]
+                // Concentration options for the current route: from the route
+                // surface (Lidocaine PD/IT/perineural) when present, else the
+                // flat LA list.
+                const conc = bsurf ? (bsurf.mode?.includes("concentration") ? bsurf.concentrationOptions : undefined) : LA_CONCENTRATIONS[fp.name]
+                const isLA = !!conc?.length
                 const laSelected = isLA && !!fp.concentration
+                const quick = bsurf?.quickValues ?? fp.quickDoses
                 return (
                   <DoseSelector
                     accent="violet"
                     hint={fp.doseHint}
-                    quickValues={!isLA ? fp.quickDoses : undefined}
-                    concentrationOptions={isLA ? LA_CONCENTRATIONS[fp.name] : undefined}
+                    quickValues={!isLA ? quick : undefined}
+                    concentrationOptions={isLA ? conc : undefined}
                     concentration={fp.concentration}
                     onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: "", unit: c ? "ml" : f.unit} : f)}
                     customConcentration={fp.customConc}
@@ -2714,7 +2763,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                     routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => {
                       if (!f) return f
                       const sugg = calcSuggestedDose(f.name, ibw ?? null, tbw ?? null, r)
-                      return { ...f, route: r, dose: sugg.dose, doseHint: sugg.hint }
+                      const surf = bolusRouteSurface(f.name, r)
+                      return { ...f, route: r, dose: sugg.dose, doseHint: sugg.hint, unit: surf?.unit ?? f.unit, quickDoses: surf?.quickValues ?? f.quickDoses, concentration: undefined, customConc: "" }
                     })}
                     confirmLabel="Administer" onConfirm={fpCommitBolus}
                   />
@@ -2723,7 +2773,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
               {fp.mode === "infusion" && (
                 (() => {
-                  const isLA = !!LA_CONCENTRATIONS[fp.name]
+                  const isurf = infusionRouteSurface(fp.name, fp.route)
+                  const conc = isurf ? (isurf.mode?.includes("concentration") ? isurf.concentrationOptions : undefined) : LA_CONCENTRATIONS[fp.name]
+                  const isLA = !!conc?.length
                   const basis = INFUSION_WEIGHT_BASIS[fp.name]
                   const isPerKg = fp.rateUnit?.includes("/kg/")
                   const wt = basis === "TBW" ? tbw : ibw
@@ -2733,7 +2785,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   return (
                     <DoseSelector
                       accent="blue"
-                      concentrationOptions={isLA ? LA_CONCENTRATIONS[fp.name] : undefined}
+                      concentrationOptions={isLA ? conc : undefined}
                       concentration={fp.concentration}
                       onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: ""} : f)}
                       customConcentration={fp.customConc}
@@ -2746,7 +2798,17 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       unit={fp.rateUnit} onUnitChange={u => setFp(f => f ? {...f, rateUnit: u} : f)}
                       unitSuffix={fp.rateUnit}
                       extraHint={extraHint}
-                      routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => f ? {...f, route: r} : f)}
+                      routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => {
+                        if (!f) return f
+                        const surf = infusionRouteSurface(f.name, r)
+                        if (!surf) return { ...f, route: r }
+                        return { ...f, route: r,
+                          rateUnit: surf.unit, rateUnits: [surf.unit],
+                          rateMin: surf.min, rateMax: surf.max, rateStep: surf.step,
+                          rate: surf.suggestedRate ?? surf.min,
+                          quickRates: surf.quickValues ?? f.quickRates,
+                          concentration: surf.suggestedConcentration, customConc: "" }
+                      })}
                       confirmLabel="Start Infusion" onConfirm={fpCommitInfusion}
                     />
                   )
