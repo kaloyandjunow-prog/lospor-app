@@ -103,7 +103,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    if (!forceUpdate && preop && existing.preop && !preopBase) {
+    const differentUser = existing.userId !== userId
+    if (!forceUpdate && differentUser && preop && existing.preop && !preopBase) {
       return NextResponse.json({
         error: "conflict",
         section: "preop",
@@ -111,7 +112,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         serverVersion: existing.preop,
       }, { status: 409 })
     }
-    if (!forceUpdate && postop && existing.postop && !postopBase) {
+    if (!forceUpdate && differentUser && postop && existing.postop && !postopBase) {
       return NextResponse.json({
         error: "conflict",
         section: "postop",
@@ -119,7 +120,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         serverVersion: existing.postop,
       }, { status: 409 })
     }
-    if (!forceUpdate && intraop && existing.intraop && !intraopBase) {
+    if (!forceUpdate && differentUser && intraop && existing.intraop && !intraopBase) {
       return NextResponse.json({
         error: "conflict",
         section: "intraop",
@@ -128,21 +129,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }, { status: 409 })
     }
 
-    if (!forceUpdate && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
+    if (!forceUpdate && differentUser && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "preop",
         serverVersion: existing.preop,
       }, { status: 409 })
     }
-    if (!forceUpdate && postop && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
+    if (!forceUpdate && differentUser && postop && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "postop",
         serverVersion: existing.postop,
       }, { status: 409 })
     }
-    if (!forceUpdate && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+    if (!forceUpdate && differentUser && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "intraop",

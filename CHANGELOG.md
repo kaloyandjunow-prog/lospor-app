@@ -1,5 +1,11 @@
 # Changelog - LOSPOR Web App
 
+## [3.4.11] - 2026-06-29
+
+### Fixed
+- **Conflict detection no longer fires for same-account cross-device edits**: When the same user edits a case on both the web app and the PWA (e.g., autosave on PWA updates the server timestamp, then user clicks Continue on web), the server was returning 409 and the web app showed "this case was edited by another person." The conflict check now skips for same-account writes (last-write-wins). Conflict detection is preserved for cases where a genuinely different user has made changes.
+- **Mobile/PWA Continue button now correctly retries after 409**: The v3.4.9 409-retry logic read `serverVersion.preopUpdatedAt` from the conflict response, but the server actually returns `serverVersion.updatedAt` (the Prisma field name). Because of this field name mismatch, the retry baseline was always `undefined`, the retry never fired, and the user saw an "Error: conflict" alert instead of being navigated to the intraop screen. Field name corrected in both the `onSubmit` handler and the autosave catch block.
+
 ## [3.4.10] - 2026-06-29
 
 ### Fixed
