@@ -24,7 +24,14 @@ function handleCorsOptions(req: NextRequest): NextResponse | null {
 // These paths issue or revoke tokens — they can't send a Bearer token to prove
 // themselves, so they're exempt from the cookie-write origin check. Each is
 // already protected by rate limiting and bcrypt/token verification.
-const CSRF_EXEMPT = ["/api/auth/token", "/api/auth/register", "/api/auth/logout"]
+const CSRF_EXEMPT = [
+  "/api/auth/token",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/password-reset/request",
+  "/api/auth/password-reset/confirm",
+  "/api/auth/verify-email/resend",
+]
 
 function csrfCheck(req: NextRequest): NextResponse | null {
   if (req.method === "OPTIONS") return null
@@ -58,6 +65,7 @@ function isMobileBrowser(ua: string): boolean {
 }
 
 function mobileRedirect(req: NextRequest): NextResponse | null {
+  if (process.env.E2E_DISABLE_MOBILE_REDIRECT === "true") return null
   if (!MOBILE_PWA_URL) return null
   const { pathname } = req.nextUrl
   if (MOBILE_BYPASS.some(r => r.test(pathname))) return null

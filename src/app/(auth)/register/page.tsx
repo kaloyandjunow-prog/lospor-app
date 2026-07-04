@@ -210,7 +210,7 @@ export default function RegisterPage() {
     })
     setLoading(false)
     if (!res.ok) { const b = await res.json(); toast.error(b.error ?? t("auth.registrationFailed")); return }
-    toast.success(t("auth.registrationPending"))
+    toast.success(t("auth.registrationVerifyEmail"))
     router.push("/login")
   }
 

@@ -8,6 +8,7 @@ import { corsHeaders } from "@/lib/cors"
 const MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
 const MAX_BYTES = 10_485_760 // 10 MB
 const MAX_BASE64_CHARS = Math.ceil(MAX_BYTES * 4 / 3)
+const MISTRAL_TIMEOUT_MS = Number(process.env.MISTRAL_TIMEOUT_MS ?? 45_000)
 
 const LIBRARY_MAP = new Map(LAB_LIBRARY.map(test => [test.name, test.unit]))
 const LIBRARY_TABLE = LAB_LIBRARY.map(test => `${test.name} | ${test.unit || "-"}`).join("\n")
@@ -124,6 +125,8 @@ export async function POST(req: NextRequest) {
   }
 
   let mistralRes: Response
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), MISTRAL_TIMEOUT_MS)
   try {
     mistralRes = await fetchMistralChatCompletions(apiKey, {
       model: process.env.MISTRAL_VISION_MODEL ?? "pixtral-12b-2409",
@@ -137,10 +140,16 @@ export async function POST(req: NextRequest) {
       temperature: 0.1,
       max_tokens: 2000,
       stream: false,
-    })
+    }, { signal: controller.signal })
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.error("[ai/read-labs] Mistral fetch timed out")
+      return NextResponse.json({ error: "Lab scan timed out. Please crop the image tighter or try again." }, { status: 504 })
+    }
     console.error("[ai/read-labs] Mistral fetch error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } finally {
+    clearTimeout(timeout)
   }
 
   if (!mistralRes.ok) {

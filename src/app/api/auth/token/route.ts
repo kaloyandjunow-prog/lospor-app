@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   const hash  = user?.passwordHash ?? DUMMY
   const valid = await bcrypt.compare(body.password, hash)
 
-  if (!user || !valid || !user.approvedAt || user.deletedAt) {
+  if (!user || !valid || !user.emailVerifiedAt || user.deletedAt) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
   }
 

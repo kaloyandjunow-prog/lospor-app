@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { corsHeaders } from "@/lib/cors"
+import { createAuthToken, EMAIL_VERIFICATION_TTL_MS, hashAuthToken, tokenExpiry } from "@/lib/auth-email-tokens"
+import { appUrl, sendVerificationEmail } from "@/lib/transactional-email"
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders("POST, OPTIONS", "Content-Type, Authorization") })
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(data.password, 12)
     const name = [data.title, data.firstName, data.lastName].filter(Boolean).join(" ")
 
+    const token = createAuthToken()
     const user = await prisma.user.create({
       data: {
         name,
@@ -62,12 +65,36 @@ export async function POST(req: NextRequest) {
         institutionId:   data.institutionId || null,
         role:            "MEMBER",
         approvedAt:      null,
+        emailVerifiedAt: null,
         acceptedTermsAt: new Date(),
-        termsVersion:    "1.0",
+        termsVersion:    "4.0",
+        emailVerificationTokens: {
+          create: {
+            tokenHash: hashAuthToken(token),
+            expiresAt: tokenExpiry(EMAIL_VERIFICATION_TTL_MS),
+          },
+        },
       },
     })
 
-    return NextResponse.json({ id: user.id, email: user.email, pending: true }, { status: 201 })
+    const verifyUrl = appUrl(`/verify-email?token=${encodeURIComponent(token)}`)
+    let emailSent = false
+    try {
+      const result = await sendVerificationEmail({ email: user.email, name: user.name }, verifyUrl)
+      emailSent = result.sent
+    } catch (err) {
+      console.error("[register.verify-email]", err)
+    }
+
+    const exposeTestLink = process.env.NODE_ENV !== "production" && (process.env.AUTH_EMAIL_TEST_LINKS === "true" || !process.env.BREVO_API_KEY)
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      pending: false,
+      verificationRequired: true,
+      emailSent,
+      ...(exposeTestLink ? { devVerifyUrl: verifyUrl } : {}),
+    }, { status: 201 })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0]?.message ?? "Validation error" }, { status: 400 })
@@ -77,4 +104,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
-

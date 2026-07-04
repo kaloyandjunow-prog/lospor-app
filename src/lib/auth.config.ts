@@ -12,6 +12,9 @@ export const authConfig: NextAuthConfig = {
       const isPublicPage =
         nextUrl.pathname.startsWith("/privacy") ||
         nextUrl.pathname.startsWith("/terms") ||
+        nextUrl.pathname.startsWith("/forgot-password") ||
+        nextUrl.pathname.startsWith("/reset-password") ||
+        nextUrl.pathname.startsWith("/verify-email") ||
         nextUrl.pathname === "/manifest.webmanifest" ||
         nextUrl.pathname === "/sw.js"
       const isLoginPage =

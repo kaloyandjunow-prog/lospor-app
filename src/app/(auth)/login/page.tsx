@@ -100,8 +100,10 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="text-center text-xs text-slate-400 mt-3 italic">
-              {t("auth.forgotPassword")}
+            <p className="text-center text-xs text-slate-500 mt-3">
+              <Link href="/forgot-password" className="text-blue-600 hover:underline font-medium">
+                {t("auth.forgotPassword")}
+              </Link>
             </p>
 
             <p className="text-center text-sm text-slate-500 mt-3">

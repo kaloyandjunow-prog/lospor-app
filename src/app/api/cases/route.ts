@@ -32,6 +32,22 @@ async function generateCaseCode(userId: string): Promise<string> {
   return `${prefix}${String(next).padStart(4, "0")}`
 }
 
+async function findIdempotentCase(userId: string, idempotencyKey: string) {
+  return prisma.case.findFirst({
+    where: { userId, clientDraftId: idempotencyKey },
+    select: { id: true, caseCode: true, preop: { select: { updatedAt: true } } },
+  })
+}
+
+function isPrismaUniqueError(err: unknown, field?: string): boolean {
+  if (!err || typeof err !== "object" || !("code" in err) || err.code !== "P2002") return false
+  if (!field) return true
+  const target = "meta" in err && err.meta && typeof err.meta === "object" && "target" in err.meta
+    ? err.meta.target
+    : undefined
+  return Array.isArray(target) ? target.includes(field) : false
+}
+
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -45,10 +61,7 @@ export async function POST(req: NextRequest) {
     // If we find an existing case with this key, return it without creating a duplicate.
     const idempotencyKey = req.headers.get("x-idempotency-key")
     if (idempotencyKey) {
-      const existing = await prisma.case.findFirst({
-        where: { userId, clientDraftId: idempotencyKey },
-        select: { id: true, caseCode: true, preop: { select: { updatedAt: true } } },
-      })
+      const existing = await findIdempotentCase(userId, idempotencyKey)
       if (existing) {
         return NextResponse.json({
           id: existing.id,
@@ -90,9 +103,19 @@ export async function POST(req: NextRequest) {
         })
         break
       } catch (e: unknown) {
+        if (idempotencyKey && isPrismaUniqueError(e, "clientDraftId")) {
+          const existing = await findIdempotentCase(userId, idempotencyKey)
+          if (existing) {
+            return NextResponse.json({
+              id: existing.id,
+              caseCode: existing.caseCode,
+              preopUpdatedAt: existing.preop?.updatedAt,
+            }, { status: 200 })
+          }
+        }
         // Concurrent requests can compute the same next caseCode — retry with a
         // freshly-generated one rather than failing the whole create.
-        if (e && typeof e === "object" && "code" in e && e.code === "P2002" && attempt < 4) continue
+        if (isPrismaUniqueError(e, "caseCode") && attempt < 4) continue
         throw e
       }
     }

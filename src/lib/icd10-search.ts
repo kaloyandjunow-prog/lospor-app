@@ -12,6 +12,10 @@ export type Icd10SearchResult = {
   system: "ICD-10"
 }
 
+export function isIcd10CodeLikeQuery(query: string): boolean {
+  return /^[A-TV-Z][0-9]/i.test(query.trim())
+}
+
 export function formatIcd10Result(row: Icd10SearchRow, useBg: boolean): Icd10SearchResult {
   const labelBg = row.labelBg?.trim() || undefined
   const label = useBg && labelBg ? labelBg : row.labelEn

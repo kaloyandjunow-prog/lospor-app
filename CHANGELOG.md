@@ -1,5 +1,29 @@
 # Changelog - LOSPOR Web App
 
+## [4.0.0] - 2026-07-03
+
+Quality/stability milestone: account email flows, research-grade test coverage, CI, and a shared clinical-logic package.
+
+### Added
+- **Email verification.** Registration now sends a verification email (link valid 24 h, tokens stored hashed, single-use). Login requires a verified email; **admin approval no longer gates login**. New pages: `/verify-email`, `/forgot-password`, `/reset-password`; new API routes for verification (+resend) and password reset (request/confirm, enumeration-safe). Transactional email via **Brevo (EU)**; migration `20260703000000_account_email_tokens` backfills existing users as verified so nobody is locked out.
+- **Password reset** end-to-end (reset link valid 1 h).
+- **Playwright E2E** suites (smoke, account lifecycle in desktop + PWA viewports, authed dashboard/case-flow) with a prod-guarded seed user, plus **GitHub Actions CI** (typecheck, lint, unit tests, prisma validate, option-library fallback freshness).
+- **OMOP / relational export test coverage**: direct tests for `syncCaseRelational` (ICD-10/LOINC/procedure/medication mapping, delete-before-create ordering, audit logging) and `mapCasesToOmop` (deidentification metadata, table exports, quality-gate FAIL states).
+- **Shared `@lospor/core` package** (dosing, scores, unit conversion, ranges, timetable math, option-library mappers) consumed by both web and mobile from its own repository.
+
+### Fixed
+- **Finalize is now strict about research consistency**: relational sync runs before the immutable snapshot and a sync failure blocks finalization (500) instead of silently completing the case.
+- **Case create race** on the same `X-Idempotency-Key`/`clientDraftId` returns the already-created case instead of a 500.
+- **ICD-10 search**: terms like `append` or `benign` are no longer mistaken for ICD codes (code detection now requires letter+digit), and short/code-like queries use fast prefix lookups.
+- **Tokenless API requests** return 401 instead of falling through to cookie auth and erroring with 500.
+- **AI lab scan** requests time out (default 45 s) with a clear message instead of leaving the client waiting indefinitely.
+- Intraop in-transaction conflict responses now include `serverVersion.updatedAt`, enabling the mobile one-shot 409 retry on undo/delete.
+- Preop `ageYears` accepts 0–149, matching the mobile picker.
+
+### Changed
+- Privacy Policy and Terms updated to **v4.0**: Brevo listed as sub-processor, account-email processing disclosed, "administrator approval" wording replaced by email verification. `termsVersion` recorded at registration/acceptance is now `4.0`.
+- Large components split by responsibility: `CaseSummary` print timetable → `case-summary/PrintTimetable`, `IntraopTimetable` vitals chart → `intraop/TimetableVitalsChart`, preop zod schema → `forms/preopSchema`, fluid lane shaping → `lib/timetable-fluid-rows`.
+
 ## [3.5.0] - 2026-06-29
 
 Pre-Play-Store release: intraop bug fixes + a PWA-wide dialog fix.

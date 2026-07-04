@@ -70,6 +70,13 @@ See [.env.example](.env.example) for all required variables.
 | MISTRAL_API_BASE | Optional | Override Mistral API endpoint; regional overrides fall back to `https://api.mistral.ai/v1` if inference is not allowed |
 | MISTRAL_MODEL | Optional | Override model for AI advisor (default: `open-mistral-7b`) |
 | CORS_ALLOW_ORIGIN | Required in production | Explicit browser/PWA origin allowlist |
+| BREVO_API_KEY | Required in production | Brevo (EU) transactional email — verification + password reset. If missing, emails are skipped and new users cannot verify |
+| AUTH_EMAIL_FROM | Optional | Verified Brevo sender address (default: `no-reply@lospor.org`) |
+| AUTH_EMAIL_FROM_NAME | Optional | Sender display name (default: `LOSPOR`) |
+| NEXT_PUBLIC_APP_URL | Optional | Base URL used in emailed links (falls back to NEXTAUTH_URL) |
+| AUTH_EMAIL_TEST_LINKS | Never in production | Non-production only: exposes verification/reset links in API responses for automated tests |
+| OPTION_LIBRARY_SNAPSHOT_SECRET | Optional | Protects the internal option-library snapshot endpoint |
+| MOBILE_PWA_URL | Optional | Mobile browsers are redirected to this PWA origin |
 
 ## Tech stack
 

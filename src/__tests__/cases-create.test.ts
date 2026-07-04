@@ -77,6 +77,20 @@ describe("POST /api/cases", () => {
     expect(body.id).toBe("existing-case")
   })
 
+  it("returns the existing case when a concurrent create wins the same clientDraftId", async () => {
+    const existing = { id: "race-winner", caseCode: "2026-0002", preop: { updatedAt: new Date() } }
+    findFirstMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existing)
+    createMock.mockRejectedValueOnce({ code: "P2002", meta: { target: ["userId", "clientDraftId"] } })
+
+    const res = await POST(makeRequest({ preop: MINIMAL_PREOP }, "draft-race-123"))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.id).toBe("race-winner")
+  })
+
   it("creates normally when no X-Idempotency-Key is provided", async () => {
     const res = await POST(makeRequest({ preop: MINIMAL_PREOP }))
     expect(res.status).toBe(201)

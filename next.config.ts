@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { networkInterfaces } from "node:os"
 import createNextIntlPlugin from "next-intl/plugin"
 import withPWAInit from "@ducanh2912/next-pwa"
 
@@ -50,9 +51,30 @@ const withPWA = withPWAInit({
   },
 })
 
+function devLanHosts(): string[] {
+  const explicit = process.env.LOSPOR_DEV_HOST?.trim()
+  if (explicit) return [explicit]
+
+  const hosts = new Set<string>()
+  for (const entries of Object.values(networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      if (entry.family !== "IPv4" || entry.internal) continue
+      if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(entry.address)) {
+        hosts.add(entry.address)
+      }
+    }
+  }
+  return [...hosts]
+}
+
+const devHosts = isDev ? devLanHosts() : []
+const devWsOrigins = devHosts.map(host => ` ws://${host}:3000`).join("")
+
 const nextConfig: NextConfig = {
-  // Allow the local network IP so HMR and JS hydration work when accessed from the LAN
-  ...(isDev ? { allowedDevOrigins: ["192.168.0.107"] } : {}),
+  transpilePackages: ["@lospor/core"],
+
+  // Allow current local network IPs so HMR and JS hydration work when accessed from the LAN.
+  ...(isDev ? { allowedDevOrigins: devHosts } : {}),
 
   async headers() {
     return [
@@ -80,7 +102,7 @@ const nextConfig: NextConfig = {
           "img-src 'self' data: blob:",
           "font-src 'self' data:",
           // Dev HMR uses ws: on the same host; production only needs self
-          `connect-src 'self'${isDev ? " ws://192.168.0.107:3000 ws://localhost:3000" : ""}`,
+          `connect-src 'self'${isDev ? `${devWsOrigins} ws://localhost:3000` : ""}`,
           "form-action 'self'",
           "base-uri 'self'",
           "frame-ancestors 'none'",

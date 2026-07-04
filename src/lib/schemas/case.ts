@@ -31,7 +31,7 @@ const labelledItem = z.object({
 }).passthrough()
 
 export const preopSchema = z.object({
-  ageYears:  cInt(0, 130),
+  ageYears:  cInt(0, 149),
   sex:       z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   heightCm:  cNum(30, 280),
   weightKg:  cNum(0.1, 700),

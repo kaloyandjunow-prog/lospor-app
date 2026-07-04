@@ -44,9 +44,19 @@ next-env.d.ts
 
 dev.log
 dev-current.*.log
+.next-dev-*.log
+.next-e2e-*.log
+debug.log
 *.backup.tsx
 *.backup2.tsx
 .tmp-*.jpg
+
+# playwright e2e
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/e2e/.auth/
 .tmp-*.png
 
 # Claude Code worktrees and session artefacts

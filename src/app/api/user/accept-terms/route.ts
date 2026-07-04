@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({
     where: { id: user.id },
-    data:  { acceptedTermsAt: new Date(), termsVersion: "1.0" },
+    data:  { acceptedTermsAt: new Date(), termsVersion: "4.0" },
   })
 
   return NextResponse.json({ ok: true })

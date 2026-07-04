@@ -32,8 +32,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const DUMMY_HASH = "$2b$12$8Hgfmzh/eT3wO6GKKkEPoeC6rP9R5wI8M97v53FtBfe8chBgTrHpy"
         const valid = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH)
 
-        // Single combined check (invalid credentials / pending approval / soft-deleted)
-        if (!user || !valid || !user.approvedAt || user.deletedAt) return null
+        // Single combined check (invalid credentials / unverified email / soft-deleted)
+        if (!user || !valid || !user.emailVerifiedAt || user.deletedAt) return null
 
         // Fire-and-forget — never block login on a non-critical update
         prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => {})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { mergeIcd10Results } from "@/lib/icd10-search"
+import { isIcd10CodeLikeQuery, mergeIcd10Results } from "@/lib/icd10-search"
 
 describe("ICD-10 search formatting", () => {
   it("uses Bulgarian display text when requested and keeps English metadata", () => {
@@ -26,5 +26,11 @@ describe("ICD-10 search formatting", () => {
 
     expect(results.map((row) => row.code)).toEqual(["E11", "E10"])
     expect(results[0].descriptionBg).toBe("Захарен диабет тип 2")
+  })
+  it("does not treat text terms as ICD-10 code searches", () => {
+    expect(isIcd10CodeLikeQuery("append")).toBe(false)
+    expect(isIcd10CodeLikeQuery("benign")).toBe(false)
+    expect(isIcd10CodeLikeQuery("K35")).toBe(true)
+    expect(isIcd10CodeLikeQuery("I10")).toBe(true)
   })
 })

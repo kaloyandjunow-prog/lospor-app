@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <Card>
           <CardHeader>
             <CardTitle>Privacy Policy</CardTitle>
-            <p className="text-xs text-slate-400 mt-1">Effective date: 25 June 2026 - Version 3.1</p>
+            <p className="text-xs text-slate-400 mt-1">Effective date: 3 July 2026 - Version 4.0</p>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-sm leading-relaxed">
             <section>
@@ -30,6 +30,7 @@ export default function PrivacyPage() {
                 <li><strong>Account data:</strong> name, email address, title, institution, registration date, last login time, role, and terms acceptance records.</li>
                 <li><strong>Case data:</strong> structured perioperative fields, normalized research rows, append-only intraoperative events, timestamps, institution linkage, and audit metadata. No patient names, national ID numbers, dates of birth, or hospital record numbers are intended to be stored.</li>
                 <li><strong>Audit log:</strong> records of case creation, update, deletion, AI use, export, and account events.</li>
+                <li><strong>Account emails:</strong> your email address is used to send email verification links (valid 24 hours) and password reset links (valid 1 hour). Tokens are stored hashed and are single-use.</li>
                 <li><strong>Session tokens:</strong> short-lived web session cookies and mobile bearer tokens. Bearer tokens are revoked on logout.</li>
                 <li><strong>PWA local data:</strong> browser localStorage may hold the bearer token, offline drafts, queued saves, and queued intraoperative events until logout or successful sync.</li>
               </ul>
@@ -49,6 +50,7 @@ export default function PrivacyPage() {
                 <li><strong>Supabase:</strong> PostgreSQL database hosting.</li>
                 <li><strong>Vercel:</strong> application hosting and serverless functions.</li>
                 <li><strong>Mistral AI:</strong> opt-in AI inference for lab report images, monitor images, and structured clinical advisor requests. Uploaded images are processed for extraction and should be cropped to remove identifiers before upload.</li>
+                <li><strong>Brevo:</strong> transactional email delivery (account verification and password reset emails). Only your email address and name are shared for the purpose of sending these emails.</li>
               </ul>
             </section>
 

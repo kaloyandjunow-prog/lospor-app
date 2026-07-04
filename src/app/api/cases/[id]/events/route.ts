@@ -189,7 +189,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ ok: true, intraopUpdatedAt: intraop?.updatedAt })
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "INTRAOP_CONFLICT") {
-        return NextResponse.json({ error: "conflict", section: "intraop" }, { status: 409 })
+        const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+        return NextResponse.json({
+          error: "conflict",
+          section: "intraop",
+          serverVersion: intraop?.updatedAt ? { updatedAt: intraop.updatedAt } : undefined,
+        }, { status: 409 })
       }
       if ((e && typeof e === "object" && "code" in e && (e.code === "P2034" || e.code === "P2002")) && attempt < 5) continue
       console.error("[events PUT]", e)

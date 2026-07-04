@@ -15,7 +15,7 @@ export default function TermsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Terms of Service</CardTitle>
-            <p className="text-xs text-slate-400 mt-1">Effective date: 25 June 2026 - Version 3.1</p>
+            <p className="text-xs text-slate-400 mt-1">Effective date: 3 July 2026 - Version 4.0</p>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 space-y-4 text-sm leading-relaxed">
             <section>
@@ -31,7 +31,7 @@ export default function TermsPage() {
 
             <section>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">3. Your account</h3>
-              <p>Accounts are for individual use only. You are responsible for keeping your credentials secure. Accounts are subject to administrator approval before use. Account deletion disables access immediately; additional deletion or anonymisation is handled according to the retention policy.</p>
+              <p>Accounts are for individual use only. You are responsible for keeping your credentials secure. You must verify your email address before you can sign in. Account deletion disables access immediately; additional deletion or anonymisation is handled according to the retention policy.</p>
             </section>
 
             <section>

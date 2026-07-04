@@ -6,6 +6,7 @@ const updateMock      = vi.fn()
 const writeSnapshotAsyncMock = vi.fn()
 const canAccessCaseMock = vi.fn()
 const logAuditMock    = vi.fn()
+const syncCaseRelationalMock = vi.fn()
 
 vi.mock("next/server", async importOriginal => {
   const actual = await importOriginal<typeof import("next/server")>()
@@ -18,7 +19,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 vi.mock("@/lib/case-audit", () => ({ writeSnapshotAsync: writeSnapshotAsyncMock }))
-vi.mock("@/lib/relational-sync", () => ({ syncCaseRelationalSafe: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/relational-sync", () => ({ syncCaseRelational: syncCaseRelationalMock }))
 vi.mock("@/lib/access-control", () => ({ canAccessCase: canAccessCaseMock }))
 vi.mock("@/lib/audit", () => ({ logAudit: logAuditMock }))
 vi.mock("@/lib/caseEmitter", () => ({ default: { emit: vi.fn() } }))
@@ -56,6 +57,7 @@ describe("POST /api/cases/:id/finalize", () => {
     getAuthUserMock.mockResolvedValue({ id: "user-1", role: "MEMBER", institutionId: "inst-1" })
     canAccessCaseMock.mockReturnValue(true)
     findUniqueMock.mockResolvedValue(VALID_CASE)
+    syncCaseRelationalMock.mockResolvedValue(undefined)
     writeSnapshotAsyncMock.mockResolvedValue(undefined)
     updateMock.mockResolvedValue({ id: "case-1", status: "COMPLETE" })
     const mod = await import("@/app/api/cases/[id]/finalize/route")
@@ -124,10 +126,21 @@ describe("POST /api/cases/:id/finalize", () => {
 
   it("writes snapshot before updating status", async () => {
     const order: string[] = []
+    syncCaseRelationalMock.mockImplementation(() => { order.push("sync"); return Promise.resolve() })
     writeSnapshotAsyncMock.mockImplementation(() => { order.push("snapshot"); return Promise.resolve() })
     updateMock.mockImplementation(() => { order.push("update"); return Promise.resolve({ id: "case-1", status: "COMPLETE" }) })
     await POST(makeRequest(), { params: Promise.resolve({ id: "case-1" }) })
-    expect(order).toEqual(["snapshot", "update"])
+    expect(order).toEqual(["sync", "snapshot", "update"])
+  })
+
+  it("blocks finalization when relational sync fails", async () => {
+    syncCaseRelationalMock.mockRejectedValue(new Error("mirror failed"))
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "case-1" }) })
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).toContain("relational clinical rows")
+    expect(writeSnapshotAsyncMock).not.toHaveBeenCalled()
+    expect(updateMock).not.toHaveBeenCalled()
   })
 
   it("returns 409 when case is already COMPLETE", async () => {

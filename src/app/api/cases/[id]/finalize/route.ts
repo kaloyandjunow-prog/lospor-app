@@ -3,7 +3,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
 import { writeSnapshotAsync } from "@/lib/case-audit"
-import { syncCaseRelationalSafe } from "@/lib/relational-sync"
+import { syncCaseRelational } from "@/lib/relational-sync"
 import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import caseEmitter from "@/lib/caseEmitter"
@@ -85,7 +85,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Reconcile the relational mirror before locking the case, so the snapshot
   // and any subsequent OMOP export agree with the queryable rows.
-  await syncCaseRelationalSafe(prisma, id, userId)
+  try {
+    await syncCaseRelational(prisma, id)
+  } catch (err) {
+    console.error("[finalize] relational sync failed", id, err)
+    return NextResponse.json({ error: "Failed to reconcile relational clinical rows. Case status unchanged." }, { status: 500 })
+  }
 
   // Write the immutable snapshot first (upsert = idempotent). If this throws,
   // the case status is not changed — caller can retry.

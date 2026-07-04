@@ -24,7 +24,10 @@ model User {
   roleRequests      RoleRequest[]
   transfersSent     CaseTransfer[] @relation("TransfersSent")
   transfersReceived CaseTransfer[] @relation("TransfersReceived")
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
   approvedAt        DateTime?
+  emailVerifiedAt   DateTime?
   acceptedTermsAt   DateTime?
   acceptedPrivacyAt DateTime?
   termsVersion      String?
@@ -32,6 +35,32 @@ model User {
   lastLoginAt       DateTime?
   deletedAt         DateTime?
   createdAt         DateTime       @default(now())
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+  @@index([expiresAt])
 }
 
 enum UserRole {
