@@ -1,4 +1,4 @@
-# Stored Data Model - LOSPOR v3.0
+# Stored Data Model - LOSPOR
 
 `lospor-app` is the canonical API and PostgreSQL schema for web, mobile, and PWA clients. Mobile payloads must be mapped into the canonical web/API field names before persistence. Patient names, national identifiers, and hospital file numbers are intentionally not stored.
 
@@ -17,7 +17,7 @@
 - **CaseLock:** active editor user/device/expiry.
 - **CaseTransfer:** sender, recipient, initiator, status, creation/resolution timestamps.
 - **CaseFieldChange:** per-field preop/postop change log.
-- **CaseSnapshot:** immutable finalisation snapshot. v3.0 defaults new snapshots to schema version `3.0.0`.
+- **CaseSnapshot:** immutable finalisation snapshot. New snapshots default to schema version `3.0.0` (a data-contract value, independent of the app release version).
 
 ## Intraoperative event source
 
@@ -85,11 +85,11 @@
 - **ClinicalFieldStatus:** case, section, fieldKey, presence, source, sourceVersion, timestamps.
 - Presence values: `PRESENT`, `ABSENT`, `UNKNOWN`, `NOT_APPLICABLE`, `NOT_DOCUMENTED`.
 - This prevents blank research fields from being misread as negative findings.
-- v3.0 records field status broadly across preop, intraop, timetable-adjacent event sources, and postop so normalized rows can be treated as the research/export authority.
+- Field status is recorded broadly across preop, intraop, timetable-adjacent event sources, and postop so normalized rows can be treated as the research/export authority.
 
 ## OMOP/export model
 
-- OMOP export source version is `3.0.0`.
+- OMOP export `source_version` is a data-contract value reflecting the release that last changed the export shape (currently `3.4.3` — see `src/lib/omop-mapper.ts`), independent of the app version.
 - Export reads normalized rows and active `CaseEvent` rows.
 - Known OMOP concept IDs are exported where `ConceptMap`/row mappings are confident.
 - Source-only values keep source vocabulary, source code, and labels; fake concept IDs are not used.
@@ -98,7 +98,7 @@
 
 ## Release and seed order
 
-For a fresh/live v3.0 deployment:
+For a fresh/live deployment:
 
 1. `npx prisma migrate deploy`
 2. `npx tsx scripts/seed-athena-vocabularies.ts --vocab-dir /path/to/athena-csvs --filtered-lospor`

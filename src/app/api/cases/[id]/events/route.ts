@@ -10,10 +10,10 @@ import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
 
-const CORS = corsHeaders("POST, PUT, OPTIONS")
+const CORS = (req: NextRequest) => corsHeaders(req, "POST, PUT, OPTIONS")
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 // Permissive event schema — known fields typed, unknown ones (color, infId,

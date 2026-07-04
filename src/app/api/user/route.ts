@@ -5,15 +5,15 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { Prisma } from "@/generated/prisma/client"
 
-const CORS = corsHeaders("GET, PATCH, OPTIONS")
+const CORS = (req: NextRequest) => corsHeaders(req, "GET, PATCH, OPTIONS")
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)
-  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: CORS })
+  if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: CORS(req) })
   const record = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
       institutionId: true, institution: { select: { id: true, name: true, city: true } },
     },
   })
-  if (!record) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS })
-  return NextResponse.json(record, { headers: CORS })
+  if (!record) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS(req) })
+  return NextResponse.json(record, { headers: CORS(req) })
 }
 
 const patchSchema = z.object({
@@ -75,10 +75,10 @@ export async function PATCH(req: NextRequest) {
         institution: { select: { id: true, name: true, city: true } },
       },
     })
-    return NextResponse.json({ ok: true, institution: updated.institution, preferences: updated.preferences }, { headers: CORS })
+    return NextResponse.json({ ok: true, institution: updated.institution, preferences: updated.preferences }, { headers: CORS(req) })
   } catch (err) {
-    if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: CORS })
+    if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: CORS(req) })
     console.error("[PATCH /api/user]", err)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: CORS })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: CORS(req) })
   }
 }

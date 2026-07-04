@@ -35,10 +35,10 @@ async function resolveCase(
   return { userId: user.id, status: existing.status }
 }
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 const LOCK_TTL_MS = 30_000

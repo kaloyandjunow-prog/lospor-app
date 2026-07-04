@@ -42,7 +42,7 @@ All `/api/*` routes include CORS headers.
 
 - Development: `Access-Control-Allow-Origin: *` is allowed for local PWA development.
 - Production: set `CORS_ALLOW_ORIGIN=https://pwa.lospor.org` in Vercel.
-- `CORS_ALLOW_ORIGINS` is also accepted as a comma-list; the current header helper uses the first configured origin.
+- `CORS_ALLOW_ORIGINS` accepts a comma-list; the header helper reflects the request's `Origin` when it matches any allowlisted entry (with `Vary: Origin`), and falls back to the first entry otherwise. The singular `CORS_ALLOW_ORIGIN` is merged into the same allowlist.
 - CORS is not treated as CSRF protection. Cookie-authenticated writes are separately same-origin checked by the proxy.
 
 ## AI Provider

@@ -3,10 +3,10 @@ import { corsHeaders } from "@/lib/cors"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { revokeToken } from "@/lib/token-blocklist"
 
-const CORS = corsHeaders("POST, OPTIONS")
+const CORS = (req: NextRequest) => corsHeaders(req, "POST, OPTIONS")
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 // POST /api/auth/logout — revokes the caller's bearer token server-side so a
@@ -18,5 +18,5 @@ export async function POST(req: NextRequest) {
     // Token TTL is 8h; block the jti until at least then so it can't be replayed.
     await revokeToken(user.jti, new Date(Date.now() + 8 * 60 * 60 * 1000))
   }
-  return NextResponse.json({ ok: true }, { headers: CORS })
+  return NextResponse.json({ ok: true }, { headers: CORS(req) })
 }

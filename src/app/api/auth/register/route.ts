@@ -4,18 +4,18 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { corsHeaders } from "@/lib/cors"
-import { createAuthToken, EMAIL_VERIFICATION_TTL_MS, hashAuthToken, tokenExpiry } from "@/lib/auth-email-tokens"
+import { createAuthToken, EMAIL_VERIFICATION_TTL_MS, emailSchema, hashAuthToken, normalizeEmail, tokenExpiry } from "@/lib/auth-email-tokens"
 import { appUrl, sendVerificationEmail } from "@/lib/transactional-email"
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders("POST, OPTIONS", "Content-Type, Authorization") })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req, "POST, OPTIONS", "Content-Type, Authorization") })
 }
 
 const schema = z.object({
   title:          z.string().optional(),
   firstName:      z.string().min(1, "First name required"),
   lastName:       z.string().min(1, "Last name required"),
-  email:          z.string().email(),
+  email:          emailSchema,
   institutionId:  z.union([z.string().cuid(), z.literal(""), z.undefined()]).optional(),
   acceptedTerms:  z.boolean().refine(v => v === true, "You must accept the terms"),
   password: z.string()
@@ -37,8 +37,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = schema.parse(body)
+    const email = normalizeEmail(data.email)
 
-    const existing = await prisma.user.findUnique({ where: { email: data.email } })
+    const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 })
     }
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
         firstName:       data.firstName,
         lastName:        data.lastName,
         title:           data.title ?? "",
-        email:           data.email,
+        email,
         passwordHash,
         institutionId:   data.institutionId || null,
         role:            "MEMBER",

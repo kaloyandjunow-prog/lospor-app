@@ -7,10 +7,10 @@ import { corsHeaders } from "@/lib/cors"
 
 const schema = z.object({ action: z.enum(["approve", "reject"]) })
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -8,10 +8,10 @@ import { rateLimit } from "@/lib/rate-limit"
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY ?? ""
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

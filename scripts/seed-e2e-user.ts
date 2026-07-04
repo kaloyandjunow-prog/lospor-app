@@ -20,6 +20,7 @@ async function main() {
   try {
     const passwordHash = await bcrypt.hash(E2E_PASSWORD, 10)
     const now = new Date()
+    const email = E2E_EMAIL.trim().toLowerCase()
     // A real institution so created cases satisfy Case.institutionId's FK.
     const inst = await prisma.institution.upsert({
       where: { id: "e2e-institution" },
@@ -27,10 +28,10 @@ async function main() {
       create: { id: "e2e-institution", name: "E2E Test Hospital", city: "Sofia" },
     })
     const user = await prisma.user.upsert({
-      where: { email: E2E_EMAIL },
+      where: { email },
       update: { passwordHash, approvedAt: now, emailVerifiedAt: now, acceptedTermsAt: now, acceptedPrivacyAt: now, role: "ADMIN", institutionId: inst.id },
       create: {
-        email: E2E_EMAIL, name: "E2E Tester", firstName: "E2E", lastName: "Tester", title: "Dr",
+        email, name: "E2E Tester", firstName: "E2E", lastName: "Tester", title: "Dr",
         passwordHash, role: "ADMIN", approvedAt: now, emailVerifiedAt: now, acceptedTermsAt: now, acceptedPrivacyAt: now, termsVersion: "e2e",
         institutionId: inst.id,
       },

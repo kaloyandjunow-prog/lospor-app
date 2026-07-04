@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { allowedCorsOrigin } from "@/lib/cors"
+import { allowedCorsOrigin, corsHeaders } from "@/lib/cors"
+
+function requestWithOrigin(origin: string | null) {
+  return { headers: { get: (name: string) => (name === "origin" ? origin : null) } }
+}
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -25,5 +29,34 @@ describe("CORS config", () => {
   it("accepts the first origin from CORS_ALLOW_ORIGINS", () => {
     vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org, https://preview.lospor.org")
     expect(allowedCorsOrigin()).toBe("https://pwa.lospor.org")
+  })
+
+  it("reflects any allowlisted origin, not just the first", () => {
+    vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org, https://preview.lospor.org")
+    expect(allowedCorsOrigin("https://preview.lospor.org")).toBe("https://preview.lospor.org")
+    expect(allowedCorsOrigin("https://pwa.lospor.org")).toBe("https://pwa.lospor.org")
+  })
+
+  it("falls back to the first configured origin for unknown origins", () => {
+    vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org, https://preview.lospor.org")
+    expect(allowedCorsOrigin("https://evil.example.com")).toBe("https://pwa.lospor.org")
+  })
+
+  it("merges the singular CORS_ALLOW_ORIGIN into the allowlist", () => {
+    vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org")
+    vi.stubEnv("CORS_ALLOW_ORIGIN", "https://app.lospor.org")
+    expect(allowedCorsOrigin("https://app.lospor.org")).toBe("https://app.lospor.org")
+  })
+
+  it("corsHeaders reflects the request origin and sets Vary: Origin", () => {
+    vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org, https://preview.lospor.org")
+    const headers = corsHeaders(requestWithOrigin("https://preview.lospor.org"))
+    expect(headers["Access-Control-Allow-Origin"]).toBe("https://preview.lospor.org")
+    expect(headers["Vary"]).toBe("Origin")
+  })
+
+  it("corsHeaders without a request keeps the static first-origin behaviour", () => {
+    vi.stubEnv("CORS_ALLOW_ORIGINS", "https://pwa.lospor.org, https://preview.lospor.org")
+    expect(corsHeaders()["Access-Control-Allow-Origin"]).toBe("https://pwa.lospor.org")
   })
 })

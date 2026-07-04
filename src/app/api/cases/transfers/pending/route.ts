@@ -3,8 +3,8 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { corsHeaders } from "@/lib/cors"
 
-const CORS = corsHeaders("GET, OPTIONS")
-export async function OPTIONS() { return new NextResponse(null, { status: 204, headers: CORS }) }
+const CORS = (req: NextRequest) => corsHeaders(req, "GET, OPTIONS")
+export async function OPTIONS(req: NextRequest) { return new NextResponse(null, { status: 204, headers: CORS(req) }) }
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser(req)

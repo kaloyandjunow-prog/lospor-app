@@ -4,10 +4,10 @@ import { requireRole } from "@/lib/access-control"
 import { DATA_DICTIONARY, DICTIONARY_VERSION } from "@/lib/data-dictionary"
 import { corsHeaders } from "@/lib/cors"
 
-const CORS = corsHeaders("GET, OPTIONS")
+const CORS = (req: NextRequest) => corsHeaders(req, "GET, OPTIONS")
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function GET(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     { version: DICTIONARY_VERSION, entry_count: DATA_DICTIONARY.length, entries: DATA_DICTIONARY },
     {
       headers: {
-        ...CORS,
+        ...CORS(req),
         "Content-Disposition": `attachment; filename="lospor_data_dictionary_${DICTIONARY_VERSION}.json"`,
       },
     },

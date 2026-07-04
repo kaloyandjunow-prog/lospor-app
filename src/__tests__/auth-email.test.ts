@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NextRequest } from "next/server"
-import { hashAuthToken } from "@/lib/auth-email-tokens"
+import { hashAuthToken, normalizeEmail } from "@/lib/auth-email-tokens"
 
 vi.mock("server-only", () => ({}))
 
@@ -30,6 +30,10 @@ vi.mock("next/server", async importOriginal => {
 
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: mocks.rateLimit,
+}))
+
+vi.mock("@/lib/mobile-auth", () => ({
+  signMobileToken: vi.fn(async () => "test-token"),
 }))
 
 vi.mock("@/lib/transactional-email", () => ({
@@ -110,6 +114,62 @@ describe("account email auth flows", () => {
       { email: "doctor@example.com", name: "Dr Test User" },
       expect.stringContaining("/verify-email?token="),
     )
+  })
+
+  it("normalizeEmail lowercases and trims", () => {
+    expect(normalizeEmail("  Doctor@Example.COM ")).toBe("doctor@example.com")
+    expect(normalizeEmail("doctor@example.com")).toBe("doctor@example.com")
+  })
+
+  it("registration stores the normalized email and checks duplicates case-insensitively", async () => {
+    mocks.userFindUnique.mockResolvedValue(null)
+    mocks.userCreate.mockResolvedValue({ id: "user-1", email: "doctor@example.com", name: "Dr Test User" })
+
+    const { POST } = await import("@/app/api/auth/register/route")
+    const res = await POST(jsonRequest("http://localhost/api/auth/register", {
+      firstName: "Test",
+      lastName: "User",
+      title: "Dr",
+      email: "  Doctor@Example.COM ",
+      password: "Strong1!",
+      acceptedTerms: true,
+    }))
+
+    expect(res.status).toBe(201)
+    expect(mocks.userFindUnique).toHaveBeenCalledWith({ where: { email: "doctor@example.com" } })
+    expect(mocks.userCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ email: "doctor@example.com" }),
+    }))
+  })
+
+  it("mobile token login looks up and rate-limits with the normalized email", async () => {
+    mocks.userFindUnique.mockResolvedValue(null)
+
+    const { POST } = await import("@/app/api/auth/token/route")
+    const res = await POST(jsonRequest("http://localhost/api/auth/token", {
+      email: " DOCTOR@Example.com ",
+      password: "whatever1",
+    }))
+
+    expect(res.status).toBe(401)
+    expect(mocks.userFindUnique).toHaveBeenCalledWith(expect.objectContaining({
+      where: { email: "doctor@example.com" },
+    }))
+    expect(mocks.rateLimit).toHaveBeenCalledWith("login:doctor@example.com", expect.any(Number), expect.any(Number))
+  })
+
+  it("password reset request finds the user regardless of email casing", async () => {
+    mocks.userFindUnique.mockResolvedValue({ id: "user-1", email: "doctor@example.com", name: "Doctor", deletedAt: null })
+    mocks.passwordResetCreate.mockResolvedValue({ id: "prt-1" })
+
+    const { POST } = await import("@/app/api/auth/password-reset/request/route")
+    const res = await POST(jsonRequest("http://localhost/api/auth/password-reset/request", { email: "DOCTOR@EXAMPLE.COM" }))
+
+    expect(res.status).toBe(200)
+    expect(mocks.userFindUnique).toHaveBeenCalledWith(expect.objectContaining({
+      where: { email: "doctor@example.com" },
+    }))
+    expect(mocks.rateLimit).toHaveBeenCalledWith("password-reset:doctor@example.com", expect.any(Number), expect.any(Number))
   })
 
   it("password reset request always returns ok while creating a token for real users", async () => {

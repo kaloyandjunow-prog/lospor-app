@@ -1,5 +1,14 @@
 # Changelog - LOSPOR Web App
 
+## [4.0.1] - 2026-07-04
+
+Post-release review fixes.
+
+### Fixed
+- **Email addresses are now normalized** (`trim` + lowercase) in registration, web login, mobile token login, password-reset request, and verification resend — both for database lookups/creates and rate-limit keys. Previously `Doctor@example.com` and `doctor@example.com` were treated as different accounts (case-sensitive unique column), which could cause duplicate registrations, login/reset confusion, and per-email rate-limit bypass by casing changes. Migration `20260704120000_normalize_user_emails` backfills existing rows (guarded: fails loudly if two accounts differ only by case instead of corrupting either).
+- **CORS now honors the full `CORS_ALLOW_ORIGINS` allowlist.** The request's `Origin` is reflected back when it matches any allowlisted entry (with `Vary: Origin`); previously only the first configured origin was ever sent, silently breaking any second origin. All API routes now compute CORS headers per request.
+- Added the missing Bulgarian translations for the intraop "Backfill on reopen" setting (`settings.autoFillBackground(+Desc)`); EN/BG message files are back at full key parity.
+
 ## [4.0.0] - 2026-07-03
 
 Quality/stability milestone: account email flows, research-grade test coverage, CI, and a shared clinical-logic package.

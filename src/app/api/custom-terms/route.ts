@@ -6,10 +6,10 @@ import { rateLimit } from "@/lib/rate-limit"
 import { checkPII } from "@/lib/pii-check"
 import { corsHeaders } from "@/lib/cors"
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function GET(req: NextRequest) {

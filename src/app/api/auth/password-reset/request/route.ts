@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { rateLimit } from "@/lib/rate-limit"
-import { createAuthToken, hashAuthToken, PASSWORD_RESET_TTL_MS, tokenExpiry } from "@/lib/auth-email-tokens"
+import { createAuthToken, emailSchema, hashAuthToken, normalizeEmail, PASSWORD_RESET_TTL_MS, tokenExpiry } from "@/lib/auth-email-tokens"
 import { appUrl, sendPasswordResetEmail } from "@/lib/transactional-email"
 
-const schema = z.object({ email: z.string().email() })
+const schema = z.object({ email: emailSchema })
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown"
 
   let email: string
   try {
-    email = schema.parse(await req.json()).email
+    email = normalizeEmail(schema.parse(await req.json()).email)
   } catch {
     return NextResponse.json({ ok: true })
   }

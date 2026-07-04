@@ -13,7 +13,7 @@ import {
   AI_STREAM_TIMEOUT_MS,
 } from "@/lib/constants"
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
 // Per-user burst throttle: last-request timestamp; entries older than 1 hour are pruned.
 const lastRequestAt = new Map<string, number>()
@@ -29,8 +29,8 @@ function checkBurst(userId: string): boolean {
   return last === undefined || now - last >= AI_BURST_COOLDOWN_MS
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

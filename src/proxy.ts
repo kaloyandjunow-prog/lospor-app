@@ -17,7 +17,7 @@ const CORS_REQUEST_HEADERS = "Content-Type, Authorization, x-lospor-preop-update
 function handleCorsOptions(req: NextRequest): NextResponse | null {
   if (req.method !== "OPTIONS") return null
   if (!req.nextUrl.pathname.startsWith("/api/")) return null
-  return new NextResponse(null, { status: 204, headers: corsHeaders(CORS_METHODS, CORS_REQUEST_HEADERS) })
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req, CORS_METHODS, CORS_REQUEST_HEADERS) })
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

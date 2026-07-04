@@ -16,10 +16,10 @@ import type { CaseDetail, Serialized } from "@/types/case-detail"
 import type { LegacyKeyEvents, LogEvent, ClinicalEvent } from "@/types/timetable"
 import type { CaseStatus } from "@/generated/prisma/enums"
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 const patchBodySchema = z.object({

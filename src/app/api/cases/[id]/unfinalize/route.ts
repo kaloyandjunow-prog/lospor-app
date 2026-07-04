@@ -5,10 +5,10 @@ import { logAudit } from "@/lib/audit"
 import { corsHeaders } from "@/lib/cors"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 // POST — undo finalization within the shared FINALIZE_UNDO_WINDOW_MS window

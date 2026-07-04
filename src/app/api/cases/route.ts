@@ -10,10 +10,10 @@ import { caseWhereForUser } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 async function generateCaseCode(userId: string): Promise<string> {

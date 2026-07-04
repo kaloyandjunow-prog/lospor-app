@@ -9,10 +9,10 @@ import { z } from "zod"
 const postSchema  = z.object({ toUserId: z.string().min(1) })
 const patchSchema = z.object({ action: z.enum(["accept", "decline"]) })
 
-const CORS = corsHeaders()
+const CORS = (req: NextRequest) => corsHeaders(req)
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
 // POST - initiate a transfer

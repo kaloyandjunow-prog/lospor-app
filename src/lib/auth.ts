@@ -6,9 +6,10 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { authConfig } from "@/lib/auth.config"
 import { rateLimit } from "@/lib/rate-limit"
+import { emailSchema, normalizeEmail } from "@/lib/auth-email-tokens"
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: emailSchema,
   password: z.string().min(8),
 })
 
@@ -20,11 +21,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
-        const rl = await rateLimit(`login:${parsed.data.email}`, 10, 15 * 60 * 1000)
+        const email = normalizeEmail(parsed.data.email)
+        const rl = await rateLimit(`login:${email}`, 10, 15 * 60 * 1000)
         if (!rl.allowed) return null
 
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+          where: { email },
           include: { institution: true },
         })
         // Always run bcrypt — against a real dummy hash when the user is missing —

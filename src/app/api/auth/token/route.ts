@@ -5,13 +5,14 @@ import { z } from "zod"
 import { rateLimit } from "@/lib/rate-limit"
 import { signMobileToken } from "@/lib/mobile-auth"
 import { corsHeaders } from "@/lib/cors"
+import { emailSchema, normalizeEmail } from "@/lib/auth-email-tokens"
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders("POST, OPTIONS", "Content-Type, Authorization") })
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req, "POST, OPTIONS", "Content-Type, Authorization") })
 }
 
 const schema = z.object({
-  email:    z.string().email(),
+  email:    emailSchema,
   password: z.string().min(1),
 })
 
@@ -27,9 +28,10 @@ export async function POST(req: NextRequest) {
 
   // Throttle per-email AND per-IP: the email key stops targeting one account,
   // the IP key stops credential-stuffing many accounts from one source.
+  const email = normalizeEmail(body.email)
   const ip = req.headers.get("x-forwarded-for") ?? "unknown"
   const [rlEmail, rlIp] = await Promise.all([
-    rateLimit(`login:${body.email}`, 10, 15 * 60 * 1000),
+    rateLimit(`login:${email}`, 10, 15 * 60 * 1000),
     rateLimit(`login-ip:${ip}`, 50, 15 * 60 * 1000),
   ])
   if (!rlEmail.allowed || !rlIp.allowed) {
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await prisma.user.findUnique({
-    where:   { email: body.email },
+    where:   { email },
     include: { institution: true },
   })
 
