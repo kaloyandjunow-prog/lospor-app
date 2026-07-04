@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import type { ComponentType, ReactNode } from "react"
+import { useTranslations } from "next-intl"
 import {
   PDFViewer, Document, Page, Text, View, StyleSheet,
   Svg, Line, Polyline, Rect, Circle, G, Polygon,
@@ -135,6 +136,7 @@ function deviceStr(i: CaseDetailIntraop | null | undefined): string {
 
 // ── Clinical Chart SVG ───────────────────────────────────────────────────────
 function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; startISO?: string | null }) {
+  const t = useTranslations()
   const vitals: VitalsEntry[]          = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
   const drugs: TimetableDrug[]         = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
   const agents: AgentSegment[]         = Array.isArray(timetable?.agents)    ? timetable.agents    : []
@@ -146,7 +148,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
   if (!hasData) {
     return (
       <View style={[S.card, { alignItems: "center", paddingVertical: 16 }]}>
-        <Text style={{ color: "#94a3b8" }}>No intraoperative monitoring data recorded</Text>
+        <Text style={{ color: "#94a3b8" }}>{t("protocol.noMonitoringData")}</Text>
       </View>
     )
   }
@@ -296,13 +298,13 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
         {/* SBP */}
         <Line x1={GW - 115 + YAXIS_W} y1={5} x2={GW - 100 + YAXIS_W} y2={5} stroke="#dc2626" strokeWidth={0.8} />
         <Circle cx={GW - 107 + YAXIS_W} cy={5} r={1.2} fill="#dc2626" />
-        <ST x={GW - 98 + YAXIS_W} y={7} fontSize={4.5} fill="#dc2626">SBP (mmHg)</ST>
+        <ST x={GW - 98 + YAXIS_W} y={7} fontSize={4.5} fill="#dc2626">{t("protocol.fields.sbpMmHg")}</ST>
         {/* DBP */}
         <Line x1={GW - 72 + YAXIS_W} y1={5} x2={GW - 57 + YAXIS_W} y2={5} stroke="#f87171" strokeWidth={0.8} strokeDasharray="2,1" />
         <ST x={GW - 55 + YAXIS_W} y={7} fontSize={4.5} fill="#f87171">DBP</ST>
         {/* HR */}
         <Polygon points={`${GW - 35 + YAXIS_W},2.5 ${GW - 37 + YAXIS_W},7.5 ${GW - 33 + YAXIS_W},7.5`} fill="#16a34a" />
-        <ST x={GW - 30 + YAXIS_W} y={7} fontSize={4.5} fill="#16a34a">HR (bpm)</ST>
+        <ST x={GW - 30 + YAXIS_W} y={7} fontSize={4.5} fill="#16a34a">{t("protocol.fields.hrBpm")}</ST>
         {/* SpO₂ */}
         <Circle cx={GW - 12 + YAXIS_W} cy={5} r={1.2} fill="#0369a1" />
         <ST x={GW - 9 + YAXIS_W} y={7} fontSize={4.5} fill="#0369a1">SpO₂</ST>
@@ -313,7 +315,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
       <Line x1={YAXIS_W} y1={stripY0} x2={GW + YAXIS_W} y2={stripY0} stroke="#e2e8f0" strokeWidth={0.5} />
 
       {/* ── Drug boluses ───────────────────────────────────── */}
-      <ST x={1} y={drugY + DRUG_H / 2 + 2} fontSize={4.5} fill="#7c3aed" textAnchor="start">Drugs</ST>
+      <ST x={1} y={drugY + DRUG_H / 2 + 2} fontSize={4.5} fill="#7c3aed" textAnchor="start">{t("intraop.timetable.drugs")}</ST>
       {drugs.map((d, i) => {
         const x = xOf(d.colIdx ?? 0)
         const above = i % 2 === 0
@@ -333,7 +335,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
       })}
 
       {/* ── Volatile agent bars ────────────────────────────── */}
-      <ST x={1} y={agentY0 + BAR_H / 2 + 2} fontSize={4} fill="#0f766e" textAnchor="start">Agent</ST>
+      <ST x={1} y={agentY0 + BAR_H / 2 + 2} fontSize={4} fill="#0f766e" textAnchor="start">{t("protocol.fields.agent")}</ST>
       {agents.slice(0, agentRows).map((a, i) => {
         const x1 = xOf(a.startCol ?? 0)
         const x2 = xOf(a.endCol ?? a.startCol ?? 0)
@@ -365,7 +367,7 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
       })}
 
       {/* ── Fluid bars ─────────────────────────────────────── */}
-      <ST x={1} y={fluidY0 + BAR_H / 2 + 2} fontSize={4} fill="#374151" textAnchor="start">Fluids</ST>
+      <ST x={1} y={fluidY0 + BAR_H / 2 + 2} fontSize={4} fill="#374151" textAnchor="start">{t("intraop.timetable.fluids")}</ST>
       {fluids.slice(0, fluidRows).map((f, i) => {
         const x1  = xOf(f.startCol ?? 0)
         const x2  = xOf(f.endCol ?? f.startCol ?? 0)
@@ -392,46 +394,13 @@ function ClinicalChart({ timetable, startISO }: { timetable: LegacyKeyEvents; st
 // ── Main Component ───────────────────────────────────────────────────────────
 type CaseData = CaseDetail
 
-function _PageHeader({
-  page,
-  institutionName,
-  institutionCity,
-  dateStr,
-  diagnosis,
-  plannedProcedure,
-  patientLine,
-}: {
-  page: number
-  institutionName?: string | null
-  institutionCity?: string | null
-  dateStr: string
-  diagnosis?: string | null
-  plannedProcedure?: string | null
-  patientLine: string
-}) {
-  return (
-    <View style={S.header}>
-      <View>
-        <Text style={S.title}>ANAESTHESIA PROTOCOL - LOSPOR</Text>
-        <Text style={S.subtitle}>{institutionName}{institutionCity ? " - " + institutionCity : ""} - {dateStr}</Text>
-        {diagnosis && <Text style={[S.subtitle, { marginTop: 2, fontFamily: "Helvetica-Bold", color: "#1e293b" }]}>{diagnosis}</Text>}
-        {plannedProcedure && <Text style={[S.subtitle, { color: "#475569" }]}>{plannedProcedure}</Text>}
-      </View>
-      <View style={{ alignItems: "flex-end" }}>
-        <View style={{ borderBottom: "0.5pt solid #cbd5e1", width: 120, marginBottom: 2 }} />
-        <Text style={S.subtitle}>{patientLine}</Text>
-        <Text style={[S.subtitle, { marginTop: 2, color: "#94a3b8" }]}>Page {page} of 2</Text>
-      </View>
-    </View>
-  )
-}
-
 export function AnesthesiaProtocolPDF({
   caseId, height = "600px",
 }: {
   caseId: string
   height?: string
 }) {
+  const t = useTranslations()
   const [data,    setData]    = useState<CaseData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -547,27 +516,27 @@ export function AnesthesiaProtocolPDF({
             <View style={[S.row, { marginBottom: 6 }]}>
               {/* Technique & Airway */}
               <View style={[S.card, S.col]}>
-                <Text style={S.sec}>Anaesthesia</Text>
+                <Text style={S.sec}>{t("protocol.anaesthesiaTitle")}</Text>
                 {techniques.length > 0 && (
-                  <F label="Technique" value={techniques.map((t: string) => t.replace(/_/g, " ")).join(" + ")} />
+                  <F label={t("protocol.fields.technique")} value={techniques.map((t: string) => t.replace(/_/g, " ")).join(" + ")} />
                 )}
-                <F label="Airway"     value={deviceStr(i)} />
+                <F label={t("protocol.fields.airway")}     value={deviceStr(i)} />
                 {airwayTools.length > 0 && (
-                  <F label="Tools" value={airwayTools.map((t: string) => t.replace(/_/g, " ")).join(", ")} />
+                  <F label={t("protocol.fields.tools")} value={airwayTools.map((t: string) => t.replace(/_/g, " ")).join(", ")} />
                 )}
-                {i?.cormackLehane && <F label="Cormack-Lehane" value={i.cormackLehane} />}
+                {i?.cormackLehane && <F label={t("protocol.fields.cormackLehane")} value={i.cormackLehane} />}
                 {ventModes.length > 0 && (
-                  <F label="Ventilation" value={ventModes.join(", ")} />
+                  <F label={t("protocol.fields.ventilation")} value={ventModes.join(", ")} />
                 )}
-                {i?.peepCmH2O   && <F label="PEEP"    value={`${i.peepCmH2O} cmH₂O`} />}
-                {i?.volatileAgent && <F label="Agent"  value={i.volatileAgent} />}
-                {i?.premedicationEvening && <F label="Premed. eve." value={i.premedicationEvening} />}
-                {i?.premedicationMorning && <F label="Premed. morn." value={i.premedicationMorning} />}
+                {i?.peepCmH2O   && <F label={t("protocol.fields.peep")}    value={`${i.peepCmH2O} cmH₂O`} />}
+                {i?.volatileAgent && <F label={t("protocol.fields.agent")}  value={i.volatileAgent} />}
+                {i?.premedicationEvening && <F label={t("protocol.fields.premedEvening")} value={i.premedicationEvening} />}
+                {i?.premedicationMorning && <F label={t("protocol.fields.premedMorning")} value={i.premedicationMorning} />}
               </View>
 
               {/* Monitoring */}
               <View style={[S.card, S.col]}>
-                <Text style={S.sec}>Monitoring</Text>
+                <Text style={S.sec}>{t("protocol.monitoringTitle")}</Text>
                 {activeMonitors.length > 0 ? (
                   <View style={S.tagRow}>
                     {activeMonitors.map(m => (
@@ -575,11 +544,11 @@ export function AnesthesiaProtocolPDF({
                     ))}
                   </View>
                 ) : (
-                  <Text style={{ color: "#94a3b8" }}>Not documented</Text>
+                  <Text style={{ color: "#94a3b8" }}>{t("protocol.notDocumented")}</Text>
                 )}
                 {vascular.length > 0 && (
                   <>
-                    <Text style={[S.sec, { marginTop: 5 }]}>Vascular Access</Text>
+                    <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.vascularAccessTitle")}</Text>
                     <Text style={{ fontSize: 6.5, color: "#1e293b" }}>{vascStr()}</Text>
                   </>
                 )}
@@ -587,27 +556,27 @@ export function AnesthesiaProtocolPDF({
 
               {/* Timeline & positions */}
               <View style={[S.card, S.col]}>
-                <Text style={S.sec}>Timeline</Text>
-                {duration() && <F label="Duration" value={duration()} />}
+                <Text style={S.sec}>{t("protocol.timelineTitle")}</Text>
+                {duration() && <F label={t("protocol.fields.duration")} value={duration()} />}
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
-                  <Text style={[S.lbl, { width: 60 }]}>Anaesthesiologist</Text>
+                  <Text style={[S.lbl, { width: 60 }]}>{t("protocol.anaesthesiologistLabel")}</Text>
                   <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
-                  <Text style={[S.lbl, { width: 60 }]}>Nurse</Text>
+                  <Text style={[S.lbl, { width: 60 }]}>{t("protocol.nurseLabel")}</Text>
                   <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
-                  <Text style={[S.lbl, { width: 60 }]}>Surgeon</Text>
+                  <Text style={[S.lbl, { width: 60 }]}>{t("protocol.surgeonLabel")}</Text>
                   <View style={{ flex: 1, borderBottom: "0.5pt solid #cbd5e1" }} />
                 </View>
                 {positions.length > 0 && (
-                  <F label="Position" value={positions.map((pos: string) => pos.replace(/_/g, " ")).join(", ")} />
+                  <F label={t("protocol.fields.position")} value={positions.map((pos: string) => pos.replace(/_/g, " ")).join(", ")} />
                 )}
                 {p?.asaScore && (
                   <View style={[S.field, { marginTop: 4 }]}>
                     <Text style={S.lbl}>ASA</Text>
-                    <View style={[S.badge, S.tagAmber]}><Text>Class {p.asaScore}{p.emergencySurgery ? "E" : ""}</Text></View>
+                    <View style={[S.badge, S.tagAmber]}><Text>{t("protocol.asaClassBadge", { score: p.asaScore, emergency: p.emergencySurgery ? "E" : "" })}</Text></View>
                   </View>
                 )}
               </View>
@@ -618,7 +587,7 @@ export function AnesthesiaProtocolPDF({
 
             {/* Fluid balance */}
             <View style={[S.card, { marginTop: 6 }]}>
-              <Text style={S.sec}>Fluid balance</Text>
+              <Text style={S.sec}>{t("protocol.fluidBalanceTitle")}</Text>
               <View style={S.fluidGrid}>
                 {[
                   { label: "Crystalloids", value: i?.crystalloidsMl },
@@ -659,20 +628,20 @@ export function AnesthesiaProtocolPDF({
             <View style={S.row}>
               {/* LEFT: Risk + Airway */}
               <View style={[S.card, S.col]}>
-                <Text style={S.sec}>Risk scores</Text>
-                {p?.asaScore   && <F label="ASA"        value={`Class ${p.asaScore}${p.emergencySurgery ? "E" : ""}`} />}
+                <Text style={S.sec}>{t("protocol.riskScoresTitle")}</Text>
+                {p?.asaScore   && <F label={t("protocol.fields.asa")}        value={`Class ${p.asaScore}${p.emergencySurgery ? "E" : ""}`} />}
                 {p?.rcriScore  != null && <F label="RCRI"  value={`${p.rcriScore}/6 — ${rcriRiskLabel(p.rcriScore)}`} />}
                 {p?.gutaScore  != null && <F label="GUPTA" value={`${p.gutaScore}%`} />}
                 {p?.apfelScore != null && <F label="Apfel" value={`${p.apfelScore}/4 — ${apfelRiskLabel(p.apfelScore)}`} />}
                 {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore}/8 — ${stopBangRiskLabel(p.stopBangScore)}`} />}
 
-                <Text style={[S.sec, { marginTop: 5 }]}>Airway assessment</Text>
-                <F label="Mallampati"     value={p?.mallampati} />
-                <F label="Mouth opening"  value={p?.mouthOpeningCm ? `${p.mouthOpeningCm} cm` : null} />
-                <F label="Thyromental"    value={p?.thyromental ? `${p.thyromental} cm` : null} />
-                <F label="Neck mobility"  value={p?.neckMobility} />
-                <F label="ULBT"           value={p?.upperLipBiteTest} />
-                <F label="Cormack-Lehane" value={p?.cormackLehane} />
+                <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.airwayAssessmentTitle")}</Text>
+                <F label={t("protocol.fields.mallampati")}     value={p?.mallampati} />
+                <F label={t("protocol.fields.mouthOpening")}  value={p?.mouthOpeningCm ? `${p.mouthOpeningCm} cm` : null} />
+                <F label={t("protocol.fields.thyromental")}    value={p?.thyromental ? `${p.thyromental} cm` : null} />
+                <F label={t("protocol.fields.neckMobility")}  value={p?.neckMobility} />
+                <F label={t("protocol.fields.ulbt")}           value={p?.upperLipBiteTest} />
+                <F label={t("protocol.fields.cormackLehane")} value={p?.cormackLehane} />
                 {p?.difficultAirwayHistory && (
                   <View style={[S.tag, S.tagRed, { marginTop: 3 }]}><Text>⚠ Difficult airway history</Text></View>
                 )}
@@ -680,23 +649,23 @@ export function AnesthesiaProtocolPDF({
                   <Text style={{ fontSize: 6, color: "#991b1b", marginTop: 2 }}>{p.difficultAirwayNotes}</Text>
                 )}
 
-                <Text style={[S.sec, { marginTop: 5 }]}>Preoperative vitals</Text>
-                <F label="BP"     value={p?.bpSystolic && p?.bpDiastolic ? `${p.bpSystolic}/${p.bpDiastolic} mmHg` : null} />
-                <F label="HR"     value={p?.heartRate ? `${p.heartRate} bpm` : null} />
-                <F label="SpO₂"   value={p?.spO2 ? `${p.spO2}%` : null} />
-                <F label="Temp"   value={p?.temperature ? `${p.temperature} °C` : null} />
-                <F label="RR"     value={p?.respiratoryRate ? `${p.respiratoryRate}/min` : null} />
+                <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.preopVitalsTitle")}</Text>
+                <F label={t("protocol.fields.bp")}     value={p?.bpSystolic && p?.bpDiastolic ? `${p.bpSystolic}/${p.bpDiastolic} mmHg` : null} />
+                <F label={t("protocol.fields.hr")}     value={p?.heartRate ? `${p.heartRate} bpm` : null} />
+                <F label={t("protocol.fields.spo2")}   value={p?.spO2 ? `${p.spO2}%` : null} />
+                <F label={t("protocol.fields.temp")}   value={p?.temperature ? `${p.temperature} °C` : null} />
+                <F label={t("protocol.fields.rr")}     value={p?.respiratoryRate ? `${p.respiratoryRate}/min` : null} />
               </View>
 
               {/* RIGHT: History + Labs */}
               <View style={[S.card, S.col]}>
-                <Text style={S.sec}>Patient</Text>
-                <F label="Height / Weight" value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
-                <F label="BMI"            value={p?.bmi ? `${p.bmi} kg/m²` : null} />
+                <Text style={S.sec}>{t("protocol.patientTitle")}</Text>
+                <F label={t("protocol.fields.heightWeight")} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
+                <F label={t("protocol.fields.bmi")}            value={p?.bmi ? `${p.bmi} kg/m²` : null} />
 
                 {comorbidities.length > 0 && (
                   <>
-                    <Text style={[S.sec, { marginTop: 5 }]}>Comorbidities</Text>
+                    <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.comorbiditiesTitle")}</Text>
                     <View style={S.tagRow}>
                       {comorbidities.map((c, idx) => (
                         <Tag key={idx} style={S.tagAmber}>{c.label ?? String(c)}</Tag>
@@ -707,14 +676,14 @@ export function AnesthesiaProtocolPDF({
 
                 {currentMedicationsText && (
                   <>
-                    <Text style={[S.sec, { marginTop: 5 }]}>Current medications</Text>
+                    <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.currentMedicationsTitle")}</Text>
                     <Text style={{ fontSize: 6.5, color: "#1e293b", lineHeight: 1.4 }}>{currentMedicationsText}</Text>
                   </>
                 )}
 
                 {(p?.allergies || p?.latexAllergy) && (
                   <>
-                    <Text style={[S.sec, { marginTop: 5, color: "#991b1b" }]}>Allergies</Text>
+                    <Text style={[S.sec, { marginTop: 5, color: "#991b1b" }]}>{t("protocol.allergiesTitle")}</Text>
                     {p?.allergyDetails && (
                       <Text style={{ fontSize: 6.5, color: "#991b1b", fontFamily: "Helvetica-Bold" }}>{p.allergyDetails}</Text>
                     )}
@@ -724,7 +693,7 @@ export function AnesthesiaProtocolPDF({
 
                 {labResults.length > 0 && (
                   <>
-                    <Text style={[S.sec, { marginTop: 5 }]}>Laboratory results</Text>
+                    <Text style={[S.sec, { marginTop: 5 }]}>{t("protocol.labResultsTitle")}</Text>
                     {labResults.map((l, idx) => (
                       <View key={idx} style={S.field}>
                         <Text style={S.lbl}>{l.test}</Text>
@@ -738,7 +707,7 @@ export function AnesthesiaProtocolPDF({
 
             {/* ── POSTOPERATIVE ─────────────────────────────────── */}
             <View style={S.postopSep}>
-              <Text style={S.postopTitle}>Postoperative Recovery</Text>
+              <Text style={S.postopTitle}>{t("protocol.postopRecoveryTitle")}</Text>
 
               {/* Aldrete row */}
               <View style={S.aldreteRow}>
@@ -755,7 +724,7 @@ export function AnesthesiaProtocolPDF({
                   </View>
                 ))}
                 <View style={[S.aldreteCell, { backgroundColor: aldreteTotal >= 9 ? "#dcfce7" : aldreteTotal >= 7 ? "#fef3c7" : "#fee2e2" }]}>
-                  <Text style={{ fontSize: 5.5, color: "#64748b", marginBottom: 2 }}>TOTAL</Text>
+                  <Text style={{ fontSize: 5.5, color: "#64748b", marginBottom: 2 }}>{t("protocol.totalLabel")}</Text>
                   <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: aldreteTotal >= 9 ? "#166534" : aldreteTotal >= 7 ? "#92400e" : "#991b1b" }}>
                     {o?.aldreteTotal ?? "—"}/10
                   </Text>
@@ -768,16 +737,16 @@ export function AnesthesiaProtocolPDF({
               {/* Recovery metrics */}
               <View style={[S.row, { marginBottom: 0 }]}>
                 <View style={[S.card, S.col]}>
-                  <Text style={S.sec}>Recovery</Text>
-                  <F label="Blood pressure" value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic}/${o.recoveryBpDiastolic} mmHg` : null} />
-                  <F label="Heart rate" value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
-                  <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2}%` : null} />
-                  <F label="Temperature"    value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
-                  <F label="Pain (NRS)"     value={o?.painScoreNRS != null ? `${o.painScoreNRS}/10` : null} />
-                  <F label="PONV"           value={o?.ponv ? "Yes" : o?.ponv === false ? "No" : null} />
+                  <Text style={S.sec}>{t("protocol.recoveryTitle")}</Text>
+                  <F label={t("protocol.fields.bloodPressure")} value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic}/${o.recoveryBpDiastolic} mmHg` : null} />
+                  <F label={t("protocol.fields.heartRate")} value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
+                  <F label={t("protocol.fields.spo2")} value={o?.recoverySpO2 != null ? `${o.recoverySpO2}%` : null} />
+                  <F label={t("protocol.fields.temperature")}    value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
+                  <F label={t("protocol.fields.painNrs")}     value={o?.painScoreNRS != null ? `${o.painScoreNRS}/10` : null} />
+                  <F label={t("protocol.fields.ponv")}           value={o?.ponv ? t("protocol.fields.yes") : o?.ponv === false ? t("protocol.fields.no") : null} />
                 </View>
                 <View style={[S.card, S.col]}>
-                  <Text style={S.sec}>Disposition</Text>
+                  <Text style={S.sec}>{t("protocol.dispositionTitle")}</Text>
                   {o?.disposition && (
                     <View style={[S.badge,
                       o.disposition === "WARD" ? S.badgeGreen :
@@ -796,7 +765,7 @@ export function AnesthesiaProtocolPDF({
               {/* Handover checklist */}
               {handoverItems.length > 0 && (
                 <View style={[S.card, { marginTop: 0 }]}>
-                  <Text style={S.sec}>Handover instructions</Text>
+                  <Text style={S.sec}>{t("protocol.handoverInstructionsTitle")}</Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3 }}>
                     {handoverItems.map((code: string, idx: number) => {
                       // Resolve code to label

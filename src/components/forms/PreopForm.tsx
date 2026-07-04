@@ -397,23 +397,23 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {bmi && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">BMI</span>
+                <span className="text-xs text-slate-400 font-medium">{t("preop.bmi")}</span>
                 <Badge variant={bmi >= 40 ? "destructive" : bmi >= 30 ? "secondary" : "default"}>{bmi} kg/m²</Badge>
               </div>
             )}
             {ibw && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">IBW</span>
+                <span className="text-xs text-slate-400 font-medium">{t("preop.ibw")}</span>
                 <Badge variant="outline">{ibw} kg</Badge>
               </div>
             )}
             {abw && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">ABW</span>
+                <span className="text-xs text-slate-400 font-medium">{t("preop.abw")}</span>
                 <Badge variant="outline" className="border-amber-300 text-amber-700">{abw} kg</Badge>
               </div>
             )}
-            {ibw && <span className="text-xs text-slate-400">Devine formula</span>}
+            {ibw && <span className="text-xs text-slate-400">{t("preop.devineFormula")}</span>}
           </div>
         )}
 
@@ -442,7 +442,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           )} />
         </div>
         {(fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")) && (
-          <p className="text-red-500 text-xs">Age, sex, height, and weight are required.</p>
+          <p className="text-red-500 text-xs">{t("preop.requiredDemographics")}</p>
         )}
         <div className="space-y-1">
           <Label>{t("preop.bloodType")}</Label>
@@ -612,7 +612,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       </SectionCard>
 
       {/* Anamnesis, habits & risk factor checkboxes */}
-      <SectionCard title="Clinical Anamnesis & History">
+      <SectionCard title={t("preop.historyCardTitle")}>
         <div className="space-y-3">
           {/* Allergies */}
           <div className="flex items-center gap-2">
@@ -636,7 +636,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   inn: item.inn ?? undefined,
                   atcCode: item.atcCode ?? undefined,
                 })}
-                placeholder="Search allergen (drug name or INN)…"
+                placeholder={t("preop.allergenSearchPlaceholder")}
               />
             )} />
           )}
@@ -692,8 +692,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
           {/* RCRI */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">RCRI — Cardiac risk factors</p>
-            <p className="text-xs text-slate-400">High-risk surgery is set in the Case section above.</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.rcriTitle")}</p>
+            <p className="text-xs text-slate-400">{t("preop.rcriHint")}</p>
             {([
               { id:"rcriIschemicHeart", label:"Ischaemic heart disease (history of MI, positive stress test, use of nitrates, ECG Q waves)" },
               { id:"rcriCHF",           label:"Congestive heart failure (pulmonary oedema, PND, S3, bilateral crackles, CXR redistribution)" },
@@ -711,7 +711,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <div>
                     <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
                     {suggested && !checked && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Suggested by comorbidities/medications — review and confirm</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">{t("preop.suggestedReviewConfirm")}</p>
                     )}
                   </div>
                 </div>
@@ -723,8 +723,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
           {/* APFEL */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">APFEL — PONV risk</p>
-            <p className="text-xs text-slate-400">Female sex and non-smoker status are derived from demographics and habits above.</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.apfelTitle")}</p>
+            <p className="text-xs text-slate-400">{t("preop.apfelHint")}</p>
             {([
               { id:"apfelPONVHistory",   label:"History of PONV or motion sickness" },
               { id:"apfelPostopOpioids", label:"Postoperative opioids planned" },
@@ -742,8 +742,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
           {/* STOP-BANG */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">STOP-BANG — OSA screening</p>
-            <p className="text-xs text-slate-400">BMI &gt; 35, age &gt; 50, and male sex are derived automatically.</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.stopBangTitle")}</p>
+            <p className="text-xs text-slate-400">{t("preop.stopBangHint")}</p>
             {([
               { id:"stopbangSnoring",  label:"Snoring — do you snore loudly?" },
               { id:"stopbangTired",    label:"Tired — often feel tired, fatigued, or sleepy during daytime?" },
@@ -761,7 +761,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <div>
                     <Label htmlFor={item.id} className="font-normal cursor-pointer leading-snug">{item.label}</Label>
                     {suggested && !checked && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Suggested by comorbidities/medications — review and confirm</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">{t("preop.suggestedReviewConfirm")}</p>
                     )}
                   </div>
                 </div>
@@ -1048,16 +1048,16 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </div>
             )} />
           </div>
-          {fieldErrors.has("asaScore") && <p className="text-red-500 text-xs">ASA class is required.</p>}
+          {fieldErrors.has("asaScore") && <p className="text-red-500 text-xs">{t("preop.asaRequired")}</p>}
           <p className="text-xs text-slate-500">{t("preop.scoresNote")}</p>
         </div>
 
         {/* Calculated risk scores */}
         <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Calculated Risk Scores</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">{t("preop.calculatedRiskScores")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">RCRI — Cardiac risk</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.rcriShort")}</p>
               <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
                 {rcriScore}
                 <span className="text-base font-normal text-slate-400">/6</span>
@@ -1067,7 +1067,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">APFEL — PONV risk</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.apfelShort")}</p>
               <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
                 {apfelScore}
                 <span className="text-base font-normal text-slate-400">/4</span>
@@ -1077,7 +1077,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">STOP-BANG — OSA</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.stopBangShort")}</p>
               <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
                 {stopBangScore}
                 <span className="text-base font-normal text-slate-400">/8</span>
@@ -1091,8 +1091,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
         {/* Notes */}
         <div className="space-y-1 pt-2">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</Label>
-          <Textarea placeholder="No patient-identifying information — additional clinical notes, anaesthesia-specific considerations…" rows={3} {...register("notes")} />
+          <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.notesLabel")}</Label>
+          <Textarea placeholder={t("preop.notesPlaceholder")} rows={3} {...register("notes")} />
         </div>
       </SectionCard>
       </div>
@@ -1118,19 +1118,19 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
       {fieldErrors.size > 0 && (
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-          <p className="font-semibold mb-1">Please complete the required fields:</p>
+          <p className="font-semibold mb-1">{t("preop.completeRequiredFields")}</p>
           <ul className="list-disc list-inside space-y-0.5 text-xs">
-            {fieldErrors.has("ageYears")    && <li>Age</li>}
-            {fieldErrors.has("sex")         && <li>Sex</li>}
-            {fieldErrors.has("heightCm")    && <li>Height</li>}
-            {fieldErrors.has("weightKg")    && <li>Weight</li>}
+            {fieldErrors.has("ageYears")    && <li>{t("preop.fieldAge")}</li>}
+            {fieldErrors.has("sex")         && <li>{t("preop.sex")}</li>}
+            {fieldErrors.has("heightCm")    && <li>{t("preop.fieldHeight")}</li>}
+            {fieldErrors.has("weightKg")    && <li>{t("preop.fieldWeight")}</li>}
             {fieldErrors.has("diagnoses")   && <li>At least one diagnosis</li>}
             {fieldErrors.has("procedures")  && <li>At least one planned procedure</li>}
-            {fieldErrors.has("bp")          && <li>Blood pressure</li>}
-            {fieldErrors.has("heartRate")   && <li>Heart rate</li>}
-            {fieldErrors.has("respiratoryRate") && <li>Respiratory rate</li>}
-            {fieldErrors.has("airway")      && <li>Airway evaluation (or mark Unable to Obtain)</li>}
-            {fieldErrors.has("asaScore")    && <li>ASA physical status class</li>}
+            {fieldErrors.has("bp")          && <li>{t("preop.fieldBloodPressure")}</li>}
+            {fieldErrors.has("heartRate")   && <li>{t("preop.fieldHeartRate")}</li>}
+            {fieldErrors.has("respiratoryRate") && <li>{t("preop.fieldRespiratoryRate")}</li>}
+            {fieldErrors.has("airway")      && <li>{t("preop.fieldAirwayEvaluation")}</li>}
+            {fieldErrors.has("asaScore")    && <li>{t("preop.fieldAsaClass")}</li>}
           </ul>
         </div>
       )}

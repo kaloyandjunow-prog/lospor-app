@@ -499,7 +499,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
         <div className="space-y-1">
           <Label>{t("postop.handoverNotes")}</Label>
           <Textarea
-              placeholder="No patient-identifying information - additional handover notes..."
+              placeholder={t("postop.handoverNotesPlaceholder")}
             rows={3}
             {...register("dispositionNotes")}
           />

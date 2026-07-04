@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
@@ -56,6 +57,7 @@ function breadcrumb(path: Node[]): string {
 
 // ── Tree picker ───────────────────────────────────────────────────────────────
 function TreePicker({ onLeaf, tree }: { onLeaf: (v: string, label: string, crumb: string) => void; tree: Node[] }) {
+  const t = useTranslations()
   const [path, setPath] = useState<Node[]>([])
   const nodes = path.length === 0 ? tree : path[path.length - 1].children ?? []
 
@@ -68,7 +70,7 @@ function TreePicker({ onLeaf, tree }: { onLeaf: (v: string, label: string, crumb
     <div className="space-y-2">
       {path.length > 0 && (
         <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-[#666] flex-wrap">
-          <button type="button" onClick={() => setPath([])} className="hover:text-blue-500 transition-colors">Access</button>
+          <button type="button" onClick={() => setPath([])} className="hover:text-blue-500 transition-colors">{t("intraop.vascular.access")}</button>
           {path.map((n, i) => (
             <span key={n.v} className="flex items-center gap-1">
               <ChevronRight className="h-3 w-3 opacity-40" />
@@ -102,6 +104,7 @@ function DetailForm({
   onConfirm: (a: Omit<VascularAccess, "site" | "siteLabel">) => void
   onCancel: () => void
 }) {
+  const t = useTranslations()
   const [sizeUnit, setSizeUnit] = useState(defaultUnit(site))
   const [size,     setSize]     = useState("")
   const [depthCm,  setDepthCm]  = useState("")
@@ -116,7 +119,7 @@ function DetailForm({
     <div className="space-y-3">
       <p className="text-xs text-slate-500 dark:text-slate-400">{crumb}</p>
       <div className="space-y-1">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Unit</p>
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("intraop.vascular.unit")}</p>
         <div className="flex gap-2">
           {["G", "Fr"].map(u => (
             <button key={u} type="button" onClick={() => { setSizeUnit(u); setSize("") }}
@@ -150,7 +153,7 @@ function DetailForm({
       {isCentral && (
         <>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Depth from skin (cm)</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("intraop.vascular.depthFromSkin")}</p>
             <div className="flex flex-wrap gap-1.5 mb-1">
               {["2","4","6","8","10","12","14","16","18","20","22","24"].map(p => (
                 <button key={p} type="button" onClick={() => setDepthCm(p)}
@@ -169,7 +172,7 @@ function DetailForm({
             />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Lumens</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("intraop.vascular.lumens")}</p>
             <div className="flex gap-1.5">
               {["1", "2", "3", "4+"].map(l => (
                 <button key={l} type="button" onClick={() => setLumens(lumens === l ? "" : l)}
@@ -212,6 +215,7 @@ export function VascularAccessTree({
   value?: VascularAccess[]
   onChange: (v: VascularAccess[]) => void
 }) {
+  const t = useTranslations()
   const { options: vascularOpts } = useOptionLibrary("VASCULAR_ACCESS")
   const tree = useMemo(() => buildTree(vascularOpts), [vascularOpts])
 
@@ -310,7 +314,7 @@ export function VascularAccessTree({
             />
           ) : (
             <>
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Select pre-existing access</p>
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">{t("intraop.vascular.selectPreexisting")}</p>
               <div className="flex flex-wrap gap-2">
                 {PREEXISTING_QUICK.map(q => (
                   <button key={q.v} type="button" onClick={() => setPending(q)}

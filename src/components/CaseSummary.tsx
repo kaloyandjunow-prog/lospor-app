@@ -5,6 +5,7 @@ import { format } from "date-fns"
 import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW, calcABW } from "@/lib/scores"
 import { useLocale } from "next-intl"
 import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/PostopForm"
+import { CASE_STATUS_LABELS, type CaseStatus } from "@lospor/core/case-status"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
@@ -477,11 +478,15 @@ export function CaseSummary({ caseId }: { caseId: string }) {
           const status = data?.status
           const finalizedAt = data?.finalizedAt ? new Date(data.finalizedAt).getTime() : null
           const withinUndoWindow = finalizedAt != null && nowAtMount - finalizedAt < FINALIZE_UNDO_WINDOW_MS
+          // Labels come from @lospor/core/case-status (shared canonical text
+          // with lospor-mobile); only the Tailwind styling and which 4 of
+          // the 7 statuses this badge shows stay local to this component.
+          const statusLabel = (key: CaseStatus) => CASE_STATUS_LABELS[key][locale === "bg" ? "bg" : "en"]
           const statusConfig: Record<string, { label: string; cls: string }> = {
-            COMPLETE:        { label: "Finalised",        cls: "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400" },
-            AWAITING_REVIEW: { label: "Awaiting review",  cls: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400" },
-            IN_PROGRESS:     { label: "In progress",      cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400" },
-            DRAFT:           { label: "Draft",            cls: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400" },
+            COMPLETE:        { label: statusLabel("COMPLETE"),        cls: "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400" },
+            AWAITING_REVIEW: { label: statusLabel("AWAITING_REVIEW"), cls: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400" },
+            IN_PROGRESS:     { label: statusLabel("IN_PROGRESS"),     cls: "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400" },
+            DRAFT:           { label: statusLabel("DRAFT"),           cls: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400" },
           }
           const sc = statusConfig[status ?? "DRAFT"] ?? statusConfig.DRAFT
           return (

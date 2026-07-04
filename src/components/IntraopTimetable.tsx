@@ -2,6 +2,7 @@
 
 /* eslint-disable react-hooks/refs */
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
@@ -95,6 +96,7 @@ type TtFP = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onComplicationAdded, onLogEvent, onLogEventDelete }: Props) {
+  const t = useTranslations()
   // Derived (not mutated) from the shared library — see the comment above
   // this component for why these are plain local consts instead of the
   // module-level mutated containers this used to be.
@@ -1045,7 +1047,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-emerald-700 dark:text-emerald-300">Case finished</span>
+                  <span className="text-[9px] font-bold tracking-widest uppercase text-emerald-700 dark:text-emerald-300">{t("intraop.timetable.caseFinished")}</span>
                 </div>
               )}
             </div>
@@ -1060,7 +1062,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           {activeRows.length === 0 && rowIdx === 0 && (
             <div className="flex items-center border-b border-slate-50 dark:border-[#222] py-2">
               <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-2"} />
-              <span className="text-[10px] text-slate-300 dark:text-[#555] italic px-3">Select monitoring to populate vitals</span>
+              <span className="text-[10px] text-slate-300 dark:text-[#555] italic px-3">{t("intraop.timetable.selectMonitoringToPopulate")}</span>
             </div>
           )}
           {activeRows.map((row, ri) => (
@@ -1101,7 +1103,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {/* Time header */}
           <div className="flex border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a]">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="text-[10px] text-slate-300 dark:text-[#555] px-2 py-1.5 text-right">Time</div>
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="text-[10px] text-slate-300 dark:text-[#555] px-2 py-1.5 text-right">{t("intraop.timetable.time")}</div>
             {rowCols.map(ci => {
               const isPostEnd = endCol !== null && ci > endCol
               return (
@@ -1131,7 +1133,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           {showAgentRow && (() => {
             return (
               <div className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/60 dark:bg-[#1a1a1a]/60 relative" style={{ minHeight: 32 }}>
-                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>Inh. Agent</div>
+                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>{t("intraop.timetable.inhAgent")}</div>
                 {rowCols.map(ci => {
                   const committedSeg = segmentAt(ci)
                   const draggingSeg = (() => {
@@ -1304,7 +1306,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             const colEvents = rowCols.map(ci => (data.clinicalEvents ?? []).filter(e => e.colIdx === ci))
             return (
               <div className="flex items-stretch border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50/20 dark:bg-[#181818]/40" style={{ minHeight: 34 }}>
-                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-1.5"}>Events</div>
+                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-1.5"}>{t("intraop.timetable.events")}</div>
                 {rowCols.map((ci, lIdx) => {
                   const evs = colEvents[lIdx]
                   return (
@@ -1336,7 +1338,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {/* Drug row */}
           <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a]">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-3 flex items-start justify-end"}>Drugs</div>
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-3 flex items-start justify-end"}>{t("intraop.timetable.drugs")}</div>
             {rowCols.map(ci => {
               const colDrugs = data.drugs.filter(d => d.colIdx === ci)
               return (
@@ -1684,7 +1686,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               the Drug row, so starting an infusion never goes through a
               drug-then-bolus/infusion choice. */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>Infusions</div>
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
@@ -1699,7 +1701,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {/* Fluid drop zone */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-cyan-50/20 dark:bg-cyan-950/5">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>Fluids</div>
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 onDragOver={e => { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); setFluidDragOver(ci) }}
@@ -1806,7 +1808,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                   </button>
                   {showEndPrompt && (
                     <div className="absolute bottom-full right-0 mb-2 z-50 bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-xl p-3 space-y-2 min-w-[160px]">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">End case...</p>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t("intraop.timetable.endCaseEllipsis")}</p>
                       <button type="button"
                         onClick={() => { setShowEndPrompt(false); setShowEndModal(true) }}
                         className="w-full text-left text-sm font-medium px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
@@ -1846,7 +1848,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder="Search fluid..." value={fpSearch}
+                <input autoFocus type="text" placeholder={t("intraop.timetable.searchFluid")} value={fpSearch}
                   onChange={e => setFpSearch(e.target.value)}
                   onKeyDown={e => e.key === "Escape" && setFluidPicker(null)}
                   className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-400"
@@ -1913,8 +1915,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">Log Clinical Event</p>
-                <input autoFocus type="text" placeholder="Search events..." value={evSearch}
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">{t("intraop.timetable.logClinicalEvent")}</p>
+                <input autoFocus type="text" placeholder={t("intraop.timetable.searchEvents")} value={evSearch}
                   onChange={e => setEvSearch(e.target.value)}
                   onKeyDown={e => e.key === "Escape" && setEventPicker(null)}
                   className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-400"
@@ -1981,7 +1983,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder="Search drug..." value={dpSearch}
+                <input autoFocus type="text" placeholder={t("intraop.timetable.searchDrug")} value={dpSearch}
                   onChange={e => setDpSearch(e.target.value)}
                   onKeyDown={e => e.key === "Escape" && setDrugPicker(null)}
                   className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400"
@@ -2042,7 +2044,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder="Search infusion..." value={ipSearch}
+                <input autoFocus type="text" placeholder={t("intraop.timetable.searchInfusion")} value={ipSearch}
                   onChange={e => setIpSearch(e.target.value)}
                   onKeyDown={e => e.key === "Escape" && setInfPicker(null)}
                   className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -2108,12 +2110,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Custom drug</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{t("intraop.timetable.customDrug")}</span>
                 <button type="button" onClick={() => setCustomDrugOpen(false)} className="text-slate-300 hover:text-red-400 transition-colors"><X className="h-3.5 w-3.5" /></button>
               </div>
 
               {/* Drug name */}
-              <input autoFocus type="text" placeholder="Drug name..."
+              <input autoFocus type="text" placeholder={t("intraop.timetable.drugNamePlaceholder")}
                 value={customDrugName}
                 onChange={e => setCustomDrugName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") setCustomDrugOpen(false) }}
@@ -2122,7 +2124,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
               {/* Unit pills */}
               <div className="space-y-1.5">
-                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Unit</p>
+                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.unit")}</p>
                 <div className="flex flex-wrap gap-1">
                   {UNIT_PRESETS.map(u => (
                     <button key={u} type="button"
@@ -2159,7 +2161,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 return (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <input type="number" min={range.min} max={range.max} step={range.step} placeholder="Amount"
+                      <input type="number" min={range.min} max={range.max} step={range.step} placeholder={t("intraop.timetable.amountPlaceholder")}
                         value={customDrugDose}
                         onChange={e => setCustomDrugDose(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") submit() }}
@@ -2261,7 +2263,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
               {fluidConflict.phase === "finished" && (
                 <>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Was it finished?</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{t("intraop.timetable.wasItFinished")}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Did the full volume of {fluidConflict.newCat.toLowerCase()} get infused?</p>
                   <div className="space-y-1">
                     <button type="button" onClick={() => doFinished(true)}
@@ -2278,7 +2280,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
               {fluidConflict.phase === "volume" && (
                 <>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">How much was infused?</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{t("intraop.timetable.howMuchInfused")}</p>
                   <div className="flex items-center gap-2">
                     <input autoFocus type="number" min={0} placeholder="0"
                       value={fluidConflict.volInput}
@@ -2317,7 +2319,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2"
               onClick={e => e.stopPropagation()}>
 
-              {!pickerSeg && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Start agent here</p>}
+              {!pickerSeg && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.startAgentHere")}</p>}
               {pickerSeg  && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Edit: {pickerSeg.name}</p>}
 
               {!pickerSeg && (
@@ -2353,7 +2355,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               })()}
 
               <div className="border-t border-slate-100 dark:border-[#333] pt-2 space-y-2">
-                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Optional</p>
+                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.optional")}</p>
                 <button type="button"
                   onClick={() => setPickerN2o(pickerN2o !== null ? null : 40)}
                   className={`w-full text-xs font-semibold px-2 py-1 rounded-lg border transition-colors ${
@@ -2580,7 +2582,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         <div className="absolute bg-white dark:bg-[#2a2a2a] rounded-xl shadow-2xl p-3 space-y-2 w-52 border border-slate-200 dark:border-[#3a3a3a]"
           style={{ top: Math.min(doseEditDrug.rect.bottom + 4, window.innerHeight - 160), left: Math.min(doseEditDrug.rect.left, window.innerWidth - 220) }}
           onClick={e => e.stopPropagation()}>
-          <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide">Change Dose</p>
+          <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide">{t("intraop.timetable.changeDose")}</p>
           <div className="flex items-center gap-1.5">
             <input type="number" value={doseEditDrug.dose}
               onChange={e => setDoseEditDrug(prev => prev ? { ...prev, dose: e.target.value } : null)}
@@ -2666,8 +2668,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           onClick={e => e.stopPropagation()}>
           <div>
             <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{rateDialog.name}{rateDialog.concentration ? ` ${rateDialog.concentration}` : ""} — Change rate</p>
-            {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">Set new rate, then choose when to apply it.</p>}
-            {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">Pick the time at which the rate changed.</p>}
+            {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.setNewRatePrompt")}</p>}
+            {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.pickRateChangeTime")}</p>}
             {(() => {
               const basis = INFUSION_WEIGHT_BASIS[rateDialog.name]
               const isPerKg = rateDialog.unit?.includes("/kg/")
@@ -2685,7 +2687,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             <>
               {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name] && (
                 <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Concentration</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.timetable.concentration")}</p>
                   <div className="flex flex-wrap gap-1">
                     {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name].map(c => (
                       <button key={c} type="button"
@@ -2839,8 +2841,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     {deleteInfPrompt && createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
         <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]">
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Delete this infusion?</p>
-          <p className="text-xs text-slate-400">The bar was dragged off the timeline. Remove it completely?</p>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("intraop.timetable.deleteInfusionConfirm")}</p>
+          <p className="text-xs text-slate-400">{t("intraop.timetable.barDraggedOffTimeline")}</p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setDeleteInfPrompt(null)}
               className="flex-1 text-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
@@ -2881,7 +2883,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-2">
             {fluid.name}{fluid.volume ? ` — ${fluid.volume} mL bag` : ""}
           </p>
-          <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-100 mb-2">Was the full bag infused?</p>
+          <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-100 mb-2">{t("intraop.timetable.wasFullBagInfused")}</p>
           <div className="flex gap-2 mb-2">
             <button type="button"
               onClick={() => setDiscFluidState(s => s ? { ...s, fullBag: true, volInput: String(bagVol) } : s)}
@@ -2897,7 +2899,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           {discFluidState.fullBag === false && (
             <div className="space-y-1.5 mb-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">Amount:</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">{t("intraop.timetable.amountLabel")}</span>
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">{curAmt} mL</span>
               </div>
               <input type="range" min={0} max={bagVol} step={50}

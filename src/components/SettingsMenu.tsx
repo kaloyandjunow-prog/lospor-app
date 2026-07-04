@@ -203,7 +203,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
   const CATS: { id: Category; label: string }[] = [
     { id: "ui",         label: t("settings.cats.ui")         },
-    { id: "units",      label: "Units"                        },
+    { id: "units",      label: t("settings.cats.units")        },
     { id: "automation", label: t("settings.cats.automation")  },
     ...(role !== "ADMIN" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
     { id: "privacy",    label: t("settings.cats.privacy")    },

@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { Controller } from "react-hook-form"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { RangeSelect } from "@/components/forms/shared/RangeSelect"
@@ -8,27 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import type { LibraryOption } from "@/hooks/useOptionLibrary"
 import type { Control, UseFormWatch, UseFormSetValue, UseFormRegister, Path } from "react-hook-form"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
+import { VENT_ASSISTED, VENT_CONTROLLED } from "@lospor/core/ventilation"
 
 // Device/airway-tool field names are DB-driven (OptionLibrary), not
 // compile-time literals — see MonitoringSection.tsx's asPath for the same pattern.
 function asPath(name: string): Path<IntraopFormFields> { return name as Path<IntraopFormFields> }
-
-const VENT_ASSISTED = [
-  { v: "A/C",      label: "Assist/Control (A/C)" },
-  { v: "PSV",      label: "Pressure Support (PSV)" },
-  { v: "BiPAP",    label: "BiPAP" },
-  { v: "CPAP",     label: "CPAP" },
-  { v: "SIMV+PSV", label: "SIMV + PSV" },
-  { v: "PAV",      label: "Proportional Assist (PAV)" },
-]
-const VENT_CONTROLLED = [
-  { v: "VCV",  label: "Volume Control (VCV)" },
-  { v: "PCV",  label: "Pressure Control (PCV)" },
-  { v: "PRVC", label: "PRVC / VCRP" },
-  { v: "APRV", label: "APRV / BiLevel" },
-  { v: "HFOV", label: "HFOV" },
-  { v: "VG",   label: "Volume Guarantee (VG)" },
-]
 
 export function AirwaySection({
   control, watch, setValue, register, airwayToolOptions, airwayDeviceOptions,
@@ -52,23 +37,24 @@ export function AirwaySection({
   setAirwayExpandedDevice: (v: string | null) => void
   expandAirwayDevice: (v: string) => void
 }) {
+  const t = useTranslations()
   const [ventExpanded, setVentExpanded] = useState<"assisted" | "controlled" | null>(null)
 
   if (presentsIntubated) return null
   if (!(showAirway || !techniquesLength || airwayOverride)) {
     return (
       <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 px-1">
-        <span>Airway management hidden for selected technique.</span>
+        <span>{t("intraop.airway.hiddenForTechnique")}</span>
         <button type="button" onClick={() => setAirwayOverride(true)}
           className="text-blue-500 hover:text-blue-700 font-semibold underline underline-offset-2">
-          Show anyway →
+          {t("intraop.airway.showAnyway")}
         </button>
       </div>
     )
   }
 
   return (
-    <SectionCard title="Airway Management" collapsible>
+    <SectionCard title={t("intraop.airway.sectionTitle")} collapsible>
       {/* N/A toggle */}
       <div className="flex items-center gap-2">
         <button type="button"
@@ -80,13 +66,13 @@ export function AirwaySection({
           }`}>
           N/A
         </button>
-        {airwayNA && <span className="text-xs text-slate-400 dark:text-[#666]">No airway intervention documented</span>}
+        {airwayNA && <span className="text-xs text-slate-400 dark:text-[#666]">{t("intraop.airway.noAirwayIntervention")}</span>}
       </div>
 
       {!airwayNA && <>
       {/* Airway management instruments — multi-select */}
       <div className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Airway management instruments</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.instrumentsLabel")}</p>
         <div className="flex flex-wrap gap-2">
           {airwayToolOptions.map(({ value: v, label }) => {
             const tools: string[] = watch("airwayTools") ?? []
@@ -108,7 +94,7 @@ export function AirwaySection({
       {/* Cormack-Lehane grade — shown when direct or video laryngoscopy performed */}
       {(watch("airwayTools") ?? []).some((t: string) => ["DIRECT_LARY","VIDEO_LARY"].includes(t)) && (
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Cormack–Lehane grade at laryngoscopy</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.cormackLehaneLabel")}</p>
           <Controller name="cormackLehane" control={control} render={({ field }) => (
             <div className="grid grid-cols-5 gap-2">
               {([
@@ -232,7 +218,7 @@ export function AirwaySection({
 
         return (
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Device</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.deviceLabel")}</p>
             <div className="flex flex-wrap gap-2">
               {DEVICES.map(({ v, label }) => {
                 if (!HAS_SUBOPTIONS.includes(v)) {
@@ -276,7 +262,7 @@ export function AirwaySection({
             {airwayExpandedDevice === "LMA" && (
               <div className="rounded-lg border border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a] p-3 space-y-3">
                 <div className="w-40 space-y-1">
-                  <Label>LMA Size</Label>
+                  <Label>{t("intraop.airway.lmaSize")}</Label>
                   <RangeSelect name="lmaSize" control={control} values={[1, 1.5, 2, 2.5, 3, 4, 5]} placeholder="— size" />
                 </div>
               </div>
@@ -287,11 +273,11 @@ export function AirwaySection({
               <div className="rounded-lg border border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a] p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label>Tube Size (mm ID)</Label>
+                    <Label>{t("intraop.airway.tubeSizeMmId")}</Label>
                     <RangeSelect name="oralTubeSize" control={control} min={2} max={10} step={0.5} placeholder="— size" />
                   </div>
                   <div className="space-y-1">
-                    <Label>Cuffed</Label>
+                    <Label>{t("intraop.airway.cuffed")}</Label>
                     <div className="flex gap-2">
                       {([{ v: true, label: "Cuffed" }, { v: false, label: "Uncuffed" }] as const).map(opt => (
                         <button key={String(opt.v)} type="button"
@@ -313,11 +299,11 @@ export function AirwaySection({
               <div className="rounded-lg border border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a] p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label>Tube Size (mm ID)</Label>
+                    <Label>{t("intraop.airway.tubeSizeMmId")}</Label>
                     <RangeSelect name="nasalTubeSize" control={control} min={2} max={10} step={0.5} placeholder="— size" />
                   </div>
                   <div className="space-y-1">
-                    <Label>Cuffed</Label>
+                    <Label>{t("intraop.airway.cuffed")}</Label>
                     <div className="flex gap-2">
                       {([{ v: true, label: "Cuffed" }, { v: false, label: "Uncuffed" }] as const).map(opt => (
                         <button key={String(opt.v)} type="button"
@@ -340,7 +326,7 @@ export function AirwaySection({
                 <div className="grid grid-cols-3 gap-4">
                   {/* Type */}
                   <div className="space-y-1">
-                    <Label>Type</Label>
+                    <Label>{t("intraop.airway.dltType")}</Label>
                     <div className="flex gap-2">
                       {(["Carlens","Robertshaw"] as const).map(t => (
                         <button key={t} type="button"
@@ -355,7 +341,7 @@ export function AirwaySection({
                   </div>
                   {/* Side */}
                   <div className="space-y-1">
-                    <Label>Side</Label>
+                    <Label>{t("intraop.airway.dltSide")}</Label>
                     <div className="flex gap-2">
                       {(["Left","Right"] as const).map(s => (
                         <button key={s} type="button"
@@ -370,7 +356,7 @@ export function AirwaySection({
                   </div>
                   {/* Size pills — Fr sizes */}
                   <div className="space-y-1">
-                    <Label>Size (Fr)</Label>
+                    <Label>{t("intraop.airway.dltSizeFr")}</Label>
                     <div className="flex flex-wrap gap-1.5">
                       {[26,28,32,35,37,39,41].map(sz => (
                         <button key={sz} type="button"
@@ -391,7 +377,7 @@ export function AirwaySection({
             {airwayExpandedDevice === "ENDOBRONCHIAL_TUBE" && (
               <div className="rounded-lg border border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a] p-3 space-y-3">
                 <div className="space-y-1">
-                  <Label>Size (mm ID)</Label>
+                  <Label>{t("intraop.airway.ebSizeMmId")}</Label>
                   <div className="flex flex-wrap gap-1.5">
                     {[6.0,6.5,7.0,7.5,8.0].map(sz => (
                       <button key={sz} type="button"
@@ -412,7 +398,7 @@ export function AirwaySection({
 
       {/* Ventilation — hierarchical multi-select */}
       <div className="space-y-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ventilation mode</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.ventilationMode")}</p>
         <div className="flex flex-wrap gap-2">
           {/* Spontaneous */}
           {(() => {
@@ -424,7 +410,7 @@ export function AirwaySection({
                 className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${
                   on ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                      : "border-slate-200 dark:border-[#333] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#444] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
-                }`}>Spontaneous</button>
+                }`}>{t("intraop.airway.ventSpontaneous")}</button>
             )
           })()}
           {/* Assisted — expander */}
@@ -469,7 +455,7 @@ export function AirwaySection({
                 className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${
                   on ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                      : "border-slate-200 dark:border-[#333] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#444] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
-                }`}>Jet ventilation</button>
+                }`}>{t("intraop.airway.ventJet")}</button>
             )
           })()}
         </div>
@@ -514,9 +500,9 @@ export function AirwaySection({
 
       {/* Notes */}
       <div className="space-y-1">
-        <Label>Airway notes</Label>
+        <Label>{t("intraop.airway.notesLabel")}</Label>
         <Textarea {...register("airwayNotes")}
-          placeholder="No patient-identifying information — difficult airway plan, technique used, Cormack–Lehane grade at laryngoscopy, complications during intubation…"
+          placeholder={t("intraop.airway.notesPlaceholder")}
           rows={2} className="text-sm" />
       </div>
       </>}

@@ -393,7 +393,7 @@ function AuditLogSection() {
       <div className="bg-white dark:bg-[#1c1c1c] rounded-xl border border-slate-200 dark:border-[#2a2a2a] overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 dark:border-[#2a2a2a] flex items-center gap-2">
           <Download className="h-4 w-4 text-slate-500" />
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Research export — OMOP CDM v5.4</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("admin.researchExport")}</span>
         </div>
         <div className="px-5 py-4 space-y-3">
           <p className="text-sm text-slate-500 dark:text-slate-400">
