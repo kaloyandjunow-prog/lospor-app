@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
-import { Prisma } from "@/generated/prisma/client"
 import caseEmitter from "@/lib/caseEmitter"
 import { checkEventPII } from "@/lib/clinical-pii"
 import { logAudit } from "@/lib/audit"
@@ -67,8 +66,6 @@ async function authorize(req: NextRequest, id: string) {
   return { user, existing }
 }
 
-const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable } as const
-
 // POST — append one event. The CaseEvent rows are the source of truth; the
 // keyEvents cache is rebuilt from them so every existing reader is unchanged.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -102,11 +99,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   for (let attempt = 0; ; attempt++) {
     try {
-      const added = await prisma.$transaction(async tx => {
-        const a = await addEvent(tx, id, user.id, event as unknown as LogEvent, source)
-        await rebuildProjection(tx, id)
-        return a
-      }, SERIALIZABLE)
+      // No interactive $transaction — see the identical comment in
+      // case/[id]/route.ts: Supabase's Transaction-mode PgBouncer (port 6543)
+      // cannot sustain interactive transactions across multiple statements
+      // (P2028), which is exactly what was causing 500s here, worse under
+      // load. addEvent/rebuildProjection accept a plain PrismaClient for
+      // this reason (see the Tx type in case-events.ts).
+      const added = await addEvent(prisma, id, user.id, event as unknown as LogEvent, source)
+      await rebuildProjection(prisma, id)
 
       if (existing.status === "DRAFT") {
         await prisma.case.update({ where: { id }, data: { status: "IN_PROGRESS" } })
@@ -172,16 +172,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   for (let attempt = 0; ; attempt++) {
     try {
-      await prisma.$transaction(async tx => {
-        if (intraopBase) {
-          const fresh = await tx.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
-          if (fresh?.updatedAt && fresh.updatedAt.getTime() > new Date(intraopBase).getTime()) {
-            throw new Error("INTRAOP_CONFLICT")
-          }
+      // No interactive $transaction — same PgBouncer constraint as POST above.
+      // reconcileFullLog's reconcile-then-tombstone sequence is the heaviest
+      // statement sequence in this file (one round trip per changed/removed
+      // event), so it was the most likely to hit P2028 — this is what was
+      // actually causing the 500 on event removal specifically. The
+      // check-then-write conflict window this opens is the same accepted
+      // trade-off documented in case/[id]/route.ts.
+      if (intraopBase) {
+        const fresh = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+        if (fresh?.updatedAt && fresh.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+          throw new Error("INTRAOP_CONFLICT")
         }
-        await reconcileFullLog(tx, id, user.id, log as unknown as LogEvent[], source)
-        await rebuildProjection(tx, id)
-      }, SERIALIZABLE)
+      }
+      await reconcileFullLog(prisma, id, user.id, log as unknown as LogEvent[], source)
+      await rebuildProjection(prisma, id)
 
       after(() => logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source }))
       caseEmitter.emit(id, { type: "log_updated" })

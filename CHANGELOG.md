@@ -1,5 +1,14 @@
 # Changelog - LOSPOR Web App
 
+## [4.1.2] - 2026-07-05
+
+Critical production fix: an exhausted Postgres connection pool was degrading or failing nearly every API call, plus a real structural bug in the event-log route that was fully independent of it.
+
+### Fixed
+- **Database connection pool exhaustion.** `@prisma/adapter-pg`'s default `pg.Pool` size (10 connections per instance) was too large for this architecture — the intraop live-refresh SSE route (`/api/cases/[id]/stream`) keeps a serverless container alive for its whole connection, and with enough concurrent long-lived streams, N containers × 10 connections each blew past Postgres's 200-connection ceiling, causing `EMAXCONN` errors across nearly every route (`GET /api/cases`, `PATCH /api/cases/[id]`, `PUT /api/cases/[id]/events`, `POST /api/cases/[id]/lock`, and more). Reduced to `max: 3` per instance.
+- **Removing an event from the intraop log no longer 500s.** `PUT /api/cases/[id]/events` wrapped its reconcile-and-rebuild sequence in an interactive `prisma.$transaction(..., SERIALIZABLE)` — the same pattern already identified and fixed elsewhere in this codebase as unsafe on Supabase's Transaction-mode PgBouncer, which cannot sustain interactive transactions across multiple statements (P2028). Event *removal* takes the heaviest statement sequence of any action here (one round trip per changed/removed event), so it hit this failure disproportionately. Removed the transaction wrapper, matching the established pattern in `case/[id]/route.ts`.
+- **CI (`npm ci`) fixed.** Package version bumps in v4.1.0/v4.1.1 were applied by hand-editing `package.json` without regenerating `package-lock.json`, leaving the lockfile's recorded version stale and — more importantly — missing a nested dependency entry (`next-intl`'s `@swc/helpers`) that a local npm 11 install had silently dropped relative to what npm 10 (used in CI) expects. Regenerated with npm 10 to match CI exactly; verified `npm ci` succeeds locally.
+
 ## [4.1.1] - 2026-07-05
 
 Bug-fix follow-up to v4.1.0, found via a Vercel production-log investigation of a mobile intraop UI report.
