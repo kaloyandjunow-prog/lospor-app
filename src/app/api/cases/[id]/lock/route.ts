@@ -130,15 +130,29 @@ export async function PATCH(
 
   const existing = await prisma.caseLock.findUnique({ where: { caseId: id } })
 
-  if (existing && existing.userId === userId && existing.deviceId === deviceId) {
-    const refreshed = await prisma.caseLock.updateMany({
-      where: { caseId: id, userId, deviceId },
-      data: { expiresAt },
-    })
-    return NextResponse.json({ extended: refreshed.count > 0 }, { status: refreshed.count > 0 ? 200 : 409 })
+  if (existing && existing.expiresAt > now && (existing.userId !== userId || existing.deviceId !== deviceId)) {
+    // A different device/user actively holds an unexpired lock — genuine conflict.
+    return NextResponse.json({ extended: false }, { status: 409 })
   }
 
-  return NextResponse.json({ extended: false }, { status: 409 })
+  // Either we already hold it, or it's expired/missing — safe to (re)claim.
+  // updateMany first keeps this idempotent; if the row was deleted/replaced
+  // between the read and write (same momentary-mismatch race POST already
+  // guards against), fall back to upsert instead of spuriously 409ing the
+  // heartbeat, which previously disabled the whole editing form.
+  const refreshed = await prisma.caseLock.updateMany({
+    where: { caseId: id, userId, deviceId },
+    data: { expiresAt },
+  })
+  if (refreshed.count > 0) {
+    return NextResponse.json({ extended: true })
+  }
+  await prisma.caseLock.upsert({
+    where: { caseId: id },
+    create: { caseId: id, userId, deviceId, expiresAt },
+    update: { userId, deviceId, expiresAt },
+  })
+  return NextResponse.json({ extended: true })
 }
 
 // ---------------------------------------------------------------------------

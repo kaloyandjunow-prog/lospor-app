@@ -563,7 +563,13 @@ export async function syncCaseRelational(db: Db, caseId: string): Promise<void> 
   }
 
   await db.clinicalFieldStatus.deleteMany({ where: { caseId } })
-  await db.clinicalFieldStatus.createMany({ data: statuses })
+  // skipDuplicates guards against two overlapping saves for the same case
+  // both deleting then recreating this case's rows — without it, the second
+  // createMany throws P2002 on the (caseId, section, fieldKey) unique
+  // constraint. No $transaction here (see comment above) so this is the
+  // available guard; a duplicate row is safe to skip since this table is a
+  // rebuildable research mirror, not source-of-truth data.
+  await db.clinicalFieldStatus.createMany({ data: statuses, skipDuplicates: true })
 }
 
 // userId is optional context for the audit trail only — sync itself is not

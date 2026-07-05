@@ -1,13 +1,31 @@
 # Changelog - LOSPOR Web App
 
-## [4.0.1] - 2026-07-04
+## [4.1.1] - 2026-07-05
 
-Post-release review fixes.
+Bug-fix follow-up to v4.1.0, found via a Vercel production-log investigation of a mobile intraop UI report.
+
+### Fixed
+- **Case-lock heartbeat no longer spuriously 409s.** The `PATCH /api/cases/[id]/lock` heartbeat only called `updateMany` and failed on a 0-row match; `POST` already had an `upsert` self-heal for the same case. A momentary timing mismatch (clock skew, a cold serverless start near the 30s lock TTL) could 409 the heartbeat even though the same device still owned the lock, disabling the entire case-creation form until the next successful heartbeat.
+- **`ClinicalFieldStatus` research-mirror rows no longer throw on concurrent saves.** Two overlapping `PATCH /api/cases/[id]` requests could both delete-then-recreate this case's field-status rows, and the second `createMany` threw a unique-constraint error (silently caught, but dropping mirror rows and spamming error logs). Added `skipDuplicates` — this table is a rebuildable mirror, not source-of-truth data, so a dropped duplicate is safe.
+- **Account deletion wording no longer overpromises (Bulgarian).** The Bulgarian settings text claimed cases are kept "30 days, then permanently deleted (GDPR Article 17)" — no such scheduled deletion job exists yet. Replaced with accurate wording matching the English text: access is disabled immediately, further deletion/anonymisation follows the retention policy.
+- Residual encoding corruption (mojibake) cleaned up across the mobile app — bullets, arrows, middle dots, ellipses, and a garbled "SpO₂"/"EtCO₂" in a test file.
+
+## [4.1.0] - 2026-07-05
+
+Full Bulgarian localization pass and shared clinical-data consolidation.
+
+### Added
+- **Deep Bulgarian translation coverage**: dashboard, admin, and settings gaps closed; `PostopForm`, `AirwaySection`, `PreopForm`, `VascularAccessTree`, and the entire `IntraopTimetable` are now fully locale-aware.
+- **The printed anaesthesia protocol (PDF) now follows the active app language** — Bulgarian users get a Bulgarian protocol document instead of English-only.
+- **Bulgarian Privacy Policy and Terms of Service** pages, switching by locale.
+- **Complications picker gains Bulgarian category titles** for the first time (previously English-only on web), and now shares its full 8-category list with the mobile app via `@lospor/core/complications` — mobile's slightly larger list (a few extra clinically relevant items per category) is now available on web too.
+- Ventilation-mode lists (`AirwaySection`) and case-status label text (`CaseSummary`) now come from `@lospor/core` instead of hand-duplicated local copies, so web and mobile can no longer drift out of sync on this data. Web's case-status wording is also now consistent with mobile's (e.g. "Case finished" instead of "Finalised").
 
 ### Fixed
 - **Email addresses are now normalized** (`trim` + lowercase) in registration, web login, mobile token login, password-reset request, and verification resend — both for database lookups/creates and rate-limit keys. Previously `Doctor@example.com` and `doctor@example.com` were treated as different accounts (case-sensitive unique column), which could cause duplicate registrations, login/reset confusion, and per-email rate-limit bypass by casing changes. Migration `20260704120000_normalize_user_emails` backfills existing rows (guarded: fails loudly if two accounts differ only by case instead of corrupting either).
 - **CORS now honors the full `CORS_ALLOW_ORIGINS` allowlist.** The request's `Origin` is reflected back when it matches any allowlisted entry (with `Vary: Origin`); previously only the first configured origin was ever sent, silently breaking any second origin. All API routes now compute CORS headers per request.
 - Added the missing Bulgarian translations for the intraop "Backfill on reopen" setting (`settings.autoFillBackground(+Desc)`); EN/BG message files are back at full key parity.
+- Removed an unused legacy `_PageHeader` function from the protocol PDF component.
 
 ## [4.0.0] - 2026-07-03
 

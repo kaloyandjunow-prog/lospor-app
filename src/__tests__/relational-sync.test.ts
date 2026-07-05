@@ -333,6 +333,7 @@ describe("syncCaseRelational", () => {
         expect.objectContaining({ caseId: "case-1", section: "preop", fieldKey: "familyAnesthesiaDetails", presence: "NOT_DOCUMENTED" }),
         expect.objectContaining({ caseId: "case-1", section: "intraop", fieldKey: "monitoring", presence: "PRESENT" }),
       ]),
+      skipDuplicates: true,
     })
     expect(db.preopDiagnosis.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(db.preopDiagnosis.createMany.mock.invocationCallOrder[0])
     expect(db.clinicalFieldStatus.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(db.clinicalFieldStatus.createMany.mock.invocationCallOrder[0])
