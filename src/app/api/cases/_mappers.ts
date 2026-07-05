@@ -216,7 +216,11 @@ export function mapIntraopUpdate(intraop: Record<string, unknown>) {
     "tempMonitor","paCatheter","tee","bis","entropyMonitor","nirsMonitor",
     "evokedPotentials","tofMonitor",
     "vascularAccesses","premedicationEvening","premedicationMorning","drugsAdministered",
-    "crystalloidsMl","colloidsMl","bloodMl","bloodProductsNote","urineMl","complications",
+    // crystalloidsMl/colloidsMl/bloodMl are intentionally NOT accepted here:
+    // they are derived from the fluid events and written server-side in
+    // rebuildProjection (case-events.ts), so a client PATCH can't override the
+    // single source of truth. The read path (below) still returns them.
+    "bloodProductsNote","urineMl","complications",
   ] as const satisfies readonly (keyof typeof full)[]
   for (const k of DIRECT) {
     if (has(k)) copyKey(r, full, k)

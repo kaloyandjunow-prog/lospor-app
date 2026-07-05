@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client"
+import { calculateFluidTotals, fluidTotalsPatch } from "@lospor/core/intraop-totals"
 import type {
   LogEvent, VitalsEntry, TimetableDrug, TimetableFluid, AgentSegment,
   TimetableInfusion, ClinicalEvent, GasSettingsSegment, LegacyKeyEvents,
@@ -410,9 +411,14 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   // fields just don't structurally match Prisma's InputJsonValue (which
   // disallows `undefined`), hence the cast rather than a real mismatch.
   const keyEvents = { ...projected, log } as unknown as Prisma.InputJsonValue
+  // Fluid totals are derived from the fluid events, so they are computed here
+  // (the single source of truth) rather than PATCHed separately by each client
+  // — the case-PATCH mapper no longer accepts them. Same core function both
+  // apps used, so values are identical to before, just server-authoritative.
+  const fluidTotals = fluidTotalsPatch(calculateFluidTotals(projected.fluids))
   await tx.intraoperativeRecord.upsert({
     where:  { caseId },
-    update: { keyEvents },
-    create: { caseId, startTime: new Date("2000-01-01T00:00:00.000Z"), keyEvents },
+    update: { keyEvents, ...fluidTotals },
+    create: { caseId, startTime: new Date("2000-01-01T00:00:00.000Z"), keyEvents, ...fluidTotals },
   })
 }
