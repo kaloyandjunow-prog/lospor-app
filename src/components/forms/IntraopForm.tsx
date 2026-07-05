@@ -388,21 +388,37 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     }
   }, [])
 
+  const AIRWAY_DEVICE_FIELDS: Record<string, string[]> = {
+    LMA: ["lmaSize"],
+    ORAL_ETT: ["oralTubeSize", "oralCuffed"],
+    NASAL_ETT: ["nasalTubeSize", "nasalCuffed"],
+    DOUBLE_LUMEN_TUBE: ["dltType", "dltSide", "dltSize"],
+    ENDOBRONCHIAL_TUBE: ["endobronchialSize"],
+  }
+
   function expandAirwayDevice(v: string) {
     const vals = getValues()
     const devs: string[] = vals.airwayDevices ?? []
-    // A device is only ever in airwayDevices once it was previously confirmed complete —
-    // reopening it now is an edit, not a fresh entry, so don't auto-add/collapse mid-edit.
-    deviceWasCompleteOnOpen.current = devs.includes(v)
+    // Reopening an already-added device is a re-edit: clear its sub-fields so
+    // the panel opens with everything deselected and the user re-picks from
+    // scratch, identical to first-time entry (the normal
+    // incomplete→complete→auto-collapse flow then runs again). Previously we
+    // kept the old values and set deviceWasCompleteOnOpen to suppress the
+    // auto-collapse, but that flag was never reset, so after a re-edit the
+    // panel could never collapse again and the device was impossible to edit.
+    if (devs.includes(v)) {
+      for (const field of AIRWAY_DEVICE_FIELDS[v] ?? []) {
+        setValue(field as Parameters<typeof setValue>[0], undefined)
+      }
+    }
+    deviceWasCompleteOnOpen.current = false
     setAirwayExpandedDevice(v)
   }
 
   // Keep airwayDevices in sync with the currently-open device's own completeness:
   // add it the moment it becomes complete (this is also the gate that gets it to the
   // DB in the first place), and drop it again if an edit blanks a required field back
-  // out — a device should never sit confirmed-but-empty. Only auto-collapses on the
-  // very first completion, not on every keystroke while re-editing an already-complete
-  // entry (deviceWasCompleteOnOpen guards that).
+  // out — a device should never sit confirmed-but-empty. Auto-collapses on completion.
   useEffect(() => {
     if (!airwayExpandedDevice) return
     const vals = getValues()

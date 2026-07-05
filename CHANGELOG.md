@@ -1,5 +1,13 @@
 # Changelog - LOSPOR Web App
 
+## [4.1.4] - 2026-07-05
+
+Intraop bug fixes (regressions surfaced after the shared-core refactor). The web changes here are the airway re-edit fix; the infusion-rate and vitals-autosave fixes were mobile-only (web was already correct).
+
+### Fixed
+- **Airway devices with sub-panels (LMA / oral & nasal ETT / DLT / endobronchial) can be re-edited again.** After a device was confirmed, its sub-panel auto-collapsed — but reopening it to edit set a "was complete on open" flag that was never reset, so after re-editing, the panel could never auto-collapse again and the device was effectively impossible to edit. Reopening an already-added device now clears its sub-fields so it opens deselected and re-picks from scratch, identical to first-time entry.
+- Version alignment to 4.1.4 across all four repos.
+
 ## [4.1.3] - 2026-07-05
 
 Version alignment across all four LOSPOR repos (core, app, mobile, docs) — no functional changes beyond v4.1.2. Also re-syncs `package-lock.json` (npm 10, matching CI) after v4.1.2's post-tag CI fixes.
