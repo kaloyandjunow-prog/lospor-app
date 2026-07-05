@@ -1,5 +1,9 @@
 # Changelog - LOSPOR Web App
 
+## [4.1.3] - 2026-07-05
+
+Version alignment across all four LOSPOR repos (core, app, mobile, docs) — no functional changes beyond v4.1.2. Also re-syncs `package-lock.json` (npm 10, matching CI) after v4.1.2's post-tag CI fixes.
+
 ## [4.1.2] - 2026-07-05
 
 Critical production fix: an exhausted Postgres connection pool was degrading or failing nearly every API call, plus a real structural bug in the event-log route that was fully independent of it.
