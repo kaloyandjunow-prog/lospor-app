@@ -1,5 +1,10 @@
 # Changelog - LOSPOR Web App
 
+## [4.1.5] - 2026-07-05
+
+### Changed
+- Version alignment to 4.1.5 across all four LOSPOR repos for the mobile/PWA hotfix release.
+
 ## [4.1.4] - 2026-07-05
 
 Intraop bug fixes (regressions surfaced after the shared-core refactor). The web changes here are the airway re-edit fix; the infusion-rate and vitals-autosave fixes were mobile-only (web was already correct).
