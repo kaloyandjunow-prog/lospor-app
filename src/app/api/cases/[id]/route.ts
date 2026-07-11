@@ -104,6 +104,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const differentUser = existing.userId !== userId
+    // Missing-timestamp guard stays scoped to different users: clients that
+    // legitimately send no base header (fresh loads, older mobile flows) must
+    // not 409 against their own case.
     if (!forceUpdate && differentUser && preop && existing.preop && !preopBase) {
       return NextResponse.json({
         error: "conflict",
@@ -129,21 +132,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }, { status: 409 })
     }
 
-    if (!forceUpdate && differentUser && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
+    // Stale-timestamp guard applies to EVERYONE (v5): a client whose base
+    // timestamp is older than the server's gets a 409 even for the case
+    // owner's own writes — the same user in two tabs/devices could previously
+    // silently overwrite themselves. Clients self-heal via the shared
+    // conflict-retry engine or surface the conflict-resolution UI.
+    if (!forceUpdate && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "preop",
         serverVersion: existing.preop,
       }, { status: 409 })
     }
-    if (!forceUpdate && differentUser && postop && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
+    if (!forceUpdate && postop && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "postop",
         serverVersion: existing.postop,
       }, { status: 409 })
     }
-    if (!forceUpdate && differentUser && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+    if (!forceUpdate && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "intraop",

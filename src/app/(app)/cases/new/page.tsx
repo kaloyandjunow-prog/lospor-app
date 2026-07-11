@@ -27,6 +27,9 @@ import {
   sendWithConflictRetry,
   FORCE_UPDATE_HEADER,
   SECTION_CONFLICT_HEADER,
+  eventIdempotencyKey,
+  IDEMPOTENCY_HEADER,
+  SOURCE_HEADER,
   type CasePatchResponse,
   type ConflictBody,
   type ConflictRetryOutcome,
@@ -61,44 +64,72 @@ export default function NewCasePage() {
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [eventLog, setEventLog] = useState<LogEvent[]>([])
 
+  // Full-log PUT through the shared engine: per-case write queue + one-shot
+  // 409 self-heal with the server's timestamp (same contract as mobile's
+  // full-log sync). Returns false when the save did not land.
+  async function putEventLog(newLog: LogEvent[]): Promise<boolean> {
+    const currentCaseId = caseIdRef.current
+    if (!currentCaseId) return false
+    try {
+      const outcome = await writeQueueRef.current.enqueue(currentCaseId, () =>
+        sendWithConflictRetry<{ intraopUpdatedAt?: string }>(
+          async (base) => {
+            const res = await fetch(`/api/cases/${currentCaseId}/events`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                [SOURCE_HEADER]: "web",
+                ...(base ? { [SECTION_CONFLICT_HEADER.intraop]: base } : {}),
+              },
+              body: JSON.stringify({ log: newLog }),
+            })
+            return classifyPatchResponse<{ intraopUpdatedAt?: string }>(res)
+          },
+          intraopUpdatedAtRef,
+        )
+      )
+      if (!outcome.ok) return false
+      if (outcome.body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(outcome.body.intraopUpdatedAt).toISOString()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async function handleDeleteEvent(evId: string) {
     if (!caseId) return
     const newLog = eventLog.filter(e => e.id !== evId)
     const previousLog = eventLog
     setEventLog(newLog)
-    try {
-      const res = await fetch(`/api/cases/${caseId}/events`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(intraopUpdatedAtRef.current ? { "x-lospor-intraop-updated-at": intraopUpdatedAtRef.current } : {}),
-        },
-        body: JSON.stringify({ log: newLog }),
-      })
-      if (res.ok) {
-        const body = await res.json().catch(() => ({}))
-        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
-      } else {
-        setEventLog(previousLog)
-        console.error("[intraop event] delete failed", await res.text().catch(() => ""))
-      }
-    } catch (err) {
+    if (!await putEventLog(newLog)) {
       setEventLog(previousLog)
-      console.error("[intraop event] delete failed", err)
+      console.error("[intraop event] delete failed")
     }
   }
   // Per-action event from the intraop timetable (bolus/infusion/agent/fluid/
   // clinical event) - posts one CaseEvent row, mirroring how mobile already
   // persists these, instead of only the legacy keyEvents JSON blob.
   async function handleLogEvent(event: LogEvent) {
-    if (!caseIdRef.current) return
+    const currentCaseId = caseIdRef.current
+    if (!currentCaseId) return
     setEventLog(prev => [event, ...prev])
     try {
-      const res = await fetch(`/api/cases/${caseIdRef.current}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(event),
-      })
+      // Idempotency key + source header + per-case ordering: full parity with
+      // how mobile appends events, so a retried/replayed POST stores the
+      // event exactly once and never interleaves with another write.
+      const res = await writeQueueRef.current.enqueue(currentCaseId, () =>
+        fetch(`/api/cases/${currentCaseId}/events`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // web LogEvent.id is optional in the type but always set by the
+            // timetable (uid()); skip the dedup key rather than send a shared one.
+            ...(event.id ? { [IDEMPOTENCY_HEADER]: eventIdempotencyKey(currentCaseId, event.id) } : {}),
+            [SOURCE_HEADER]: "web",
+          },
+          body: JSON.stringify(event),
+        })
+      )
       if (!res.ok) console.error("[intraop event] save failed", await res.text().catch(() => ""))
       else {
         const body = await res.json().catch(() => ({}))
@@ -121,26 +152,9 @@ export default function NewCasePage() {
     if (newLog.length === eventLog.length) return
     const previousLog = eventLog
     setEventLog(newLog)
-    try {
-      const res = await fetch(`/api/cases/${caseIdRef.current}/events`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(intraopUpdatedAtRef.current ? { "x-lospor-intraop-updated-at": intraopUpdatedAtRef.current } : {}),
-        },
-        body: JSON.stringify({ log: newLog }),
-      })
-      if (!res.ok) {
-        setEventLog(previousLog)
-        console.error("[intraop event] delete failed", await res.text().catch(() => ""))
-      }
-      else {
-        const body = await res.json().catch(() => ({}))
-        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
-      }
-    } catch (err) {
+    if (!await putEventLog(newLog)) {
       setEventLog(previousLog)
-      console.error("[intraop event] delete failed", err)
+      console.error("[intraop event] delete failed")
     }
   }
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
@@ -212,6 +226,9 @@ export default function NewCasePage() {
   // Refs for synchronous access inside async callbacks
   const caseIdRef  = useRef<string | null>(null)
   const savingRef  = useRef(false)
+  // All writes go through the shared per-case write queue: a save that starts
+  // while another is in flight is queued behind it, not dropped or interleaved.
+  const writeQueueRef = useRef(createCaseWriteQueue())
   const startCloseCountdownRef = useRef<() => void>(() => {})
   const dbIntraopToFormRef = useRef<(intraop: CaseDetailIntraop) => Partial<IntraopData>>(() => ({}))
 
@@ -444,10 +461,6 @@ export default function NewCasePage() {
   dbIntraopToFormRef.current = dbIntraopToForm
 
   // ── Core save / patch function ──────────────────────────────────────────────
-  // All writes go through the shared per-case write queue: a save that starts
-  // while another is in flight is queued behind it, not dropped or interleaved.
-  const writeQueueRef = useRef(createCaseWriteQueue())
-
   const saveSectionInner = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
