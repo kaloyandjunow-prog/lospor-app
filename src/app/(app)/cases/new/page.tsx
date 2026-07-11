@@ -21,6 +21,15 @@ import { useTour } from "@/context/TourContext"
 import { useCaseLock } from "@/hooks/useCaseLock"
 import { WatchingBanner } from "@/components/WatchingBanner"
 import { ConflictModal } from "@/components/ConflictModal"
+import {
+  classifyPatchResponse,
+  createCaseWriteQueue,
+  sendWithConflictRetry,
+  FORCE_UPDATE_HEADER,
+  SECTION_CONFLICT_HEADER,
+  type CasePatchResponse,
+  type ConflictBody,
+} from "@lospor/core/sync"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -423,10 +432,14 @@ export default function NewCasePage() {
   dbIntraopToFormRef.current = dbIntraopToForm
 
   // ── Core save / patch function ──────────────────────────────────────────────
-  const saveSection = useCallback(async (
+  // All writes go through the shared per-case write queue: a save that starts
+  // while another is in flight is queued behind it, not dropped or interleaved.
+  const writeQueueRef = useRef(createCaseWriteQueue())
+
+  const saveSectionInner = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
-    { showToast = false, nextStep, forceUpdate = false, _retryOnce = false, onError }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; _retryOnce?: boolean; onError?: (msg: string) => void } = {}
+    { showToast = false, nextStep, forceUpdate = false, onError }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; onError?: (msg: string) => void } = {}
   ) => {
     try {
       if (!caseIdRef.current) {
@@ -454,31 +467,30 @@ export default function NewCasePage() {
         const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
           ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
         const payload = section === "preop" ? { ...data, bmi } : data
-        const headers: Record<string, string> = { "Content-Type": "application/json" }
-        if (preopUpdatedAtRef.current && section === "preop")
-          headers["x-lospor-preop-updated-at"] = preopUpdatedAtRef.current
-        if (postopUpdatedAtRef.current && section === "postop")
-          headers["x-lospor-postop-updated-at"] = postopUpdatedAtRef.current
-        if (intraopUpdatedAtRef.current && section === "intraop")
-          headers["x-lospor-intraop-updated-at"] = intraopUpdatedAtRef.current
-        if (forceUpdate) headers["x-lospor-force-update"] = "true"
-        const res = await fetch(`/api/cases/${caseIdRef.current}`, {
-          method: "PATCH",
-          headers,
-          body: JSON.stringify({ [section]: payload }),
-        })
-        if (res.status === 409) {
-          const body = await res.json().catch(() => ({}))
-          // missing_conflict_timestamp happens when the client's ref was not yet
-          // initialized (e.g. case-ID was set from URL params before the case fetch
-          // completed). Recover the base from the server and retry once silently.
-          if (!_retryOnce && body.error === "conflict" && body.reason === "missing_conflict_timestamp" && body.serverVersion?.updatedAt) {
-            const recovered = new Date(body.serverVersion.updatedAt).toISOString()
-            if (section === "preop")   preopUpdatedAtRef.current   = recovered
-            if (section === "postop")  postopUpdatedAtRef.current  = recovered
-            if (section === "intraop") intraopUpdatedAtRef.current = recovered
-            return saveSection(section, data, { showToast, nextStep, forceUpdate, _retryOnce: true, onError })
-          }
+        const baseRef =
+          section === "preop" ? preopUpdatedAtRef :
+          section === "postop" ? postopUpdatedAtRef : intraopUpdatedAtRef
+        // Shared conflict-retry engine. Web policy: only auto-retry the
+        // uninitialized-timestamp case (missing_conflict_timestamp — e.g. the
+        // case-ID was set from URL params before the case fetch completed);
+        // genuine conflicts open the resolution modal below.
+        const outcome = await sendWithConflictRetry<CasePatchResponse>(
+          async (base) => {
+            const headers: Record<string, string> = { "Content-Type": "application/json" }
+            if (base) headers[SECTION_CONFLICT_HEADER[section]] = base
+            if (forceUpdate) headers[FORCE_UPDATE_HEADER] = "true"
+            const res = await fetch(`/api/cases/${caseIdRef.current}`, {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({ [section]: payload }),
+            })
+            return classifyPatchResponse<CasePatchResponse>(res)
+          },
+          baseRef,
+          (body) => (body as ConflictBody | undefined)?.reason === "missing_conflict_timestamp",
+        )
+        if (!outcome.ok && outcome.conflict) {
+          const body = (outcome.body ?? {}) as ConflictBody
           if (body.error === "conflict" && body.serverVersion) {
             // Open conflict resolution modal instead of throwing
             setConflict({
@@ -495,7 +507,7 @@ export default function NewCasePage() {
           // Unknown 409 - treat as error
           throw new Error("Save conflict - please reload and try again.")
         }
-        if (res.status === 404 && section === "preop") {
+        if (!outcome.ok && outcome.status === 404 && section === "preop") {
           caseIdRef.current = null
           setCaseId(null)
           preopUpdatedAtRef.current = null
@@ -516,15 +528,13 @@ export default function NewCasePage() {
           if (created.caseCode) setCaseCode(created.caseCode)
           if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
           router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
-        } else if (!res.ok) {
-          const text = await res.text().catch(() => "")
-          let body: { error?: string } = {}
-          try { body = JSON.parse(text) } catch {}
-          console.error(`[saveSection] ${res.status} ${res.statusText}`, text.slice(0, 500))
-          throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
+        } else if (!outcome.ok) {
+          const body = (outcome.body ?? {}) as { error?: string }
+          console.error(`[saveSection] HTTP ${outcome.status}`, JSON.stringify(outcome.body ?? {}).slice(0, 500))
+          throw new Error(body.error ?? `Save failed (HTTP ${outcome.status})`)
         } else {
           // Track updated timestamps so future saves include correct conflict headers
-          const result = await res.json().catch(() => ({}))
+          const result = outcome.body
           if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
           if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
           if (result.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(result.intraopUpdatedAt).toISOString()
@@ -545,12 +555,34 @@ export default function NewCasePage() {
     }
   }, [t, router])
 
+  // Public save entry: serialized through the per-case write queue so callers
+  // (autosave, manual submit, conflict resolution) can never interleave.
+  const saveSection = useCallback((
+    section: "preop" | "intraop" | "postop",
+    data: PreopData | IntraopData | PostopData,
+    opts: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; onError?: (msg: string) => void } = {}
+  ) => writeQueueRef.current.enqueue(caseIdRef.current ?? "new-case", () => saveSectionInner(section, data, opts)),
+  [saveSectionInner])
+
   // ── Auto-save (debounced, called by each form) ──────────────────────────────
+  // Coalescing drain loop: an autosave arriving while one is in flight is
+  // remembered (latest payload per section wins) and sent right after —
+  // never silently dropped like the old `if (savingRef.current) return`.
+  const pendingAutosaveRef = useRef(new Map<"preop" | "intraop" | "postop", PreopData | IntraopData | PostopData>())
   const handleAutoSave = useCallback(async (section: "preop" | "intraop" | "postop", data: PreopData | IntraopData | PostopData) => {
-    if (savingRef.current) return
+    pendingAutosaveRef.current.set(section, data)
+    if (savingRef.current) return // the running drain loop below picks this up
     savingRef.current = true
     setSaveStatus("saving")
-    const ok = await saveSection(section, data, { onError: msg => setAutoSaveErrMsg(msg) })
+    let ok = true
+    for (;;) {
+      const next = pendingAutosaveRef.current.entries().next()
+      if (next.done) break
+      const [nextSection, nextData] = next.value
+      pendingAutosaveRef.current.delete(nextSection)
+      const saved = await saveSection(nextSection, nextData, { onError: msg => setAutoSaveErrMsg(msg) })
+      ok = saved && ok
+    }
     if (ok) setAutoSaveErrMsg(null)
     setSaveStatus(ok ? "saved" : "error")
     savingRef.current = false

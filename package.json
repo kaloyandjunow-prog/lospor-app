@@ -33,7 +33,7 @@
     "@base-ui/react": "^1.4.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.2",
-    "@lospor/core": "git+https://github.com/kaloyandjunow-prog/lospor-core.git#295361f119afd106da51c3424a4b2fff90bdf749",
+    "@lospor/core": "file:../lospor-core",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@react-pdf/renderer": "^4.5.1",
