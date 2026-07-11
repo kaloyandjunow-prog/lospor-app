@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useTransition } from "react"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { caseOutbox } from "@/lib/case-outbox"
 
 type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
@@ -211,6 +212,13 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [deleting, setDeleting]           = useState(false)
+
+  // Offline save tray (IndexedDB) — count shown/cleared from the privacy tab
+  const [queuedSaves, setQueuedSaves] = useState<number | null>(null)
+  useEffect(() => {
+    if (!modalOpen || category !== "privacy") return
+    caseOutbox.summary().then(s => setQueuedSaves(s.count)).catch(() => setQueuedSaves(null))
+  }, [modalOpen, category])
 
   return (
     <>
@@ -508,6 +516,30 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
                         {t("settings.downloadData")}
                       </button>
+                    </div>
+
+                    <div className="space-y-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("settings.offlineQueue")}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        {t("settings.offlineQueueDesc")}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {queuedSaves && queuedSaves > 0
+                            ? t("settings.offlineQueueCount", { count: queuedSaves })
+                            : t("settings.offlineQueueEmpty")}
+                        </span>
+                        {queuedSaves !== null && queuedSaves > 0 && (
+                          <button type="button"
+                            onClick={async () => {
+                              await caseOutbox.clearAll().catch(() => {})
+                              setQueuedSaves(0)
+                            }}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                            {t("settings.clearOfflineQueue")}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">

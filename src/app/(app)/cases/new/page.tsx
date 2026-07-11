@@ -29,9 +29,12 @@ import {
   SECTION_CONFLICT_HEADER,
   type CasePatchResponse,
   type ConflictBody,
+  type ConflictRetryOutcome,
 } from "@lospor/core/sync"
+import { caseOutbox, isNetworkSaveError } from "@/lib/case-outbox"
+import { useOutboxFlusher } from "@/hooks/useOutboxFlusher"
 
-type SaveStatus = "idle" | "saving" | "saved" | "error"
+type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
 
 interface ConflictState {
   open: boolean
@@ -190,6 +193,15 @@ export default function NewCasePage() {
     caseId,
     step < 3  // only lock during editing steps, not the summary step
   )
+
+  // Replay the offline save tray on reconnect/focus/interval; when queued
+  // patches make it to the server, flip the "queued" pill to "saved".
+  useOutboxFlusher(useCallback(({ saved }: { saved: number }) => {
+    if (saved > 0) {
+      setSaveStatus(s => s === "queued" ? "saved" : s)
+      setTimeout(() => setSaveStatus(s => s === "saved" ? "idle" : s), 2000)
+    }
+  }, []))
 
   // Sync current form step into TourContext so TourButton and TourManager can react
   useEffect(() => {
@@ -467,6 +479,7 @@ export default function NewCasePage() {
         const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
           ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
         const payload = section === "preop" ? { ...data, bmi } : data
+        const existingCaseId = caseIdRef.current
         const baseRef =
           section === "preop" ? preopUpdatedAtRef :
           section === "postop" ? postopUpdatedAtRef : intraopUpdatedAtRef
@@ -474,21 +487,33 @@ export default function NewCasePage() {
         // uninitialized-timestamp case (missing_conflict_timestamp — e.g. the
         // case-ID was set from URL params before the case fetch completed);
         // genuine conflicts open the resolution modal below.
-        const outcome = await sendWithConflictRetry<CasePatchResponse>(
-          async (base) => {
-            const headers: Record<string, string> = { "Content-Type": "application/json" }
-            if (base) headers[SECTION_CONFLICT_HEADER[section]] = base
-            if (forceUpdate) headers[FORCE_UPDATE_HEADER] = "true"
-            const res = await fetch(`/api/cases/${caseIdRef.current}`, {
-              method: "PATCH",
-              headers,
-              body: JSON.stringify({ [section]: payload }),
-            })
-            return classifyPatchResponse<CasePatchResponse>(res)
-          },
-          baseRef,
-          (body) => (body as ConflictBody | undefined)?.reason === "missing_conflict_timestamp",
-        )
+        let outcome: ConflictRetryOutcome<CasePatchResponse>
+        try {
+          outcome = await sendWithConflictRetry<CasePatchResponse>(
+            async (base) => {
+              const headers: Record<string, string> = { "Content-Type": "application/json" }
+              if (base) headers[SECTION_CONFLICT_HEADER[section]] = base
+              if (forceUpdate) headers[FORCE_UPDATE_HEADER] = "true"
+              const res = await fetch(`/api/cases/${caseIdRef.current}`, {
+                method: "PATCH",
+                headers,
+                body: JSON.stringify({ [section]: payload }),
+              })
+              return classifyPatchResponse<CasePatchResponse>(res)
+            },
+            baseRef,
+            (body) => (body as ConflictBody | undefined)?.reason === "missing_conflict_timestamp",
+          )
+        } catch (err) {
+          if (isNetworkSaveError(err)) {
+            // Offline tray: keep the data locally (merge-on-queue, latest
+            // field values win) and let the flusher replay it when back online.
+            await caseOutbox.queue(existingCaseId, section, payload, baseRef.current)
+            if (showToast) toast.info(t("case.savedOffline"))
+            return "queued" as const
+          }
+          throw err
+        }
         if (!outcome.ok && outcome.conflict) {
           const body = (outcome.body ?? {}) as ConflictBody
           if (body.error === "conflict" && body.serverVersion) {
@@ -538,6 +563,10 @@ export default function NewCasePage() {
           if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
           if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
           if (result.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(result.intraopUpdatedAt).toISOString()
+          // A direct save supersedes any older patch still in the offline
+          // tray for this section — drop it so the flusher can't replay
+          // stale data over what we just saved.
+          await caseOutbox.clearOne(existingCaseId, section).catch(() => {})
         }
       }
 
@@ -575,19 +604,21 @@ export default function NewCasePage() {
     savingRef.current = true
     setSaveStatus("saving")
     let ok = true
+    let queuedAny = false
     for (;;) {
       const next = pendingAutosaveRef.current.entries().next()
       if (next.done) break
       const [nextSection, nextData] = next.value
       pendingAutosaveRef.current.delete(nextSection)
       const saved = await saveSection(nextSection, nextData, { onError: msg => setAutoSaveErrMsg(msg) })
-      ok = saved && ok
+      if (saved === "queued") queuedAny = true
+      else ok = saved && ok
     }
     if (ok) setAutoSaveErrMsg(null)
-    setSaveStatus(ok ? "saved" : "error")
+    setSaveStatus(!ok ? "error" : queuedAny ? "queued" : "saved")
     savingRef.current = false
-    if (ok) {
-      // Fade back to idle after 2s
+    if (ok && !queuedAny) {
+      // Fade back to idle after 2s (queued stays visible until it syncs)
       setTimeout(() => setSaveStatus(s => s === "saved" ? "idle" : s), 2000)
     }
   }, [saveSection])
@@ -815,6 +846,7 @@ export default function NewCasePage() {
           <div className="text-xs">
             {saveStatus === "saving" && <span className="text-slate-400 animate-pulse">{t("case.savingDraft")}</span>}
             {saveStatus === "saved"  && <span className="text-green-500">{t("case.draftSaved")}</span>}
+            {saveStatus === "queued" && <span className="text-amber-500">{t("case.draftQueued")}</span>}
             {saveStatus === "error"  && <span className="text-red-400">{autoSaveErrMsg ?? t("case.autoSaveFailed")}</span>}
           </div>
         </div>
