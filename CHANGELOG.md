@@ -1,5 +1,19 @@
 # Changelog - LOSPOR Web App
 
+## [5.0.0] - 2026-07-11
+
+Unified save/sync engine. Not yet released — local build only.
+
+### Added
+- **Offline saving.** Saves that fail because the connection dropped are kept in the browser (IndexedDB) and replayed automatically on reconnect/focus — the save pill shows "Saved locally — waiting for connection". Privacy settings gain an offline-queue counter and a discard control.
+
+### Changed
+- **All save/conflict/queue logic moved to the shared engine** (`@lospor/core/sync`), the same implementation the mobile app uses. The 409 conflict dance, per-case write ordering, and outbox semantics are now defined and tested once.
+- **Autosaves are never dropped.** A save arriving while another is in flight is queued and coalesced (latest values win) instead of being silently skipped.
+- **Preop/intraop-fields/postop saves are field-level.** Only changed fields are PATCHed; unchanged autosaves skip the network; the intraop timetable blob stops being re-sent when only unrelated fields changed; two clients editing different fields merge cleanly.
+- **Intraop event writes hardened**: idempotency key per event, `X-Lospor-Source: web`, per-case ordering, and one-shot 409 self-heal on full-log saves — full parity with the mobile contract.
+- **The stale-write guard now protects you from yourself.** The same user in two tabs/devices can no longer silently overwrite their own newer edits — the second tab self-heals or opens the conflict dialog. (Behavior change; the force-update escape hatch is unchanged.)
+
 ## [4.1.6] - 2026-07-11
 
 ### Changed
