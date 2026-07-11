@@ -1,5 +1,10 @@
 # Changelog - LOSPOR Web App
 
+## [4.1.6] - 2026-07-11
+
+### Changed
+- Version alignment to 4.1.6 across all four LOSPOR repos for the mobile intraop autosave-race fix. The web app and API are unchanged this release.
+
 ## [4.1.5] - 2026-07-05
 
 ### Changed
