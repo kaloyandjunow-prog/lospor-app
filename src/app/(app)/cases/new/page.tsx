@@ -27,6 +27,7 @@ import {
   sendWithConflictRetry,
   FORCE_UPDATE_HEADER,
   SECTION_CONFLICT_HEADER,
+  createSectionSnapshotStore,
   eventIdempotencyKey,
   IDEMPOTENCY_HEADER,
   SOURCE_HEADER,
@@ -229,6 +230,9 @@ export default function NewCasePage() {
   // All writes go through the shared per-case write queue: a save that starts
   // while another is in flight is queued behind it, not dropped or interleaved.
   const writeQueueRef = useRef(createCaseWriteQueue())
+  // Field-level saves: last payload the server confirmed, per case+section, so
+  // autosaves PATCH only the fields that actually changed (see core field-diff).
+  const sectionSnapshotsRef = useRef(createSectionSnapshotStore())
   const startCloseCountdownRef = useRef<() => void>(() => {})
   const dbIntraopToFormRef = useRef<(intraop: CaseDetailIntraop) => Partial<IntraopData>>(() => ({}))
 
@@ -485,6 +489,7 @@ export default function NewCasePage() {
         setCaseId(id)
         if (code) setCaseCode(code)
         if (preopUpdatedAt) preopUpdatedAtRef.current = new Date(preopUpdatedAt).toISOString()
+        sectionSnapshotsRef.current.confirm(id, "preop", { ...data, bmi } as Record<string, unknown>)
         // Update URL so page refresh restores the correct step
         router.replace(`/cases/new?continue=${id}`, { scroll: false })
       } else {
@@ -493,6 +498,15 @@ export default function NewCasePage() {
           ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
         const payload = section === "preop" ? { ...data, bmi } : data
         const existingCaseId = caseIdRef.current
+        const fullPayload = payload as Record<string, unknown>
+        // Field-level saves: PATCH only what changed since the last confirmed
+        // save. Full payload on force-update (conflict resolution) so the
+        // user's explicit choice always lands whole; full payload also when no
+        // snapshot exists yet (first save after load — converges by design).
+        const body = forceUpdate || !existingCaseId
+          ? fullPayload
+          : sectionSnapshotsRef.current.diff(existingCaseId, section, fullPayload)
+        if (!body) return true // nothing changed — skip the network round-trip
         const baseRef =
           section === "preop" ? preopUpdatedAtRef :
           section === "postop" ? postopUpdatedAtRef : intraopUpdatedAtRef
@@ -510,7 +524,7 @@ export default function NewCasePage() {
               const res = await fetch(`/api/cases/${caseIdRef.current}`, {
                 method: "PATCH",
                 headers,
-                body: JSON.stringify({ [section]: payload }),
+                body: JSON.stringify({ [section]: body }),
               })
               return classifyPatchResponse<CasePatchResponse>(res)
             },
@@ -519,9 +533,12 @@ export default function NewCasePage() {
           )
         } catch (err) {
           if (isNetworkSaveError(err)) {
-            // Offline tray: keep the data locally (merge-on-queue, latest
-            // field values win) and let the flusher replay it when back online.
-            await caseOutbox.queue(existingCaseId, section, payload, baseRef.current)
+            // Offline tray: keep the changed fields locally (merge-on-queue
+            // accumulates successive diffs, latest value per field wins) and
+            // let the flusher replay them when back online. The snapshot is
+            // NOT advanced, so later diffs keep carrying these fields until a
+            // save is actually confirmed.
+            await caseOutbox.queue(existingCaseId, section, body, baseRef.current)
             if (showToast) toast.info(t("case.savedOffline"))
             return "queued" as const
           }
@@ -565,6 +582,7 @@ export default function NewCasePage() {
           setCaseId(created.id)
           if (created.caseCode) setCaseCode(created.caseCode)
           if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
+          sectionSnapshotsRef.current.confirm(created.id, "preop", fullPayload)
           router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
         } else if (!outcome.ok) {
           const body = (outcome.body ?? {}) as { error?: string }
@@ -580,6 +598,8 @@ export default function NewCasePage() {
           // tray for this section — drop it so the flusher can't replay
           // stale data over what we just saved.
           await caseOutbox.clearOne(existingCaseId, section).catch(() => {})
+          // The server confirmed this state — future autosaves diff against it.
+          sectionSnapshotsRef.current.confirm(existingCaseId, section, fullPayload)
         }
       }
 
