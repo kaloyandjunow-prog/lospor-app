@@ -24,6 +24,8 @@
     "newCase": "New case",
     "signOut": "Sign out",
     "admin": "Admin",
+    "queuedSaves": "{count, plural, one {# save waiting} other {# saves waiting}}",
+    "queuedSavesTitle": "Saves made without a connection — they sync automatically when you're back online.",
     "footerTerms": "Terms",
     "footerPrivacy": "Privacy",
     "footerDocs": "Documentation",

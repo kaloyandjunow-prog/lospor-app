@@ -43,7 +43,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, onDeleteEven
       {/* Mobile event log (read-only timeline) */}
       {eventLog && eventLog.length > 0 && (
         <div className="mt-5 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">Mobile event log</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">Event log</p>
           <div className="space-y-0">
             {[...eventLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime()).map((ev) => {
               const hhmm = (() => { const d = new Date(ev.ts ?? 0); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` })()

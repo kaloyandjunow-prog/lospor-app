@@ -35,8 +35,7 @@ import {
   type ConflictBody,
   type ConflictRetryOutcome,
 } from "@lospor/core/sync"
-import { caseOutbox, isNetworkSaveError } from "@/lib/case-outbox"
-import { useOutboxFlusher } from "@/hooks/useOutboxFlusher"
+import { caseOutbox, isNetworkSaveError, onOutboxChange } from "@/lib/case-outbox"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
 
@@ -209,14 +208,16 @@ export default function NewCasePage() {
     step < 3  // only lock during editing steps, not the summary step
   )
 
-  // Replay the offline save tray on reconnect/focus/interval; when queued
-  // patches make it to the server, flip the "queued" pill to "saved".
-  useOutboxFlusher(useCallback(({ saved }: { saved: number }) => {
-    if (saved > 0) {
-      setSaveStatus(s => s === "queued" ? "saved" : s)
-      setTimeout(() => setSaveStatus(s => s === "saved" ? "idle" : s), 2000)
-    }
-  }, []))
+  // The app-wide flusher lives in OutboxBadge (header). Here we only listen:
+  // when the tray drains to zero while the pill shows "queued", flip to "saved".
+  useEffect(() => {
+    return onOutboxChange(({ count }) => {
+      if (count === 0) {
+        setSaveStatus(s => s === "queued" ? "saved" : s)
+        setTimeout(() => setSaveStatus(s => s === "saved" ? "idle" : s), 2000)
+      }
+    })
+  }, [])
 
   // Sync current form step into TourContext so TourButton and TourManager can react
   useEffect(() => {

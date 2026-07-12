@@ -96,6 +96,12 @@ function SectionCard({ title, children, action, error }: { title: string; childr
 
 function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
+// Non-boolean fields whose input is a single tap (pill/select grids) — these
+// autosave near-instantly; boolean toggles are detected by value type instead.
+const DISCRETE_PREOP_FIELDS = new Set<string>([
+  "sex", "asaScore", "mallampati", "cormackLehane", "neckMobility", "bloodType", "rhFactor",
+])
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId }: {
   defaultValues?: Partial<PreopData>
@@ -241,16 +247,21 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   useEffect(() => {
     if (!onAutoSave) return
     // eslint-disable-next-line react-hooks/incompatible-library
-    const subscription = watch((values) => {
+    const subscription = watch((values, { name }) => {
       const { sex, ageYears, diagnoses } = values
       const hasData = sex || ageYears != null || (diagnoses?.length ?? 0) > 0
       if (!hasData) return
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+      // Discrete taps (pills/toggles/checkboxes) feel instant: the change is
+      // atomic, so save right after the tap. Typing keeps the longer pause so
+      // we don't save half-typed numbers/text.
+      const changedValue = name ? (values as Record<string, unknown>)[name] : undefined
+      const isDiscreteTap = typeof changedValue === "boolean" || (!!name && DISCRETE_PREOP_FIELDS.has(name))
       autosaveTimerRef.current = setTimeout(() => {
         autosaveTimerRef.current = null
         const p = Promise.resolve(onAutoSave(getValues()) ?? undefined)
         saveInFlightRef.current = p.finally(() => { saveInFlightRef.current = null }) as Promise<void>
-      }, 1500)
+      }, isDiscreteTap ? 150 : 1500)
     })
     return () => { subscription.unsubscribe(); if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current) }
   }, [getValues, onAutoSave, watch])

@@ -6,6 +6,10 @@ Unified save/sync engine. Not yet released — local build only.
 
 ### Added
 - **Offline saving.** Saves that fail because the connection dropped are kept in the browser (IndexedDB) and replayed automatically on reconnect/focus — the save pill shows "Saved locally — waiting for connection". Privacy settings gain an offline-queue counter and a discard control.
+- **A global "saves waiting" badge** in the header, visible on every page while offline saves are queued and gone the moment they sync.
+
+### Fixed
+- **Web-entered intraop vitals could silently disappear from the stored chart** once a case had any logged events: the projection rebuild reads only event rows, and the web vitals grid never produced events. Vitals typed on web (including auto-filled/backfilled columns) are now persisted as `vital` events — one per 5-minute column, the same contract mobile uses — and the server bridges grid vitals from older cached clients into events so nothing is lost either way.
 
 ### Changed
 - **All save/conflict/queue logic moved to the shared engine** (`@lospor/core/sync`), the same implementation the mobile app uses. The 409 conflict dance, per-case write ordering, and outbox semantics are now defined and tested once.
@@ -13,6 +17,8 @@ Unified save/sync engine. Not yet released — local build only.
 - **Preop/intraop-fields/postop saves are field-level.** Only changed fields are PATCHed; unchanged autosaves skip the network; the intraop timetable blob stops being re-sent when only unrelated fields changed; two clients editing different fields merge cleanly.
 - **Intraop event writes hardened**: idempotency key per event, `X-Lospor-Source: web`, per-case ordering, and one-shot 409 self-heal on full-log saves — full parity with the mobile contract.
 - **The stale-write guard now protects you from yourself.** The same user in two tabs/devices can no longer silently overwrite their own newer edits — the second tab self-heals or opens the conflict dialog. (Behavior change; the force-update escape hatch is unchanged.)
+- **Discrete taps save near-instantly.** Pills, toggles, and checkboxes in preop autosave ~150 ms after the tap; typing keeps the longer pause so half-typed values are never saved.
+- **Smarter retry rhythm.** The offline flusher backs off while saves keep failing (5 s → 15 s → 60 s) and retries immediately with a fresh streak on reconnect or tab focus.
 
 ## [4.1.6] - 2026-07-11
 

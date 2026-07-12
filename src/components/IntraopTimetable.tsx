@@ -423,7 +423,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       ? crypto.randomUUID()
       : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("")
   }
-  function emitLogEvent(partial: Omit<IntraopLogEvent, "id" | "ts">) {
+  function emitLogEvent(partial: Omit<IntraopLogEvent, "id" | "ts"> & { ts?: string }) {
+    // Callers may pin the event to a specific column time (vitals) — the
+    // default "now" only applies when no ts is provided.
     onLogEventRef.current?.({ id: uid(), ts: new Date().toISOString(), ...partial })
   }
 
@@ -506,7 +508,66 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   }
 
   // ── Vitals ──────────────────────────────────────────────────────────────────
-  const { setVital, lastVitalBefore } = useVitalsHandlers(dataRef, rawOnChangeRef)
+  const { setVital: setVitalCell, lastVitalBefore } = useVitalsHandlers(dataRef, rawOnChangeRef)
+
+  // Vitals persist as `vital` events (one per 5-minute column; the event
+  // carries the whole column and the server projection replaces the column,
+  // so a later event for the same column wins — the mobile contract). Cell
+  // edits and auto-fill mark the column dirty; after a short settle each
+  // dirty column is emitted through the same hardened event path drugs use.
+  const dirtyVitalColsRef = useRef<Set<number>>(new Set())
+  const vitalsEmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const tsForCol = useCallback((col: number): string | null => {
+    if (!startTime) return null
+    // Mirrors the live-clock math: columns anchor to today's wall clock at
+    // floorTo5(startTime); a start that appears to be in the future means the
+    // case started yesterday evening (midnight crossing) — anchor 24h back.
+    const startMs = (() => {
+      const base = new Date()
+      base.setHours(0, 0, 0, 0)
+      return base.getTime() + timeToMins(floorTo5(startTime)) * 60_000
+    })()
+    const anchored = startMs > Date.now() ? startMs - 24 * 3600_000 : startMs
+    return new Date(anchored + col * INTERVAL * 60_000).toISOString()
+  }, [startTime])
+
+  const flushVitalEvents = useCallback(() => {
+    vitalsEmitTimerRef.current = null
+    const cols = [...dirtyVitalColsRef.current].sort((a, b) => a - b)
+    dirtyVitalColsRef.current.clear()
+    for (const col of cols) {
+      const ts = tsForCol(col)
+      if (!ts) continue
+      const entry = dataRef.current.vitals[col] ?? {}
+      onLogEventRef.current?.({ id: uid(), ts, type: "vital", ...entry })
+    }
+  }, [tsForCol, dataRef])
+
+  const markVitalColDirty = useCallback((col: number) => {
+    if (!onLogEventRef.current) return // no event sink wired (read-only usage)
+    dirtyVitalColsRef.current.add(col)
+    if (vitalsEmitTimerRef.current) clearTimeout(vitalsEmitTimerRef.current)
+    vitalsEmitTimerRef.current = setTimeout(flushVitalEvents, 1200)
+  }, [flushVitalEvents])
+
+  // Stable ref so the clock-tick and backfill effects can mark columns dirty
+  // without adding churn to their dependency arrays.
+  const markVitalColDirtyRef = useRef(markVitalColDirty)
+  useEffect(() => { markVitalColDirtyRef.current = markVitalColDirty }, [markVitalColDirty])
+
+  // Navigating away mid-settle must not lose the pending column emissions.
+  useEffect(() => () => {
+    if (vitalsEmitTimerRef.current) {
+      clearTimeout(vitalsEmitTimerRef.current)
+      flushVitalEvents()
+    }
+  }, [flushVitalEvents])
+
+  const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
+    setVitalCell(col, key, raw)
+    markVitalColDirty(col)
+  }, [setVitalCell, markVitalColDirty])
 
   // Keyboard navigation on selected items
   useEffect(() => {
@@ -715,6 +776,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         if (pv != null && newVitals[col]?.[k] == null)
           newVitals[col] = { ...newVitals[col], [k]: pv }
       })
+      // Backfilled vitals are clinical data — persist them as events too.
+      markVitalColDirtyRef.current(col)
     }
     rawOnChangeRef.current({ ...d, vitals: newVitals })
   }, [caseStarted, rawOnChangeRef, startTime])
@@ -762,6 +825,8 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               if (pv != null && newVitals[col]?.[k] == null)
                 newVitals[col] = { ...newVitals[col], [k]: pv }
             })
+            // Auto-filled vitals are clinical data — persist them as events too.
+            markVitalColDirtyRef.current(col)
           }
         }
 

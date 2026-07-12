@@ -10,6 +10,7 @@ import { TourManager } from "@/components/TourManager"
 import { TourButton } from "@/components/TourButton"
 import { OnboardingGate } from "@/components/OnboardingGate"
 import { OfflineLibraryBanner } from "@/components/OfflineLibraryBanner"
+import { OutboxBadge } from "@/components/OutboxBadge"
 import { prisma } from "@/lib/prisma"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </nav>
 
           <div className="flex items-center gap-3 md:ml-0 ml-auto">
+            <OutboxBadge />
             <TourButton />
             <span data-tour="settings-menu">
               <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />

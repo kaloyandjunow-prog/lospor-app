@@ -237,9 +237,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           return baseMs + ((h || 0) * 3600 + (m || 0) * 60) * 1000
         })()
         const keyEvents = effectiveIntraop.timetableData as LegacyKeyEvents
-        const projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
+        let projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
           ? keyEvents.log
           : reverseProject(keyEvents, start)
+        // Bridge grid vitals from clients that don't emit vital events yet
+        // (older cached web builds): any non-empty vitals column with no
+        // vital event in that 5-minute bucket becomes one. Without this,
+        // rebuildProjection (which rebuilds keyEvents purely from event rows)
+        // silently wipes web-typed vitals as soon as the case has any events.
+        const gridVitals = Array.isArray(keyEvents.vitals) ? keyEvents.vitals : []
+        if (gridVitals.length > 0 && projectedLog.length > 0) {
+          const vitalCols = new Set(
+            projectedLog
+              .filter(e => e.type === "vital" && typeof e.ts === "string")
+              .map(e => Math.floor((new Date(e.ts as string).getTime() - start) / (5 * 60_000)))
+          )
+          const bridged: LogEvent[] = []
+          gridVitals.forEach((v, col) => {
+            if (!v || typeof v !== "object") return
+            if (!Object.values(v).some(x => x != null)) return
+            if (vitalCols.has(col)) return
+            bridged.push({
+              id: `web-vital-${col}`,
+              ts: new Date(start + col * 5 * 60_000).toISOString(),
+              type: "vital",
+              ...v,
+            } as LogEvent)
+          })
+          if (bridged.length > 0) projectedLog = [...projectedLog, ...bridged]
+        }
         if (projectedLog.length > 0) {
           try {
             await reconcileFullLog(prisma, id, userId, projectedLog, "web")

@@ -7,6 +7,7 @@ import {
   SECTION_CONFLICT_HEADER,
   type CasePatchResponse,
   type CaseSection,
+  type OutboxSummary,
   type PatchFailure,
 } from "@lospor/core/sync"
 import { idbKV } from "./kv-idb"
@@ -42,7 +43,26 @@ function classifyError(err: unknown): PatchFailure {
   return { kind: "other" }
 }
 
-export const caseOutbox = createCaseOutbox({ kv: idbKV, sendPatch, classifyError })
+// Live tray-count subscription: the header badge and the case page's save
+// pill both listen here instead of polling IndexedDB.
+type OutboxListener = (summary: OutboxSummary) => void
+const listeners = new Set<OutboxListener>()
+
+export function onOutboxChange(listener: OutboxListener): () => void {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
+}
+
+export const caseOutbox = createCaseOutbox({
+  kv: idbKV,
+  sendPatch,
+  classifyError,
+  onChange: (summary) => {
+    for (const listener of listeners) {
+      try { listener(summary) } catch { /* a bad listener never breaks the tray */ }
+    }
+  },
+})
 
 /** True when a thrown save error means "no connectivity — queue it". */
 export function isNetworkSaveError(err: unknown): boolean {
