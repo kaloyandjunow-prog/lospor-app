@@ -198,4 +198,4 @@ On failure, the form scrolls to the first offending section and highlights it wi
 
 ## Auto-save
 
-The form auto-saves 1.5 seconds after the last change, provided at least one meaningful field has been filled in. The saved draft is restored when the case is reopened.
+Discrete taps (pills, toggles, checkboxes) auto-save ~150 ms after the tap; typed fields save 1.5 seconds after the last keystroke, provided at least one meaningful field has been filled in. Saves are field-level — only the fields that changed since the last confirmed save are PATCHed. Saves that fail on network are queued locally (IndexedDB on web, SecureStore on mobile) and replayed automatically. The saved draft is restored when the case is reopened.

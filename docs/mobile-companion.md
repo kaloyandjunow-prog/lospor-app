@@ -33,13 +33,13 @@ No cookies are used. The app works entirely with Bearer token auth.
 
 Mobile payloads use the same canonical field names as the web app. Where legacy or abbreviated field names are sent, `src/app/api/cases/_mappers.ts` on the server side maps them to the canonical DB fields before persistence.
 
-Conflict detection: preop and postop PATCH requests include the `x-lospor-preop-updated-at` / `x-lospor-postop-updated-at` headers. If the server's record is newer than the header value, the server returns 409 and the client must reload before saving.
+Conflict detection: section PATCH requests include the `x-lospor-preop-updated-at` / `x-lospor-postop-updated-at` / `x-lospor-intraop-updated-at` headers. A stale header gets a 409 with the server's current timestamp; the client **self-heals once** by adopting that timestamp and retrying (v5 shared engine), so a stale write never silently overwrites newer data and rarely needs user action. Since v5 the guard also applies to the *same* user on two devices/tabs. Saves are field-level: only changed fields are PATCHed, so edits to different fields merge cleanly.
 
 ---
 
 ## Offline support
 
-Failed saves are queued locally in `src/lib/offline-case-patches.ts`. The queue is flushed automatically when connectivity is restored, in order. The UI shows a "queued" indicator when saves are pending.
+Failed saves are queued locally through the shared sync engine in `@lospor/core/sync` (the historical entry point `src/lib/offline-case-patches.ts` remains as a thin adapter, with unchanged storage keys). The queue is flushed automatically when connectivity is restored — with backoff while the server stays unreachable and an immediate retry on reconnect/foreground. The UI shows a "queued" indicator while saves are pending.
 
 ---
 

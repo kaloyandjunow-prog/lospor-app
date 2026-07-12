@@ -1,8 +1,8 @@
 # Changelog - LOSPOR Web App
 
-## [5.0.0] - 2026-07-11
+## [5.0.0] - 2026-07-12
 
-Unified save/sync engine. Not yet released — local build only.
+Unified save/sync engine.
 
 ### Added
 - **Offline saving.** Saves that fail because the connection dropped are kept in the browser (IndexedDB) and replayed automatically on reconnect/focus — the save pill shows "Saved locally — waiting for connection". Privacy settings gain an offline-queue counter and a discard control.

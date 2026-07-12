@@ -182,7 +182,7 @@ Two automation settings (Settings → Automation):
 | Auto-fill vitals | When the clock advances, creates a saved event containing the previous EtCO₂, SpO₂, and temperature if the new column is empty |
 | Auto-fill BP & HR | Secondary toggle (requires Auto-fill vitals): also carries forward systolic BP, diastolic BP, and heart rate |
 
-Automatically carried-forward mobile values are saved as real events through the shared API, so they are visible on web and survive timetable reconstruction.
+Automatically carried-forward values are saved as real events through the shared API, so they are visible on the other client and survive timetable reconstruction. Since v5 this applies to the **web** timetable too: every vitals column typed, auto-filled, or backfilled on web is persisted as a `vital` event (one per 5-minute column, emitted ~1.2 s after the last edit) — previously web vitals lived only inside the projected timetable blob and could be lost when the projection was rebuilt. The server additionally bridges grid vitals from older cached web clients into events.
 
 ### Keyboard shortcuts
 

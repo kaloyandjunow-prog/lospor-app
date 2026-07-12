@@ -81,4 +81,4 @@ No mandatory fields in the postoperative form — partial saves are allowed so i
 
 ## Auto-save
 
-The form auto-saves 1 second after the last change.
+The form auto-saves shortly after the last change (1–1.5 s for typed fields). Saves are field-level — only changed fields are sent — and network failures queue locally with automatic replay.

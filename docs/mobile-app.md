@@ -165,14 +165,15 @@ Mobile payloads use the same canonical field names as the web API. Where abbrevi
 
 ### Conflict Detection
 
-Preop and postop PATCH requests include `x-lospor-preop-updated-at` / `x-lospor-postop-updated-at` headers. If the server record was updated after the header timestamp, the server returns 409 and the client must reload before saving. This prevents stale mobile edits from silently overwriting newer web edits.
+Section PATCH requests include `x-lospor-preop-updated-at` / `x-lospor-postop-updated-at` / `x-lospor-intraop-updated-at` headers. If the server record was updated after the header timestamp, the server returns 409 with its current timestamp and the client **self-heals once** — it adopts the server timestamp and retries (shared conflict-retry engine, v5). Since v5 the guard also protects the same user editing on two devices/tabs. Saves are field-level (only changed fields are sent), so concurrent edits to different fields merge instead of conflicting. This prevents stale edits from silently overwriting newer data.
 
 ### Offline Queue
 
-Failed saves are queued locally in `src/lib/offline-case-patches.ts`. The queue is flushed automatically and in order when connectivity is restored. The UI shows a "queued" indicator when saves are pending.
+Failed saves are queued locally through the shared sync engine (`@lospor/core/sync`: outbox with merge-on-queue, crash-recovery reconcile, and retry backoff). The queue is flushed automatically and in order when connectivity is restored. The UI shows a "queued" indicator when saves are pending.
 
 **Relevant files:**
-- `src/lib/offline-case-patches.ts` — queue implementation
+- `@lospor/core/src/sync/` — shared engine (outbox, per-case write queue, conflict retry, batcher)
+- `src/lib/offline-case-patches.ts` — thin adapter over the engine (historical entry point; storage keys unchanged)
 - `src/lib/use-queued-save-flusher.ts` — flusher hook
 
 ### Live Refresh
