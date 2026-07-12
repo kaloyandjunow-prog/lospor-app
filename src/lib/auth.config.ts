@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth"
 import { isRevoked } from "@/lib/token-blocklist"
+import { isIssuedBeforePasswordChange } from "@/lib/password-epoch"
 
 export const authConfig: NextAuthConfig = {
   pages: { signIn: "/login" },
@@ -27,6 +28,12 @@ export const authConfig: NextAuthConfig = {
     },
     jwt({ token, user }) {
       if (token.jti && isRevoked(token.jti as string)) {
+        return { ...token, id: undefined, role: undefined }
+      }
+      // Password-reset revocation: sessions whose token predates the user's
+      // passwordChangedAt epoch are invalidated (cache-only check, same
+      // pattern and ≤5-min SLA as isRevoked above).
+      if (token.id && isIssuedBeforePasswordChange(token.id as string, token.iat as number | undefined)) {
         return { ...token, id: undefined, role: undefined }
       }
       if (user) {

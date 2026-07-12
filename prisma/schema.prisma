@@ -33,6 +33,9 @@ model User {
   termsVersion      String?
   preferences       Json           @default("{}")
   lastLoginAt       DateTime?
+  // Token-revocation epoch: any JWT (web session or mobile bearer) whose iat
+  // predates this is rejected — set on password reset so old sessions die.
+  passwordChangedAt DateTime?
   deletedAt         DateTime?
   createdAt         DateTime       @default(now())
 }

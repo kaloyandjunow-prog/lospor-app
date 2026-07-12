@@ -9,6 +9,7 @@
 import { useEffect, useRef } from "react"
 import { createBackoffPolicy } from "@lospor/core/sync"
 import { caseOutbox } from "@/lib/case-outbox"
+import { eventOutbox } from "@/lib/event-outbox"
 
 export function useOutboxFlusher(onFlushed?: (result: { saved: number; failed: number; discarded: number }) => void) {
   const onFlushedRef = useRef(onFlushed)
@@ -32,13 +33,27 @@ export function useOutboxFlusher(onFlushed?: (result: { saved: number; failed: n
       flushing = true
       let outcome: "ok" | "failed" | "idle" = "idle"
       try {
-        if (!reconciled) {
-          reconciled = true
-          await caseOutbox.reconcile()
+        // Cross-TAB exclusivity: only one tab flushes at a time so two tabs
+        // can't double-send or lost-update the queue indexes. Falls back to
+        // unguarded flush where the Web Locks API is unavailable.
+        const run = async () => {
+          if (!reconciled) {
+            reconciled = true
+            await caseOutbox.reconcile()
+          }
+          const result = await caseOutbox.flushAll()
+          // Also replay journaled intraop events (idempotent server-side).
+          const events = await eventOutbox.flushAll()
+          outcome = result.failed + events.failed > 0 ? "failed" : (result.saved + events.saved > 0 || result.discarded > 0) ? "ok" : "idle"
+          if (!cancelled && (result.saved + events.saved > 0 || result.discarded > 0)) onFlushedRef.current?.(result)
         }
-        const result = await caseOutbox.flushAll()
-        outcome = result.failed > 0 ? "failed" : (result.saved > 0 || result.discarded > 0) ? "ok" : "idle"
-        if (!cancelled && (result.saved > 0 || result.discarded > 0)) onFlushedRef.current?.(result)
+        if (typeof navigator !== "undefined" && navigator.locks?.request) {
+          await navigator.locks.request("lospor-outbox-flush", { ifAvailable: true }, async (lock) => {
+            if (lock) await run() // another tab holds it — skip this cycle
+          })
+        } else {
+          await run()
+        }
       } catch {
         outcome = "failed"
       } finally {

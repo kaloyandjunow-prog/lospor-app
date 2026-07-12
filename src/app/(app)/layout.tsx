@@ -1,8 +1,9 @@
 ﻿import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, FilePlus, LogOut, Shield } from "lucide-react"
+import { LayoutDashboard, FilePlus, Shield } from "lucide-react"
 import { handleSignOut } from "@/app/actions"
+import { SignOutButton } from "@/components/SignOutButton"
 import { getTranslations, getLocale } from "next-intl/server"
 import { SettingsMenu } from "@/components/SettingsMenu"
 import { OngoingCasesButton } from "@/components/OngoingCasesButton"
@@ -63,12 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span data-tour="settings-menu">
               <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />
             </span>
-            <form action={handleSignOut}>
-              <button type="submit" title={t("nav.signOut")}
-                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
-                <LogOut className="h-4 w-4" />
-              </button>
-            </form>
+            <SignOutButton signOutAction={handleSignOut} />
           </div>
         </div>
       </header>

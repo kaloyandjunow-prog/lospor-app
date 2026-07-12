@@ -213,7 +213,9 @@ describe("account email auth flows", () => {
     })
     expect(mocks.userUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "user-1" },
-      data: { passwordHash: expect.any(String) },
+      // passwordChangedAt is the token-revocation epoch (v5.1): sessions and
+      // mobile JWTs issued before it are rejected after a reset.
+      data: { passwordHash: expect.any(String), passwordChangedAt: expect.any(Date) },
     }))
     expect(mocks.passwordResetUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { userId: "user-1", usedAt: null, id: { not: "prt-1" } },

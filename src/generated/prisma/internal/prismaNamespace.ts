@@ -3609,6 +3609,7 @@ export const UserScalarFieldEnum = {
   termsVersion: 'termsVersion',
   preferences: 'preferences',
   lastLoginAt: 'lastLoginAt',
+  passwordChangedAt: 'passwordChangedAt',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt'
 } as const

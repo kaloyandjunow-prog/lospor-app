@@ -36,6 +36,7 @@ import {
   type ConflictRetryOutcome,
 } from "@lospor/core/sync"
 import { caseOutbox, isNetworkSaveError, onOutboxChange } from "@/lib/case-outbox"
+import { eventOutbox } from "@/lib/event-outbox"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
 
@@ -103,7 +104,10 @@ export default function NewCasePage() {
     setEventLog(newLog)
     if (!await putEventLog(newLog)) {
       setEventLog(previousLog)
-      console.error("[intraop event] delete failed")
+      // Deletes/edits of existing timeline items are deliberately NOT queued
+      // offline (replaying a stale full log could resurrect deleted events) —
+      // the change reverts and the user is told to retry with connectivity.
+      toast.error(t("case.timelineEditFailed"))
     }
   }
   // Per-action event from the intraop timetable (bolus/infusion/agent/fluid/
@@ -112,7 +116,9 @@ export default function NewCasePage() {
   async function handleLogEvent(event: LogEvent) {
     const currentCaseId = caseIdRef.current
     if (!currentCaseId) return
-    setEventLog(prev => [event, ...prev])
+    // Replace-not-stack: vitals reuse a stable per-column id (web-vital-N), so
+    // a re-edit must replace the optimistic entry, not add a duplicate key.
+    setEventLog(prev => [event, ...prev.filter(e => e.id !== event.id)])
     try {
       // Idempotency key + source header + per-case ordering: full parity with
       // how mobile appends events, so a retried/replayed POST stores the
@@ -136,6 +142,16 @@ export default function NewCasePage() {
         if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
       }
     } catch (err) {
+      if (err instanceof TypeError) {
+        // Offline: journal the event (IndexedDB) — it stays visible in local
+        // state AND survives a reload; the flusher replays it idempotently.
+        const pending = await eventOutbox.loadPending(currentCaseId).catch(() => [])
+        await eventOutbox
+          .storePending(currentCaseId, [{ ...event, id: event.id ?? crypto.randomUUID() } as Record<string, unknown> & { id: string }, ...pending.filter(p => p.id !== event.id)])
+          .catch(() => {})
+        toast.info(t("case.savedOffline"))
+        return
+      }
       console.error("[intraop event] save failed", err)
     }
   }
@@ -154,7 +170,7 @@ export default function NewCasePage() {
     setEventLog(newLog)
     if (!await putEventLog(newLog)) {
       setEventLog(previousLog)
-      console.error("[intraop event] delete failed")
+      toast.error(t("case.timelineEditFailed"))
     }
   }
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
@@ -231,6 +247,9 @@ export default function NewCasePage() {
   // All writes go through the shared per-case write queue: a save that starts
   // while another is in flight is queued behind it, not dropped or interleaved.
   const writeQueueRef = useRef(createCaseWriteQueue())
+  // One idempotency key per form session: a create retried after a network
+  // blip (autosave re-fires while caseIdRef is still null) can't double-create.
+  const createDraftIdRef = useRef(`web-${crypto.randomUUID()}`)
   // Field-level saves: last payload the server confirmed, per case+section, so
   // autosaves PATCH only the fields that actually changed (see core field-diff).
   const sectionSnapshotsRef = useRef(createSectionSnapshotStore())
@@ -478,7 +497,7 @@ export default function NewCasePage() {
         const bmi = preopData.heightCm && preopData.weightKg ? calcBMI(preopData.heightCm, preopData.weightKg) : 0
         const res = await fetch("/api/cases", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
           body: JSON.stringify({ preop: { ...data, bmi } }),
         })
         if (!res.ok) {
@@ -571,7 +590,7 @@ export default function NewCasePage() {
           intraopUpdatedAtRef.current = null
           const createRes = await fetch("/api/cases", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
             body: JSON.stringify({ preop: payload }),
           })
           if (!createRes.ok) {

@@ -40,6 +40,7 @@ export type UserMinAggregateOutputType = {
   acceptedPrivacyAt: Date | null
   termsVersion: string | null
   lastLoginAt: Date | null
+  passwordChangedAt: Date | null
   deletedAt: Date | null
   createdAt: Date | null
 }
@@ -60,6 +61,7 @@ export type UserMaxAggregateOutputType = {
   acceptedPrivacyAt: Date | null
   termsVersion: string | null
   lastLoginAt: Date | null
+  passwordChangedAt: Date | null
   deletedAt: Date | null
   createdAt: Date | null
 }
@@ -81,6 +83,7 @@ export type UserCountAggregateOutputType = {
   termsVersion: number
   preferences: number
   lastLoginAt: number
+  passwordChangedAt: number
   deletedAt: number
   createdAt: number
   _all: number
@@ -103,6 +106,7 @@ export type UserMinAggregateInputType = {
   acceptedPrivacyAt?: true
   termsVersion?: true
   lastLoginAt?: true
+  passwordChangedAt?: true
   deletedAt?: true
   createdAt?: true
 }
@@ -123,6 +127,7 @@ export type UserMaxAggregateInputType = {
   acceptedPrivacyAt?: true
   termsVersion?: true
   lastLoginAt?: true
+  passwordChangedAt?: true
   deletedAt?: true
   createdAt?: true
 }
@@ -144,6 +149,7 @@ export type UserCountAggregateInputType = {
   termsVersion?: true
   preferences?: true
   lastLoginAt?: true
+  passwordChangedAt?: true
   deletedAt?: true
   createdAt?: true
   _all?: true
@@ -238,6 +244,7 @@ export type UserGroupByOutputType = {
   termsVersion: string | null
   preferences: runtime.JsonValue
   lastLoginAt: Date | null
+  passwordChangedAt: Date | null
   deletedAt: Date | null
   createdAt: Date
   _count: UserCountAggregateOutputType | null
@@ -280,6 +287,7 @@ export type UserWhereInput = {
   termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
   preferences?: Prisma.JsonFilter<"User">
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   institution?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
@@ -308,6 +316,7 @@ export type UserOrderByWithRelationInput = {
   termsVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   preferences?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   institution?: Prisma.InstitutionOrderByWithRelationInput
@@ -339,6 +348,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
   preferences?: Prisma.JsonFilter<"User">
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   institution?: Prisma.XOR<Prisma.InstitutionNullableScalarRelationFilter, Prisma.InstitutionWhereInput> | null
@@ -367,6 +377,7 @@ export type UserOrderByWithAggregationInput = {
   termsVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   preferences?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -394,6 +405,7 @@ export type UserScalarWhereWithAggregatesInput = {
   termsVersion?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   preferences?: Prisma.JsonWithAggregatesFilter<"User">
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -414,6 +426,7 @@ export type UserCreateInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -442,6 +455,7 @@ export type UserUncheckedCreateInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -468,6 +482,7 @@ export type UserUpdateInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -496,6 +511,7 @@ export type UserUncheckedUpdateInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -523,6 +539,7 @@ export type UserCreateManyInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
 }
@@ -543,6 +560,7 @@ export type UserUpdateManyMutationInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -564,6 +582,7 @@ export type UserUncheckedUpdateManyInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -585,6 +604,7 @@ export type UserCountOrderByAggregateInput = {
   termsVersion?: Prisma.SortOrder
   preferences?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -605,6 +625,7 @@ export type UserMaxOrderByAggregateInput = {
   acceptedPrivacyAt?: Prisma.SortOrder
   termsVersion?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -625,6 +646,7 @@ export type UserMinOrderByAggregateInput = {
   acceptedPrivacyAt?: Prisma.SortOrder
   termsVersion?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -806,6 +828,7 @@ export type UserCreateWithoutEmailVerificationTokensInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -833,6 +856,7 @@ export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -874,6 +898,7 @@ export type UserUpdateWithoutEmailVerificationTokensInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -901,6 +926,7 @@ export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -926,6 +952,7 @@ export type UserCreateWithoutPasswordResetTokensInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -953,6 +980,7 @@ export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -994,6 +1022,7 @@ export type UserUpdateWithoutPasswordResetTokensInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -1021,6 +1050,7 @@ export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -1046,6 +1076,7 @@ export type UserCreateWithoutInstitutionInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseCreateNestedManyWithoutUserInput
@@ -1072,6 +1103,7 @@ export type UserUncheckedCreateWithoutInstitutionInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -1128,6 +1160,7 @@ export type UserScalarWhereInput = {
   termsVersion?: Prisma.StringNullableFilter<"User"> | string | null
   preferences?: Prisma.JsonFilter<"User">
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
 }
@@ -1148,6 +1181,7 @@ export type UserCreateWithoutCasesInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -1175,6 +1209,7 @@ export type UserUncheckedCreateWithoutCasesInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   roleRequests?: Prisma.RoleRequestUncheckedCreateNestedManyWithoutUserInput
@@ -1216,6 +1251,7 @@ export type UserUpdateWithoutCasesInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -1243,6 +1279,7 @@ export type UserUncheckedUpdateWithoutCasesInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   roleRequests?: Prisma.RoleRequestUncheckedUpdateManyWithoutUserNestedInput
@@ -1268,6 +1305,7 @@ export type UserCreateWithoutTransfersSentInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -1295,6 +1333,7 @@ export type UserUncheckedCreateWithoutTransfersSentInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -1325,6 +1364,7 @@ export type UserCreateWithoutTransfersReceivedInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -1352,6 +1392,7 @@ export type UserUncheckedCreateWithoutTransfersReceivedInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -1393,6 +1434,7 @@ export type UserUpdateWithoutTransfersSentInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -1420,6 +1462,7 @@ export type UserUncheckedUpdateWithoutTransfersSentInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -1456,6 +1499,7 @@ export type UserUpdateWithoutTransfersReceivedInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -1483,6 +1527,7 @@ export type UserUncheckedUpdateWithoutTransfersReceivedInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -1508,6 +1553,7 @@ export type UserCreateWithoutRoleRequestsInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
@@ -1535,6 +1581,7 @@ export type UserUncheckedCreateWithoutRoleRequestsInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
@@ -1576,6 +1623,7 @@ export type UserUpdateWithoutRoleRequestsInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
@@ -1603,6 +1651,7 @@ export type UserUncheckedUpdateWithoutRoleRequestsInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -1628,6 +1677,7 @@ export type UserCreateManyInstitutionInput = {
   termsVersion?: string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Date | string | null
+  passwordChangedAt?: Date | string | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
 }
@@ -1648,6 +1698,7 @@ export type UserUpdateWithoutInstitutionInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
@@ -1674,6 +1725,7 @@ export type UserUncheckedUpdateWithoutInstitutionInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
@@ -1700,6 +1752,7 @@ export type UserUncheckedUpdateManyWithoutInstitutionInput = {
   termsVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1797,6 +1850,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   termsVersion?: boolean
   preferences?: boolean
   lastLoginAt?: boolean
+  passwordChangedAt?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
@@ -1826,6 +1880,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   termsVersion?: boolean
   preferences?: boolean
   lastLoginAt?: boolean
+  passwordChangedAt?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
@@ -1848,6 +1903,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   termsVersion?: boolean
   preferences?: boolean
   lastLoginAt?: boolean
+  passwordChangedAt?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
@@ -1870,11 +1926,12 @@ export type UserSelectScalar = {
   termsVersion?: boolean
   preferences?: boolean
   lastLoginAt?: boolean
+  passwordChangedAt?: boolean
   deletedAt?: boolean
   createdAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "firstName" | "lastName" | "title" | "passwordHash" | "role" | "institutionId" | "approvedAt" | "emailVerifiedAt" | "acceptedTermsAt" | "acceptedPrivacyAt" | "termsVersion" | "preferences" | "lastLoginAt" | "deletedAt" | "createdAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "firstName" | "lastName" | "title" | "passwordHash" | "role" | "institutionId" | "approvedAt" | "emailVerifiedAt" | "acceptedTermsAt" | "acceptedPrivacyAt" | "termsVersion" | "preferences" | "lastLoginAt" | "passwordChangedAt" | "deletedAt" | "createdAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   institution?: boolean | Prisma.User$institutionArgs<ExtArgs>
   cases?: boolean | Prisma.User$casesArgs<ExtArgs>
@@ -1920,6 +1977,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     termsVersion: string | null
     preferences: runtime.JsonValue
     lastLoginAt: Date | null
+    passwordChangedAt: Date | null
     deletedAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["user"]>
@@ -2368,6 +2426,7 @@ export interface UserFieldRefs {
   readonly termsVersion: Prisma.FieldRef<"User", 'String'>
   readonly preferences: Prisma.FieldRef<"User", 'Json'>
   readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly passwordChangedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
 }

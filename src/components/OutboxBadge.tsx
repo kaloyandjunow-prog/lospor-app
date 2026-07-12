@@ -7,22 +7,27 @@ import { useEffect, useState } from "react"
 import { CloudOff } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { caseOutbox, onOutboxChange } from "@/lib/case-outbox"
+import { eventOutboxCount, onEventOutboxChange } from "@/lib/event-outbox"
 import { useOutboxFlusher } from "@/hooks/useOutboxFlusher"
 
 export function OutboxBadge() {
   const t = useTranslations()
-  const [count, setCount] = useState(0)
+  const [patchCount, setPatchCount] = useState(0)
+  const [eventCount, setEventCount] = useState(0)
 
-  // The one app-wide flusher: replays the tray on reconnect/focus/backoff rhythm.
+  // The one app-wide flusher: replays both trays on reconnect/focus/backoff rhythm.
   useOutboxFlusher()
 
   useEffect(() => {
     let mounted = true
-    caseOutbox.summary().then((s) => { if (mounted) setCount(s.count) }).catch(() => {})
-    const unsubscribe = onOutboxChange((s) => setCount(s.count))
-    return () => { mounted = false; unsubscribe() }
+    caseOutbox.summary().then((s) => { if (mounted) setPatchCount(s.count) }).catch(() => {})
+    eventOutboxCount().then((n) => { if (mounted) setEventCount(n) }).catch(() => {})
+    const unsubPatches = onOutboxChange((s) => setPatchCount(s.count))
+    const unsubEvents = onEventOutboxChange((n) => setEventCount(n))
+    return () => { mounted = false; unsubPatches(); unsubEvents() }
   }, [])
 
+  const count = patchCount + eventCount
   if (count === 0) return null
   return (
     <span

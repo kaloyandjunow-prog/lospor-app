@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { hashAuthToken } from "@/lib/auth-email-tokens"
+import { notePasswordChanged } from "@/lib/password-epoch"
 
 const schema = z.object({
   token: z.string().min(20),
@@ -36,7 +37,10 @@ export async function POST(req: NextRequest) {
   await prisma.$transaction([
     prisma.user.update({
       where: { id: resetToken.userId },
-      data: { passwordHash },
+      // passwordChangedAt is the token-revocation epoch: web sessions and
+      // mobile bearer JWTs issued before it are rejected (password-epoch.ts),
+      // so a reset actually terminates existing sessions everywhere.
+      data: { passwordHash, passwordChangedAt: now },
     }),
     prisma.passwordResetToken.update({
       where: { id: resetToken.id },
@@ -47,6 +51,9 @@ export async function POST(req: NextRequest) {
       data: { usedAt: now },
     }),
   ])
+  // Prime this instance's cache immediately (other instances catch up within
+  // the 5-minute refresh — same SLA as jti revocation).
+  notePasswordChanged(resetToken.userId, now)
 
   return NextResponse.json({ ok: true })
 }

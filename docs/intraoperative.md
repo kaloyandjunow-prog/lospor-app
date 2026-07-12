@@ -182,7 +182,9 @@ Two automation settings (Settings → Automation):
 | Auto-fill vitals | When the clock advances, creates a saved event containing the previous EtCO₂, SpO₂, and temperature if the new column is empty |
 | Auto-fill BP & HR | Secondary toggle (requires Auto-fill vitals): also carries forward systolic BP, diastolic BP, and heart rate |
 
-Automatically carried-forward values are saved as real events through the shared API, so they are visible on the other client and survive timetable reconstruction. Since v5 this applies to the **web** timetable too: every vitals column typed, auto-filled, or backfilled on web is persisted as a `vital` event (one per 5-minute column, emitted ~1.2 s after the last edit) — previously web vitals lived only inside the projected timetable blob and could be lost when the projection was rebuilt. The server additionally bridges grid vitals from older cached web clients into events.
+Automatically carried-forward values are saved as real events through the shared API, so they are visible on the other client and survive timetable reconstruction. Since v5 this applies to the **web** timetable too: every vitals column typed, auto-filled, or backfilled on web is persisted as a `vital` event (one stable id per 5-minute column — `web-vital-N`, the same scheme mobile and the server bridge use — emitted ~1.2 s after the last edit; re-editing a column supersedes the event instead of stacking a duplicate). Previously web vitals lived only inside the projected timetable blob and could be lost when the projection was rebuilt. The server additionally bridges grid vitals from older cached web clients into events.
+
+Offline behavior (v5.1): **adding** events (drugs, fluids, vitals, clinical events) works offline on web — they are journaled in IndexedDB and replayed idempotently on reconnect, counted in the header badge. **Deleting or editing existing timeline items** requires connectivity: those go through a full-log reconcile, and replaying a stale log after reconnecting could resurrect deleted events, so the change reverts with a message instead of queueing.
 
 ### Keyboard shortcuts
 

@@ -33,7 +33,7 @@ By design, no patient names or national IDs are collected or stored.
 | Server DB | Clinical case data without direct patient identifiers | PostgreSQL via Prisma |
 | Mobile native | Bearer token, offline case drafts, queued saves/events | expo-secure-store |
 | Mobile PWA | Bearer token, offline case drafts, queued saves/events | browser localStorage |
-| Web app | Queued offline saves (section patches awaiting sync) | browser IndexedDB |
+| Web app | Queued offline saves (section patches + journaled intraop events awaiting sync) | browser IndexedDB |
 
 **PWA storage note:** browser `localStorage` is weaker than native Keychain/Keystore storage. Logout clears the token, offline drafts, queued case patches, and queued intraoperative events. Shared or hospital-managed browser devices should prefer the web app or require strict logout/device-cleanup policy.
 

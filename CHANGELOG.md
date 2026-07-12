@@ -1,5 +1,25 @@
 # Changelog - LOSPOR Web App
 
+## [5.1.0] - 2026-07-13
+
+Hardening release addressing an external code review of v5.0.0.
+
+### Fixed
+- **Web timetable vitals now use one stable identity per 5-minute column** (`web-vital-N`, the scheme mobile and the server bridge already used). Re-editing a cell supersedes the stored event instead of stacking a second event with a random id at the same timestamp — which could make the projected value (chart, protocol PDF, OMOP export) flip nondeterministically between rebuilds. The projection sort also gained deterministic tie-breaks (version, then id).
+- **A queued offline save that hits a conflict now self-heals once on flush** (adopts the server's timestamp and retries, per-field last-writer-wins — the same policy live saves use) instead of replaying the same stale base forever and jamming the tray badge.
+- **Queued intraop section patches and queued intraop events no longer share a storage key.** The historical key collision meant one could silently overwrite — or a flush could destroy — the other; patches moved to their own namespace with automatic migration on startup.
+- Mojibake repaired in the pre-v3 changelog archive.
+
+### Added
+- **Offline intraop event capture on web**: drugs, fluids, vitals, and clinical events added while offline are journaled in IndexedDB and replayed idempotently on reconnect (counted in the header badge). Deleting/editing existing timeline items still requires connectivity — the change reverts with a clear message instead of risking a stale-log replay.
+- **Password reset now terminates existing sessions**: web sessions and mobile bearer tokens issued before the reset are rejected within ≤5 minutes (`passwordChangedAt` epoch check, same cached pattern as sign-out revocation). Includes a DB migration.
+- **Sign-out hygiene on shared workstations**: signing out warns when unsynced saves exist and clears the offline trays, so one clinician's queued clinical fragments can never flush under the next user's account.
+- Multi-tab safety: only one tab flushes the offline trays at a time (Web Locks), and queue reconciliation now rebuilds its index from actual IndexedDB contents, rediscovering entries a tab race dropped.
+
+### Changed
+- Case creation sends an idempotency key, so a create retried after a network blip can't produce a duplicate case.
+- Field-diffing compares values canonically (key order no longer causes false-positive saves).
+
 ## [5.0.0] - 2026-07-12
 
 Unified save/sync engine.

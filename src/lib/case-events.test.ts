@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { projectTimetable } from "./case-events"
+import { projectTimetable, sortLogDeterministic } from "./case-events"
 import type { LogEvent } from "@/types/timetable"
 
 const START = new Date("2026-01-01T08:00:00.000Z")
@@ -58,5 +58,33 @@ describe("projectTimetable", () => {
     ]
     const t = projectTimetable(log, START)
     expect(t.drugs.map(d => d.name)).toEqual(["A", "B"])
+  })
+})
+
+describe("sortLogDeterministic", () => {
+  const entry = (logicalId: string, version: number, ts: string, hr: number) =>
+    ({ logicalId, version, ev: { type: "vital", heartRate: hr, ts } as LogEvent })
+
+  it("orders equal-ts events by version then logicalId, identically across shuffles", () => {
+    const a = entry("web-vital-2", 1, at(10), 70)
+    const b = entry("web-vital-2", 3, at(10), 75)
+    const c = entry("aaa-random", 1, at(10), 80)
+
+    const orders = [
+      [a, b, c], [c, b, a], [b, a, c], [c, a, b],
+    ].map(input => sortLogDeterministic(input).map(x => `${x.logicalId}:v${x.version}`))
+
+    for (const order of orders) {
+      expect(order).toEqual(orders[0])
+    }
+    // Higher version sorts LAST so the projection's later-wins rule applies.
+    const sorted = sortLogDeterministic([b, c, a])
+    expect(sorted.indexOf(a)).toBeLessThan(sorted.indexOf(b))
+  })
+
+  it("keeps timestamp as the primary key", () => {
+    const early = entry("z", 9, at(0), 60)
+    const late = entry("a", 1, at(5), 65)
+    expect(sortLogDeterministic([late, early])[0]).toBe(early)
   })
 })

@@ -2,6 +2,7 @@ import "server-only"
 import { SignJWT, jwtVerify } from "jose"
 import { auth } from "@/lib/auth"
 import { isRevokedAsync } from "@/lib/token-blocklist"
+import { isIssuedBeforePasswordChangeAsync } from "@/lib/password-epoch"
 
 // Shape returned by getAuthUser — same fields that route files pull from session.user
 export type AuthUser = {
@@ -50,6 +51,9 @@ export async function getAuthUser(req: Request): Promise<AuthUser | null> {
       // where a freshly-booted instance's cache is still empty.
       if (jti && await isRevokedAsync(jti)) return null
       if (!payload.id) return null
+      // Password-reset revocation: tokens issued before the user's
+      // passwordChangedAt epoch are dead (≤5-min cache SLA, no DB read here).
+      if (await isIssuedBeforePasswordChangeAsync(payload.id as string, payload.iat)) return null
       return {
         id:              payload.id as string,
         role:            payload.role as string,

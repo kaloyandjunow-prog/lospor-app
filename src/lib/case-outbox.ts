@@ -13,7 +13,7 @@ import {
 import { idbKV } from "./kv-idb"
 
 class OutboxHttpError extends Error {
-  constructor(public status: number) {
+  constructor(public status: number, public serverUpdatedAt?: string) {
     super(`Save failed (HTTP ${status})`)
     this.name = "OutboxHttpError"
   }
@@ -32,14 +32,20 @@ async function sendPatch(
     headers,
     body: JSON.stringify({ [section]: payload }),
   })
-  if (!res.ok) throw new OutboxHttpError(res.status)
+  if (!res.ok) {
+    // Parse the body so a 409 can carry serverVersion.updatedAt — the flush
+    // self-heal needs it; discarding the body made conflicts unrecoverable.
+    const body = await res.json().catch(() => ({})) as { serverVersion?: { updatedAt?: unknown } }
+    const serverUpdatedAt = typeof body.serverVersion?.updatedAt === "string" ? body.serverVersion.updatedAt : undefined
+    throw new OutboxHttpError(res.status, serverUpdatedAt)
+  }
   return res.json().catch(() => ({}))
 }
 
 function classifyError(err: unknown): PatchFailure {
   // fetch rejects with TypeError when the network is down/unreachable.
   if (err instanceof TypeError) return { kind: "network" }
-  if (err instanceof OutboxHttpError) return { kind: "http", status: err.status }
+  if (err instanceof OutboxHttpError) return { kind: "http", status: err.status, serverUpdatedAt: err.serverUpdatedAt }
   return { kind: "other" }
 }
 

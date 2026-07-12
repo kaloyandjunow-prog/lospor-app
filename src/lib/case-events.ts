@@ -390,19 +390,36 @@ export async function reconcileFullLog(tx: Tx, caseId: string, userId: string, i
 
 // Rebuild the keyEvents cache from the live (active) rows. This is what the
 // chart, printout and exports read.
+/**
+ * Deterministic projection ordering: timestamp, then version, then logicalId.
+ * Exported for tests — the projection (chart, protocol PDF, OMOP export) must
+ * be identical across rebuilds regardless of DB row return order.
+ */
+export function sortLogDeterministic<T extends { version: number; logicalId: string; ev: LogEvent }>(entries: T[]): T[] {
+  return [...entries].sort((a, b) => {
+    const tsDiff = new Date(a.ev.ts ?? 0).getTime() - new Date(b.ev.ts ?? 0).getTime()
+    if (tsDiff !== 0) return tsDiff
+    if (a.version !== b.version) return a.version - b.version
+    return a.logicalId < b.logicalId ? -1 : a.logicalId > b.logicalId ? 1 : 0
+  })
+}
+
 export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   const rows = await tx.caseEvent.findMany({
     where:   { caseId, status: "active" },
     select:  { logicalId: true, version: true, metadataJson: true },
   })
   // At most one active row per logicalId by construction; keep the latest just in case.
-  const byLogical = new Map<string, { version: number; ev: LogEvent }>()
+  const byLogical = new Map<string, { version: number; logicalId: string; ev: LogEvent }>()
   for (const r of rows) {
     const prev = byLogical.get(r.logicalId)
-    if (!prev || r.version > prev.version) byLogical.set(r.logicalId, { version: r.version, ev: r.metadataJson as LogEvent })
+    if (!prev || r.version > prev.version) byLogical.set(r.logicalId, { version: r.version, logicalId: r.logicalId, ev: r.metadataJson as LogEvent })
   }
-  const log = [...byLogical.values()].map(x => x.ev)
-    .sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
+  // Deterministic order: ts, then version, then logicalId. findMany has no
+  // orderBy, so without the tie-breaks equal-ts events (e.g. two writers of
+  // the same vitals column) would land in DB return order and the projected
+  // value could flip between rebuilds.
+  const log = sortLogDeterministic([...byLogical.values()]).map(x => x.ev)
 
   const start = chartStartFrom(log)
   const projected = projectTimetable(log, start)

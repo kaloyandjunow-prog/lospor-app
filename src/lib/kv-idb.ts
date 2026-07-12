@@ -43,4 +43,11 @@ export const idbKV: KVAdapter = {
   async delete(key) {
     await tx("readwrite", (s) => s.delete(key))
   },
+  async keys(prefix) {
+    // Prefix range scan: lets the sync engine reconcile its queue indexes
+    // from actual storage (rediscovers entries a multi-tab race dropped).
+    const range = IDBKeyRange.bound(prefix, prefix + "￿")
+    const keys = await tx<IDBValidKey[]>("readonly", (s) => s.getAllKeys(range))
+    return keys.map(String)
+  },
 }

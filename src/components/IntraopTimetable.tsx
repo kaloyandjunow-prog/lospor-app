@@ -540,7 +540,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
       const ts = tsForCol(col)
       if (!ts) continue
       const entry = dataRef.current.vitals[col] ?? {}
-      onLogEventRef.current?.({ id: uid(), ts, type: "vital", ...entry })
+      // STABLE id per column — the same scheme mobile's webTimetableToLog and
+      // the server bridge use. Re-editing a cell then SUPERSEDES the existing
+      // CaseEvent row (addEvent's content-compare + version bump) instead of
+      // stacking a second active event at the same timestamp with a random id,
+      // which made the projected value nondeterministic.
+      onLogEventRef.current?.({ id: `web-vital-${col}`, ts, type: "vital", ...entry })
     }
   }, [tsForCol, dataRef])
 
