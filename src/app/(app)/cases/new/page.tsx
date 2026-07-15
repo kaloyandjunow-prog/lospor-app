@@ -72,10 +72,14 @@ export default function NewCasePage() {
     const currentCaseId = caseIdRef.current
     if (!currentCaseId) return false
     try {
-      const outcome = await writeQueueRef.current.enqueue(currentCaseId, () =>
-        sendWithConflictRetry<{ intraopUpdatedAt?: string }>(
+      // Advance intraopUpdatedAtRef INSIDE the enqueued op (see handleLogEvent):
+      // the queue must not release the next write until the conflict base is
+      // current, or a section autosave queued behind this PUT reads a stale base
+      // and 409s against our own write.
+      const outcome = await writeQueueRef.current.enqueue(currentCaseId, async () => {
+        const res = await sendWithConflictRetry<{ intraopUpdatedAt?: string }>(
           async (base) => {
-            const res = await fetch(`/api/cases/${currentCaseId}/events`, {
+            const r = await fetch(`/api/cases/${currentCaseId}/events`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
@@ -84,13 +88,14 @@ export default function NewCasePage() {
               },
               body: JSON.stringify({ log: newLog }),
             })
-            return classifyPatchResponse<{ intraopUpdatedAt?: string }>(res)
+            return classifyPatchResponse<{ intraopUpdatedAt?: string }>(r)
           },
           intraopUpdatedAtRef,
         )
-      )
+        if (res.ok && res.body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(res.body.intraopUpdatedAt).toISOString()
+        return res
+      })
       if (!outcome.ok) return false
-      if (outcome.body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(outcome.body.intraopUpdatedAt).toISOString()
       return true
     } catch {
       return false
@@ -123,8 +128,15 @@ export default function NewCasePage() {
       // Idempotency key + source header + per-case ordering: full parity with
       // how mobile appends events, so a retried/replayed POST stores the
       // event exactly once and never interleaves with another write.
-      const res = await writeQueueRef.current.enqueue(currentCaseId, () =>
-        fetch(`/api/cases/${currentCaseId}/events`, {
+      //
+      // The response parse AND the intraop conflict-base advance both happen
+      // INSIDE the enqueued op, so the write queue does not release the next
+      // write (e.g. a debounced section autosave) until intraopUpdatedAtRef is
+      // current. Advancing it after `await enqueue(...)` — outside the critical
+      // section — let a queued section save read a stale base and 409 against
+      // this event's own write, surfacing a false "edit conflict".
+      const result = await writeQueueRef.current.enqueue(currentCaseId, async () => {
+        const res = await fetch(`/api/cases/${currentCaseId}/events`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -135,12 +147,12 @@ export default function NewCasePage() {
           },
           body: JSON.stringify(event),
         })
-      )
-      if (!res.ok) console.error("[intraop event] save failed", await res.text().catch(() => ""))
-      else {
+        if (!res.ok) return { ok: false as const, text: await res.text().catch(() => "") }
         const body = await res.json().catch(() => ({}))
         if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
-      }
+        return { ok: true as const }
+      })
+      if (!result.ok) console.error("[intraop event] save failed", result.text)
     } catch (err) {
       if (err instanceof TypeError) {
         // Offline: journal the event (IndexedDB) — it stays visible in local
