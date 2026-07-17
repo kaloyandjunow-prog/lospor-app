@@ -1,5 +1,9 @@
 # Changelog - LOSPOR Web App
 
+## [5.2.0] - Unreleased
+
+_In development._ Aligning the mobile summary, web summary, and printable protocol onto one shared case-summary model, and redesigning the A4 printable protocol around the intraoperative timetable.
+
 ## [5.1.0] - 2026-07-13
 
 Hardening release addressing an external code review of v5.0.0.
