@@ -92,6 +92,14 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next()
   }
 
+  // The dedicated print page can be opened with a short-lived signed
+  // print_token instead of a session (mobile "Print case" and the headless
+  // Chrome that renders /api/cases/[id]/pdf have no cookie). The page itself
+  // verifies the JWT and falls back to the normal login redirect if invalid.
+  if (/^\/cases\/[^/]+\/print$/.test(req.nextUrl.pathname) && req.nextUrl.searchParams.has("print_token")) {
+    return NextResponse.next()
+  }
+
   const redirect = mobileRedirect(req)
   if (redirect) return redirect
 

@@ -12,6 +12,7 @@ import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import type { DoseProfileInput } from "@/data/option-library/dose-profile"
+import { POSITIONS } from "@/data/option-library/position"
 import type { WeightBasisMap } from "@/lib/infusion-calc"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData,
@@ -1978,6 +1979,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         const filtered = q
           ? CLINICAL_EVENT_CATS.map(c => ({ ...c, events: c.events.filter(e => e.label.toLowerCase().includes(q)) })).filter(c => c.events.length > 0)
           : CLINICAL_EVENT_CATS
+        const positionOpts = q ? POSITIONS.filter(p => p.label.toLowerCase().includes(q)) : POSITIONS
         return (
           <>
             <div className="fixed inset-0 z-[9990]" onClick={() => setEventPicker(null)} />
@@ -1993,6 +1995,26 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 />
               </div>
               <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
+                {/* Position changes — time-anchored position_change events feeding
+                    the printed record's Position lane. Same emit pattern as
+                    clinical events (ts = now); no other cockpit behavior changes. */}
+                {positionOpts.length > 0 && (
+                  <div>
+                    <p className="text-[8px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">{t("intraop.timetable.positionChange")}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {positionOpts.map(pos => (
+                        <button key={pos.v} type="button"
+                          onClick={() => {
+                            setEventPicker(null)
+                            emitLogEvent({ type: "position_change", name: pos.label })
+                          }}
+                          className="text-xs font-medium px-2 py-0.5 rounded-full border border-slate-300 dark:border-[#4a4a4a] bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 cursor-pointer transition-all hover:opacity-80">
+                          {pos.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {filtered.map(cat => {
                   const colEvLabels = new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker!.ci).map(e => e.label))
                   return (

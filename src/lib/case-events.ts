@@ -3,6 +3,7 @@ import { calculateFluidTotals, fluidTotalsPatch } from "@lospor/core/intraop-tot
 import type {
   LogEvent, VitalsEntry, TimetableDrug, TimetableFluid, AgentSegment,
   TimetableInfusion, ClinicalEvent, GasSettingsSegment, LegacyKeyEvents,
+  PositionSegment, PhaseSegment,
 } from "@/types/timetable"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +53,10 @@ export function projectTimetable(log: LogEvent[], start: Date) {
   let activeAgent: { name: string; color: string; startCol: number; percent?: number } | null = null
   const gasSettings: GasSettingsSegment[] = []
   let activeGas: { startCol: number; fgf: number; carrierGas: string | null; fio2: number; fiAir: number; fiN2O: number; settingsChanges: { col: number; fgf: number; carrierGas: string | null; fio2: number; fiAir: number; fiN2O: number }[] } | null = null
+  const positions: PositionSegment[] = []
+  let activePosition: { position: string; startCol: number } | null = null
+  const phases: PhaseSegment[] = []
+  let activePhase: { phase: string; startCol: number } | null = null
   let maxCol = 0
 
   const chrono = [...log].sort((a, b) =>
@@ -123,6 +128,22 @@ export function projectTimetable(log: LogEvent[], start: Date) {
       activeGas = null
     } else if ((ev.type === "clinical_event" || ev.type === "event") && ev.label) {
       clinicalEvents.push({ colIdx: col, label: ev.label, color: ev.color ?? "#64748b" })
+    } else if (ev.type === "position_change" && ev.name) {
+      // Same state-machine as agents: each change closes the previous segment
+      // and opens a new one; repeated same-position changes are collapsed.
+      if (activePosition && activePosition.position !== ev.name) {
+        positions.push({ position: activePosition.position, startCol: activePosition.startCol, endCol: col })
+        activePosition = { position: ev.name, startCol: col }
+      } else if (!activePosition) {
+        activePosition = { position: ev.name, startCol: col }
+      }
+    } else if (ev.type === "phase_change" && ev.name) {
+      if (activePhase && activePhase.phase !== ev.name) {
+        phases.push({ phase: activePhase.phase, startCol: activePhase.startCol, endCol: col })
+        activePhase = { phase: ev.name, startCol: col }
+      } else if (!activePhase) {
+        activePhase = { phase: ev.name, startCol: col }
+      }
     }
   }
 
@@ -139,8 +160,14 @@ export function projectTimetable(log: LogEvent[], start: Date) {
   if (activeGas) {
     gasSettings.push({ id: `gas-${activeGas.startCol}`, startCol: activeGas.startCol, endCol: openEnd, fgf: activeGas.fgf, carrierGas: activeGas.carrierGas, fio2: activeGas.fio2, fiAir: activeGas.fiAir, fiN2O: activeGas.fiN2O, settingsChanges: activeGas.settingsChanges.length ? activeGas.settingsChanges : undefined })
   }
+  if (activePosition) {
+    positions.push({ position: activePosition.position, startCol: activePosition.startCol, endCol: openEnd })
+  }
+  if (activePhase) {
+    phases.push({ phase: activePhase.phase, startCol: activePhase.startCol, endCol: openEnd })
+  }
 
-  return { vitals, drugs, infusions, fluids, agents, gasSettings, clinicalEvents }
+  return { vitals, drugs, infusions, fluids, agents, gasSettings, clinicalEvents, positions, phases }
 }
 
 

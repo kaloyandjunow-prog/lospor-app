@@ -73,6 +73,9 @@ const devWsOrigins = devHosts.map(host => ` ws://${host}:3000`).join("")
 const nextConfig: NextConfig = {
   transpilePackages: ["@lospor/core"],
 
+  // The PDF route drives a real browser binary — keep these out of the bundle.
+  serverExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
+
   // Allow current local network IPs so HMR and JS hydration work when accessed from the LAN.
   ...(isDev ? { allowedDevOrigins: devHosts } : {}),
 

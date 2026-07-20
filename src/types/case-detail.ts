@@ -1,5 +1,5 @@
 // Canonical shape of GET /api/cases/[id]'s JSON response — the one place
-// every consumer (CaseSummary, AnesthesiaProtocolPDF, OMOP export, etc.)
+// every consumer (CaseSummary, the print page, OMOP export, etc.)
 // should import from instead of re-guessing the shape via `any`.
 //
 // Hand-written rather than derived from Prisma.CaseGetPayload<...> because

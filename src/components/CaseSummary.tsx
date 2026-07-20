@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
-import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW, calcABW } from "@/lib/scores"
+import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW } from "@/lib/scores"
 import { useLocale } from "next-intl"
+import { useRouter } from "next/navigation"
 import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/PostopForm"
 import { CASE_STATUS_LABELS, type CaseStatus } from "@lospor/core/case-status"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
-import { PrintTimetable, calcDrugTotals, calcInfTotals } from "@/components/case-summary/PrintTimetable"
+import { PrintTimetable, calcDrugTotals, calcInfTotals, naturalMaxCols, buildDrugLog } from "@/components/case-summary/PrintTimetable"
+import { planPanels, type PanelPlan } from "@lospor/core/print"
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
 const TECHNIQUE_LABELS: Record<string, { en: string; bg: string }> = {
@@ -201,10 +203,6 @@ function F({ label, value }: { label: string; value?: string | number | null }) 
   )
 }
 
-function Sec({ title }: { title: string }) {
-  return <p className="text-[8.5px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 border-b border-blue-100 dark:border-blue-900/40 pb-0.5 mb-1.5 mt-2.5 first:mt-0">{title}</p>
-}
-
 function Chip({ children, color = "slate" }: { children: string; color?: string }) {
   const c: Record<string, string> = {
     slate:  "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -219,9 +217,19 @@ function Chip({ children, color = "slate" }: { children: string; color?: string 
 // ── Protocol label translations ───────────────────────────────────────────────
 const LABELS = {
   en: {
+    record: "ANAESTHESIA RECORD", prepost: "PRE- & POST-OPERATIVE",
+    intraopTt: "INTRAOPERATIVE TIMETABLE", preopAssessment: "PREOPERATIVE ASSESSMENT", postopRecoveryLbl: "POSTOPERATIVE RECOVERY",
+    patientName: "Patient name", idFile: "ID / File №", nameSig: "name & signature",
+    histCom: "History & comorbidities", investigations: "Investigations", airwayAssessment: "Airway assessment", anthropometry: "Anthropometry",
+    aldreteTotalLbl: "Aldrete total", readyDischarge: "Ready for discharge", recoveryObs: "Recovery observations",
+    footerLine: "LOSPOR personal case log · Not a clinical record · No patient identifiers stored — identity fields filled by hand after printing",
+    generatedLbl: "Generated",
+    printCase: "Print case", notNow: "Not now",
+    printPromptTitle: "Case finished",
+    printPromptText: "The case is closed and flagged as finished. Print the two-page anaesthesia record now?",
     protocol: "ANAESTHESIA PROTOCOL", preoppost: "Preoperative & Postoperative Assessment",
     staff: "Staff", patient: "Patient", anaesthesia: "Anaesthesia", monitoring: "Monitoring",
-    vascular: "Vascular Access", premed: "Premedication", drugTotals: "Drug totals", fluidBal: "Fluid balance",
+    vascular: "Vascular Access", premed: "Premedication", drugTotals: "Drug / agent totals", drugLog: "Drug administration log", totalsLbl: "Totals", fluidBal: "Fluid balance", notes: "Intraop notes",
     anaesthesiologist: "Anaesthesiologist", surgeon: "Surgeon", nurse: "Nurse", duration: "Duration",
     diagnosis: "Diagnosis", procedure: "Planned Procedure", heightWeight: "Height / Weight",
     technique: "Technique", airway: "Airway", tools: "Tools", ventilation: "Ventilation",
@@ -254,9 +262,19 @@ const LABELS = {
     loadingCase: "Loading case summary…", loadFailed: "Failed to load case data.",
   },
   bg: {
+    record: "АНЕСТЕЗИОЛОГИЧЕН ПРОТОКОЛ", prepost: "ПРЕД- И СЛЕДОПЕРАТИВНА ОЦЕНКА",
+    intraopTt: "ИНТРАОПЕРАТИВНА ТАБЛИЦА", preopAssessment: "ПРЕДОПЕРАТИВНА ОЦЕНКА", postopRecoveryLbl: "ПОСТОПЕРАТИВНО ВЪЗСТАНОВЯВАНЕ",
+    patientName: "Име на пациента", idFile: "ИЗ / Номер", nameSig: "име и подпис",
+    histCom: "Анамнеза и придружаващи заболявания", investigations: "Изследвания", airwayAssessment: "Оценка на дихателния път", anthropometry: "Антропометрия",
+    aldreteTotalLbl: "Общо Aldrete", readyDischarge: "Готов за извеждане", recoveryObs: "Наблюдения при възстановяване",
+    footerLine: "LOSPOR личен журнал на случаи · Не е клиничен документ · Не се съхраняват лични данни — полетата за самоличност се попълват на ръка след печат",
+    generatedLbl: "Генериран",
+    printCase: "Печат на случая", notNow: "Не сега",
+    printPromptTitle: "Случаят е приключен",
+    printPromptText: "Случаят е затворен и отбелязан като приключен. Да се отпечата ли двустраничният анестезиологичен протокол сега?",
     protocol: "АНЕСТЕЗИОЛОГИЧЕН ПРОТОКОЛ", preoppost: "Предоперативна и следоперативна оценка",
     staff: "Персонал", patient: "Пациент", anaesthesia: "Анестезия", monitoring: "Мониторинг",
-    vascular: "Съдов достъп", premed: "Премедикация", drugTotals: "Медикаменти", fluidBal: "Баланс на течности",
+    vascular: "Съдов достъп", premed: "Премедикация", drugTotals: "Медикаменти / агенти", drugLog: "Дневник на медикаментите", totalsLbl: "Общо", fluidBal: "Баланс на течности", notes: "Интраоп. бележки",
     anaesthesiologist: "Анестезиолог", surgeon: "Хирург", nurse: "Мед. сестра", duration: "Продължителност",
     diagnosis: "Диагноза", procedure: "Интервенция", heightWeight: "Ръст / Тегло",
     technique: "Техника", airway: "Дихателен път", tools: "Инструменти", ventilation: "Вентилация",
@@ -291,8 +309,20 @@ const LABELS = {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export function CaseSummary({ caseId }: { caseId: string }) {
+// mode="summary" (default): the live case summary — review bar, continuous
+// paper-style content, NO print chrome and NO print buttons (printing moved to
+// the dedicated /cases/[id]/print page for finished cases).
+// mode="print": the A4 print sheets with page chrome + print CSS, used by the
+// print page. `initialData` lets the print page pass a server-fetched case
+// (required for the mobile print-token flow, which has no browser session).
+export function CaseSummary({ caseId, mode = "summary", initialData }: {
+  caseId: string
+  mode?: "summary" | "print"
+  initialData?: CaseDetail
+}) {
   const locale = useLocale()
+  const router = useRouter()
+  const isPrint = mode === "print"
   const L = locale === "bg" ? LABELS.bg : LABELS.en
   const handoverLookup = (() => {
     const groups = locale === "bg" ? HANDOVER_GROUPS_BG : HANDOVER_GROUPS_EN
@@ -301,13 +331,14 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     return map
   })()
 
-  const [data,       setData]       = useState<CaseDetail | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [showWarning, setShowWarning] = useState(false)
+  const [data,       setData]       = useState<CaseDetail | null>(initialData ?? null)
+  const [loading,    setLoading]    = useState(!initialData)
+  const [showPrintPrompt, setShowPrintPrompt] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
   const [nowAtMount] = useState<number>(Date.now)
 
   useEffect(() => {
+    if (initialData) return // print-token flow: server already supplied the case
     let cancelled = false
     async function load() {
       const d = await fetch(`/api/cases/${caseId}`).then(r => r.json())
@@ -320,7 +351,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
       cancelled = true
       window.removeEventListener("case-live-update", onLive)
     }
-  }, [caseId])
+  }, [caseId, initialData])
 
   if (loading) return <div className="text-sm text-slate-400 dark:text-slate-500 text-center py-12 animate-pulse">{L.loadingCase}</div>
   if (!data)   return <div className="text-sm text-red-500 text-center py-12">{L.loadFailed}</div>
@@ -376,7 +407,38 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   })()
   const labResults:    LabResultItem[]      = Array.isArray(p?.labResults)       ? (p.labResults as LabResultItem[]).filter(l => l.value) : []
   const handoverItems: string[] = Array.isArray(o?.handoverItems)    ? o.handoverItems    : []
-  const timetable = (i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}
+  const timetable = ((i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}) as import("@/types/timetable").LegacyKeyEvents
+
+  // ── Panel planning: stacked half-case charts, paper-record style ───────────
+  // ≤~5h: one full-height chart. Longer: TWO stacked panels (first half /
+  // second half of the case) on the same sheet — nothing repeats, everything
+  // gets twice the horizontal room. Continuation sheets only >~24h.
+  const totalCols = naturalMaxCols(timetable)
+  const panelPlans = planPanels({ totalCols })
+  const sheet0Panels = panelPlans.filter(pl => pl.sheet === 0)
+  const contSheets: PanelPlan[][] = []
+  for (const pl of panelPlans) {
+    if (pl.sheet === 0) continue
+    ;(contSheets[pl.sheet - 1] ??= []).push(pl)
+  }
+  const pageTotal = contSheets.length + 2
+  const contWord = locale === "bg" ? "ПРОДЪЛЖЕНИЕ" : "CONTINUED"
+  const panelView = (pl: PanelPlan, withCaption: boolean) => ({
+    c0: pl.startCol,
+    c1: pl.endCol,
+    step: Math.max(1, Math.round(pl.intervalMin / 5)),
+    // Time-window caption drawn inside the chart's top-left corner
+    caption: withCaption
+      ? `${pl.index > 0 ? `${contWord} · ` : ""}${colHHMM(pl.startCol)} – ${colHHMM(pl.endCol + 1)}`
+      : undefined,
+  })
+  // Column → wall-clock label (same UTC convention as the timetable itself)
+  const colHHMM = (col: number) => {
+    if (!i?.startTime) return `+${col * 5}m`
+    const d = new Date(i.startTime)
+    const mins = d.getUTCHours() * 60 + d.getUTCMinutes() + col * 5
+    return `${String(Math.floor(mins / 60) % 24).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`
+  }
 
   const activeMonitors = MON.filter(m => i?.[m.f]).map(m => m.l)
   const dateStr = (() => {
@@ -387,6 +449,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
   })()
   const drugTotals     = calcDrugTotals(timetable)
   const infTotals      = calcInfTotals(timetable)
+  const drugLog        = buildDrugLog(timetable, i?.startTime)
   const ageSuffix  = locale === "bg" ? "г." : "y"
   const sexLabel   = (s: string) => locale === "bg" ? (s === "MALE" ? "М" : s === "FEMALE" ? "Ж" : "") : (s === "MALE" ? "M" : s === "FEMALE" ? "F" : "")
   const patientLine = [p?.ageYears ? `${p.ageYears}${ageSuffix}` : "", p?.sex ? sexLabel(p.sex) : ""].filter(Boolean).join(" · ")
@@ -395,7 +458,10 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     if (!i?.startTime || !i?.endTime) return null
     const s = new Date(i.startTime), e = new Date(i.endTime)
     const mins = Math.round((e.getTime() - s.getTime()) / 60000)
-    return `${format(s, "HH:mm")} → ${format(e, "HH:mm")} (${Math.floor(mins / 60)}h ${mins % 60}m)`
+    // Stored times are UTC-encoded wall-clock; UTC getters recover the entered
+    // time (same convention as the timetable's colToHHMM).
+    const hhmm = (d: Date) => `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`
+    return `${hhmm(s)} → ${hhmm(e)} · ${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m`
   }
 
   const aldreteTotal = o?.aldreteTotal ?? 0
@@ -403,13 +469,11 @@ export function CaseSummary({ caseId }: { caseId: string }) {
     : aldreteTotal >= 7 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700"
     : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700"
 
-  // Compact row card shared between panels
-  const panel = "border border-slate-200 dark:border-[#2a2a2a] rounded-lg p-2 bg-white dark:bg-[#161616]"
 
   return (
     <>
-      {/* ── Print styles ─────────────────────────────────────────────────────── */}
-      <style>{`
+      {/* ── Print styles — print mode only (summary is never printed) ────────── */}
+      {isPrint && <style>{`
         @media print {
           @page { size: A4 landscape; margin: 0; }
 
@@ -427,6 +491,14 @@ export function CaseSummary({ caseId }: { caseId: string }) {
             border-radius: 0 !important;
           }
           .page-preoppost { break-before: page; break-after: avoid; }
+          /* Long cases: each detail sheet starts a new page */
+          .page-intraop + .page-intraop { break-before: page; }
+          /* Kill the on-screen space-y gap — a margin on a full-height sheet
+             spills 12px onto an extra blank page */
+          .page-intraop, .page-preoppost { margin: 0 !important; }
+          /* Tighter internal rhythm on the intraop sheet — reclaims ~35px of
+             height for the chart panels */
+          .page-intraop { gap: 4px !important; }
 
           /* White paper regardless of dark mode */
           .protocol-root *:not(svg, svg *) {
@@ -446,24 +518,24 @@ export function CaseSummary({ caseId }: { caseId: string }) {
           }
           .lab-compact .lab-entry > div > * { font-size: 8px !important; }
         }
-      `}</style>
+      `}</style>}
 
-      {/* ── Pre-print warning ──────────────────────────────────────────────── */}
-      {showWarning && (
+      {/* ── "Case finished — print it?" prompt (summary mode) ─────────────── */}
+      {showPrintPrompt && (
         <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowWarning(false)}>
+          onClick={() => setShowPrintPrompt(false)}>
           <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4"
             onClick={e => e.stopPropagation()}>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">{L.warningTitle}</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{L.warningText}</p>
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">{L.printPromptTitle}</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{L.printPromptText}</p>
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={() => setShowWarning(false)}
+              <button type="button" onClick={() => setShowPrintPrompt(false)}
                 className="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                {L.goBack}
+                {L.notNow}
               </button>
-              <button type="button" onClick={() => { setShowWarning(false); setTimeout(() => window.print(), 100) }}
+              <button type="button" onClick={() => { setShowPrintPrompt(false); router.push(`/cases/${caseId}/print`) }}
                 className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                {L.continuePrint}
+                {L.printCase}
               </button>
             </div>
           </div>
@@ -473,8 +545,8 @@ export function CaseSummary({ caseId }: { caseId: string }) {
 
       <div className="protocol-root space-y-3">
 
-        {/* Review bar — screen only */}
-        {(() => {
+        {/* Review bar — summary mode only */}
+        {!isPrint && (() => {
           const status = data?.status
           const finalizedAt = data?.finalizedAt ? new Date(data.finalizedAt).getTime() : null
           const withinUndoWindow = finalizedAt != null && nowAtMount - finalizedAt < FINALIZE_UNDO_WINDOW_MS
@@ -520,6 +592,7 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                             if (res.ok) {
                               const body = await res.json().catch(() => null)
                               setData(prev => prev ? { ...prev, status: "COMPLETE", finalizedAt: body?.finalizedAt ?? new Date().toISOString() } : prev)
+                              setShowPrintPrompt(true) // case finished → offer to print it
                             } else {
                               const body = await res.json().catch(() => ({}))
                               const REASON_LABELS: Record<string, string> = {
@@ -557,357 +630,416 @@ export function CaseSummary({ caseId }: { caseId: string }) {
                       Unfinalize
                     </button>
                   )}
-                  <button onClick={() => setShowWarning(true)}
-                    className="text-xs font-semibold px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                    Print PDF
-                  </button>
+                  {status === "COMPLETE" && (
+                    <a href={`/cases/${caseId}/print`}
+                      className="text-xs font-bold px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                      {L.printCase}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
           )
         })()}
 
-        {/* Print button + privacy notice — screen only */}
-        <div className="no-print space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-500 dark:text-slate-400">{L.reviewNote}</p>
-            <button onClick={() => setShowWarning(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
-              {L.printBtn}
-            </button>
-          </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500 italic">
-            {L.privacyNote}
-          </p>
-        </div>
-
         {/* ═══════════════════════════════════════════════════════
             PAGE 1 — LANDSCAPE — INTRAOPERATIVE
         ════════════════════════════════════════════════════════ */}
-        <div data-tour="summary-page1" className="page-intraop border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2 min-h-[520px]">
+        <div data-tour="summary-page1" className="page-intraop border border-slate-200 rounded-xl bg-white p-3 flex flex-col gap-2 min-h-[520px]">
 
-          {/* Header strip */}
-          <div className="flex items-center justify-between border-b-2 border-blue-700 dark:border-blue-500 pb-1.5">
-            <div>
-              <span className="text-[12px] font-bold text-blue-700 dark:text-blue-400">{L.protocol}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2">· {inst?.name}{inst?.city ? ", " + inst.city : ""} · {dateStr}</span>
-              {p?.diagnosis && <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-100 ml-2">· {p.diagnosis}</span>}
+          {/* Header — LOSPOR wordmark · procedure · institution/case block */}
+          <div className="flex items-start justify-between border-b-2 border-blue-900 dark:border-blue-500 pb-2 gap-3">
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[17px] font-black tracking-tight text-slate-900">LOSPOR</span>
+                <span className="text-blue-800 dark:text-blue-400 text-[11px]">●</span>
+                <span className="text-[11px] font-bold tracking-[0.18em] text-blue-900 dark:text-blue-300">{L.record}</span>
+              </div>
+              {p?.plannedProcedure && <div className="text-[13px] font-bold text-slate-900 mt-0.5">{p.plannedProcedure}</div>}
+              {(p?.diagnosis || p?.icdCode) && (
+                <div className="text-[9.5px] text-slate-500">{[p?.diagnosis, p?.icdCode].filter(Boolean).join(" · ")}</div>
+              )}
             </div>
-            <div className="text-right text-[10px] flex items-center gap-2">
-              <span className="text-slate-400 border-b border-dashed border-slate-300 w-36 inline-block" />
-              {patientLine && <span className="text-slate-500 dark:text-slate-400">· {patientLine}</span>}
-              {p?.asaScore && <span className="font-bold text-amber-700 dark:text-amber-400">ASA {p.asaScore}{p.emergencySurgery ? "E" : ""}</span>}
+            <div className="text-right text-[9.5px] text-slate-500 leading-relaxed shrink-0">
+              <div>{inst?.name}{inst?.city ? ` · ${inst.city}` : ""}</div>
+              <div>{dateStr}</div>
+              <div><span className="font-bold text-slate-800">{data.caseCode ? `Case ${data.caseCode}` : ""}</span>{isPrint ? `${data.caseCode ? " · " : ""}Page 1 of ${pageTotal}` : ""}</div>
             </div>
           </div>
 
-          {/* Main body: timetable (65%) + right panel (35%) */}
-          <div className="flex gap-2 flex-1 min-h-0">
-
-            {/* LEFT: Timetable 65% — fills full panel height */}
-            <div className="w-[65%] shrink-0 flex flex-col gap-1 min-h-0">
-              <div className={`${panel} flex-1 overflow-hidden flex flex-col`}>
-                <div className="flex-1 min-h-0">
-                  <PrintTimetable timetable={timetable} startISO={i?.startTime} />
-                </div>
-              </div>
+          {/* Patient fill-in band — identity always blank, filled by hand */}
+          <div className="border border-slate-200 rounded-lg bg-slate-50/60 dark:bg-[#181818] px-3 py-1.5 flex items-end gap-4">
+            <div className="flex-1 min-w-0">
+              <span className="text-[8.5px] text-slate-400">{L.patientName}</span>
+              <div className="border-b border-slate-300 h-3.5" />
             </div>
-
-            {/* RIGHT: info 35% */}
-            <div className="flex-1 flex flex-col gap-1.5 min-h-0 overflow-hidden">
-
-              {/* TOP: Clinical info */}
-              <div className={`${panel} flex-1 overflow-hidden`}>
-                {/* Staff + timeline */}
-                <div className="grid grid-cols-2 gap-x-3">
-                  <div>
-                    <Sec title={L.staff} />
-                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.anaesthesiologist}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
-                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.surgeon}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
-                    <div className="flex items-center gap-1 py-0.5 text-[9px]"><span className="text-slate-400 shrink-0 w-20">{L.nurse}</span><span className="flex-1 border-b border-dashed border-slate-300 dark:border-slate-600 h-3" /></div>
-                    {duration() && <F label={L.duration} value={duration()} />}
-
-                    <Sec title={L.patient} />
-                    {p?.diagnosis        && <F label={L.diagnosis} value={p.diagnosis} />}
-                    {p?.plannedProcedure && <F label={L.procedure} value={p.plannedProcedure} />}
-                    <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
-                    <F label="BMI"  value={p?.bmi ? `${p.bmi} kg/m²` : null} />
-                    {p?.heightCm && p?.sex && (() => {
-                      const ibw = calcIBW(p.heightCm, p.sex)
-                      const abw = p?.weightKg ? calcABW(ibw, p.weightKg) : null
-                      return <>
-                        <F label="IBW" value={ibw ? `${ibw} kg` : null} />
-                        {abw != null && <F label="ABW" value={`${abw} kg`} />}
-                      </>
-                    })()}
-                  </div>
-                  <div>
-                    <Sec title={L.anaesthesia} />
-                    {techniques.length > 0 && <F label={L.technique} value={techniques.map((t: string) => tLabel(TECHNIQUE_LABELS, t, locale)).join(" + ")} />}
-                    <F label={L.airway} value={deviceLabel(i, locale)} />
-                    {airwayTools.length > 0 && <F label={L.tools} value={airwayTools.map((t: string) => tLabel(TOOL_LABELS, t, locale)).join(", ")} />}
-                    {ventModes.length > 0   && <F label={L.ventilation} value={ventModes.join(", ")} />}
-                    {i?.volatileAgent && <F label={L.agent} value={i.volatileAgent} />}
-                    {positions.length > 0   && <F label={L.position} value={positions.map((s: string) => tLabel(POSITION_LABELS, s, locale)).join(", ")} />}
-                  </div>
-                </div>
-
-                {/* Monitoring */}
-                {activeMonitors.length > 0 && (
-                  <>
-                    <Sec title={L.monitoring} />
-                    <div className="flex flex-wrap">{activeMonitors.map(m => <Chip key={m} color="blue">{m}</Chip>)}</div>
-                  </>
-                )}
-
-                {/* Vascular */}
-                {vascular.length > 0 && (
-                  <>
-                    <Sec title={L.vascular} />
-                    <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                      {vascular.map(a => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).join(" · ")}
-                    </p>
-                  </>
-                )}
-
-                {/* Premedication */}
-                {(i?.premedicationEvening || i?.premedicationMorning) && (
-                  <>
-                    <Sec title={L.premed} />
-                    <F label={L.evening} value={i?.premedicationEvening} />
-                    <F label={L.morning} value={i?.premedicationMorning} />
-                  </>
-                )}
-              </div>
-
-              {/* BOTTOM: Drug totals + Fluid balance */}
-              <div className={`${panel}`}>
-                <div className="grid grid-cols-2 gap-x-3">
-                  <div>
-                    <Sec title={L.drugTotals} />
-                    {drugTotals.length === 0 && infTotals.length === 0 &&
-                      <p className="text-[10px] text-slate-400 dark:text-slate-600">{L.noDrugs}</p>}
-                    {drugTotals.map(d => (
-                      <div key={d.name} className="flex justify-between text-[10px] py-[1px]">
-                        <span className="text-slate-600 dark:text-slate-400">{d.name}</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-100">{d.total} {d.unit}</span>
-                      </div>
-                    ))}
-                    {infTotals.map(d => (
-                      <div key={d.name} className="flex justify-between text-[10px] py-[1px]">
-                        <span className="text-slate-600 dark:text-slate-400 italic">{d.name}</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-100">{d.total} {d.unit}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <Sec title={L.fluidBal} />
-                    <div className="grid grid-cols-2 gap-1 mt-1">
-                      {[
-                        { label: L.cryst,   value: i?.crystalloidsMl },
-                        { label: L.colloid, value: i?.colloidsMl },
-                        { label: L.blood,   value: i?.bloodMl },
-                        { label: L.urine,   value: i?.urineMl },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="border border-slate-200 dark:border-[#2a2a2a] rounded text-center py-0.5">
-                          <p className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{value ?? "—"}</p>
-                          <p className="text-[8px] text-slate-500 dark:text-slate-400">{label} mL</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[8.5px] text-slate-400">{L.idFile}</span>
+              <div className="border-b border-slate-300 h-3.5" />
             </div>
+            <div className="shrink-0 text-[10px] font-bold text-slate-800 flex items-center gap-3 pb-0.5">
+              {p?.ageYears != null && <span>{p.ageYears} {ageSuffix}</span>}
+              {p?.sex && <span>{locale === "bg" ? (p.sex === "MALE" ? "Мъж" : p.sex === "FEMALE" ? "Жена" : "") : (p.sex === "MALE" ? "Male" : p.sex === "FEMALE" ? "Female" : "")}</span>}
+              {p?.bloodType && <span>{p.bloodType} Rh{p.rhFactor === "POSITIVE" ? "+" : p.rhFactor === "NEGATIVE" ? "−" : ""}</span>}
+              {p?.heightCm && p?.weightKg && <span>{p.heightCm} cm / {p.weightKg} kg</span>}
+              {p?.bmi != null && <span>BMI {p.bmi}</span>}
+              {p?.heightCm && p?.sex && (() => { const ibw = calcIBW(p.heightCm, p.sex); return ibw ? <span>IBW {ibw} kg</span> : null })()}
+            </div>
+          </div>
+
+          {/* GDPR privacy strip — screen only; the print footer carries the disclaimer */}
+          <div className="no-print text-[7.6px] text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded px-2 py-[3px]">{L.privacyNote}</div>
+
+          {/* Key-facts chip row */}
+          {(() => {
+            const kf: string[] = []
+            if (techniques.length) kf.push(techniques.map((t: string) => tLabel(TECHNIQUE_LABELS, t, locale)).join(" + "))
+            const airway = deviceLabel(i, locale); if (airway && airway !== "—") kf.push(airway)
+            if (airwayTools.length) kf.push(airwayTools.map((t: string) => tLabel(TOOL_LABELS, t, locale)).join(", "))
+            const vent: string[] = []
+            if (ventModes.length) vent.push(ventModes.join(", "))
+            if (i?.peepCmH2O != null) vent.push(`PEEP ${i.peepCmH2O}`)
+            if (vent.length) kf.push(vent.join(" · "))
+            if (i?.volatileAgent) kf.push(i.volatileAgent)
+            if (positions.length) kf.push(positions.map((s: string) => tLabel(POSITION_LABELS, s, locale)).join(" → "))
+            if (duration()) kf.push(duration() as string)
+            const access = vascular.map(a => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).filter(Boolean).join(" · ")
+            const pill = "text-[8.8px] text-slate-700 border border-slate-300 rounded-full px-2.5 py-[2px] whitespace-nowrap"
+            return (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                {p?.asaScore && (
+                  <span className="text-[8.8px] font-bold text-blue-900 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-full px-2.5 py-[2px]">
+                    ASA {p.asaScore}{p.emergencySurgery ? "E" : ""}
+                  </span>
+                )}
+                {kf.map((f, idx) => <span key={idx} className={pill}>{f}</span>)}
+                {activeMonitors.length > 0 && <span className={pill}>Monitoring · {activeMonitors.join(" · ")}</span>}
+                {access && <span className={pill}>IV access {access}</span>}
+              </div>
+            )
+          })()}
+
+          {/* Section label */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold tracking-[0.12em] text-blue-900 dark:text-blue-300">{L.intraopTt}</span>
+            <div className="flex-1 h-px bg-blue-100 dark:bg-blue-900/60" />
+          </div>
+
+          {/* Timetable — stacked half-case panels at the same time scale.
+              Numeric grid samples per panel; graph/drugs/events stay full-res. */}
+          <div className="border border-slate-200 rounded-lg bg-white flex-1 min-h-0 overflow-hidden flex flex-col p-1 gap-0.5">
+            {sheet0Panels.map(pl => (
+              <div key={pl.index} className="flex-1 min-h-0">
+                <PrintTimetable timetable={timetable} startISO={i?.startTime}
+                  locale={locale} themeAware={!isPrint}
+                  view={panelView(pl, sheet0Panels.length > 1)} />
+              </div>
+            ))}
+            {(sheet0Panels.length > 1 || sheet0Panels[0].intervalMin > 5) && (
+              <p className="text-[7.5px] text-slate-400 px-1.5 pb-0.5 shrink-0">
+                {locale === "bg"
+                  ? `Виталните в таблицата са през ${sheet0Panels[0].intervalMin} мин · графиката, лекарствата и събитията са в точно записаното време`
+                  : `Vitals table sampled q${sheet0Panels[0].intervalMin}min · graph, drugs and events at exact recorded times`}
+              </p>
+            )}
+          </div>
+
+          {/* Bottom band: fluid balance · drug administration log · intraop notes */}
+          <div className="grid grid-cols-[0.85fr_1.35fr_1fr] gap-2">
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.fluidBal.toUpperCase()} (ML)</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Crystalloid", value: i?.crystalloidsMl },
+                  { label: "Colloid",     value: i?.colloidsMl },
+                  { label: "Blood",       value: i?.bloodMl },
+                  { label: "Urine",       value: i?.urineMl },
+                ].map(({ label, value }) => (
+                  <div key={label} className="border border-slate-200 rounded-md text-center py-1">
+                    <p className="text-[13px] font-extrabold text-slate-900 leading-tight">{value ?? "—"}</p>
+                    <p className="text-[7.5px] text-slate-500">{label}</p>
+                  </div>
+                ))}
+              </div>
+              {i?.bloodProductsNote && <p className="text-[8px] text-slate-500 italic mt-1">{i.bloodProductsNote}</p>}
+            </div>
+            {/* Numbered log — the ① ② … pins on the chart resolve here */}
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.drugLog.toUpperCase()}</p>
+              {drugLog.length === 0 && <p className="text-[10px] text-slate-400">{L.noDrugs}</p>}
+              <div className="grid grid-cols-2 gap-x-3">
+                {drugLog.map(d => (
+                  <div key={d.n} className="flex items-center gap-1.5 text-[8.5px] leading-[12px] min-w-0">
+                    <span className="inline-flex items-center justify-center w-[11px] h-[11px] rounded-full border text-[6.8px] font-bold shrink-0"
+                      style={{ color: d.color, borderColor: d.color }}>{d.n}</span>
+                    <span className="font-bold text-slate-500 text-[8px]" style={{ fontFamily: "Consolas, monospace" }}>{d.time}</span>
+                    <span className="text-slate-700 truncate flex-1">{d.name}</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap" style={{ fontFamily: "Consolas, monospace" }}>{d.dose}</span>
+                  </div>
+                ))}
+              </div>
+              {(drugTotals.length > 0 || infTotals.length > 0) && (
+                <p className="text-[7px] text-slate-500 border-t border-slate-100 dark:border-[#252525] mt-1 pt-0.5 leading-[9.5px]">
+                  <span className="font-bold">{L.totalsLbl}:</span>{" "}
+                  {[...drugTotals, ...infTotals].map(d => `${d.name} ${d.total} ${d.unit}`).join(" · ")}
+                </p>
+              )}
+            </div>
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.notes.toUpperCase()}</p>
+              {i?.complications
+                ? <p className="text-[9.5px] text-slate-700 leading-snug">{i.complications}</p>
+                : <p className="text-[9.5px] text-slate-400">—</p>}
+              {(i?.premedicationEvening || i?.premedicationMorning) && (
+                <p className="text-[8px] text-slate-500 mt-1">
+                  {L.premed}: {[i?.premedicationEvening && `${L.evening} ${i.premedicationEvening}`, i?.premedicationMorning && `${L.morning} ${i.premedicationMorning}`].filter(Boolean).join(" · ")}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Signatures */}
+          <div className="grid grid-cols-3 gap-8 mt-1">
+            {[L.sigAnest, L.sigNurse, L.sigSurg].map(r => (
+              <div key={r} className="border-t border-slate-300 pt-1"><p className="text-[8.5px] text-slate-400">{r} — {L.nameSig}</p></div>
+            ))}
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between text-[7.5px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-[#222] pt-1">
-            <span>{L.gdprNote}</span>
-            <span>{L.page1} · {format(new Date(), "dd MMM yyyy HH:mm")} · {L.confidential}</span>
+          <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
+            <span>{L.footerLine}</span>
+            <span>{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════
+            CONTINUATION SHEETS — only for extreme (>~24h) cases
+        ════════════════════════════════════════════════════════ */}
+        {contSheets.map((sheetPanels, k) => (
+          <div key={`cont-${k}`} className="page-intraop border border-slate-200 rounded-xl bg-white p-3 flex flex-col gap-2 min-h-[520px]">
+            {/* Compact continued strip — identity fields live on Sheet 1 */}
+            <div className="flex items-center justify-between border-b-2 border-blue-900 dark:border-blue-500 pb-1.5 gap-3">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-[13px] font-black tracking-tight text-slate-900">LOSPOR</span>
+                <span className="text-[9.5px] font-bold tracking-[0.14em] text-blue-900 dark:text-blue-300">{L.record} · {contWord}</span>
+                <span className="text-[9px] text-slate-500 truncate">
+                  {[patientLine, p?.asaScore ? `ASA ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null,
+                    techniques.length ? techniques.map((t: string) => tLabel(TECHNIQUE_LABELS, t, locale)).join(" + ") : null,
+                    locale === "bg" ? "самоличността — на лист 1" : "identity fields on Sheet 1"].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+              <div className="text-right text-[9px] text-slate-500 shrink-0">
+                <span className="font-bold text-slate-800">{colHHMM(sheetPanels[0].startCol)} – {colHHMM(sheetPanels[sheetPanels.length - 1].endCol + 1)}</span>
+                {" · "}{locale === "bg" ? "витални" : "vitals"} q{sheetPanels[0].intervalMin}min · {data.caseCode ? `Case ${data.caseCode} · ` : ""}{locale === "bg" ? `Стр. ${k + 2} от ${pageTotal}` : `Page ${k + 2} of ${pageTotal}`}
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-lg bg-white flex-1 min-h-0 overflow-hidden flex flex-col p-1 gap-0.5">
+              {sheetPanels.map(pl => (
+                <div key={pl.index} className="flex-1 min-h-0">
+                  <PrintTimetable timetable={timetable} startISO={i?.startTime}
+                    locale={locale} themeAware={!isPrint} view={panelView(pl, true)} />
+                </div>
+              ))}
+            </div>
+
+            {/* Signatures only on the final continuation sheet */}
+            {k === contSheets.length - 1 && (
+              <div className="grid grid-cols-3 gap-8">
+                {[L.sigAnest, L.sigNurse, L.sigSurg].map(rr => (
+                  <div key={rr} className="border-t border-slate-300 pt-1"><p className="text-[8.5px] text-slate-400">{rr} — {L.nameSig}</p></div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
+              <span>{L.footerLine}</span>
+              <span>{k < contSheets.length - 1 ? (locale === "bg" ? `Продължава на лист ${k + 3} · ` : `Continues on Sheet ${k + 3} · `) : ""}{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
+            </div>
+          </div>
+        ))}
 
         {/* ═══════════════════════════════════════════════════════
             PAGE 2 — PORTRAIT — PREOP + POSTOP
         ════════════════════════════════════════════════════════ */}
-        <div data-tour="summary-page2" className="page-preoppost border border-slate-200 dark:border-[#2a2a2a] rounded-xl bg-white dark:bg-[#1c1c1c] p-3 flex flex-col gap-2 min-h-[520px]">
+        <div data-tour="summary-page2" className="page-preoppost border border-slate-200 rounded-xl bg-white p-3 flex flex-col gap-2 min-h-[520px]">
 
-          {/* Header */}
-          <div className="flex items-center justify-between border-b-2 border-blue-700 dark:border-blue-500 pb-1.5">
-            <div>
-              <span className="text-[12px] font-bold text-blue-700 dark:text-blue-400">{L.protocol}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2">· {L.preoppost} · {dateStr}</span>
+          {/* Header — same wordmark system as Sheet 1 */}
+          <div className="flex items-start justify-between border-b-2 border-blue-900 dark:border-blue-500 pb-2 gap-3">
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[17px] font-black tracking-tight text-slate-900">LOSPOR</span>
+                <span className="text-blue-800 dark:text-blue-400 text-[11px]">●</span>
+                <span className="text-[11px] font-bold tracking-[0.18em] text-blue-900 dark:text-blue-300">{L.prepost}</span>
+              </div>
+              {p?.plannedProcedure && <div className="text-[13px] font-bold text-slate-900 mt-0.5">{p.plannedProcedure}</div>}
+              {(p?.diagnosis || p?.icdCode) && (
+                <div className="text-[9.5px] text-slate-500">{[p?.diagnosis, p?.icdCode].filter(Boolean).join(" · ")}</div>
+              )}
             </div>
-            <div className="text-right text-[10px]">
-              <span className="text-slate-400 border-b border-dashed border-slate-300 w-40 inline-block" />
+            <div className="text-right text-[9.5px] text-slate-500 leading-relaxed shrink-0">
+              <div>{inst?.name}{inst?.city ? ` · ${inst.city}` : ""}</div>
+              <div>{dateStr}</div>
+              <div><span className="font-bold text-slate-800">{data.caseCode ? `Case ${data.caseCode}` : ""}</span>{isPrint ? `${data.caseCode ? " · " : ""}Page ${pageTotal} of ${pageTotal}` : ""}</div>
             </div>
           </div>
 
-          {/* PREOP — top 50% */}
-          <div className="flex-1 flex gap-2 overflow-hidden">
-            {/* LEFT */}
-            <div className={`${panel} flex-1 overflow-hidden`}>
-              {p?.diagnosis        && <><Sec title={L.diagnosis} /><p className="text-[10.5px] font-semibold text-slate-800 dark:text-slate-100">{p.diagnosis}</p></>}
-              {p?.plannedProcedure && <><Sec title={L.procedure} /><p className="text-[10.5px] text-slate-700 dark:text-slate-300">{p.plannedProcedure}</p></>}
-
-              <Sec title={L.riskScores} />
+          {/* PREOPERATIVE ASSESSMENT */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold tracking-[0.12em] text-blue-900 dark:text-blue-300">{L.preopAssessment}</span>
+            <div className="flex-1 h-px bg-blue-100 dark:bg-blue-900/60" />
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {/* Risk scores + preop vitals */}
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.riskScores.toUpperCase()}</p>
               <F label="ASA"       value={p?.asaScore ? `Class ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null} />
-              {p?.rcriScore  != null && <F label="RCRI"      value={`${p.rcriScore}/6 — ${rcriRiskLabel(p.rcriScore)}`} />}
-              {p?.apfelScore != null && <F label="Apfel"     value={`${p.apfelScore}/4 — ${apfelRiskLabel(p.apfelScore)}`} />}
-              {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore}/8 — ${stopBangRiskLabel(p.stopBangScore)}`} />}
-
-              <Sec title={L.airway} />
+              {p?.rcriScore  != null && <F label="RCRI"      value={`${p.rcriScore} / 6 — ${rcriRiskLabel(p.rcriScore)}`} />}
+              {p?.apfelScore != null && <F label="Apfel"     value={`${p.apfelScore} / 4 — ${apfelRiskLabel(p.apfelScore)}`} />}
+              {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore} / 8 — ${stopBangRiskLabel(p.stopBangScore)}`} />}
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.preVitals.toUpperCase()}</p>
+              <F label={L.bp}   value={p?.bpSystolic && p?.bpDiastolic ? `${p.bpSystolic} / ${p.bpDiastolic} mmHg` : null} />
+              <F label={L.hr}   value={p?.heartRate ? `${p.heartRate} bpm` : null} />
+              <F label="SpO₂"   value={p?.spO2 ? `${p.spO2} %` : null} />
+              <F label={L.temp} value={p?.temperature ? `${p.temperature} °C` : null} />
+              <F label={L.rr}   value={p?.respiratoryRate ? `${p.respiratoryRate}/min` : null} />
+            </div>
+            {/* Airway + anthropometry */}
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.airwayAssessment.toUpperCase()}</p>
               <F label="Mallampati"      value={p?.mallampati} />
               <F label={L.mouthOpening}  value={p?.mouthOpeningCm ? `${p.mouthOpeningCm} cm` : null} />
               <F label={L.thyromental}   value={p?.thyromental ? `${p.thyromental} cm` : null} />
               <F label={L.neckMobility}  value={p?.neckMobility} />
               <F label="ULBT"            value={p?.upperLipBiteTest} />
               <F label={L.clGrade}       value={p?.cormackLehane} />
-              {p?.difficultAirwayHistory && (
-                <p className="text-[9px] font-semibold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-1.5 py-0.5 mt-1">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
-              )}
-
-              <Sec title={L.preVitals} />
-              <F label={L.bp}   value={p?.bpSystolic && p?.bpDiastolic ? `${p.bpSystolic}/${p.bpDiastolic} mmHg` : null} />
-              <F label={L.hr}   value={p?.heartRate ? `${p.heartRate} bpm` : null} />
-              <F label="SpO₂"   value={p?.spO2 ? `${p.spO2}%` : null} />
-              <F label={L.temp} value={p?.temperature ? `${p.temperature} °C` : null} />
-              <F label={L.rr}   value={p?.respiratoryRate ? `${p.respiratoryRate}/min` : null} />
-            </div>
-
-            {/* RIGHT */}
-            <div className={`${panel} flex-1 overflow-hidden`}>
+              {p?.difficultAirwayHistory
+                ? <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
+                : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">No difficult-airway history</p>}
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.anthropometry.toUpperCase()}</p>
               <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
               <F label="BMI"           value={p?.bmi ? `${p.bmi} kg/m²` : null} />
-
+            </div>
+            {/* History & comorbidities + meds + allergies */}
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.histCom.toUpperCase()}</p>
               {comorbidities.length > 0 && (
-                <>
-                  <Sec title={L.comorbidities} />
-                  <div className="flex flex-wrap">{comorbidities.map((c, idx) => <Chip key={idx} color="amber">{c.label ?? String(c)}</Chip>)}</div>
-                </>
+                <div className="flex flex-wrap mb-1">{comorbidities.map((c, idx) => <Chip key={idx} color="amber">{c.label ?? String(c)}</Chip>)}</div>
               )}
-
               {currentMedicationsText && (
                 <>
-                  <Sec title={L.medications} />
-                  <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-snug">{currentMedicationsText}</p>
+                  <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-1.5">{L.medications.toUpperCase()}</p>
+                  <p className="text-[9.5px] text-slate-700 leading-snug">{currentMedicationsText}</p>
                 </>
               )}
-
-              {(p?.allergies || p?.latexAllergy) && (
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-red-800 mb-0.5 mt-1.5">{L.allergies.toUpperCase()}</p>
+              {(p?.allergies || p?.latexAllergy) ? (
                 <>
-                  <Sec title={L.allergies} />
-                  {allergyDetailsText && <p className="text-[10px] font-semibold text-red-700 dark:text-red-400">{allergyDetailsText}</p>}
-                  {p?.latexAllergy   && <p className="text-[9px] text-red-600 dark:text-red-400">{L.latexAllergy}</p>}
+                  {allergyDetailsText && <p className="text-[9.5px] font-bold text-red-700">{allergyDetailsText}</p>}
+                  {p?.latexAllergy   && <p className="text-[9px] text-red-600">{L.latexAllergy}</p>}
                 </>
-              )}
-
-              {labResults.length > 0 && (
-                <>
-                  <Sec title={L.lab} />
-                  <div
-                    className={labResults.length >= 9 ? "lab-compact" : ""}
-                    style={{
-                      columns: labResults.length >= 30 ? 4 : labResults.length >= 16 ? 3 : labResults.length >= 9 ? 2 : 1,
-                      columnGap: "0.5rem",
-                    }}
-                  >
-                    {labResults.map((l, idx) => (
-                      <div key={idx} className="lab-entry" style={{ breakInside: "avoid" }}>
-                        <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
+              ) : <p className="text-[9px] text-slate-500">NKDA</p>}
               {p?.familyAnesthesiaProblems && (
-                <p className="text-[9px] text-amber-700 dark:text-amber-400 mt-2">{L.familyHistory}</p>
+                <p className="text-[8.5px] text-amber-700 mt-1.5">{L.familyHistory}</p>
               )}
+            </div>
+            {/* Investigations */}
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.investigations.toUpperCase()}</p>
+              {labResults.length > 0 ? (
+                <div
+                  className={labResults.length >= 12 ? "lab-compact" : ""}
+                  style={{ columns: labResults.length >= 24 ? 2 : 1, columnGap: "0.5rem" }}
+                >
+                  {labResults.map((l, idx) => (
+                    <div key={idx} className="lab-entry" style={{ breakInside: "avoid" }}>
+                      <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-[9px] text-slate-400">—</p>}
             </div>
           </div>
 
-          {/* POSTOP — bottom 50% */}
-          <div className="flex-1 flex flex-col gap-1.5 border-t-2 border-blue-700 dark:border-blue-500 pt-2 overflow-hidden">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">{L.postopRecovery}</p>
-
-            {/* Aldrete */}
-            <div className="grid grid-cols-6 gap-1">
-              {[
-                ["Activity",      o?.aldreteActivity],
-                ["Respiration",   o?.aldreteRespiration],
-                ["Circulation",   o?.aldreteCirculation],
-                ["Consciousness", o?.aldreteConsciousness],
-                ["SpO₂",          o?.aldreteSpO2],
-              ].map(([lbl, val]) => (
-                <div key={lbl as string} className="border border-slate-200 dark:border-[#2a2a2a] rounded text-center py-1">
-                  <p className="text-[7.5px] text-slate-500 dark:text-slate-400">{lbl as string}</p>
-                  <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-tight">{val ?? "—"}/2</p>
-                </div>
-              ))}
-              <div className={`border rounded text-center py-1 ${aldreteBg}`}>
-                <p className="text-[7.5px] font-medium">{L.total}</p>
-                <p className="text-[13px] font-bold leading-tight">{o?.aldreteTotal ?? "—"}/10</p>
-                <p className="text-[6.5px]">{aldreteTotal >= 9 ? L.ready : aldreteTotal >= 7 ? L.monitor : L.continueStr}</p>
+          {/* POSTOPERATIVE RECOVERY */}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[9px] font-bold tracking-[0.12em] text-blue-900 dark:text-blue-300">{L.postopRecoveryLbl}</span>
+            <div className="flex-1 h-px bg-blue-100 dark:bg-blue-900/60" />
+          </div>
+          <div className="grid grid-cols-6 gap-2">
+            {[
+              ["Activity",      o?.aldreteActivity],
+              ["Respiration",   o?.aldreteRespiration],
+              ["Circulation",   o?.aldreteCirculation],
+              ["Consciousness", o?.aldreteConsciousness],
+              ["SpO₂",          o?.aldreteSpO2],
+            ].map(([lbl, val]) => (
+              <div key={lbl as string} className="border border-slate-200 rounded-lg text-center py-1.5 bg-white">
+                <p className="text-[8px] text-slate-500">{lbl as string}</p>
+                <p className="text-[15px] font-extrabold text-slate-900 leading-tight">{val ?? "—"}</p>
               </div>
+            ))}
+            <div className={`border rounded-lg text-center py-1.5 ${aldreteBg}`}>
+              <p className="text-[8px] font-medium">{L.aldreteTotalLbl}</p>
+              <p className="text-[15px] font-extrabold leading-tight">{o?.aldreteTotal ?? "—"} / 10</p>
+              <p className="text-[7px]">{aldreteTotal >= 9 ? L.readyDischarge : aldreteTotal >= 7 ? L.monitor : L.continueStr}</p>
             </div>
-
-            {/* Recovery + disposition */}
-            <div className="flex gap-2 flex-1 overflow-hidden">
-              <div className={`${panel} flex-1`}>
-                <Sec title={L.recovery} />
-                <F label="Blood pressure" value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic}/${o.recoveryBpDiastolic} mmHg` : null} />
-                <F label="Heart rate" value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
-                <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2}%` : null} />
-                <F label={L.temperature} value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
-                <F label={L.painNRS}     value={o?.painScoreNRS != null ? `${o.painScoreNRS}/10` : null} />
-                <F label={L.ponv}        value={o?.ponv ? "Yes" : o?.ponv === false ? "No" : null} />
-              </div>
-              <div className={`${panel} flex-1`}>
-                <Sec title={L.disposition} />
-                {o?.disposition && (
-                  <span className={`inline-block text-[10px] font-bold px-3 py-0.5 rounded border mb-1.5 ${
-                    o.disposition === "WARD" ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700" :
-                    o.disposition === "PACU" ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700" :
-                    "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700"
-                  }`}>{o.disposition}</span>
-                )}
-                {o?.dispositionNotes && <p className="text-[10px] text-slate-700 dark:text-slate-300 leading-snug">{o.dispositionNotes}</p>}
-              </div>
-              {handoverItems.length > 0 && (
-                <div className={`${panel} flex-1`}>
-                  <Sec title={L.handover} />
-                  <ul className="text-[10px] text-slate-700 dark:text-slate-300 space-y-0.5 list-none">
-                    {handoverItems.map((code: string, idx: number) => (
-                      <li key={idx}>✓ {handoverLookup[code] ?? code.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</li>
-                    ))}
-                  </ul>
-                </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.recoveryObs.toUpperCase()}</p>
+              <F label={L.bp} value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic} / ${o.recoveryBpDiastolic} mmHg` : null} />
+              <F label={L.hr} value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
+              <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2} %` : null} />
+              <F label={L.temperature} value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
+              <F label={L.painNRS}     value={o?.painScoreNRS != null ? `${o.painScoreNRS} / 10` : null} />
+              <F label={L.ponv}        value={o?.ponv ? "Yes" : o?.ponv === false ? "None" : null} />
+            </div>
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.disposition.toUpperCase()}</p>
+              {o?.disposition && (
+                <span className={`inline-block text-[11px] font-extrabold px-3 py-0.5 rounded-md border mb-1.5 ${
+                  o.disposition === "WARD" ? "bg-green-100 text-green-800 border-green-300" :
+                  o.disposition === "PACU" ? "bg-amber-100 text-amber-800 border-amber-300" :
+                  "bg-red-100 text-red-800 border-red-300"
+                }`}>{o.disposition}</span>
               )}
+              {o?.dispositionNotes && <p className="text-[9.5px] text-slate-700 leading-snug">{o.dispositionNotes}</p>}
+            </div>
+            <div className="border border-slate-200 rounded-lg p-2 bg-white">
+              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.handover.toUpperCase()}</p>
+              <div className="flex flex-wrap gap-1">
+                {handoverItems.length > 0 ? handoverItems.map((code: string, idx: number) => (
+                  <span key={idx} className="text-[8.5px] text-green-800 bg-green-50 border border-green-200 rounded px-1.5 py-[1.5px]">
+                    ✓ {handoverLookup[code] ?? code.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                  </span>
+                )) : <p className="text-[9px] text-slate-400">—</p>}
+              </div>
             </div>
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-3 gap-6 mt-1">
+          <div className="grid grid-cols-3 gap-8 mt-1">
             {[L.sigAnest, L.sigNurse, L.sigSurg].map(r => (
-              <div key={r} className="border-t border-slate-300 dark:border-[#333] pt-1">
-                <p className="text-[8px] text-slate-400 dark:text-slate-500">{r}</p>
-              </div>
+              <div key={r} className="border-t border-slate-300 pt-1"><p className="text-[8.5px] text-slate-400">{r} — {L.nameSig}</p></div>
             ))}
           </div>
-          <div className="flex justify-between text-[7.5px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-[#222] pt-1">
-            <span>LOSPOR — Large Open Source Perioperative Register</span>
-            <span>{L.page2} · {format(new Date(), "dd MMM yyyy HH:mm")} · {L.confidential}</span>
+          <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
+            <span>{L.footerLine}</span>
+            <span>{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
           </div>
         </div>
 
-        {/* Print-only disclaimer footer */}
-        <div className="print-only hidden" style={{ display: "none" }}>
-          <style>{`@media print { .lospor-print-disclaimer { display: block !important; } }`}</style>
-          <p className="lospor-print-disclaimer text-[7px] text-center text-slate-400 mt-2 border-t border-slate-200 pt-1">
-            LOSPOR — Personal anaesthetic case log. Not a clinical record. Patient identifiers must not be added. © 2026 Kaloyan Dzhunov · AGPL-3.0
-          </p>
-        </div>
+        {/* Print-only disclaimer footer — summary mode only. In print mode the
+            sheets are exact A4 pages with their own footers; any content after
+            the last sheet would spill onto a blank extra page. */}
+        {!isPrint && (
+          <div className="print-only hidden" style={{ display: "none" }}>
+            <style>{`@media print { .lospor-print-disclaimer { display: block !important; } }`}</style>
+            <p className="lospor-print-disclaimer text-[7px] text-center text-slate-400 mt-2 border-t border-slate-200 pt-1">
+              LOSPOR — Personal anaesthetic case log. Not a clinical record. Patient identifiers must not be added. © 2026 Kaloyan Dzhunov · AGPL-3.0
+            </p>
+          </div>
+        )}
       </div>
     </>
   )

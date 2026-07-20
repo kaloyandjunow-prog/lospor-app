@@ -37,6 +37,7 @@ import {
 } from "@lospor/core/sync"
 import { caseOutbox, isNetworkSaveError, onOutboxChange } from "@/lib/case-outbox"
 import { eventOutbox } from "@/lib/event-outbox"
+import { randomId } from "@/lib/random-id"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
 
@@ -159,7 +160,7 @@ export default function NewCasePage() {
         // state AND survives a reload; the flusher replays it idempotently.
         const pending = await eventOutbox.loadPending(currentCaseId).catch(() => [])
         await eventOutbox
-          .storePending(currentCaseId, [{ ...event, id: event.id ?? crypto.randomUUID() } as Record<string, unknown> & { id: string }, ...pending.filter(p => p.id !== event.id)])
+          .storePending(currentCaseId, [{ ...event, id: event.id ?? randomId() } as Record<string, unknown> & { id: string }, ...pending.filter(p => p.id !== event.id)])
           .catch(() => {})
         toast.info(t("case.savedOffline"))
         return
@@ -261,7 +262,7 @@ export default function NewCasePage() {
   const writeQueueRef = useRef(createCaseWriteQueue())
   // One idempotency key per form session: a create retried after a network
   // blip (autosave re-fires while caseIdRef is still null) can't double-create.
-  const createDraftIdRef = useRef(`web-${crypto.randomUUID()}`)
+  const createDraftIdRef = useRef(`web-${randomId()}`)
   // Field-level saves: last payload the server confirmed, per case+section, so
   // autosaves PATCH only the fields that actually changed (see core field-diff).
   const sectionSnapshotsRef = useRef(createSectionSnapshotStore())
@@ -877,16 +878,28 @@ export default function NewCasePage() {
               </span>
             )}
           </div>
-          {!undoExpired && undoSecsLeft !== null && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
-              onClick={handleUndo}
-            >
-              Undo
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Case is finished — offer the two-page record straight away */}
+            {finalizedCaseId && (
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => router.push(`/cases/${finalizedCaseId}/print`)}
+              >
+                Print case
+              </Button>
+            )}
+            {!undoExpired && undoSecsLeft !== null && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
+                onClick={handleUndo}
+              >
+                Undo
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

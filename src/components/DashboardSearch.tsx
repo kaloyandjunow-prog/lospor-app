@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Search, X, FileText } from "lucide-react"
+import { Search, X, FileText, Printer } from "lucide-react"
 import { DeleteDraftButton } from "@/components/DeleteDraftButton"
 import { HandoverButton } from "@/components/HandoverButton"
 import { format } from "date-fns"
@@ -119,6 +119,18 @@ export function DashboardSearch({
                     </span>
                   )}
                   {!isComplete && <DeleteDraftButton caseId={c.id} />}
+                  {isComplete && (
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      title="Print case"
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/cases/${c.id}/print` }}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); window.location.href = `/cases/${c.id}/print` } }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                    >
+                      <Printer className="h-3 w-3" /> Print case
+                    </span>
+                  )}
                   <HandoverButton
                     caseId={c.id}
                     caseOwnerId={c.userId}

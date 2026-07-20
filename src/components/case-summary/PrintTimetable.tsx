@@ -1,10 +1,9 @@
 "use client"
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { flushSync } from "react-dom"
 import type {
   LegacyKeyEvents, TimetableDrug, TimetableInfusion, VitalsEntry,
-  AgentSegment, TimetableFluid,
+  AgentSegment, TimetableFluid, GasSettingsSegment, ClinicalEvent, PositionSegment,
 } from "@/types/timetable"
 
 function colToHHMM(col: number, startISO?: string | null) {
@@ -43,427 +42,448 @@ export function calcInfTotals(timetable: LegacyKeyEvents) {
   })
 }
 
-// ── Intraop timetable SVG (matching IntraopTimetable visual style) ────────────
-const VB_W   = 1000
-const YAX    = 28    // Y-axis label width
-const GW     = VB_W - YAX  // 972
-const YLBL_H = 14    // time-label row height
+// ── Palettes — light "paper" (print + light theme) and dark (summary only;
+// the print page strips the theme class so the record always prints white) ───
+type Palette = {
+  bg: string; side: string; pinBg: string; timeBg: string
+  ink: string; faint: string; lbl: string; timeTxt: string; cap: string
+  gridMaj: string; gridMin: string; sep: string
+  event: string; sbp: string; hr: string; pos: string
+}
+const PAL_LIGHT: Palette = {
+  bg: "#ffffff", side: "#f8fafc", pinBg: "#fbfcfe", timeBg: "#f1f5f9",
+  ink: "#1e293b", faint: "#94a3b8", lbl: "#475569", timeTxt: "#334155", cap: "#64748b",
+  gridMaj: "#e2e8f0", gridMin: "#f1f5f9", sep: "#e8edf3",
+  event: "#4c6ef5", sbp: "#e03131", hr: "#2f9e44", pos: "#475569",
+}
+const PAL_DARK: Palette = {
+  bg: "#1c1c1c", side: "#181818", pinBg: "#1a1c1e", timeBg: "#262626",
+  ink: "#e5e5e5", faint: "#7d7d7d", lbl: "#b0b0b0", timeTxt: "#d0d0d0", cap: "#909090",
+  gridMaj: "#3a3a3a", gridMin: "#262626", sep: "#2c2c2c",
+  event: "#748ffc", sbp: "#ff6b6b", hr: "#51cf66", pos: "#64748b",
+}
 
-// Colour scheme matching IntraopTimetable.tsx
-const C_SYS  = "#ef4444"   // BP systolic — red
-const C_DIA  = "#ef4444"   // BP diastolic — red dashed
-const C_HR   = "#22c55e"   // HR — green
-const C_SPO2 = "#06b6d4"   // SpO₂ — cyan
+// Chart-internal labels (everything else on the sheet is translated in CaseSummary).
+const CHART_STR = {
+  en: { time: "Time", drugs: "Drugs", agent: "Agent", infusion: "Infusion", gas: "Gas", fluids: "Fluids", position: "Position" },
+  bg: { time: "Час",  drugs: "Лекарства", agent: "Агент", infusion: "Инфузия", gas: "Газ", fluids: "Течности", position: "Позиция" },
+}
+type ChartStr = typeof CHART_STR.en
 
-export function PrintTimetable({ timetable, startISO }: { timetable: LegacyKeyEvents; startISO?: string | null }) {
+// Drug colours matching the reference sheet; fallback palette for others.
+const DRUG_COLOR_MAP: [RegExp, string][] = [
+  [/midazolam|diazepam/i,        "#7c3aed"],
+  [/propofol|thiopental|etomid/i,"#d6336c"],
+  [/fentanyl|morphine|alfentanil|sufentanil|pethidine|opioid/i, "#2563eb"],
+  [/rocuronium|vecuronium|atracurium|cisatracurium|succinyl|suxameth/i, "#e8590c"],
+  [/ondansetron|metoclopramide|droperidol/i, "#2f9e44"],
+  [/sugammadex|neostigmine|glycopyrrolate|atropine/i, "#d9480f"],
+  [/paracetamol|metamizole|ketorolac|ibuprofen|diclofenac|dexketoprofen/i, "#0c8599"],
+  [/ephedrine|phenylephrine|noradrenaline|adrenaline|dopamine/i, "#c2255c"],
+  [/dexamethasone|methylprednisolone|hydrocortisone/i, "#5f3dc4"],
+  [/ketamine|dexmedetomidine|clonidine/i, "#6741d9"],
+]
+const DRUG_FALLBACK = ["#1971c2", "#087f5b", "#9c36b5", "#e8590c", "#3b5bdb", "#c92a2a"]
+export function drugColor(name: string, idx: number): string {
+  for (const [re, c] of DRUG_COLOR_MAP) if (re.test(name)) return c
+  return DRUG_FALLBACK[idx % DRUG_FALLBACK.length]
+}
+
+// Case-wide numbered drug log — the pins on the chart (① ② …) and the DRUG
+// ADMINISTRATION LOG box render from this one list so numbering always agrees.
+export type DrugLogEntry = {
+  n: number
+  time: string
+  name: string
+  dose: string
+  color: string
+  colIdx: number
+}
+export function buildDrugLog(timetable: LegacyKeyEvents, startISO?: string | null): DrugLogEntry[] {
+  const drugs: TimetableDrug[] = Array.isArray(timetable?.drugs) ? timetable.drugs : []
+  return drugs
+    .slice()
+    .sort((a, b) => (a.colIdx ?? 0) - (b.colIdx ?? 0))
+    .map((d, i) => ({
+      n: i + 1,
+      time: colToHHMM(d.colIdx ?? 0, startISO),
+      name: String(d.name ?? ""),
+      dose: `${d.dose ?? ""} ${d.unit ?? ""}`.trim(),
+      color: drugColor(String(d.name ?? ""), i),
+      colIdx: d.colIdx ?? 0,
+    }))
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+function gasText(g: GasSettingsSegment): string {
+  const carrier = g.carrierGas ? (g.carrierGas.toLowerCase() === "n2o" ? "N₂O" : "Air") : null
+  const parts: string[] = [carrier ? `O₂/${carrier}` : "O₂"]
+  const fgfs = [g.fgf, ...(g.settingsChanges ?? []).map(c => c.fgf)].filter(v => v != null) as number[]
+  parts.push(fgfs.length > 1 ? `FGF ${g.fgf}→${fgfs[fgfs.length - 1]} L/min` : `FGF ${g.fgf} L/min`)
+  if (g.fio2 != null) parts.push(`FiO₂ ${g.fio2}%`)
+  return parts.join(" · ")
+}
+
+const VB_W = 1100
+const LBL  = 78
+
+// A view window over the chart: inclusive column range + vitals sampling step
+// (in columns — intervalMin/5) + optional corner caption ("CONTINUED · 14:00 –
+// 20:00"). INVARIANT: `step` thins ONLY the vitals numeric-grid text — graph
+// traces, drugs, fluids, events and positions always render at their true
+// recorded columns, never thinned, never snapped.
+export type TimetableView = { c0?: number; c1?: number; step?: number; caption?: string }
+
+export function naturalMaxCols(t: LegacyKeyEvents): number {
+  const vitals = Array.isArray(t?.vitals) ? t.vitals : []
+  const drugs = Array.isArray(t?.drugs) ? t.drugs : []
+  const agents = Array.isArray(t?.agents) ? t.agents : []
+  const gas = Array.isArray(t?.gasSettings) ? t.gasSettings : []
+  const infusions = Array.isArray(t?.infusions) ? t.infusions : []
+  const fluids = Array.isArray(t?.fluids) ? t.fluids : []
+  const events = Array.isArray(t?.clinicalEvents) ? t.clinicalEvents : []
+  const positions = Array.isArray(t?.positions) ? t.positions : []
+  return Math.max(
+    vitals.length,
+    drugs.length     > 0 ? Math.max(...drugs.map(d => d.colIdx ?? 0)) + 1 : 0,
+    agents.length    > 0 ? Math.max(...agents.map(a => a.endCol ?? a.startCol ?? 0)) + 1 : 0,
+    gas.length       > 0 ? Math.max(...gas.map(g => g.endCol ?? g.startCol ?? 0)) + 1 : 0,
+    infusions.length > 0 ? Math.max(...infusions.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
+    fluids.length    > 0 ? Math.max(...fluids.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
+    events.length    > 0 ? Math.max(...events.map(e => e.colIdx ?? 0)) + 1 : 0,
+    positions.length > 0 ? Math.max(...positions.map(p => p.endCol ?? p.startCol ?? 0)) + 1 : 0,
+    12,
+  ) + 1
+}
+
+// Build one chart panel as SVG markup in a fixed 1100-wide viewBox, styled to
+// match the LOSPOR paper record: event flags above the graph, clean traces,
+// numbered drug pins on a dedicated strip, a bucket-filled numeric vitals
+// grid, and solid lane bars. Palette switches for the dark summary theme.
+function buildSVG(
+  t: LegacyKeyEvents,
+  startISO: string | null | undefined,
+  H: number,
+  view: TimetableView = {},
+  P: Palette = PAL_LIGHT,
+  S: ChartStr = CHART_STR.en,
+): string {
+  const vitals: VitalsEntry[]          = Array.isArray(t?.vitals)      ? t.vitals      : []
+  const agentsAll: AgentSegment[]      = Array.isArray(t?.agents)      ? t.agents      : []
+  const gasAll: GasSettingsSegment[]   = Array.isArray(t?.gasSettings) ? t.gasSettings : []
+  const infusionsAll: TimetableInfusion[] = Array.isArray(t?.infusions) ? t.infusions  : []
+  const fluidsAll: TimetableFluid[]    = Array.isArray(t?.fluids)      ? t.fluids      : []
+  const eventsAll: ClinicalEvent[]     = (Array.isArray(t?.clinicalEvents) ? t.clinicalEvents : [])
+    .slice().sort((a, b) => (a.colIdx ?? 0) - (b.colIdx ?? 0))
+  const positionsAll: PositionSegment[] = Array.isArray(t?.positions)  ? t.positions   : []
+
+  const natural = naturalMaxCols(t)
+  const c0 = Math.max(0, view.c0 ?? 0)
+  const c1 = Math.max(c0, view.c1 ?? natural - 1)
+  const step = Math.max(1, view.step ?? 1)
+  const nCols = c1 - c0 + 1
+  const inRange = (c: number) => c >= c0 && c <= c1
+  const sampled = (c: number) => (c - c0) % step === 0
+
+  const cW = (VB_W - LBL) / nCols
+  const xL = (c: number) => LBL + (c - c0) * cW
+  const xC = (c: number) => LBL + (c - c0) * cW + cW / 2
+
+  // Case-wide numbered drug log; pins render for doses inside this window.
+  const drugLog = buildDrugLog(t, startISO)
+  const pins = drugLog.filter(d => inRange(d.colIdx))
+  const events = eventsAll.filter(e => inRange(e.colIdx ?? 0))
+  const clip = <T extends { startCol?: number; endCol?: number }>(seg: T) => ({
+    ...seg,
+    startCol: Math.max(seg.startCol ?? 0, c0),
+    endCol:   Math.min(seg.endCol ?? seg.startCol ?? 0, c1),
+  })
+  const overlaps = (seg: { startCol?: number; endCol?: number }) =>
+    (seg.startCol ?? 0) <= c1 && (seg.endCol ?? seg.startCol ?? 0) >= c0
+  const agents    = agentsAll.filter(overlaps).map(clip)
+  const gas       = gasAll.filter(overlaps).map(clip)
+  const infusions = infusionsAll.filter(overlaps).map(clip)
+  const fluids    = fluidsAll.filter(overlaps).map(clip)
+  const positions = positionsAll.filter(overlaps).map(clip)
+
+  // Numeric grid rows (only those with any data in this window).
+  const gridDefs: { k: string; f: (v: VitalsEntry) => string }[] = [
+    { k: "BP",    f: (v: VitalsEntry) => (v.systolic != null && v.diastolic != null) ? `${v.systolic}/${v.diastolic}` : (v.systolic != null ? `${v.systolic}` : "") },
+    { k: "HR",    f: (v: VitalsEntry) => v.heartRate != null ? `${v.heartRate}` : "" },
+    { k: "SpO₂",  f: (v: VitalsEntry) => v.spO2 != null ? `${v.spO2}` : "" },
+    { k: "EtCO₂", f: (v: VitalsEntry) => v.etco2 != null ? `${v.etco2}` : "" },
+    { k: "Temp",  f: (v: VitalsEntry) => v.temp != null ? v.temp.toFixed(1) : "" },
+  ].filter(row => vitals.some((v, idx) => inRange(idx) && row.f(v ?? {}) !== ""))
+
+  const gRows    = gridDefs.length
+  const laneRows = agents.length + infusions.length + gas.length + fluids.length + (positions.length ? 1 : 0)
+
+  // Vertical layout — MUST fit inside H (anything past it is clipped by the
+  // viewBox). Text rows share a unit height derived from the available space;
+  // the graph absorbs whatever remains, so a single-panel short case gets a
+  // big roomy graph and a stacked half-case panel a compact one.
+  const evH   = 18                      // event-label rows above the graph
+  const pinH  = 14                      // numbered drug-pin strip
+  const timeH = 14
+  const fixed = evH + pinH + timeH
+  const totalRows = Math.max(gRows + laneRows, 1)
+  const MIN_GRAPH = 36
+  // Exact fit: rows shrink before anything clips; the graph absorbs surplus.
+  const unit  = Math.max(4.5, Math.min(14, (H - fixed - MIN_GRAPH) / totalRows))
+  const rowH  = unit
+  const laneH = unit
+  const graphH = Math.max(MIN_GRAPH, H - fixed - unit * totalRows)
+
+  const graphTop = evH, graphBot = evH + graphH
+  const pinY   = graphBot
+  const timeY  = pinY + pinH
+  const gridY0 = timeY + timeH
+  const laneY0 = gridY0 + gRows * rowH
+  const yBP = (v: number) => graphBot - 5 - (v / 220) * (graphH - 12)
+
+  const numFs  = Math.max(6.5, Math.min(9.5, rowH * 0.85))
+  const lblFs  = Math.max(6.5, Math.min(9.5, rowH * 0.8))
+  const laneFs = Math.max(6.5, Math.min(9.5, laneH * 0.8))
+
+  let s = ""
+  // Sheet background
+  s += `<rect x="0" y="0" width="${VB_W}" height="${H}" fill="${P.bg}"/>`
+  // Left label column background for the graph block
+  s += `<rect x="0" y="${graphTop}" width="${LBL}" height="${graphH}" fill="${P.side}"/>`
+  // Panel caption (time window) in the top-left corner, clear of the chart
+  if (view.caption) {
+    s += `<text x="4" y="11" font-size="8" font-weight="700" fill="${P.cap}" font-family="Consolas,monospace">${esc(view.caption)}</text>`
+  }
+
+  // ── graph gridlines ──
+  ;[40, 80, 120, 160, 200].forEach(y => {
+    s += `<line x1="${LBL}" y1="${yBP(y)}" x2="${VB_W}" y2="${yBP(y)}" stroke="${y % 80 === 0 ? P.gridMaj : P.gridMin}" stroke-width="${y % 80 === 0 ? 0.7 : 0.4}"/>`
+  })
+  for (let c = c0; c <= c1 + 1; c += step) s += `<line x1="${xL(c)}" y1="${graphTop}" x2="${xL(c)}" y2="${graphBot}" stroke="${P.gridMin}" stroke-width="0.35"/>`
+  s += `<line x1="${LBL}" y1="${graphBot}" x2="${VB_W}" y2="${graphBot}" stroke="${P.gridMaj}" stroke-width="0.8"/>`
+
+  // ── clinical event flags: dashed verticals + labels above the graph.
+  // Labels that would collide with the previous one drop to a second row.
+  const lastLabelEnd = [-Infinity, -Infinity]
+  events.forEach(e => {
+    const x = xC(e.colIdx ?? 0)
+    const label = esc(String(e.label ?? ""))
+    const w = String(e.label ?? "").length * 5.2
+    const nearRight = x + w > VB_W - 6
+    const x0 = nearRight ? x - w - 3 : x + 3
+    const row = x0 >= lastLabelEnd[0] + 6 ? 0 : 1
+    lastLabelEnd[row] = x0 + w
+    const yLbl = row === 0 ? 8 : 17
+    s += `<line x1="${x}" y1="${yLbl + 4}" x2="${x}" y2="${graphBot}" stroke="${P.event}" stroke-width="0.9" stroke-dasharray="4,3" opacity="0.6"/>`
+    s += `<text x="${nearRight ? x - 3 : x + 3}" y="${yLbl}" font-size="9.5" fill="${P.event}" font-weight="600" text-anchor="${nearRight ? "end" : "start"}">${label}</text>`
+  })
+
+  // ── graph legend (left column) ──
+  {
+    const ly = graphTop + graphH / 2 - 10
+    s += `<text x="8" y="${ly}" font-size="8.5" fill="${P.sbp}">▽ SBP  △ DBP</text>`
+    s += `<text x="8" y="${ly + 12}" font-size="8.5" fill="${P.hr}">● HR</text>`
+    s += `<text x="8" y="${ly + 24}" font-size="7.5" fill="${P.faint}">mmHg / bpm</text>`
+  }
+
+  // ── vitals traces — FULL resolution (every recorded point plots; only the
+  // numeric text rows sample) and connected across unrecorded columns. ──
+  function segs(key: keyof VitalsEntry): string[][] {
+    const cur: string[] = []
+    vitals.forEach((v, idx) => {
+      if (!inRange(idx)) return
+      const val = v?.[key]
+      if (val != null && !isNaN(Number(val))) cur.push(`${xC(idx)},${yBP(Number(val))}`)
+    })
+    return cur.length > 1 ? [cur] : []
+  }
+  segs("systolic").forEach(p => s += `<polyline points="${p.join(" ")}" fill="none" stroke="${P.sbp}" stroke-width="1.5"/>`)
+  vitals.forEach((v, idx) => { if (inRange(idx) && v?.systolic != null) { const x = xC(idx), y = yBP(v.systolic)
+    s += `<polygon points="${x - 3.2},${y - 2.6} ${x + 3.2},${y - 2.6} ${x},${y + 3.2}" fill="${P.sbp}"/>` } })
+  segs("diastolic").forEach(p => s += `<polyline points="${p.join(" ")}" fill="none" stroke="${P.sbp}" stroke-width="1.1" stroke-dasharray="4,3" opacity="0.85"/>`)
+  vitals.forEach((v, idx) => { if (inRange(idx) && v?.diastolic != null) { const x = xC(idx), y = yBP(v.diastolic)
+    s += `<polygon points="${x - 3.2},${y + 2.6} ${x + 3.2},${y + 2.6} ${x},${y - 3.2}" fill="${P.bg}" stroke="${P.sbp}" stroke-width="1"/>` } })
+  segs("heartRate").forEach(p => s += `<polyline points="${p.join(" ")}" fill="none" stroke="${P.hr}" stroke-width="1.3"/>`)
+  vitals.forEach((v, idx) => { if (inRange(idx) && v?.heartRate != null) s += `<circle cx="${xC(idx)}" cy="${yBP(v.heartRate)}" r="2.1" fill="${P.hr}"/>` })
+
+  // ── numbered drug pins on their own strip (① ② … at the exact time; the
+  // DRUG ADMINISTRATION LOG box lists dose + time per number). Colliding pins
+  // nudge to a second mini-row. ──
+  s += `<rect x="0" y="${pinY}" width="${VB_W}" height="${pinH}" fill="${P.pinBg}"/>`
+  s += `<text x="${LBL - 8}" y="${pinY + pinH / 2 + 3}" font-size="8.5" font-weight="700" fill="${P.lbl}" text-anchor="end">${S.drugs}</text>`
+  {
+    const lastX = [-Infinity, -Infinity]
+    const r = Math.min(6, pinH * 0.32)
+    pins.forEach(d => {
+      const x = xC(d.colIdx)
+      const row = x >= lastX[0] + 2 * r + 3 ? 0 : 1
+      lastX[row] = x
+      const cy = pinY + (row === 0 ? pinH * 0.32 : pinH * 0.72)
+      s += `<line x1="${x}" y1="${graphBot - 4}" x2="${x}" y2="${cy}" stroke="${d.color}" stroke-width="1"/>`
+      s += `<circle cx="${x}" cy="${cy}" r="${r}" fill="${P.bg}" stroke="${d.color}" stroke-width="1.2"/>`
+      s += `<text x="${x}" y="${cy + r * 0.55}" font-size="${r * 1.5}" font-weight="700" fill="${d.color}" text-anchor="middle">${d.n}</text>`
+    })
+  }
+
+  // ── time band ──
+  s += `<rect x="0" y="${timeY}" width="${VB_W}" height="${timeH}" fill="${P.timeBg}"/>`
+  s += `<line x1="0" y1="${timeY}" x2="${VB_W}" y2="${timeY}" stroke="${P.gridMaj}" stroke-width="0.8"/>`
+  s += `<line x1="0" y1="${timeY + timeH}" x2="${VB_W}" y2="${timeY + timeH}" stroke="${P.gridMaj}" stroke-width="0.8"/>`
+  s += `<text x="${LBL - 8}" y="${timeY + timeH / 2 + 3.5}" font-size="9.5" fill="${P.faint}" text-anchor="end">${S.time}</text>`
+  // Time labels land on sampled columns only; further decimated to stay legible.
+  const sampledCount = Math.ceil(nCols / step)
+  const labelEvery = step * Math.max(1, Math.ceil(sampledCount / 13))
+  for (let c = c0; c <= c1; c++) if ((c - c0) % labelEvery === 0) {
+    const x = xC(c)
+    const anchor = x < LBL + 24 ? "start" : "middle"
+    s += `<text x="${anchor === "start" ? xL(c) + 2 : x}" y="${timeY + timeH / 2 + 4}" font-size="11" font-family="Consolas,monospace" font-weight="700" fill="${P.timeTxt}" text-anchor="${anchor}">${colToHHMM(c, startISO)}</text>`
+  }
+
+  // ── numeric vitals grid — each sampled tick shows the recorded value nearest
+  // inside its bucket [c, c+step), so the table stays filled whatever the
+  // actual recording cadence was; cells with nothing recorded stay blank ──
+  const bucketVal = (f: (v: VitalsEntry) => string, c: number) => {
+    for (let k = c; k < Math.min(c + step, c1 + 1, vitals.length); k++) {
+      const val = f(vitals[k] ?? {})
+      if (val !== "") return val
+    }
+    return ""
+  }
+  gridDefs.forEach((row, ri) => {
+    const y = gridY0 + ri * rowH
+    s += `<text x="${LBL - 8}" y="${y + rowH / 2 + lblFs / 2 - 1}" font-size="${lblFs}" font-weight="700" fill="${P.lbl}" text-anchor="end">${row.k}</text>`
+    for (let c = c0; c <= Math.min(c1, vitals.length - 1); c++) {
+      if (!sampled(c)) continue
+      const val = bucketVal(row.f, c)
+      if (val === "") continue
+      const x = xC(c)
+      const anchor = x < LBL + 22 ? "start" : "middle"
+      s += `<text x="${anchor === "start" ? xL(c) + 2 : x}" y="${y + rowH / 2 + numFs / 2 - 1}" font-size="${numFs}" font-family="Consolas,monospace" fill="${P.ink}" text-anchor="${anchor}">${val}</text>`
+    }
+    s += `<line x1="0" y1="${y + rowH}" x2="${VB_W}" y2="${y + rowH}" stroke="${P.gridMin}" stroke-width="0.5"/>`
+  })
+  // column separators through time band + numeric grid (sampled boundaries)
+  for (let c = c0; c <= c1 + 1; c += step) {
+    s += `<line x1="${xL(c)}" y1="${timeY}" x2="${xL(c)}" y2="${laneY0}" stroke="${P.sep}" stroke-width="0.4"/>`
+  }
+
+  // ── lane bars (Agent / Infusion / Gas / Fluids) ──
+  let r = 0
+  function laneBar(label: string, start: number, end: number, color: string, text: string) {
+    const y = laneY0 + r * laneH; r++
+    s += `<text x="${LBL - 8}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="${P.lbl}" text-anchor="end">${label}</text>`
+    const x1 = xL(start), w = Math.max((end - start + 1) * cW, cW)
+    const barH = Math.max(laneH - 2.5, 4.5)
+    s += `<rect x="${x1}" y="${y + (laneH - barH) / 2}" width="${w}" height="${barH}" rx="${Math.min(4, barH / 2)}" fill="${color}"/>`
+    const t = esc(text)
+    const fits = t.length * (laneFs * 0.56) + 14 < w
+    if (fits) s += `<text x="${x1 + 7}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="#ffffff">${t}</text>`
+    else      s += `<text x="${x1 + w + 5}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="${color}">${t}</text>`
+    s += `<line x1="0" y1="${y + laneH}" x2="${VB_W}" y2="${y + laneH}" stroke="${P.gridMin}" stroke-width="0.4"/>`
+  }
+  agents.forEach(a => laneBar(S.agent, a.startCol ?? 0, a.endCol ?? a.startCol ?? 0, "#0d9488",
+    `${a.name ?? ""}${a.percent != null ? ` ${a.percent} vol%` : ""}`.trim()))
+  infusions.forEach(f => laneBar(S.infusion, f.startCol ?? 0, f.endCol ?? f.startCol ?? 0, "#2563eb",
+    `${f.name ?? ""} ${f.rate ?? ""} ${f.unit ?? ""}`.trim()))
+  gas.forEach(g => laneBar(S.gas, g.startCol ?? 0, g.endCol ?? g.startCol ?? 0, "#0284c7", gasText(g)))
+  fluids.forEach(f => laneBar(S.fluids, f.startCol ?? 0, f.endCol ?? f.startCol ?? 0, "#0ea5e9",
+    `${f.name ?? ""}${f.volume ? ` ${f.volume} mL` : ""}`.trim()))
+  // Position lane — all segments share ONE row (they are sequential by nature).
+  if (positions.length) {
+    const y = laneY0 + r * laneH; r++
+    s += `<text x="${LBL - 8}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="${P.lbl}" text-anchor="end">${S.position}</text>`
+    const barH = Math.max(laneH - 2.5, 4.5)
+    positions.forEach(p => {
+      const x1 = xL(p.startCol), w = Math.max((p.endCol - p.startCol + 1) * cW, cW)
+      s += `<rect x="${x1}" y="${y + (laneH - barH) / 2}" width="${w}" height="${barH}" rx="${Math.min(4, barH / 2)}" fill="${P.pos}"/>`
+      const txt = esc(String(p.position ?? ""))
+      const fits = txt.length * (laneFs * 0.56) + 14 < w
+      if (fits) s += `<text x="${x1 + 7}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="#ffffff">${txt}</text>`
+    })
+    s += `<line x1="0" y1="${y + laneH}" x2="${VB_W}" y2="${y + laneH}" stroke="${P.gridMin}" stroke-width="0.4"/>`
+  }
+
+  // left column divider
+  s += `<line x1="${LBL}" y1="0" x2="${LBL}" y2="${H}" stroke="${P.gridMaj}" stroke-width="0.7"/>`
+  return s
+}
+
+export function PrintTimetable({ timetable, startISO, view, locale, themeAware }: {
+  timetable: LegacyKeyEvents
+  startISO?: string | null
+  view?: TimetableView
+  /** "bg" localizes the chart-internal labels; anything else renders English. */
+  locale?: string
+  /** Summary mode: follow the app theme. Print mode leaves this off — paper stays white. */
+  themeAware?: boolean
+}) {
   const wrapRef = useRef<HTMLDivElement>(null)
-  const [dims,   setDims]   = useState({ w: 0, h: 0 })
-  const [isDark, setIsDark] = useState(false)
+  const svgRef  = useRef<SVGSVGElement>(null)
+  const [dims, setDims] = useState({ w: 0, h: 0 })
 
-  // Read dimensions synchronously before first paint to avoid a zero-height
-  // flash when the flex parent hasn't established its height yet.
+  // Follow the html.dark class (toggled by the app's theme switch).
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    const root = document.documentElement
+    const update = () => setDark(themeAware ? root.classList.contains("dark") : false)
+    const raf = requestAnimationFrame(update)
+    if (!themeAware) return () => cancelAnimationFrame(raf)
+    const obs = new MutationObserver(update)
+    obs.observe(root, { attributes: true, attributeFilter: ["class"] })
+    return () => { cancelAnimationFrame(raf); obs.disconnect() }
+  }, [themeAware])
+
   useLayoutEffect(() => {
     if (!wrapRef.current) return
     const r = wrapRef.current.getBoundingClientRect()
-    if (r.width > 10) {
-      const h = r.height > 10 ? r.height : Math.round(r.width * 0.58)
-      setDims({ w: r.width, h })
-    }
+    if (r.width > 10) setDims({ w: r.width, h: r.height > 10 ? r.height : Math.round(r.width * 0.6) })
   }, [])
 
   useEffect(() => {
     if (!wrapRef.current) return
     const obs = new ResizeObserver(entries => {
       const r = entries[0]?.contentRect
-      if (r && r.width > 10) {
-        const h = r.height > 10 ? r.height : Math.round(r.width * 0.58)
-        setDims({ w: r.width, h })
-      }
+      if (r && r.width > 10) setDims({ w: r.width, h: r.height > 10 ? r.height : Math.round(r.width * 0.6) })
     })
     obs.observe(wrapRef.current)
     return () => obs.disconnect()
   }, [])
 
-  // Detect dark mode via DOM class, update on change
+  const vitals: VitalsEntry[] = Array.isArray(timetable?.vitals) ? timetable.vitals : []
+  const drugs                 = Array.isArray(timetable?.drugs) ? timetable.drugs : []
+  const agents                = Array.isArray(timetable?.agents) ? timetable.agents : []
+  const infusions             = Array.isArray(timetable?.infusions) ? timetable.infusions : []
+  const fluids                = Array.isArray(timetable?.fluids) ? timetable.fluids : []
+  const gas                   = Array.isArray(timetable?.gasSettings) ? timetable.gasSettings : []
+  const hasData = vitals.length || drugs.length || agents.length || infusions.length || fluids.length || gas.length
+
+  const vbH = dims.w > 0 ? Math.round(VB_W * dims.h / dims.w) : 640
+
   useEffect(() => {
-    const update = () => setIsDark(document.documentElement.classList.contains("dark"))
-    update()
-    const mo = new MutationObserver(update)
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
-    return () => mo.disconnect()
-  }, [])
+    if (!svgRef.current || !hasData) return
+    svgRef.current.setAttribute("viewBox", `0 0 ${VB_W} ${vbH}`)
+    svgRef.current.setAttribute("preserveAspectRatio", "none")
+    svgRef.current.innerHTML = buildSVG(
+      timetable, startISO, vbH, view,
+      dark ? PAL_DARK : PAL_LIGHT,
+      locale === "bg" ? CHART_STR.bg : CHART_STR.en,
+    )
+  }, [timetable, startISO, vbH, hasData, view, dark, locale])
 
-  // Force light mode when printing so SVG colors are always white-on-light
-  useEffect(() => {
-    const onBefore = () => flushSync(() => setIsDark(false))
-    const onAfter  = () => setIsDark(document.documentElement.classList.contains("dark"))
-    window.addEventListener("beforeprint", onBefore)
-    window.addEventListener("afterprint",  onAfter)
-    return () => {
-      window.removeEventListener("beforeprint", onBefore)
-      window.removeEventListener("afterprint",  onAfter)
-    }
-  }, [])
-
-  // Color palette — adapts to dark/light; print always overrides to white via CSS
-  const C = isDark ? {
-    chartBg:     "#161616",
-    gridMajor:   "#2e2e2e",
-    gridMinor:   "#202020",
-    axis:        "#3d4e60",
-    label:       "#718096",
-    eventBg:     "#0f0f0f",
-    eventBorder: "#282828",
-    cellStroke:  "#a0aec0",
-    drugText:    "#c4c9d4",
-    timeText:    "#718096",
-  } : {
-    chartBg:     "#f8fafc",
-    gridMajor:   "#e2e8f0",
-    gridMinor:   "#f1f5f9",
-    axis:        "#cbd5e1",
-    label:       "#94a3b8",
-    eventBg:     "#f8fafc",
-    eventBorder: "#e2e8f0",
-    cellStroke:  "#475569",
-    drugText:    "#1e293b",
-    timeText:    "#475569",
-  }
-
-  const vitals: VitalsEntry[]        = Array.isArray(timetable?.vitals)    ? timetable.vitals    : []
-  const drugs: TimetableDrug[]       = Array.isArray(timetable?.drugs)     ? timetable.drugs     : []
-  const agents: AgentSegment[]       = Array.isArray(timetable?.agents)    ? timetable.agents    : []
-  const infusions: TimetableInfusion[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
-  const fluids: TimetableFluid[]     = Array.isArray(timetable?.fluids)    ? timetable.fluids    : []
-
-  const hasData = vitals.length || drugs.length || agents.length || infusions.length || fluids.length
   if (!hasData) {
     return (
-      <div ref={wrapRef} className="flex items-center justify-center text-[11px] text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-[#333] rounded w-full h-full min-h-[200px]">
+      <div ref={wrapRef} className="flex items-center justify-center text-[11px] text-slate-400 border border-dashed border-slate-200 rounded w-full h-full min-h-[200px]">
         No intraoperative data recorded
       </div>
     )
   }
 
-  // Dynamic viewBox: matches container aspect ratio exactly → no whitespace
-  const vbH = dims.w > 0 ? Math.round(VB_W * dims.h / dims.w) : 700
-
-  const maxCols = Math.max(
-    vitals.length,
-    drugs.length     > 0 ? Math.max(...drugs.map(d    => d.colIdx ?? 0)) + 3 : 0,
-    agents.length    > 0 ? Math.max(...agents.map(a   => a.endCol ?? a.startCol ?? 0)) + 3 : 0,
-    infusions.length > 0 ? Math.max(...infusions.map(f => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
-    fluids.length    > 0 ? Math.max(...fluids.map(f   => f.endCol ?? f.startCol ?? 0)) + 3 : 0,
-    12  // minimum 1 hour (12 × 5 min columns)
-  ) + 2
-
-  // Group drugs by name → one row per unique drug
-  const ABBR: Record<string, string> = {
-    propofol:'Prop', succinylcholine:'Sux', suxamethonium:'Sux',
-    atracurium:'Atrac', rocuronium:'Roc', vecuronium:'Vec', cisatracurium:'Cis',
-    fentanyl:'Fent', morphine:'Morph', alfentanil:'Alf', remifentanil:'Remi',
-    sufentanil:'Suf', ketamine:'Ket', midazolam:'Mdz', diazepam:'Dz',
-    ephedrine:'Eph', phenylephrine:'Phen', noradrenaline:'Nor', adrenaline:'Adr',
-    neostigmine:'Neo', glycopyrrolate:'Glyc', atropine:'Atr',
-    ondansetron:'Ond', dexamethasone:'Dex', metoclopramide:'Met',
-    thiopental:'Thio', etomidate:'Etom', dexmedetomidine:'Dmed', sugammadex:'Sug',
-  }
-  function shorten(name: string): string {
-    const lo = name.toLowerCase()
-    for (const [k, v] of Object.entries(ABBR)) { if (lo.includes(k)) return v }
-    return name.substring(0, 6)
-  }
-
-  const drugsByName: Record<string, { col: number; dose: string; unit: string }[]> = {}
-  drugs.forEach(d => {
-    const name = String(d.name ?? "Unknown")
-    if (!drugsByName[name]) drugsByName[name] = []
-    drugsByName[name].push({ col: d.colIdx ?? 0, dose: String(d.dose ?? ""), unit: String(d.unit ?? "") })
-  })
-  const drugNames = Object.keys(drugsByName)
-
-  const agentRows   = Math.min(agents.length, 3)
-  const infRows     = Math.min(infusions.length, 4)
-  const fluidRows   = Math.min(fluids.length, 5)
-  const drugRowCount = Math.min(drugNames.length, 10)
-  const numEventRows = drugRowCount + agentRows + infRows + fluidRows
-
-  // Proportional split: chart 55%, event strip 45%
-  const chartH     = Math.round(vbH * 0.55)
-  const stripTotal  = vbH - chartH - YLBL_H - 4
-  // No upper cap on row height — rows stretch to fill the full strip.
-  // fSize is capped separately so text stays readable even in tall rows.
-  const CELL_H_D    = Math.max(12, Math.floor(stripTotal / Math.max(numEventRows, 1)))
-
-  const eventStripH = numEventRows * CELL_H_D + 2
-
-  const cW   = GW / maxCols
-  const xOf  = (col: number) => YAX + col * cW
-  const yBP  = (v: number)   => chartH - (v / 220) * chartH
-  const tick  = Math.max(3, Math.round(maxCols / 16) * 3)
-  const eventY = chartH + YLBL_H
-
-  // Polyline segment builder
-  function segs(key: keyof VitalsEntry) {
-    const out: string[][] = []; let cur: string[] = []
-    vitals.forEach((v, idx) => {
-      const val = v?.[key]
-      if (val != null && !isNaN(Number(val))) cur.push(`${xOf(idx)},${yBP(Number(val))}`)
-      else { if (cur.length > 1) out.push(cur); cur = [] }
-    })
-    if (cur.length > 1) out.push(cur)
-    return out
-  }
-
-  const fSize = Math.max(5, Math.min(11, Math.round(CELL_H_D * 0.38)))
-
   return (
     <div ref={wrapRef} className="timetable-wrap" style={{ width: "100%", height: "100%" }}>
-    <svg viewBox={`0 0 ${VB_W} ${vbH}`} width="100%" height="100%"
-      preserveAspectRatio="xMinYMin meet" className="timetable-svg" style={{ display: "block" }}>
-
-      {/* SVG hatching patterns — use CSS var so they adapt to dark/light */}
-      <defs>
-        <pattern id="hatch-fwd" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="0" x2="0" y2="6" stroke={C.cellStroke} strokeWidth="1.2" />
-        </pattern>
-        <pattern id="hatch-bwd" width="6" height="6" patternTransform="rotate(-45 0 0)" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="0" x2="0" y2="6" stroke={C.cellStroke} strokeWidth="1" />
-        </pattern>
-        <pattern id="hatch-cross" width="6" height="6" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="3" x2="6" y2="3" stroke={C.cellStroke} strokeWidth="0.8" />
-          <line x1="3" y1="0" x2="3" y2="6" stroke={C.cellStroke} strokeWidth="0.8" />
-        </pattern>
-        <pattern id="hatch-dot" width="4" height="4" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="0.7" fill={C.cellStroke} />
-        </pattern>
-      </defs>
-
-      {/* Graph background — CSS var for dark/light/print */}
-      <rect x={YAX} y={0} width={GW} height={chartH} fill={C.chartBg} />
-
-      {/* Horizontal gridlines */}
-      {[40, 80, 120, 160, 200].map(y => (
-        <g key={y}>
-          <line x1={YAX} y1={yBP(y)} x2={VB_W} y2={yBP(y)}
-            stroke={y % 80 === 0 ? C.gridMajor : C.gridMinor}
-            strokeWidth={y % 80 === 0 ? 0.6 : 0.3} />
-          <text x={YAX - 2} y={yBP(y) + 2} fontSize={7} fill={C.label} textAnchor="end">{y}</text>
-        </g>
-      ))}
-
-      {/* Column separators */}
-      {Array.from({ length: maxCols }).map((_, col) =>
-        col % tick === 0
-          ? <line key={col} x1={xOf(col)} y1={0} x2={xOf(col)} y2={chartH} stroke={C.gridMajor} strokeWidth={0.5} />
-          : <line key={col} x1={xOf(col)} y1={0} x2={xOf(col)} y2={chartH} stroke={C.gridMinor} strokeWidth={0.25} />
-      )}
-
-      {/* Axes */}
-      <line x1={YAX} y1={0}       x2={YAX}  y2={chartH} stroke={C.axis} strokeWidth={0.8} />
-      <line x1={YAX} y1={chartH}  x2={VB_W} y2={chartH} stroke={C.axis} strokeWidth={0.8} />
-
-      {/* Time labels — larger font + every-hour shading for orientation */}
-      {Array.from({ length: maxCols }).map((_, col) => {
-        const isHour = col % 12 === 0   // every 60 min
-        const isTick = col % tick === 0
-        return (
-          <g key={col}>
-            {isHour && col > 0 && (
-              <rect x={xOf(col)} y={0} width={Math.max(cW * 12, 1)} height={chartH}
-                fill={isDark ? "#ffffff08" : "#00000005"} />
-            )}
-            {isTick && (
-              <>
-                <line x1={xOf(col)} y1={chartH} x2={xOf(col)} y2={chartH + YLBL_H}
-                  stroke={isHour ? C.axis : C.gridMajor} strokeWidth={isHour ? 1 : 0.5} />
-                {/* Label background for legibility */}
-                <rect x={xOf(col) - 18} y={chartH + 2} width={36} height={YLBL_H - 4} rx={2}
-                  fill={isDark ? "#ffffff12" : "#00000008"} />
-                <text x={xOf(col)} y={chartH + YLBL_H - 3} fontSize={12} fill={C.timeText}
-                  textAnchor="middle" fontFamily="monospace" fontWeight={isHour ? "700" : "500"}>
-                  {colToHHMM(col, startISO)}
-                </text>
-              </>
-            )}
-          </g>
-        )
-      })}
-
-      {/* Pulse pressure fill */}
-      {(() => {
-        const pts: string[] = [], rev: string[] = []
-        vitals.forEach((v, idx) => {
-          if (v?.systolic != null && v?.diastolic != null) {
-            pts.push(`${xOf(idx)},${yBP(v.systolic)}`)
-            rev.unshift(`${xOf(idx)},${yBP(v.diastolic)}`)
-          }
-        })
-        return pts.length > 1 ? <polygon points={[...pts, ...rev].join(" ")} fill="#ef4444" opacity={0.08} /> : null
-      })()}
-
-      {/* BP Systolic — solid, 1.5px */}
-      {segs("systolic").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_SYS} strokeWidth={1.5} />)}
-      {vitals.map((v, idx) =>
-        v?.systolic != null ? <circle key={idx} cx={xOf(idx)} cy={yBP(v.systolic)} r={2.2} fill={C_SYS} /> : null
-      )}
-
-      {/* BP Diastolic — dashed 4,2 */}
-      {segs("diastolic").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_DIA} strokeWidth={1.2} strokeDasharray="5,3" opacity={0.7} />)}
-      {vitals.map((v, idx) =>
-        v?.diastolic != null ? <circle key={idx} cx={xOf(idx)} cy={yBP(v.diastolic)} r={2} fill="none" stroke={C_DIA} strokeWidth={1.2} opacity={0.7} /> : null
-      )}
-
-      {/* HR — dotted 2,3 */}
-      {segs("heartRate").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_HR} strokeWidth={1.5} strokeDasharray="2,4" />)}
-      {vitals.map((v, idx) =>
-        v?.heartRate != null ? (
-          <g key={idx}>
-            <line x1={xOf(idx)-2.5} y1={yBP(v.heartRate)-2.5} x2={xOf(idx)+2.5} y2={yBP(v.heartRate)+2.5} stroke={C_HR} strokeWidth={1.2} />
-            <line x1={xOf(idx)+2.5} y1={yBP(v.heartRate)-2.5} x2={xOf(idx)-2.5} y2={yBP(v.heartRate)+2.5} stroke={C_HR} strokeWidth={1.2} />
-          </g>
-        ) : null
-      )}
-
-      {/* SpO₂ — dash-dot 6,2,1,2 */}
-      {segs("spO2").map((s, k) => <polyline key={k} points={s.join(" ")} fill="none" stroke={C_SPO2} strokeWidth={1.2} strokeDasharray="6,2,1,2" />)}
-      {vitals.map((v, idx) =>
-        v?.spO2 != null ? <rect key={idx} x={xOf(idx)-2} y={yBP(v.spO2)-2} width={4} height={4} fill={C_SPO2} /> : null
-      )}
-
-      {/* Legend — left-aligned, larger font, safe inset from edges */}
-      <g>
-        <rect x={YAX} y={1} width={340} height={16} rx={2} fill={C.chartBg} opacity={0.85} />
-
-        <line x1={YAX+6}  y1={9} x2={YAX+22} y2={9} stroke={C_SYS} strokeWidth={1.8} />
-        <circle cx={YAX+14} cy={9} r={2.5} fill={C_SYS} />
-        <text x={YAX+25} y={13} fontSize={10} fill={C.cellStroke} fontWeight="600">SBP</text>
-
-        <line x1={YAX+72}  y1={9} x2={YAX+88} y2={9} stroke={C_DIA} strokeWidth={1.4} strokeDasharray="5,3" opacity={0.8} />
-        <circle cx={YAX+80} cy={9} r={2.2} fill="none" stroke={C_DIA} strokeWidth={1.4} opacity={0.8} />
-        <text x={YAX+91} y={13} fontSize={10} fill={C.cellStroke} fontWeight="600">DBP</text>
-
-        <line x1={YAX+140} y1={9} x2={YAX+156} y2={9} stroke={C_HR} strokeWidth={1.8} strokeDasharray="2,4" />
-        <line x1={YAX+145} y1={5.5} x2={YAX+151} y2={12.5} stroke={C_HR} strokeWidth={1.4} />
-        <line x1={YAX+151} y1={5.5} x2={YAX+145} y2={12.5} stroke={C_HR} strokeWidth={1.4} />
-        <text x={YAX+159} y={13} fontSize={10} fill={C.cellStroke} fontWeight="600">HR</text>
-
-        <line x1={YAX+200} y1={9} x2={YAX+216} y2={9} stroke={C_SPO2} strokeWidth={1.4} strokeDasharray="6,2,1,2" />
-        <rect x={YAX+206} y={6} width={5} height={5} fill={C_SPO2} />
-        <text x={YAX+219} y={13} fontSize={10} fill={C.cellStroke} fontWeight="600">SpO₂</text>
-      </g>
-
-      {/* ── EVENT STRIP ─────────────────────────────────────── */}
-      <rect x={0} y={eventY} width={VB_W} height={eventStripH} fill={C.eventBg} />
-      <line x1={0} y1={eventY} x2={VB_W} y2={eventY} stroke={C.axis} strokeWidth={0.8} />
-
-      {/* Drug rows — one per unique drug name */}
-      {drugNames.slice(0, drugRowCount).map((name, ridx) => {
-        const rowY = eventY + ridx * CELL_H_D
-        const admins = drugsByName[name]
-        const label  = shorten(name)
-        return (
-          <g key={name}>
-            <text x={2} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize}
-              fill={C.cellStroke} fontWeight="600">{label}</text>
-            {admins.map((adm, ai) => {
-              const x = xOf(adm.col)
-              const doseStr = `${adm.dose}${adm.unit}`
-              return (
-                <g key={ai}>
-                  <line x1={x} y1={rowY + 2} x2={x} y2={rowY + CELL_H_D - 2}
-                    stroke={C.cellStroke} strokeWidth={1.4} opacity={0.7} />
-                  <text x={x + 3} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize}
-                    fill={C.drugText}>{doseStr}</text>
-                </g>
-              )
-            })}
-            <line x1={YAX} y1={rowY + CELL_H_D} x2={VB_W} y2={rowY + CELL_H_D}
-              stroke={C.eventBorder} strokeWidth={0.3} />
-          </g>
-        )
-      })}
-
-      {/* Agent rows */}
-      {agents.slice(0, agentRows).map((a, ridx) => {
-        const rowY = eventY + drugRowCount * CELL_H_D + ridx * CELL_H_D
-        const start = a.startCol ?? 0, end = a.endCol ?? start
-        return (
-          <g key={ridx}>
-            <text x={2} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke} fontWeight="600">Agent</text>
-            {Array.from({ length: end - start + 1 }).map((_, ci) => {
-              const col = start + ci
-              return (
-                <g key={col}>
-                  <rect x={xOf(col) + 0.5} y={rowY + 1} width={Math.max(cW - 1, 1)} height={CELL_H_D - 2}
-                    fill="url(#hatch-fwd)" stroke={C.cellStroke} strokeWidth={0.5} />
-                  {ci === 0 && (
-                    <text x={xOf(col) + 3} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke}>
-                      {String(a.name ?? "").substring(0, 22)}
-                    </text>
-                  )}
-                </g>
-              )
-            })}
-            <line x1={YAX} y1={rowY + CELL_H_D} x2={VB_W} y2={rowY + CELL_H_D} stroke={C.eventBorder} strokeWidth={0.3} />
-          </g>
-        )
-      })}
-
-      {/* Infusion rows */}
-      {infusions.slice(0, infRows).map((inf, ridx) => {
-        const rowY = eventY + (drugRowCount + agentRows) * CELL_H_D + ridx * CELL_H_D
-        const start = inf.startCol ?? 0, end = inf.endCol ?? start
-        return (
-          <g key={ridx}>
-            <text x={2} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke} fontWeight="600">Inf.</text>
-            {Array.from({ length: end - start + 1 }).map((_, ci) => {
-              const col = start + ci
-              return (
-                <g key={col}>
-                  <rect x={xOf(col) + 0.5} y={rowY + 1} width={Math.max(cW - 1, 1)} height={CELL_H_D - 2}
-                    fill="url(#hatch-bwd)" stroke={C.cellStroke} strokeWidth={0.4} />
-                  {ci === 0 && (
-                    <text x={xOf(col) + 3} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke}>
-                      {`${String(inf.name ?? "").substring(0, 14)} ${inf.rate ?? ""}${inf.unit ?? ""}`}
-                    </text>
-                  )}
-                </g>
-              )
-            })}
-            <line x1={YAX} y1={rowY + CELL_H_D} x2={VB_W} y2={rowY + CELL_H_D} stroke={C.eventBorder} strokeWidth={0.3} />
-          </g>
-        )
-      })}
-
-      {/* Fluid rows */}
-      {fluids.slice(0, fluidRows).map((f, ridx) => {
-        const rowY = eventY + (drugRowCount + agentRows + infRows) * CELL_H_D + ridx * CELL_H_D
-        const start = f.startCol ?? 0, end = f.endCol ?? start
-        return (
-          <g key={ridx}>
-            <text x={2} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke} fontWeight="600">Fluid</text>
-            {Array.from({ length: end - start + 1 }).map((_, ci) => {
-              const col = start + ci
-              return (
-                <g key={col}>
-                  <rect x={xOf(col) + 0.5} y={rowY + 1} width={Math.max(cW - 1, 1)} height={CELL_H_D - 2}
-                    fill="url(#hatch-dot)" stroke={C.cellStroke} strokeWidth={0.4} opacity={0.7} />
-                  {ci === 0 && (
-                    <text x={xOf(col) + 3} y={rowY + CELL_H_D / 2 + fSize / 2} fontSize={fSize} fill={C.cellStroke}>
-                      {`${String(f.name ?? "").substring(0, 14)}${f.volume ? " " + f.volume + "mL" : ""}`}
-                    </text>
-                  )}
-                </g>
-              )
-            })}
-            {ridx < fluidRows - 1 && <line x1={YAX} y1={rowY + CELL_H_D} x2={VB_W} y2={rowY + CELL_H_D} stroke={C.eventBorder} strokeWidth={0.3} />}
-          </g>
-        )
-      })}
-    </svg>
+      <svg ref={svgRef} className="timetable-svg" style={{ display: "block", width: "100%", height: "100%" }} />
     </div>
   )
 }
-
-// ── Shared helpers ────────────────────────────────────────────────────────────

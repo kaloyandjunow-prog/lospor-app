@@ -65,6 +65,12 @@ debug.log
 # Temporary one-off scripts
 scripts/clean-dev-db.ts
 
+# Throwaway verification/screenshot scripts. Underscore prefix = scratch,
+# never meant for the public repo. (Only .ts — the committed
+# scripts/_drug-*.json/.csv data files are deliberately tracked.)
+scripts/_*.ts
+e2e/_*.spec.ts
+
 # Local MCP server config (contains project refs, not for public repos)
 .mcp.json
 

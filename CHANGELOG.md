@@ -1,8 +1,25 @@
 # Changelog - LOSPOR Web App
 
-## [5.2.0] - Unreleased
+## [5.2.0] - 2026-07-20
 
-_In development._ Aligning the mobile summary, web summary, and printable protocol onto one shared case-summary model, and redesigning the A4 printable protocol around the intraoperative timetable.
+Aligns the mobile summary, web summary, and printable protocol onto one shared case-summary model, and redesigns the A4 printable protocol around the intraoperative timetable.
+
+### Added
+- **Redesigned printable anaesthesia record** (browser print → A4, no PDF engine): light paper design with the LOSPOR wordmark header, hand-fill patient identity band, key-facts pill chips, and an intraoperative timetable where the vitals graph, a numeric vitals grid (BP/HR/SpO₂/EtCO₂/Temp), and all lanes (Agent, Infusion, Gas/FGF, Fluids, Position) share the same aligned time columns. Clinical events render as dashed flags labelled above the graph. Pre-&-post-operative sheet restyled to match.
+- **Stacked half-case chart panels, paper-record style**: a case up to ~5 h is one full-height chart; longer cases continue onto a second half-height chart on the same page at the same visual rhythm ("CONTINUED") — nothing repeats, nothing gets squeezed. Each panel's numeric vitals table samples at a comfortable interval (q5→q30, ≤ ~24 columns, bucket-filled so cells stay populated at any recording cadence) while graph traces, drugs, events and positions keep every recorded point at its true time. The record stays exactly two A4 pages for cases up to ~24 h.
+- **Numbered drug pins + administration log**: each dose is a numbered pin (① ② ③ …) on a dedicated strip at the exact administration time, resolved in a DRUG ADMINISTRATION LOG box (time · drug · dose per pin, plus totals per drug) — replacing both the old drug pill rows and the totals-only box.
+- **"Print case" pipeline**: the case summary is now a clean review page with no print buttons; printing lives on a dedicated `/cases/[id]/print` page for **finished** cases — offered automatically when a case is closed ("Print case?"), and via a Print case button on finished cases in the dashboard list and summary. The print page has **Download PDF** and **Print** actions. (Mobile skips this page entirely — see the PDF route below.)
+- **Server-generated A4 PDF** (`GET /api/cases/[id]/pdf`): headless Chrome renders the print page and returns the finished two-page A4-landscape PDF file — auth via session/bearer or the short-lived print token. This is what the mobile app downloads for "Print case" before handing it to the phone's native share sheet, replacing the phone print-dialog fight entirely (uses the machine's installed Chrome/Edge locally, `@sparticuz/chromium` on Vercel).
+- **Phone-proof print page**: the record always renders as light paper (opts out of Chrome's auto-dark and LOSPOR's own dark theme) and narrow screens show the true desktop sheet scaled down instead of a reflowed, squashed chart.
+- **Theme-aware summary**: the case summary (including the timetable chart) now follows the app theme — dark chart in dark mode, paper look in light mode. The printed record and PDF always stay white.
+- **Bulgarian record**: the chart-internal labels (Час, Лекарства, Агент/Инфузия/Газ/Течности/Позиция), sampling footnote and CONTINUED captions are now localized, and the server PDF accepts `?lang=bg` — mobile Print case passes the app language so the PDF arrives in it; the web Download PDF button passes the current locale.
+- **Time-anchored patient position** on the record: `position_change` events (loggable from the intraop event picker's new Position section) project into a Position lane; legacy cases with only the flat positions list keep their chip and simply have no lane.
+
+### Fixed
+- Print tokens now act as full authorization for the case they name: an admin or head-of-department printing a case they don't own no longer gets "Not found" from the print page / PDF route (the token carried the requester's id but the lookup demanded ownership).
+
+### Removed
+- The unused react-pdf protocol implementation (`@react-pdf/renderer`) — the record is pure HTML/CSS browser print.
 
 ## [5.1.0] - 2026-07-13
 

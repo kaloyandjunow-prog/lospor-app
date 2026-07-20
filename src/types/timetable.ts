@@ -20,7 +20,12 @@ export interface GasSettingsSegment {
   fgf: number; carrierGas: string | null; fio2: number; fiAir?: number; fiN2O?: number
   settingsChanges?: { col: number; fgf: number; carrierGas: string | null; fio2: number; fiAir?: number; fiN2O?: number }[]
 }
-export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[]; gasSettings?: GasSettingsSegment[]; clinicalEvents?: ClinicalEvent[] }
+// Time-anchored position/phase segments — projected from position_change /
+// phase_change events the same way agent segments are (each change closes the
+// previous segment; the last one stays open-tailed to the end of the chart).
+export interface PositionSegment { position: string; startCol: number; endCol: number }
+export interface PhaseSegment    { phase: string; startCol: number; endCol: number }
+export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[]; gasSettings?: GasSettingsSegment[]; clinicalEvents?: ClinicalEvent[]; positions?: PositionSegment[]; phases?: PhaseSegment[] }
 
 // Raw append-only log event — what case-events.ts persists/replays and what
 // IntraopTimetable.tsx's mobile-event-log + onLogEvent callback deal in. This

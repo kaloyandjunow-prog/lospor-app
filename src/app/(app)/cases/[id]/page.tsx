@@ -1,5 +1,4 @@
 import { auth } from "@/lib/auth"
-import { jwtVerify } from "jose"
 import { prisma } from "@/lib/prisma"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound, redirect } from "next/navigation"
@@ -10,32 +9,12 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-function secret() {
-  return new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
-}
-
-// Verify a short-lived print token issued by POST /api/cases/:id/print-token.
-// Returns the userId from the token if valid, null otherwise.
-async function verifyPrintToken(token: string, caseId: string): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, secret())
-    if (payload.type !== "print") return null
-    if (payload.caseId !== caseId) return null
-    return (payload.userId as string) ?? null
-  } catch {
-    return null
-  }
-}
-
 export default async function CasePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams?: Promise<{ print_token?: string }>
 }) {
   const { id } = await params
-  const sp     = await searchParams
 
   // Handle legacy browser URLs where the new-case page used path-encoded IDs
   // instead of query params. Redirect to the actual case summary.
@@ -44,29 +23,14 @@ export default async function CasePage({
     redirect(`/cases/${realId}`)
   }
 
-  // ── Auth path 1: short-lived print token (mobile "Print PDF" flow) ─────────
-  // If a valid print_token is in the query string, bypass the web session check
-  // so the user can print directly from their phone browser without logging in.
-  const printToken   = sp?.print_token
-  const printUserId  = printToken ? await verifyPrintToken(printToken, id) : null
-  const isPrintMode  = !!printUserId
-
-  // ── Auth path 2: normal web session ───────────────────────────────────────
-  let userId: string
-  let role:   string
-  let institutionId: string | null = null
-
-  if (isPrintMode) {
-    userId = printUserId!
-    role   = "MEMBER"  // print tokens are always member-scoped to the case owner
-  } else {
-    const session = await auth()
-    if (!session) redirect(`/login?callbackUrl=/cases/${id}`)
-    const me  = session.user
-    userId    = me.id
-    role      = me.role
-    institutionId = me.institutionId ?? null
-  }
+  // Printing moved to /cases/[id]/print (which also handles the mobile
+  // print-token flow) — this page is the live summary and needs a session.
+  const session = await auth()
+  if (!session) redirect(`/login?callbackUrl=/cases/${id}`)
+  const me  = session.user
+  const userId = me.id
+  const role   = me.role
+  const institutionId: string | null = me.institutionId ?? null
 
   // ADMIN: any case. HOD: cases within their institution. MEMBER: own cases only.
   const where = role === "ADMIN"
@@ -87,17 +51,8 @@ export default async function CasePage({
 
   return (
     <>
-      {/* Auto-trigger print dialog when opened via a print token from mobile */}
-      {isPrintMode && (
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if (typeof window !== "undefined") { window.addEventListener("load", function(){ setTimeout(function(){ window.print() }, 800) }) }`,
-          }}
-        />
-      )}
-
-      {/* Header — constrained width, screen only */}
-      <div className={`no-print max-w-4xl mx-auto mb-6 ${isPrintMode ? "hidden" : ""}`}>
+      {/* Header — constrained width */}
+      <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <Link href="/dashboard">
@@ -125,8 +80,8 @@ export default async function CasePage({
       {/* Live sync — receives SSE events from mobile and refreshes the page */}
       <LiveCaseUpdater caseId={id} />
 
-      {/* Case summary — rendered OUTSIDE the max-width container so print CSS can make it full-width */}
-      <CaseSummary caseId={id} />
+      {/* Live case summary (printing lives on /cases/[id]/print) */}
+      <CaseSummary caseId={id} mode="summary" />
     </>
   )
 }

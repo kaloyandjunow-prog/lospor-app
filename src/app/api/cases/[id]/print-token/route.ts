@@ -41,8 +41,10 @@ export async function POST(
     .setExpirationTime("5m")
     .sign(secret())
 
-  const base = process.env.NEXTAUTH_URL ?? `https://${req.headers.get("host")}`
-  const url  = `${base}/cases/${id}?print_token=${token}`
+  const base   = process.env.NEXTAUTH_URL ?? `https://${req.headers.get("host")}`
+  const url    = `${base}/cases/${id}/print?print_token=${token}`
+  // Server-generated real PDF — what the mobile app should prefer to open.
+  const pdfUrl = `${base}/api/cases/${id}/pdf?print_token=${token}`
 
-  return NextResponse.json({ token, url })
+  return NextResponse.json({ token, url, pdfUrl })
 }
