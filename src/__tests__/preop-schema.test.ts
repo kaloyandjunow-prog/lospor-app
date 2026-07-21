@@ -38,8 +38,11 @@ describe("preopSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejects invalid sex enum", () => {
-    expect(preopSchema.safeParse({ sex: "UNKNOWN" }).success).toBe(false)
+  it("accepts UNKNOWN as a distinct sex value, and rejects nonsense", () => {
+    // UNKNOWN is now a real value — it is how "not recorded" is represented,
+    // instead of being silently folded into OTHER.
+    expect(preopSchema.safeParse({ sex: "UNKNOWN" }).success).toBe(true)
+    expect(preopSchema.safeParse({ sex: "NOT_A_SEX" }).success).toBe(false)
   })
 
   it("rejects invalid ASA class", () => {

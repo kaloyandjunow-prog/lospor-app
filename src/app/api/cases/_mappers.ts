@@ -78,7 +78,7 @@ export function mapPreop(rawPreop: Record<string, unknown>): Prisma.Preoperative
   return {
     // Items 18 + 19: Use null instead of 0 for missing biometrics — 0 corrupts risk scores
     ageYears:  preop.ageYears  ?? null,
-    sex:       preop.sex ?? "OTHER",
+    sex:       preop.sex ?? "UNKNOWN",  // never conflate "not recorded" with "other"
     heightCm,
     weightKg,
     bmi,

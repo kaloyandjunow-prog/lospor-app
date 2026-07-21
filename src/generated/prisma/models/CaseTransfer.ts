@@ -33,6 +33,7 @@ export type CaseTransferMinAggregateOutputType = {
   status: $Enums.TransferStatus | null
   createdAt: Date | null
   resolvedAt: Date | null
+  previousCaseCode: string | null
 }
 
 export type CaseTransferMaxAggregateOutputType = {
@@ -44,6 +45,7 @@ export type CaseTransferMaxAggregateOutputType = {
   status: $Enums.TransferStatus | null
   createdAt: Date | null
   resolvedAt: Date | null
+  previousCaseCode: string | null
 }
 
 export type CaseTransferCountAggregateOutputType = {
@@ -55,6 +57,7 @@ export type CaseTransferCountAggregateOutputType = {
   status: number
   createdAt: number
   resolvedAt: number
+  previousCaseCode: number
   _all: number
 }
 
@@ -68,6 +71,7 @@ export type CaseTransferMinAggregateInputType = {
   status?: true
   createdAt?: true
   resolvedAt?: true
+  previousCaseCode?: true
 }
 
 export type CaseTransferMaxAggregateInputType = {
@@ -79,6 +83,7 @@ export type CaseTransferMaxAggregateInputType = {
   status?: true
   createdAt?: true
   resolvedAt?: true
+  previousCaseCode?: true
 }
 
 export type CaseTransferCountAggregateInputType = {
@@ -90,6 +95,7 @@ export type CaseTransferCountAggregateInputType = {
   status?: true
   createdAt?: true
   resolvedAt?: true
+  previousCaseCode?: true
   _all?: true
 }
 
@@ -174,6 +180,7 @@ export type CaseTransferGroupByOutputType = {
   status: $Enums.TransferStatus
   createdAt: Date
   resolvedAt: Date | null
+  previousCaseCode: string | null
   _count: CaseTransferCountAggregateOutputType | null
   _min: CaseTransferMinAggregateOutputType | null
   _max: CaseTransferMaxAggregateOutputType | null
@@ -206,6 +213,7 @@ export type CaseTransferWhereInput = {
   status?: Prisma.EnumTransferStatusFilter<"CaseTransfer"> | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFilter<"CaseTransfer"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"CaseTransfer"> | Date | string | null
+  previousCaseCode?: Prisma.StringNullableFilter<"CaseTransfer"> | string | null
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   fromUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   toUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -220,6 +228,7 @@ export type CaseTransferOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  previousCaseCode?: Prisma.SortOrderInput | Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
   fromUser?: Prisma.UserOrderByWithRelationInput
   toUser?: Prisma.UserOrderByWithRelationInput
@@ -237,6 +246,7 @@ export type CaseTransferWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumTransferStatusFilter<"CaseTransfer"> | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFilter<"CaseTransfer"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"CaseTransfer"> | Date | string | null
+  previousCaseCode?: Prisma.StringNullableFilter<"CaseTransfer"> | string | null
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   fromUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   toUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -251,6 +261,7 @@ export type CaseTransferOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  previousCaseCode?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.CaseTransferCountOrderByAggregateInput
   _max?: Prisma.CaseTransferMaxOrderByAggregateInput
   _min?: Prisma.CaseTransferMinOrderByAggregateInput
@@ -268,6 +279,7 @@ export type CaseTransferScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumTransferStatusWithAggregatesFilter<"CaseTransfer"> | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CaseTransfer"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"CaseTransfer"> | Date | string | null
+  previousCaseCode?: Prisma.StringNullableWithAggregatesFilter<"CaseTransfer"> | string | null
 }
 
 export type CaseTransferCreateInput = {
@@ -276,6 +288,7 @@ export type CaseTransferCreateInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
   case: Prisma.CaseCreateNestedOneWithoutTransfersInput
   fromUser: Prisma.UserCreateNestedOneWithoutTransfersSentInput
   toUser: Prisma.UserCreateNestedOneWithoutTransfersReceivedInput
@@ -290,6 +303,7 @@ export type CaseTransferUncheckedCreateInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferUpdateInput = {
@@ -298,6 +312,7 @@ export type CaseTransferUpdateInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   case?: Prisma.CaseUpdateOneRequiredWithoutTransfersNestedInput
   fromUser?: Prisma.UserUpdateOneRequiredWithoutTransfersSentNestedInput
   toUser?: Prisma.UserUpdateOneRequiredWithoutTransfersReceivedNestedInput
@@ -312,6 +327,7 @@ export type CaseTransferUncheckedUpdateInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferCreateManyInput = {
@@ -323,6 +339,7 @@ export type CaseTransferCreateManyInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferUpdateManyMutationInput = {
@@ -331,6 +348,7 @@ export type CaseTransferUpdateManyMutationInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferUncheckedUpdateManyInput = {
@@ -342,6 +360,7 @@ export type CaseTransferUncheckedUpdateManyInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferListRelationFilter = {
@@ -363,6 +382,7 @@ export type CaseTransferCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
+  previousCaseCode?: Prisma.SortOrder
 }
 
 export type CaseTransferMaxOrderByAggregateInput = {
@@ -374,6 +394,7 @@ export type CaseTransferMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
+  previousCaseCode?: Prisma.SortOrder
 }
 
 export type CaseTransferMinOrderByAggregateInput = {
@@ -385,6 +406,7 @@ export type CaseTransferMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
+  previousCaseCode?: Prisma.SortOrder
 }
 
 export type CaseTransferCreateNestedManyWithoutFromUserInput = {
@@ -523,6 +545,7 @@ export type CaseTransferCreateWithoutFromUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
   case: Prisma.CaseCreateNestedOneWithoutTransfersInput
   toUser: Prisma.UserCreateNestedOneWithoutTransfersReceivedInput
 }
@@ -535,6 +558,7 @@ export type CaseTransferUncheckedCreateWithoutFromUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferCreateOrConnectWithoutFromUserInput = {
@@ -553,6 +577,7 @@ export type CaseTransferCreateWithoutToUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
   case: Prisma.CaseCreateNestedOneWithoutTransfersInput
   fromUser: Prisma.UserCreateNestedOneWithoutTransfersSentInput
 }
@@ -565,6 +590,7 @@ export type CaseTransferUncheckedCreateWithoutToUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferCreateOrConnectWithoutToUserInput = {
@@ -605,6 +631,7 @@ export type CaseTransferScalarWhereInput = {
   status?: Prisma.EnumTransferStatusFilter<"CaseTransfer"> | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFilter<"CaseTransfer"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"CaseTransfer"> | Date | string | null
+  previousCaseCode?: Prisma.StringNullableFilter<"CaseTransfer"> | string | null
 }
 
 export type CaseTransferUpsertWithWhereUniqueWithoutToUserInput = {
@@ -629,6 +656,7 @@ export type CaseTransferCreateWithoutCaseInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
   fromUser: Prisma.UserCreateNestedOneWithoutTransfersSentInput
   toUser: Prisma.UserCreateNestedOneWithoutTransfersReceivedInput
 }
@@ -641,6 +669,7 @@ export type CaseTransferUncheckedCreateWithoutCaseInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferCreateOrConnectWithoutCaseInput = {
@@ -677,6 +706,7 @@ export type CaseTransferCreateManyFromUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferCreateManyToUserInput = {
@@ -687,6 +717,7 @@ export type CaseTransferCreateManyToUserInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferUpdateWithoutFromUserInput = {
@@ -695,6 +726,7 @@ export type CaseTransferUpdateWithoutFromUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   case?: Prisma.CaseUpdateOneRequiredWithoutTransfersNestedInput
   toUser?: Prisma.UserUpdateOneRequiredWithoutTransfersReceivedNestedInput
 }
@@ -707,6 +739,7 @@ export type CaseTransferUncheckedUpdateWithoutFromUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferUncheckedUpdateManyWithoutFromUserInput = {
@@ -717,6 +750,7 @@ export type CaseTransferUncheckedUpdateManyWithoutFromUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferUpdateWithoutToUserInput = {
@@ -725,6 +759,7 @@ export type CaseTransferUpdateWithoutToUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   case?: Prisma.CaseUpdateOneRequiredWithoutTransfersNestedInput
   fromUser?: Prisma.UserUpdateOneRequiredWithoutTransfersSentNestedInput
 }
@@ -737,6 +772,7 @@ export type CaseTransferUncheckedUpdateWithoutToUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferUncheckedUpdateManyWithoutToUserInput = {
@@ -747,6 +783,7 @@ export type CaseTransferUncheckedUpdateManyWithoutToUserInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferCreateManyCaseInput = {
@@ -757,6 +794,7 @@ export type CaseTransferCreateManyCaseInput = {
   status?: $Enums.TransferStatus
   createdAt?: Date | string
   resolvedAt?: Date | string | null
+  previousCaseCode?: string | null
 }
 
 export type CaseTransferUpdateWithoutCaseInput = {
@@ -765,6 +803,7 @@ export type CaseTransferUpdateWithoutCaseInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fromUser?: Prisma.UserUpdateOneRequiredWithoutTransfersSentNestedInput
   toUser?: Prisma.UserUpdateOneRequiredWithoutTransfersReceivedNestedInput
 }
@@ -777,6 +816,7 @@ export type CaseTransferUncheckedUpdateWithoutCaseInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CaseTransferUncheckedUpdateManyWithoutCaseInput = {
@@ -787,6 +827,7 @@ export type CaseTransferUncheckedUpdateManyWithoutCaseInput = {
   status?: Prisma.EnumTransferStatusFieldUpdateOperationsInput | $Enums.TransferStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  previousCaseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -800,6 +841,7 @@ export type CaseTransferSelect<ExtArgs extends runtime.Types.Extensions.Internal
   status?: boolean
   createdAt?: boolean
   resolvedAt?: boolean
+  previousCaseCode?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   fromUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   toUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -814,6 +856,7 @@ export type CaseTransferSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   createdAt?: boolean
   resolvedAt?: boolean
+  previousCaseCode?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   fromUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   toUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -828,6 +871,7 @@ export type CaseTransferSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   createdAt?: boolean
   resolvedAt?: boolean
+  previousCaseCode?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   fromUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   toUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -842,9 +886,10 @@ export type CaseTransferSelectScalar = {
   status?: boolean
   createdAt?: boolean
   resolvedAt?: boolean
+  previousCaseCode?: boolean
 }
 
-export type CaseTransferOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "fromUserId" | "toUserId" | "initiatedBy" | "status" | "createdAt" | "resolvedAt", ExtArgs["result"]["caseTransfer"]>
+export type CaseTransferOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "fromUserId" | "toUserId" | "initiatedBy" | "status" | "createdAt" | "resolvedAt" | "previousCaseCode", ExtArgs["result"]["caseTransfer"]>
 export type CaseTransferInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   fromUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -877,6 +922,7 @@ export type $CaseTransferPayload<ExtArgs extends runtime.Types.Extensions.Intern
     status: $Enums.TransferStatus
     createdAt: Date
     resolvedAt: Date | null
+    previousCaseCode: string | null
   }, ExtArgs["result"]["caseTransfer"]>
   composites: {}
 }
@@ -1311,6 +1357,7 @@ export interface CaseTransferFieldRefs {
   readonly status: Prisma.FieldRef<"CaseTransfer", 'TransferStatus'>
   readonly createdAt: Prisma.FieldRef<"CaseTransfer", 'DateTime'>
   readonly resolvedAt: Prisma.FieldRef<"CaseTransfer", 'DateTime'>
+  readonly previousCaseCode: Prisma.FieldRef<"CaseTransfer", 'String'>
 }
     
 

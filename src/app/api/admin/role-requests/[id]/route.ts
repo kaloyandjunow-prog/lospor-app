@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
+import { invalidateAccountState } from "@/lib/password-epoch"
 import { z } from "zod"
 import { corsHeaders } from "@/lib/cors"
 
@@ -30,6 +31,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       where: { id: roleRequest.userId },
       data:  { role: "HEAD_OF_DEPT" },
     })
+    // Role is read live per request from a short-lived cache — drop the entry
+    // so the promotion is effective immediately rather than within the TTL.
+    invalidateAccountState(roleRequest.userId)
   }
 
   const updated = await prisma.roleRequest.update({

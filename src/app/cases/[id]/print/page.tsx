@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { jwtVerify } from "jose"
+import { isRevokedAsync } from "@/lib/token-blocklist"
 import { prisma } from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import type { Viewport } from "next"
@@ -17,6 +18,10 @@ async function verifyPrintToken(token: string, caseId: string): Promise<string |
     const { payload } = await jwtVerify(token, secret())
     if (payload.type !== "print") return null
     if (payload.caseId !== caseId) return null
+    // Same revocation check the PDF route applies — a spent or revoked token
+    // must not still open the record here.
+    const jti = payload.jti as string | undefined
+    if (jti && await isRevokedAsync(jti)) return null
     return (payload.userId as string) ?? null
   } catch {
     return null

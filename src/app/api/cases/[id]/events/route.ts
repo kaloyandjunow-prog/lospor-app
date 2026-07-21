@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
-import caseEmitter from "@/lib/caseEmitter"
 import { checkEventPII } from "@/lib/clinical-pii"
 import { logAudit } from "@/lib/audit"
 import { addEvent, reconcileFullLog, rebuildProjection, type LogEvent } from "@/lib/case-events"
@@ -17,6 +16,8 @@ export async function OPTIONS(req: NextRequest) {
 
 // Permissive event schema — known fields typed, unknown ones (color, infId,
 // fluidId, etc.) passed through so the timetable projection still sees them.
+const MAX_LOG_ENTRIES = 20_000
+
 const eventSchema = z.object({
   id:        z.string().optional(),
   ts:        z.string().optional(),
@@ -113,7 +114,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
       if (added) {
         after(() => logAudit(user.id, "CASE_EVENT_ADD", id, { type: event.type, source }))
-        caseEmitter.emit(id, { type: "event", event })
       }
       const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
       return NextResponse.json({ ok: true, id: event.id, intraopUpdatedAt: intraop?.updatedAt })
@@ -140,6 +140,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json()
   const rawLog = body?.log
   if (!Array.isArray(rawLog)) return NextResponse.json({ error: "log must be array" }, { status: 400 })
+  // Individual entries were size-capped but the array itself was not, and
+  // reconciling the log costs a round trip per changed event — so a client
+  // could hang the function with one oversized request. The cap is far above
+  // any real case: a 24-hour operation logging an event every 5 seconds would
+  // still fit inside it several times over.
+  if (rawLog.length > MAX_LOG_ENTRIES) {
+    return NextResponse.json(
+      { error: `log too large (${rawLog.length} entries, maximum ${MAX_LOG_ENTRIES})` },
+      { status: 413 },
+    )
+  }
   const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
   if (intraopBase && Number.isNaN(new Date(intraopBase).getTime())) {
     return NextResponse.json({ error: "Invalid intraop conflict timestamp" }, { status: 400 })
@@ -189,7 +200,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await rebuildProjection(prisma, id)
 
       after(() => logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source }))
-      caseEmitter.emit(id, { type: "log_updated" })
       const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
       return NextResponse.json({ ok: true, intraopUpdatedAt: intraop?.updatedAt })
     } catch (e: unknown) {

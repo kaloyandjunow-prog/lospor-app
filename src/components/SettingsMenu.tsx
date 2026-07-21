@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef, useTransition } from "react"
+import { useState, useEffect, useMemo, useRef, useTransition } from "react"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
+import { useOptionLibrary } from "@/hooks/useOptionLibrary"
+import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
 
 type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
@@ -89,6 +91,38 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [autoFillBP, setAutoFillBP] = useState(false)
   const [autoFillBg, setAutoFillBg] = useState(false)
   const [locale, setLocale]         = useState(currentLocale ?? "en")
+
+  // Intraop favourites. Server-side (not localStorage like the toggles above)
+  // because the whole point is that they follow the clinician onto the phone.
+  const { options: drugLibOpts }     = useOptionLibrary("INTRAOP_DRUG")
+  const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
+  const favDrugOptions     = useMemo(() => [...new Set(drugLibOpts.map(o => o.label))].sort(), [drugLibOpts])
+  const favInfusionOptions = useMemo(() => [...new Set(infusionLibOpts.map(o => o.label))].sort(), [infusionLibOpts])
+  const [favDrugs, setFavDrugs]         = useState<string[]>([])
+  const [favInfusions, setFavInfusions] = useState<string[]>([])
+  const [favSaving, setFavSaving]       = useState(false)
+
+  async function saveFavourites(
+    key: "intraopFavouriteDrugs" | "intraopFavouriteInfusions",
+    next: string[],
+    apply: (v: string[]) => void,
+  ) {
+    const previous = key === "intraopFavouriteDrugs" ? favDrugs : favInfusions
+    apply(next)                     // optimistic — the list is small and local
+    setFavSaving(true)
+    try {
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferences: { [key]: next } }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+    } catch {
+      apply(previous)               // put it back rather than lie about saving
+    } finally {
+      setFavSaving(false)
+    }
+  }
   // Display-only — the database always stores the canonical value
   // (cm/kg/°C/mmHg); these just convert what's shown/typed in vitals entry.
   // Drugs, infusions, fluids, and labs are not affected.
@@ -220,6 +254,22 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     caseOutbox.summary().then(s => setQueuedSaves(s.count)).catch(() => setQueuedSaves(null))
   }, [modalOpen, category])
 
+  // Load the saved favourites when the automation tab is actually opened —
+  // no point fetching preferences for someone who never looks at them.
+  useEffect(() => {
+    if (!modalOpen || category !== "automation") return
+    let cancelled = false
+    fetch("/api/user", { cache: "no-store" })
+      .then(res => (res.ok ? res.json() : null))
+      .then((data: { preferences?: { intraopFavouriteDrugs?: string[]; intraopFavouriteInfusions?: string[] } } | null) => {
+        if (cancelled || !data) return
+        setFavDrugs(data.preferences?.intraopFavouriteDrugs ?? [])
+        setFavInfusions(data.preferences?.intraopFavouriteInfusions ?? [])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [modalOpen, category])
+
   return (
     <>
       <div className="relative" ref={menuRef}>
@@ -297,7 +347,11 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
       {modalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
           onClick={() => setModalOpen(false)}>
-          <div className="bg-white dark:bg-[#1c1c1c] rounded-2xl shadow-2xl w-full max-w-xl max-h-[80vh] flex overflow-hidden"
+          {/* Proper dialog semantics: screen readers announce it as a modal,
+              and the onboarding tour uses the same signal to hold off rather
+              than popping up on top of an open dialog. */}
+          <div role="dialog" aria-modal="true" aria-label={t("settings.accountSettings")}
+            className="bg-white dark:bg-[#1c1c1c] rounded-2xl shadow-2xl w-full max-w-xl max-h-[80vh] flex overflow-hidden"
             onClick={e => e.stopPropagation()}>
 
             {/* Sidebar */}
@@ -435,6 +489,33 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         </SettingRow>
                       </div>
                     )}
+
+                    {/* Favourite drugs / infusions — the same server-side
+                        shortlist the phone edits, so it follows the clinician
+                        between devices rather than living on one of them. */}
+                    <div className="pt-4 mt-2 border-t border-slate-100 dark:border-[#2a2a2a] space-y-5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {t("settings.favouritesDesc")}
+                      </p>
+                      <FavouritesEditor
+                        title={t("settings.favouriteDrugs")}
+                        options={favDrugOptions}
+                        selected={favDrugs}
+                        onSave={next => saveFavourites("intraopFavouriteDrugs", next, setFavDrugs)}
+                        saving={favSaving}
+                        searchPlaceholder={t("settings.favouritesSearch")}
+                        emptyLabel={t("settings.favouritesNoMatch")}
+                      />
+                      <FavouritesEditor
+                        title={t("settings.favouriteInfusions")}
+                        options={favInfusionOptions}
+                        selected={favInfusions}
+                        onSave={next => saveFavourites("intraopFavouriteInfusions", next, setFavInfusions)}
+                        saving={favSaving}
+                        searchPlaceholder={t("settings.favouritesSearch")}
+                        emptyLabel={t("settings.favouritesNoMatch")}
+                      />
+                    </div>
                   </>
                 )}
 

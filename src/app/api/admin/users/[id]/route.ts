@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { requireRole } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
+import { invalidateAccountState } from "@/lib/password-epoch"
 import { z } from "zod"
 import { corsHeaders } from "@/lib/cors"
 
@@ -30,6 +31,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data:  { role: data.role },
     select: { id: true, role: true },
   })
+  // Role is resolved live per request from a short-lived cache. Dropping the
+  // entry makes a demotion effective on the target's very next request instead
+  // of waiting out the cache TTL.
+  invalidateAccountState(id)
 
   return NextResponse.json(updated)
 }

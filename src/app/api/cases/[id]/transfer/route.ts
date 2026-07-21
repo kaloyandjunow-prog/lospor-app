@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { caseWhereForUser } from "@/lib/access-control"
 import { prisma } from "@/lib/prisma"
 import { logAudit } from "@/lib/audit"
+import { transferCaseOwnership } from "@/lib/case-transfer"
 import { z } from "zod"
 
 const postSchema  = z.object({ toUserId: z.string().min(1) })
@@ -49,29 +50,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Recipient must be in your institution" }, { status: 403 })
   }
 
-  await prisma.caseTransfer.updateMany({
-    where: { caseId, status: "PENDING" },
-    data:  { status: "DECLINED", resolvedAt: new Date() },
+  // Superseding pending transfers, renumbering the case if the recipient
+  // already holds its code, and moving the institution all happen inside one
+  // transaction — see transferCaseOwnership.
+  const outcome = await transferCaseOwnership(prisma, caseId, toUserId, { supersedePending: true })
+  const transfer = await prisma.caseTransfer.create({
+    data: {
+      caseId,
+      fromUserId:  caseRecord.userId,
+      toUserId,
+      initiatedBy: user.id,
+      status:      "ACCEPTED",
+      resolvedAt:  new Date(),
+      previousCaseCode: outcome.previousCaseCode,
+    },
   })
-
-  const [transfer] = await prisma.$transaction([
-    prisma.caseTransfer.create({
-      data: {
-        caseId,
-        fromUserId:  caseRecord.userId,
-        toUserId,
-        initiatedBy: user.id,
-        status:      "ACCEPTED",
-        resolvedAt:  new Date(),
-      },
-    }),
-    prisma.case.update({
-      where: { id: caseId },
-      data:  { userId: toUserId },
-    }),
-  ])
-  after(() => logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, { toUserId, instant: true }))
-  return NextResponse.json({ instant: true, transfer })
+  after(() => logAudit(user.id, "CASE_TRANSFER_ASSIGN", caseId, {
+    toUserId, instant: true, previousCaseCode: outcome.previousCaseCode, caseCode: outcome.caseCode,
+  }))
+  return NextResponse.json({ instant: true, transfer, caseCode: outcome.caseCode, previousCaseCode: outcome.previousCaseCode })
 }
 
 // PATCH - recipient accepts or declines
@@ -92,18 +89,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!transfer) return NextResponse.json({ error: "No pending transfer found" }, { status: 404 })
 
   if (action === "accept") {
-    await prisma.$transaction([
-      prisma.caseTransfer.update({
-        where: { id: transfer.id },
-        data:  { status: "ACCEPTED", resolvedAt: new Date() },
-      }),
-      prisma.case.update({
-        where: { id: caseId },
-        data:  { userId: user.id },
-      }),
-    ])
-    after(() => logAudit(user.id, "CASE_TRANSFER_ACCEPT", caseId))
-    return NextResponse.json({ accepted: true })
+    const outcome = await transferCaseOwnership(prisma, caseId, user.id, { acceptTransferId: transfer.id })
+    after(() => logAudit(user.id, "CASE_TRANSFER_ACCEPT", caseId, {
+      previousCaseCode: outcome.previousCaseCode, caseCode: outcome.caseCode,
+    }))
+    return NextResponse.json({ accepted: true, caseCode: outcome.caseCode, previousCaseCode: outcome.previousCaseCode })
   }
 
   await prisma.caseTransfer.update({

@@ -22,7 +22,6 @@ vi.mock("@/lib/case-audit", () => ({ writeSnapshotAsync: writeSnapshotAsyncMock 
 vi.mock("@/lib/relational-sync", () => ({ syncCaseRelational: syncCaseRelationalMock }))
 vi.mock("@/lib/access-control", () => ({ canAccessCase: canAccessCaseMock }))
 vi.mock("@/lib/audit", () => ({ logAudit: logAuditMock }))
-vi.mock("@/lib/caseEmitter", () => ({ default: { emit: vi.fn() } }))
 
 const VALID_CASE = {
   userId: "user-1",

@@ -37,12 +37,19 @@ describe("mapPreop — BMI validation", () => {
 })
 
 describe("mapPreop — biometrics + enums + structured lists", () => {
-  it("uses null (not 0) for missing biometrics and OTHER for missing sex", () => {
+  it("uses null (not 0) for missing biometrics and UNKNOWN for missing sex", () => {
     const r = mapPreop({})
     expect(r.ageYears).toBeNull()
     expect(r.heightCm).toBeNull()
     expect(r.weightKg).toBeNull()
-    expect(r.sex).toBe("OTHER")
+    // Not OTHER: "nobody recorded it" and "recorded as other" are different
+    // facts, and a research register must not merge them.
+    expect(r.sex).toBe("UNKNOWN")
+  })
+
+  it("keeps an explicitly recorded OTHER distinct from unrecorded", () => {
+    expect(mapPreop({ sex: "OTHER" }).sex).toBe("OTHER")
+    expect(mapPreop({}).sex).toBe("UNKNOWN")
   })
 
   it("validates blood-type enum", () => {

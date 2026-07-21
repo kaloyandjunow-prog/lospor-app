@@ -16,26 +16,14 @@ import {
 
 const dataSchema = z.record(z.string(), z.unknown())
 
-// Per-user burst throttle: store last-request timestamp.
-// Entries older than 1 hour are pruned to prevent unbounded memory growth.
-const lastRequestAt = new Map<string, number>()
-const BURST_PRUNE_AGE_MS = 60 * 60 * 1000   // 1 hour
-
-function checkBurst(userId: string): boolean {
-  const now = Date.now()
-
-  // Prune stale entries before adding a new one.
-  for (const [uid, ts] of lastRequestAt.entries()) {
-    if (now - ts > BURST_PRUNE_AGE_MS) lastRequestAt.delete(uid)
-  }
-
-  const last = lastRequestAt.get(userId)
-  lastRequestAt.set(userId, now)
-
-  if (last !== undefined && now - last < AI_BURST_COOLDOWN_MS) {
-    return false  // too soon
-  }
-  return true
+// Per-user burst throttle. This was an in-process Map, which on serverless
+// resets with every cold start and is not shared between instances — so the
+// cooldown was effectively unenforced in production, the same flaw the login
+// rate limiter already had fixed. Reuses the DB-backed limiter so one counter
+// is shared across every instance.
+async function checkBurst(userId: string): Promise<boolean> {
+  const { allowed } = await rateLimit(`ai-burst:${userId}`, 1, AI_BURST_COOLDOWN_MS)
+  return allowed
 }
 
 const CORS = (req: NextRequest) => corsHeaders(req)
@@ -72,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Item 12: Per-user burst protection (3-second cooldown)
-  if (!checkBurst(user.id)) {
+  if (!(await checkBurst(user.id))) {
     return NextResponse.json(
       { error: "Too many requests, wait a moment" },
       { status: 429 },

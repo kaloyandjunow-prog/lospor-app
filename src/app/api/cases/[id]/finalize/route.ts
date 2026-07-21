@@ -6,7 +6,6 @@ import { writeSnapshotAsync } from "@/lib/case-audit"
 import { syncCaseRelational } from "@/lib/relational-sync"
 import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
-import caseEmitter from "@/lib/caseEmitter"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
 
@@ -109,7 +108,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   after(() => logAudit(userId, "CASE_FINALIZED", id, { from: c.status, to: "COMPLETE" }))
-  caseEmitter.emit(id, { type: "case_updated", sections: { status: true, preop: false, intraop: false, postop: false, notes: false } })
 
   return NextResponse.json({ id, status: "COMPLETE", finalizedAt })
 }

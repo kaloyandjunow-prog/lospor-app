@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest"
+import { z } from "zod"
 import { preopSchema } from "@/lib/schemas/case"
+import { parseLenient } from "@/lib/lenient-parse"
 import { mapPreopUpdate } from "@/app/api/cases/_mappers"
 
 // Regression guard for a data-loss bug: a field-level PATCH used to wipe every
@@ -35,6 +37,33 @@ describe("partial PATCH preserves unmentioned fields", () => {
   it("keeps integer rounding for values that are sent", () => {
     const update = mapPreopUpdate(preopSchema.parse({ ageYears: 40.6 }) as Record<string, unknown>)
     expect(update.ageYears).toBe(41)
+  })
+
+  // Second-order version of the same bug: unparseable input used to become
+  // null, which is a *valid* value for a nullable field — so a typo silently
+  // overwrote a real measurement and produced no rejectedFields entry.
+  it("rejects an unparseable value instead of clearing the stored one", () => {
+    const parsed = preopSchema.safeParse({ heightCm: "12abc", weightKg: 80 })
+    expect(parsed.success).toBe(false)
+    if (!parsed.success) {
+      expect(parsed.error.issues.some(i => i.path.join(".") === "heightCm")).toBe(true)
+    }
+  })
+
+  it("a typo does not reach the update mapper as a null", () => {
+    const { value, rejected } = parseLenient(
+      z.object({ preop: preopSchema.optional() }),
+      { preop: { heightCm: "12abc", weightKg: 80 } },
+    )
+    expect(rejected.map(r => r.path)).toContain("preop.heightCm")
+    const update = mapPreopUpdate(value.preop as Record<string, unknown>)
+    expect("heightCm" in update).toBe(false)   // not cleared
+    expect(update.weightKg).toBe(80)           // the rest still saves
+  })
+
+  it("still accepts numeric strings, which is how forms send numbers", () => {
+    const update = mapPreopUpdate(preopSchema.parse({ heightCm: "176" }) as Record<string, unknown>)
+    expect(update.heightCm).toBe(176)
   })
 
   it("an empty patch updates nothing at all", () => {

@@ -204,7 +204,8 @@ export const CaseTransferScalarFieldEnum = {
   initiatedBy: 'initiatedBy',
   status: 'status',
   createdAt: 'createdAt',
-  resolvedAt: 'resolvedAt'
+  resolvedAt: 'resolvedAt',
+  previousCaseCode: 'previousCaseCode'
 } as const
 
 export type CaseTransferScalarFieldEnum = (typeof CaseTransferScalarFieldEnum)[keyof typeof CaseTransferScalarFieldEnum]

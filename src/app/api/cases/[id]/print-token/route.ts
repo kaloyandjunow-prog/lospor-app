@@ -35,8 +35,12 @@ export async function POST(
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   // Sign a 5-minute print token
+  // jti so the token can be revoked. Print tokens travel in a query string —
+  // they end up in access logs, browser history and Referer headers — so the
+  // 5-minute window is the main protection, and revocability is the backstop.
   const token = await new SignJWT({ caseId: id, userId: user.id, type: "print" })
     .setProtectedHeader({ alg: "HS256" })
+    .setJti(crypto.randomUUID())
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(secret())

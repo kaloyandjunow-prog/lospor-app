@@ -16,7 +16,8 @@
     "unknown": "Unknown",
     "notes": "Notes…",
     "details": "Details…",
-    "gdprFooter": "LOSPOR — Large Open Source Perioperative Register · Designed with GDPR principles"
+    "gdprFooter": "LOSPOR — Large Open Source Perioperative Register · Designed with GDPR principles",
+    "other": "Other"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -94,7 +95,20 @@
     "disclaimerTitle": "Medical Disclaimer",
     "disclaimerText": "LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is not intended to replace clinical judgment or serve as a certified medical device.",
     "acceptTermsLabel": "I have read and accept the Terms of Use, Privacy Policy, and the above Medical Disclaimer.",
-    "titles": ["Dr.","Prof. Dr.","Assoc. Prof. Dr.","Sr. Assoc. Prof. Dr.","Resident","Nurse","Head Nurse","Midwife","Paramedic","Anesthesia Technician","Medical Student","Other"]
+    "titles": [
+      "Dr.",
+      "Prof. Dr.",
+      "Assoc. Prof. Dr.",
+      "Sr. Assoc. Prof. Dr.",
+      "Resident",
+      "Nurse",
+      "Head Nurse",
+      "Midwife",
+      "Paramedic",
+      "Anesthesia Technician",
+      "Medical Student",
+      "Other"
+    ]
   },
   "dashboard": {
     "title": "Dashboard",
@@ -254,7 +268,12 @@
     "deleteAccountDesc": "Your account access will be disabled immediately and the current mobile token revoked. Further deletion or anonymisation is processed according to the retention policy. This cannot be undone.",
     "typeDeleteToConfirm": "Type DELETE to confirm",
     "confirmDeletion": "Confirm deletion",
-    "deleting": "Deleting…"
+    "deleting": "Deleting…",
+    "favouritesDesc": "Favourite drugs and infusions appear first in the intraoperative picker. They are saved to your account, so the same shortlist appears on your phone.",
+    "favouriteDrugs": "Favourite drugs",
+    "favouriteInfusions": "Favourite infusions",
+    "favouritesSearch": "Search the library…",
+    "favouritesNoMatch": "Nothing matches that search"
   },
   "admin": {
     "title": "Admin Panel",
@@ -610,7 +629,45 @@
     "bloodProducts": "Blood products / notes",
     "complicationsSection": "Complications & Event Log",
     "complicationsPlaceholder": "No patient-identifying information — additional notes…",
-    "continuePostop": "Continue to Postoperative"
+    "continuePostop": "Continue to Postoperative",
+    "timetable": {
+      "caseFinished": "Case finished",
+      "selectMonitoringToPopulate": "Select monitoring above to populate this chart",
+      "time": "Time",
+      "inhAgent": "Agent",
+      "events": "Events",
+      "drugs": "Drugs",
+      "infusions": "Infusions",
+      "fluids": "Fluids",
+      "endCaseEllipsis": "End case…",
+      "searchFluid": "Search fluid…",
+      "logClinicalEvent": "Log clinical event",
+      "searchEvents": "Search events…",
+      "positionChange": "Position change",
+      "searchDrug": "Search drug…",
+      "searchInfusion": "Search infusion…",
+      "drugNamePlaceholder": "Drug name",
+      "unit": "Unit",
+      "amountPlaceholder": "Amount",
+      "wasItFinished": "Was it finished?",
+      "howMuchInfused": "How much was infused?",
+      "startAgentHere": "Start agent here",
+      "optional": "Optional",
+      "changeDose": "Change dose",
+      "setNewRatePrompt": "Set the new rate",
+      "pickRateChangeTime": "Pick when the rate changed",
+      "concentration": "Concentration",
+      "deleteInfusionConfirm": "Remove this infusion?",
+      "barDraggedOffTimeline": "This bar was dragged off the timeline.",
+      "wasFullBagInfused": "Was the full bag infused?",
+      "amountLabel": "Amount",
+      "favourites": "Favourites",
+      "browseAllDrugs": "Browse all drugs",
+      "browseAllInfusions": "Browse all infusions",
+      "noDrugsFound": "No drugs found",
+      "noInfusionsFound": "No infusions found",
+      "favouritesHint": "Choose favourites in Settings"
+    }
   },
   "postop": {
     "aldreteSection": "Modified Aldrete Score (on leaving theatre)",

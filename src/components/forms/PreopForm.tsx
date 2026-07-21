@@ -176,7 +176,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   // ── Memoised score + BMI calculations ────────────────────────────────────────
   const bmi  = useMemo(() => height && weight ? calcBMI(Number(height), Number(weight)) : null,
     [height, weight])
-  const ibw  = useMemo(() => height && sex ? calcIBW(Number(height), sex) : null, [height, sex])
+  // Ideal body weight is sex-specific (Devine); with sex unrecorded there is no
+  // defensible value, so show nothing rather than silently assuming male.
+  const ibw  = useMemo(() => height && sex && sex !== "UNKNOWN" ? calcIBW(Number(height), sex) : null, [height, sex])
   const abw  = useMemo(() => ibw && weight ? calcABW(ibw, Number(weight)) : null, [ibw, weight])
   const asaSuggestion = useMemo(() => suggestASAFromTags(comorbidities ?? [], bmi), [comorbidities, bmi])
 
@@ -293,7 +295,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   function validate(data: PreopData): string[] {
     const errs: string[] = []
     if (data.ageYears == null)      errs.push("ageYears")
-    if (!data.sex)                  errs.push("sex")
+    // UNKNOWN is a truthy string, so `!data.sex` would let it through. It means
+    // "nobody recorded this yet" and must block submission exactly like a blank.
+    if (!data.sex || data.sex === "UNKNOWN") errs.push("sex")
     if (!data.heightCm)             errs.push("heightCm")
     if (!data.weightKg)             errs.push("weightKg")
     if (!data.diagnoses?.length)    errs.push("diagnoses")

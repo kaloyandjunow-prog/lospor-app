@@ -27,6 +27,10 @@ export function checkClinicalPayloadPII(payload: {
   return checkPII(
     {
       notes: text(payload.notes),
+      // The two largest free-text preop fields. Both are stored unredacted and
+      // both are exactly where a pasted patient name ends up.
+      diagnosis: text(preop.diagnosis),
+      plannedProcedure: text(preop.plannedProcedure),
       teamNotes: text(preop.teamNotes),
       allergyDetails: labelList(preop.allergyDetails),
       currentMedications: labelList(preop.currentMedications),

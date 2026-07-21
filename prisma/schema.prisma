@@ -140,6 +140,11 @@ model CaseTransfer {
   status      TransferStatus @default(PENDING)
   createdAt   DateTime       @default(now())
   resolvedAt  DateTime?
+  // Case codes are per-user sequences, so a transferred case may have to be
+  // renumbered into the recipient's sequence. The code it carried beforehand is
+  // kept here — otherwise the paper record and the database disagree with no
+  // way to reconcile them.
+  previousCaseCode String?
 
   @@index([status])
   @@index([toUserId, status])
@@ -541,11 +546,20 @@ model CaseEvent {
 
   @@index([caseId, timestamp])
   @@index([caseId, status])
+  // Created by 20260625003000_normalized_remaining_clinical_rows but never
+  // reflected back into this schema, so every diff since has proposed dropping
+  // them. Declared here to match the database rather than lose the indexes.
+  @@index([infId])
+  @@index([fluidId])
+  @@index([clinicalEventCode])
   @@index([caseId, logicalId])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
+  // Deliberately NOT a foreign key. Audit rows must outlive the account they
+  // describe — a retention purge that hard-deletes a user must not cascade away
+  // the evidence of what that user did, and SetNull would erase who acted.
   userId    String
   action    String
   entityId  String
@@ -554,6 +568,9 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, createdAt])
+  // "Everything that happened to this case" was a full table scan.
+  @@index([entityId, createdAt])
 }
 
 model CustomTerm {
@@ -563,6 +580,12 @@ model CustomTerm {
   termType      String // "procedure" | "diagnosis" | "medication" | "allergy"
   institutionId String? // null = legacy global; set = institution-scoped
   createdAt     DateTime @default(now())
+
+  // Dedupe was read-then-write, which races under concurrent first use of the
+  // same term. Let the database be the arbiter. NULL institutionId rows are not
+  // covered by this (Postgres treats NULLs as distinct) — that is the legacy
+  // global scope and is intentionally left alone.
+  @@unique([institutionId, termType, term])
 }
 
 // ─── Preoperative ────────────────────────────────────────────────────────────
@@ -803,6 +826,10 @@ enum Sex {
   MALE
   FEMALE
   OTHER
+  // Distinct from OTHER: "not recorded" is not a finding. Conflating the two
+  // corrupts any denominator a researcher computes, and OMOP has a separate
+  // unknown concept for exactly this reason.
+  UNKNOWN
 }
 
 enum BloodType {

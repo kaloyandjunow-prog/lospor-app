@@ -584,6 +584,9 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
     // One person per case: LOSPOR deliberately stores no patient identifier, so
     // the same patient returning for a second operation cannot be recognised.
     // Documented as a research limitation, not an accident.
+    // 8507/8532 are the OMOP standard gender concepts. OTHER and UNKNOWN both
+    // fall through to 0 ("no matching concept"), but they mean different things
+    // in the source data and are preserved verbatim in gender_source_value.
     const GENDER_CONCEPT: Record<string, number> = { MALE: 8507, FEMALE: 8532 }
     const ageAtOp = c.preop?.ageYears ?? null
     const opYear = startDate ? Number(startDate.substring(0, 4)) : null

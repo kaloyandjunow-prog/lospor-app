@@ -21,7 +21,10 @@ import type {
 } from "@/types/timetable"
 import { EndCaseModal } from "@/components/intraop/EndCaseModal"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
+import { ScenarioPicker } from "@/components/intraop/ScenarioPicker"
 import { HotkeysModal } from "@/components/intraop/HotkeysModal"
+import { useIntraopFavourites } from "@/hooks/useIntraopFavourites"
+import { BOLUS_SCENARIOS, INFUSION_SCENARIOS } from "@lospor/core"
 import { useDrugHandlers } from "@/hooks/useDrugHandlers"
 import { useVitalsHandlers } from "@/hooks/useVitalsHandlers"
 import { useClinicalEventHandlers } from "@/hooks/useClinicalEventHandlers"
@@ -278,7 +281,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [resumeUntilLabel, setResumeUntilLabel] = useState("")
   // In-cell drug picker
   const [drugPicker, setDrugPicker]   = useState<{ ci: number; rect: DOMRect } | null>(null)
-  const [dpSearch,   setDpSearch]     = useState("")
+  // Shortlist the clinician chose in settings — the same server-side list the
+  // phone reads, so both devices open on the same favourites.
+  const { favouriteDrugs, favouriteInfusions } = useIntraopFavourites()
   // In-cell fluid picker
   const [fluidPicker, setFluidPicker] = useState<{ ci: number; rect: DOMRect } | null>(null)
   const [fpSearch,    setFpSearch]    = useState("")
@@ -286,7 +291,6 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // so starting an infusion no longer requires picking a drug then choosing
   // "Infusion" (matches mobile's separate Drug/Infusion/Fluid/Agent rows).
   const [infPicker, setInfPicker]     = useState<{ ci: number; rect: DOMRect } | null>(null)
-  const [ipSearch,  setIpSearch]      = useState("")
   // Infusion context menu + rate-change dialog
   const [infMenu, setInfMenu] = useState<{ segId: string; name: string; color: string; rect: DOMRect; stopped?: boolean; fromPillCol?: number } | null>(null)
   const [rateDialog, setRateDialog] = useState<{
@@ -313,13 +317,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const [discFluidState, setDiscFluidState] = useState<{ id: string; volInput: string; rect: DOMRect; fullBag: boolean | null } | null>(null)
   // Dose / rate editor
   const [doseEditDrug, setDoseEditDrug] = useState<{ idx: number; dose: string; unit: string; rect: DOMRect } | null>(null)
-  // Custom drug popup + saved list
-  const [customDrugOpen, setCustomDrugOpen]   = useState(false)
-  const [customDrugRect, setCustomDrugRect]   = useState<DOMRect | null>(null)
-  const [customDrugName, setCustomDrugName]   = useState("")
-  const [customDrugUnit, setCustomDrugUnit]   = useState("mg")
-  const [customDrugDose, setCustomDrugDose]   = useState("")
-  const [customDrugs, setCustomDrugs]         = useState<{name:string; unit:string}[]>([])
+  // Free-text drug entry was removed in 5.3.0: the option library is the
+  // vocabulary, and an off-library name cannot be ATC-coded, dose-checked or
+  // exported. Mobile never offered it.
   // Clinical events picker
   const [eventPicker, setEventPicker]         = useState<{ ci: number; rect: DOMRect } | null>(null)
   const [evSearch, setEvSearch]               = useState("")
@@ -914,7 +914,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // ── Agents ──────────────────────────────────────────────────────────────────
   const {
     agents, agentPicker, agentPickerRect, pickerN2o, setPickerN2o, pickerPercent, setPickerPercent,
-    pendingAgentName,
+    pendingAgentName, setPendingAgentName,
     startAgent, updateAgentExtras, openPickerForSeg, openPickerEmpty, closeAgentPicker,
     removeSegment, extendSegment, resumeSegment, continueAgent,
   } = useAgentHandlers(data, onChange, dataRef, onChangeRef, emitLogEvent, nowCol)
@@ -1428,7 +1428,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                       <div key={gi} draggable
                         title={`${d.name}${d.dose ? " — " + d.dose + " " + d.unit : ""}`}
                         onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("item-type","move-drug"); e.dataTransfer.setData("item-idx", String(gi)); e.dataTransfer.effectAllowed="move" }}
-                        onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }); setDpSearch("") }}
+                        onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
                         onDoubleClick={e => { e.stopPropagation(); setDoseEditDrug({ idx: gi, dose: d.dose, unit: d.unit, rect: e.currentTarget.getBoundingClientRect() }) }}
                         className={`flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${sel?.type === "drug" && sel.idx === gi ? "bg-violet-400 dark:bg-violet-600 ring-2 ring-violet-500 dark:ring-violet-400" : "bg-violet-100 dark:bg-violet-900/40 hover:bg-violet-200 dark:hover:bg-violet-800/40"}`}>
                         <span className="text-[10px] font-semibold text-violet-800 dark:text-violet-300 leading-tight truncate flex-1">
@@ -1442,7 +1442,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                     )
                   })}
                   <button type="button" tabIndex={-1}
-                    onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }); setDpSearch("") }}
+                    onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
                     className="w-full mt-1 flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-400 dark:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 py-1 transition-colors">
                     <Plus className="h-3 w-3" />
                   </button>
@@ -1766,7 +1766,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
                 <button type="button" tabIndex={-1}
-                  onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }); setIpSearch("") }}
+                  onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
                   className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
                 </button>
@@ -1939,20 +1939,20 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                           onClick={() => {
                             const { ci, rect } = fluidPicker!
                             setFluidPicker(null)
-                            const defaultVol = FLUID_QUICK_VOLUMES[fluid.name]?.[0]
-                            if (defaultVol != null) {
-                              addFluidDirect(fluid.name, cat.cat, String(defaultVol), ci)
-                            } else {
-                              const isCrystColloid = ["Crystalloids","Colloids"].includes(cat.cat)
-                              const routes = FLUID_ROUTES[fluid.name] ?? ["IV"]
-                              setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
-                                dose: isCrystColloid ? "500" : "", doseHint: "", fluidScale: "L",
-                                rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
-                                color: "#06b6d4",
-                                quickDoses: FLUID_QUICK_VOLUMES[fluid.name], routes, route: routes[0],
-                                anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
-                              })
-                            }
+                            // Always open the dose selector, pre-filled — mirroring mobile's
+                            // selectFluid. Web used to add the fluid immediately whenever the
+                            // library supplied a quick volume, which is why the slider and
+                            // quick pills never appeared for the common fluids: they all have
+                            // one. Volume is a clinical value; it gets confirmed, not assumed.
+                            const routes = FLUID_ROUTES[fluid.name] ?? ["IV"]
+                            setFp({ col: ci, name: fluid.name, unit: "ml", mode: "fluid",
+                              dose: String(FLUID_QUICK_VOLUMES[fluid.name]?.[0] ?? 500),
+                              doseHint: "", fluidScale: "L",
+                              rate: 0, rateUnit: "ml", rateUnits: ["ml"], rateMin: 0, rateMax: 2000, rateStep: 50,
+                              color: "#06b6d4",
+                              quickDoses: FLUID_QUICK_VOLUMES[fluid.name], routes, route: routes[0],
+                              anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
+                            })
                           }}
                           className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
                           {fluid.name}
@@ -2065,55 +2065,33 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         const showAbove  = spaceBelow < 320
         const left = Math.max(8, Math.min(drugPicker.rect.left, window.innerWidth - POP_W - 8))
         const top  = showAbove ? drugPicker.rect.top - 4 : drugPicker.rect.bottom + 4
-        const allCats = [
-          ...QUICK_DRUGS,
-          ...(customDrugs.length > 0 ? [{ cat:"Custom", color:"bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-300 border-violet-200 dark:border-violet-700", drugs: customDrugs.map(d => ({ name:d.name, unit:d.unit })) }] : [])
-        ]
-        const filtered = dpSearch.trim()
-          ? allCats.map(c => ({ ...c, drugs: c.drugs.filter(d => d.name.toLowerCase().includes(dpSearch.toLowerCase())) })).filter(c => c.drugs.length > 0)
-          : allCats
+        const allCats = QUICK_DRUGS
         return (
           <>
             <div className="fixed inset-0 z-[9990]" onClick={() => setDrugPicker(null)} />
             <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
-              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder={t("intraop.timetable.searchDrug")} value={dpSearch}
-                  onChange={e => setDpSearch(e.target.value)}
-                  onKeyDown={e => e.key === "Escape" && setDrugPicker(null)}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400"
-                />
-              </div>
-              <div className="max-h-64 overflow-y-auto p-2 space-y-2">
-                {filtered.map(cat => (
-                  <div key={cat.cat}>
-                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{cat.cat}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {cat.drugs.map(drug => (
-                        <button key={drug.name} type="button"
-                          onClick={() => {
-                            const { ci, rect } = drugPicker!
-                            setDrugPicker(null)
-                            const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
-                            openFP(ci, drug.name, drug.unit, anchor, "bolus")
-                          }}
-                          className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
-                          {drug.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No drugs found</p>}
-              </div>
-              <div className="p-2 border-t border-slate-100 dark:border-[#2a2a2a]">
-                <button type="button"
-                  onClick={e => { setDrugPicker(null); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setCustomDrugName(""); setCustomDrugUnit("mg"); setCustomDrugDose(""); setCustomDrugRect(rect); setCustomDrugOpen(true) }}
-                  className="w-full text-xs font-semibold px-2 py-1.5 rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-500 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors">
-                  + custom drug
-                </button>
-              </div>
+              {/* Same menu as mobile's DrugSheet: favourites, the eight clinical
+                  scenarios, then browse the full library. */}
+              <ScenarioPicker
+                scenarios={BOLUS_SCENARIOS}
+                favourites={favouriteDrugs}
+                browse={allCats.map(c => ({ cat: c.cat, color: c.color, items: c.drugs }))}
+                onPick={(name, unit) => {
+                  const { ci, rect } = drugPicker!
+                  setDrugPicker(null)
+                  const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
+                  openFP(ci, name, unit ?? "mg", anchor, "bolus")
+                }}
+                labels={{
+                  favourites: t("intraop.timetable.favourites"),
+                  browseAll: t("intraop.timetable.browseAllDrugs"),
+                  search: t("intraop.timetable.searchDrug"),
+                  empty: t("intraop.timetable.noDrugsFound"),
+                  favouritesHint: t("intraop.timetable.favouritesHint"),
+                }}
+              />
             </div>
           </>
         )
@@ -2130,161 +2108,40 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
         const left = Math.max(8, Math.min(infPicker.rect.left, window.innerWidth - POP_W - 8))
         const top  = showAbove ? infPicker.rect.top - 4 : infPicker.rect.bottom + 4
         const names = Object.keys(INFUSION_CONFIGS).sort()
-        const filtered = ipSearch.trim()
-          ? names.filter(n => n.toLowerCase().includes(ipSearch.toLowerCase()))
-          : names
         return (
           <>
             <div className="fixed inset-0 z-[9990]" onClick={() => setInfPicker(null)} />
             <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
               className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
-              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder={t("intraop.timetable.searchInfusion")} value={ipSearch}
-                  onChange={e => setIpSearch(e.target.value)}
-                  onKeyDown={e => e.key === "Escape" && setInfPicker(null)}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                />
-              </div>
-              <div className="max-h-64 overflow-y-auto p-2">
-                <div className="flex flex-wrap gap-1">
-                  {filtered.map(name => {
-                    const cfg = INFUSION_CONFIGS[name]
-                    return (
-                      <button key={name} type="button"
-                        onClick={() => {
-                          const { ci, rect } = infPicker!
-                          setInfPicker(null)
-                          const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
-                          openFP(ci, name, cfg.units[0], anchor, "infusion")
-                        }}
-                        style={{ borderColor: cfg.color, color: cfg.color }}
-                        className="text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity">
-                        {name}
-                      </button>
-                    )
-                  })}
-                </div>
-                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No infusions found</p>}
-              </div>
+              {/* Same menu as mobile's InfusionSheet. */}
+              <ScenarioPicker
+                scenarios={INFUSION_SCENARIOS}
+                favourites={favouriteInfusions}
+                browse={[{
+                  cat: "All infusions",
+                  color: "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300",
+                  items: names.map(name => ({ name, unit: INFUSION_CONFIGS[name]?.units[0] })),
+                }]}
+                onPick={(name, unit) => {
+                  const { ci, rect } = infPicker!
+                  setInfPicker(null)
+                  const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
+                  openFP(ci, name, unit ?? INFUSION_CONFIGS[name]?.units[0] ?? "mg/h", anchor, "infusion")
+                }}
+                labels={{
+                  favourites: t("intraop.timetable.favourites"),
+                  browseAll: t("intraop.timetable.browseAllInfusions"),
+                  search: t("intraop.timetable.searchInfusion"),
+                  empty: t("intraop.timetable.noInfusionsFound"),
+                  favouritesHint: t("intraop.timetable.favouritesHint"),
+                }}
+              />
             </div>
           </>
         )
       })()
     ,
-      document.body
-    )}
-    {/* ── Custom drug portal ──────────────────────────────────────────────── */}
-    {customDrugOpen && customDrugRect && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 230
-        const spaceBelow = window.innerHeight - customDrugRect.bottom
-        const showAbove  = spaceBelow < 300
-        const left = Math.max(8, Math.min(customDrugRect.right - POP_W, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? customDrugRect.top - 4 : customDrugRect.bottom + 4
-        const UNIT_PRESETS = ["mcg","mg","g","mL","L","IU","U","mmol","mEq","mEq/L","ng","%"]
-        const canSubmit = customDrugName.trim().length > 0
-        function submit() {
-          if (!canSubmit) return
-          const name = customDrugName.trim()
-          const unit = customDrugUnit.trim() || "mg"
-          const dose = customDrugDose.trim()
-          // Add to custom drugs list
-          setCustomDrugs(prev => prev.some(d => d.name === name) ? prev : [...prev, { name, unit }])
-          // Drop directly into grid
-          const oc = onChangeRef.current
-          const d  = dataRef.current
-          oc({ ...d, drugs: [...d.drugs, { colIdx: selectedCol, name, dose, unit }] })
-          setCustomDrugOpen(false)
-          setCustomDrugName(""); setCustomDrugDose("")
-        }
-        return (
-          <>
-            <div className="fixed inset-0 z-[9996]" onClick={() => setCustomDrugOpen(false)} />
-            <div
-              style={{ position:"fixed", left, top, width: POP_W, zIndex: 9997, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
-              onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{t("intraop.timetable.customDrug")}</span>
-                <button type="button" onClick={() => setCustomDrugOpen(false)} className="text-slate-300 hover:text-red-400 transition-colors"><X className="h-3.5 w-3.5" /></button>
-              </div>
-
-              {/* Drug name */}
-              <input autoFocus type="text" placeholder={t("intraop.timetable.drugNamePlaceholder")}
-                value={customDrugName}
-                onChange={e => setCustomDrugName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") setCustomDrugOpen(false) }}
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400"
-              />
-
-              {/* Unit pills */}
-              <div className="space-y-1.5">
-                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.unit")}</p>
-                <div className="flex flex-wrap gap-1">
-                  {UNIT_PRESETS.map(u => (
-                    <button key={u} type="button"
-                      onClick={() => setCustomDrugUnit(u)}
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-colors ${
-                        customDrugUnit === u
-                          ? "bg-violet-500 border-violet-500 text-white"
-                          : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-violet-400 hover:text-violet-500"
-                      }`}>
-                      {u}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Dose amount */}
-              {(() => {
-                const DOSE_RANGE: Record<string, {min:number;max:number;step:number}> = {
-                  "mcg":    {min:0, max:1000, step:1},
-                  "mg":     {min:0, max:500,  step:1},
-                  "g":      {min:0, max:20,   step:0.1},
-                  "mL":     {min:0, max:250,  step:1},
-                  "L":      {min:0, max:5,    step:0.1},
-                  "IU":     {min:0, max:1000, step:1},
-                  "U":      {min:0, max:100,  step:1},
-                  "mmol":   {min:0, max:200,  step:1},
-                  "mEq":    {min:0, max:200,  step:1},
-                  "mEq/L":  {min:0, max:150,  step:1},
-                  "ng":     {min:0, max:1000, step:1},
-                  "%":      {min:0, max:100,  step:0.5},
-                }
-                const range = DOSE_RANGE[customDrugUnit] ?? {min:0, max:500, step:1}
-                const numVal = parseFloat(customDrugDose) || 0
-                return (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <input type="number" min={range.min} max={range.max} step={range.step} placeholder={t("intraop.timetable.amountPlaceholder")}
-                        value={customDrugDose}
-                        onChange={e => setCustomDrugDose(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") submit() }}
-                        className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400"
-                      />
-                      <span className="text-xs font-semibold text-violet-500 dark:text-violet-400 shrink-0 min-w-[32px] text-right">{customDrugUnit}</span>
-                    </div>
-                    <input type="range" min={range.min} max={range.max} step={range.step}
-                      value={numVal}
-                      onChange={e => setCustomDrugDose(e.target.value)}
-                      className="w-full h-1.5 accent-violet-500"
-                    />
-                    <div className="flex justify-between text-[9px] text-slate-400">
-                      <span>{range.min}</span><span>{range.max} {customDrugUnit}</span>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              <button type="button" onClick={submit} disabled={!canSubmit}
-                className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg py-1.5 transition-colors">
-                Start
-              </button>
-            </div>
-          </>
-        )
-      })(),
       document.body
     )}
     {/* ── Fluid conflict portal ──────────────────────────────────────────────── */}
@@ -2422,7 +2279,14 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 <div className="space-y-0.5">
                   {INH_AGENTS.map(agent => (
                     <button key={agent} type="button"
-                      onClick={() => startAgent(agentPicker!, agent, AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)}
+                      // Select, don't start. Mobile's AgentSheet sets the agent and its
+                      // default Fi% then waits for confirmation; web used to commit the
+                      // segment on the first click, so the concentration was never actually
+                      // chosen by anyone.
+                      onClick={() => {
+                        setPendingAgentName(agent)
+                        setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)
+                      }}
                       className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-[#333] ${AGENT_STYLE[agent]?.text ?? ""}`}>
                       {agent}
                     </button>

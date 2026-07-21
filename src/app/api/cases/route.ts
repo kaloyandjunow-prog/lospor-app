@@ -7,6 +7,7 @@ import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { caseWhereForUser } from "@/lib/access-control"
+import { generateCaseCode, isPrismaUniqueError } from "@/lib/case-code"
 import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
 
@@ -16,22 +17,6 @@ export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
-async function generateCaseCode(userId: string): Promise<string> {
-  // Yearly numbering: codes reset each calendar year, per user. Uniqueness is
-  // (userId, caseCode), so two users both holding e.g. 2026-0001 is fine.
-  const prefix = `${new Date().getFullYear()}-`
-  // Base the next code on the highest existing one (not a row count) so a gap
-  // left by a deleted draft can't collide with a still-existing higher code.
-  const last = await prisma.case.findFirst({
-    where: { userId, caseCode: { startsWith: prefix } },
-    orderBy: { caseCode: "desc" },
-    select: { caseCode: true },
-  })
-  const lastN = last?.caseCode ? Number(last.caseCode.slice(prefix.length)) : 0
-  const next = (Number.isFinite(lastN) ? lastN : 0) + 1
-  return `${prefix}${String(next).padStart(4, "0")}`
-}
-
 async function findIdempotentCase(userId: string, idempotencyKey: string) {
   return prisma.case.findFirst({
     where: { userId, clientDraftId: idempotencyKey },
@@ -39,14 +24,6 @@ async function findIdempotentCase(userId: string, idempotencyKey: string) {
   })
 }
 
-function isPrismaUniqueError(err: unknown, field?: string): boolean {
-  if (!err || typeof err !== "object" || !("code" in err) || err.code !== "P2002") return false
-  if (!field) return true
-  const target = "meta" in err && err.meta && typeof err.meta === "object" && "target" in err.meta
-    ? err.meta.target
-    : undefined
-  return Array.isArray(target) ? target.includes(field) : false
-}
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
@@ -91,7 +68,7 @@ export async function POST(req: NextRequest) {
             userId,
             status,
             institutionId: user.institutionId ?? null,
-            caseCode: await generateCaseCode(userId),
+            caseCode: await generateCaseCode(userId, prisma),
             ...(idempotencyKey ? { clientDraftId: idempotencyKey } : {}),
             preop: { create: mapPreop(preop) },
             ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
@@ -142,8 +119,12 @@ export async function GET(req: NextRequest) {
 
   // Item 28: Pagination — accept optional ?skip and ?take; cap take at 200 per request
   const url = new URL(req.url)
-  const skip = Math.max(0, Number(url.searchParams.get("skip") ?? "0"))
-  const take = Math.min(200, Math.max(1, Number(url.searchParams.get("take") ?? "50")))
+  const skipRaw = Number(url.searchParams.get("skip") ?? "0")
+  const skip = Number.isFinite(skipRaw) ? Math.max(0, skipRaw) : 0
+  const takeRaw = Number(url.searchParams.get("take") ?? "50")
+  // Number("abc") is NaN, and Math.min/max propagate it straight into Prisma,
+  // which throws — a 500 from a malformed query string.
+  const take = Number.isFinite(takeRaw) ? Math.min(200, Math.max(1, takeRaw)) : 50
 
   const [cases, total] = await Promise.all([
     prisma.case.findMany({

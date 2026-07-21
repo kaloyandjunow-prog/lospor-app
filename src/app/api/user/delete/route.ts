@@ -3,6 +3,7 @@ import { signOut } from "@/lib/auth"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { revokeToken } from "@/lib/token-blocklist"
+import { notePasswordChanged } from "@/lib/password-epoch"
 import { logAudit } from "@/lib/audit"
 import { corsHeaders } from "@/lib/cors"
 
@@ -16,10 +17,15 @@ export async function POST(req: NextRequest) {
   const user = await getAuthUser(req)
   if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // Bumping passwordChangedAt kills every token issued before now, not just the
+  // one that made this request. Without it a deleted account kept full API
+  // access from any other signed-in device until its token expired (up to 8 h).
+  const now = new Date()
   await prisma.user.update({
     where: { id: user.id },
-    data:  { deletedAt: new Date() },
+    data:  { deletedAt: now, passwordChangedAt: now },
   })
+  notePasswordChanged(user.id, now)  // prime this instance's cache immediately
 
   after(() => logAudit(user.id, "ACCOUNT_DELETE_REQUEST", user.id))
 

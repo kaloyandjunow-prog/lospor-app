@@ -148,13 +148,50 @@ export function TourManager({ children }: { children: React.ReactNode }) {
     d.drive()
   }, [locale])
 
-  // Auto-start dashboard tour for first-time users
+  // Auto-start dashboard tour for first-time users.
+  //
+  // Waits for the screen to be clear: a first-time user who opens settings (or
+  // any dialog) in the first moments would otherwise get the tour popping up on
+  // top of it, pointing at things the dialog is covering. Rather than racing,
+  // hold off and start once the dialog is closed.
   useEffect(() => {
     if (pathname !== "/dashboard") return
     if (localStorage.getItem("tourCompleted")) return
-    const t = setTimeout(() => startTour("dashboard"), 900)
-    return () => clearTimeout(t)
+
+    const timer = setTimeout(() => {
+      // Someone who opened a dialog in the first second is busy doing something
+      // deliberate. Skip this visit entirely rather than queueing the tour to
+      // spring out the moment they close it — that is just a later ambush.
+      // `tourCompleted` stays unset, so it offers itself next time they land
+      // here with a clear screen.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
+      startTour("dashboard")
+    }, 900)
+    return () => clearTimeout(timer)
   }, [pathname, startTour])
+
+  // A dialog opening beats a running tour.
+  //
+  // Holding the tour back before it starts is not enough: it can already be up
+  // when the user opens settings, and it renders above the dialog — pointing at
+  // things the dialog now covers. Opening a dialog is a deliberate action, so
+  // the automatic tour yields to it.
+  //
+  // driver.js's public `destroy()` skips the `onDestroyStarted` hook, so this
+  // does not mark the tour complete — someone dismissed at step 2 of 7 has not
+  // seen it, and it offers itself again next time they open the dashboard.
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return
+    const observer = new MutationObserver(() => {
+      if (!driverRef.current) return
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+        driverRef.current.destroy()
+        driverRef.current = null
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
 
   // Demo walkthrough: auto-start the right form tour when step changes
   useEffect(() => {

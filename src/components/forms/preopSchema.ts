@@ -11,7 +11,7 @@ export const schema = z.object({
 
   // Demographics
   ageYears:  z.coerce.number().min(0).max(120).optional(),
-  sex:       z.enum(["MALE","FEMALE","OTHER"]).optional(),
+  sex:       z.enum(["MALE","FEMALE","OTHER","UNKNOWN"]).optional(),
   heightCm:  z.coerce.number({ error: "Height is required" }).positive("Height is required"),
   weightKg:  z.coerce.number({ error: "Weight is required" }).positive("Weight is required"),
   bloodType: z.enum(["A","B","AB","O"]).optional(),

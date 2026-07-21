@@ -1,5 +1,84 @@
 # Changelog - LOSPOR Web App
 
+## [5.3.0] - 2026-07-21
+
+Remediation of an external code review, plus a parity pass over the intraoperative
+surface. **This release alters the production database** (see Migration below).
+
+### Fixed
+
+- **Transferring a case to a colleague could fail outright.** Case codes are per-user
+  sequences that both begin at `0001`, so whenever the recipient already held the
+  incoming code the insert violated a unique constraint and returned 500. The case
+  is now renumbered into the recipient's sequence only on a genuine clash, the code
+  it previously carried is recorded on the transfer, the institution travels with
+  it, and the whole thing happens in one transaction.
+- **Deleted accounts kept working until their token expired.** A session issued
+  before deletion continued to authenticate. Deleted accounts are now rejected at
+  the door, and role changes take effect on the next request instead of the next
+  login.
+- **The live chart could disagree with itself across devices.** Three different
+  definitions of "column 0" were in play: the browser anchored the chart to the
+  start time you typed, the server anchored the stored projection to the first
+  event recorded, and the phone drew the server's columns under the browser's
+  labels. Start a case at 08:25 having entered 08:00 and the chart began in a
+  different place depending on where you opened it. The start time you enter is
+  now the single origin everywhere — nobody charts at the moment of induction.
+- **Live updates never worked in production.** The mechanism was a server-sent
+  event emitter held in process memory, which cannot work on serverless
+  infrastructure; the web app had no fallback at all, so changes made elsewhere
+  never appeared. Replaced with a cheap version endpoint both clients poll.
+- **A typo in a numeric field silently erased the stored value.** Entering
+  `12abc` parsed to "not a number", which was written as an empty value with
+  nothing reported back. Unparseable input is now refused and named, like any
+  other rejected value.
+- **The intraoperative chart displayed internal key names as row labels.** The
+  entire `intraop.timetable.*` namespace was missing from both language files, so
+  rows read `intraop.timetable.drugs` instead of "Drugs". A test now scans the
+  source and fails if any translated string is missing from either language.
+- **The welcome tour appeared on top of the settings dialog**, pointing at things
+  the dialog covered. It now waits for a clear screen, and yields if a dialog
+  opens while it is running.
+- Host header no longer trusted when constructing internal URLs.
+- The personal-information guard now also covers the diagnosis and planned
+  procedure fields.
+- Pagination parameters that are not numbers no longer reach the database.
+
+### Changed
+
+- **The drug, infusion, fluid, agent and gas menus now match the mobile app.**
+  Web had grown a flat searchable list while mobile offered eight clinical
+  categories with favourites; and where mobile always confirms a dose, web
+  silently committed the first suggested value the moment you picked a fluid or
+  agent — so adding a fluid never showed you the volume it recorded. Both apps
+  now present the same eight categories, the same favourites, and always confirm
+  the dose. The menu vocabulary itself moved into the shared core package so the
+  two cannot diverge again.
+- **Custom free-text drug entry has been removed** from the web chart. It was
+  never intended, and it wrote names that no shared library could interpret.
+- Favourite drugs and infusions can now be edited from the web settings as well
+  as the phone; both write the same eight-slot list.
+- Unrecorded sex is now stored as `UNKNOWN` rather than defaulting to a value.
+  "Nobody asked" and "recorded as other" are different facts, and merging them
+  corrupts any denominator computed from the data.
+- Accounts are now anonymised 30 days after a deletion request via a scheduled
+  job, rather than lingering indefinitely. Audit records deliberately outlive the
+  account they describe.
+
+### Added
+
+- `GET /api/cases/[id]/version` — a cheap change marker for live refresh.
+- `npm run smoke:transfer` — the transfer path against a real database.
+- `npm run reproject-cases` — realigns stored charts to the corrected origin.
+  Dry-run by default.
+
+### Migration
+
+`20260721120000_v530_review_remediation` — additive only: adds `Sex.UNKNOWN`,
+`CaseTransfer.previousCaseCode`, two `AuditLog` indexes and a `CustomTerm`
+uniqueness constraint. Written by hand because `prisma migrate dev` proposed
+resetting the database over pre-existing drift.
+
 ## [5.2.1] - 2026-07-21
 
 ### Fixed

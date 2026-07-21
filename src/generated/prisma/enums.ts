@@ -109,7 +109,8 @@ export type ClinicalFieldPresence = (typeof ClinicalFieldPresence)[keyof typeof 
 export const Sex = {
   MALE: 'MALE',
   FEMALE: 'FEMALE',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
+  UNKNOWN: 'UNKNOWN'
 } as const
 
 export type Sex = (typeof Sex)[keyof typeof Sex]

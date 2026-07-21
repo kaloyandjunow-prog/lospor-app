@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { renderRecordPdf } from "@/lib/record-pdf"
+import { isRevokedAsync, revokeToken } from "@/lib/token-blocklist"
 
 // Headless Chrome can take a few seconds to boot and render the record.
 export const maxDuration = 60
@@ -16,6 +17,9 @@ async function verifyPrintToken(token: string, caseId: string): Promise<string |
     const { payload } = await jwtVerify(token, secret())
     if (payload.type !== "print") return null
     if (payload.caseId !== caseId) return null
+    // A token that has already been spent (or explicitly revoked) is dead.
+    const jti = payload.jti as string | undefined
+    if (jti && await isRevokedAsync(jti)) return null
     return (payload.userId as string) ?? null
   } catch {
     return null
@@ -60,13 +64,24 @@ export async function GET(
   // Self-issued short-lived token so headless Chrome can open the print page
   // without a session. Scoped to the case owner, which always passes the print
   // page's member-scope check regardless of who requested the PDF.
+  const navJti = crypto.randomUUID()
   const navToken = await new SignJWT({ caseId: id, userId: record.userId, type: "print" })
     .setProtectedHeader({ alg: "HS256" })
+    .setJti(navJti)
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(secret())
 
-  const base    = process.env.NEXTAUTH_URL ?? `http://${req.headers.get("host")}`
+  // Never derive this from the Host header: it is attacker-controlled and this
+  // URL is handed to a headless browser together with a valid print token.
+  const base = process.env.NEXTAUTH_URL
+    ?? (process.env.NODE_ENV === "production"
+        ? null
+        : `http://${req.headers.get("host")}`)
+  if (!base) {
+    console.error("[pdf] NEXTAUTH_URL must be set in production")
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
+  }
   const pageUrl = `${base}/cases/${id}/print?print_token=${navToken}&pdf=1`
 
   // Record language: explicit ?lang= (mobile app) beats the web locale cookie.
@@ -75,6 +90,10 @@ export async function GET(
 
   try {
     const pdf = await renderRecordPdf(pageUrl, lang)
+    // Single use: the headless browser has finished with it, so burn it rather
+    // than leave a valid token sitting in this process's logs for five minutes.
+    // Only on success — the failure path below still needs it to redirect.
+    await revokeToken(navJti, new Date(Date.now() + 5 * 60_000)).catch(() => {})
     return new NextResponse(pdf as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",

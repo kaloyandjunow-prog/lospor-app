@@ -83,14 +83,24 @@ async function main() {
   check("height preserved", preop.heightCm === 180, preop.heightCm)
   check("age preserved", preop.ageYears === 44, preop.ageYears)
 
-  // ── 3. clearing a field on purpose must still work ────────────────────────
+  // ── 3. a typo must be refused, not silently written as "cleared" ──────────
+  console.log("\nAn unparseable value is refused, not stored as blank")
+  await patch({ heightCm: 178, weightKg: 75 })
+  const typo = await patch({ heightCm: "12abc", weightKg: 76 })
+  check("returns 200", typo.status === 200, typo.status)
+  check("reports the typo as rejected", JSON.stringify(typo.body.rejectedFields ?? "").includes("heightCm"), typo.body.rejectedFields)
+  preop = await read()
+  check("stored height survived the typo", preop.heightCm === 178, preop.heightCm)
+  check("the valid field alongside it still saved", preop.weightKg === 76, preop.weightKg)
+
+  // ── 4. clearing a field on purpose must still work ────────────────────────
   console.log("\nExplicitly clearing a field still stores null")
   await patch({ heightCm: null })
   preop = await read()
   check("height cleared to null", preop.heightCm === null, preop.heightCm)
   check("weight untouched by the clear", preop.weightKg === 99, preop.weightKg)
 
-  // ── 4. a clean save reports nothing ───────────────────────────────────────
+  // ── 5. a clean save reports nothing ───────────────────────────────────────
   console.log("\nA fully valid save reports no rejections")
   const good = await patch({ heightCm: 181, weightKg: 83 })
   check("returns 200", good.status === 200, good.status)

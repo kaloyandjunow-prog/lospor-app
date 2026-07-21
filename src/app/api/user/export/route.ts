@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
   // Fix 6: Support optional pagination via ?skip=0&take=5000 (capped at 5000)
   const url = new URL(req.url)
   const skip = Math.max(0, Number(url.searchParams.get("skip") ?? "0"))
-  const take = Math.min(5000, Math.max(1, Number(url.searchParams.get("take") ?? "5000")))
+  const takeRaw = Number(url.searchParams.get("take") ?? "5000")
+  const take = Number.isFinite(takeRaw) ? Math.min(5000, Math.max(1, takeRaw)) : 5000
 
   const [account, cases, auditLog] = await Promise.all([
     prisma.user.findUnique({

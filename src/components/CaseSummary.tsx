@@ -683,7 +683,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               {p?.bloodType && <span>{p.bloodType} Rh{p.rhFactor === "POSITIVE" ? "+" : p.rhFactor === "NEGATIVE" ? "−" : ""}</span>}
               {p?.heightCm && p?.weightKg && <span>{p.heightCm} cm / {p.weightKg} kg</span>}
               {p?.bmi != null && <span>BMI {p.bmi}</span>}
-              {p?.heightCm && p?.sex && (() => { const ibw = calcIBW(p.heightCm, p.sex); return ibw ? <span>IBW {ibw} kg</span> : null })()}
+              {p?.heightCm && p?.sex && p.sex !== "UNKNOWN" && (() => { const ibw = calcIBW(p.heightCm, p.sex); return ibw ? <span>IBW {ibw} kg</span> : null })()}
             </div>
           </div>
 

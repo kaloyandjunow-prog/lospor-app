@@ -204,6 +204,7 @@ export type CustomTermOrderByWithRelationInput = {
 export type CustomTermWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   code?: string
+  institutionId_termType_term?: Prisma.CustomTermInstitutionIdTermTypeTermCompoundUniqueInput
   AND?: Prisma.CustomTermWhereInput | Prisma.CustomTermWhereInput[]
   OR?: Prisma.CustomTermWhereInput[]
   NOT?: Prisma.CustomTermWhereInput | Prisma.CustomTermWhereInput[]
@@ -211,7 +212,7 @@ export type CustomTermWhereUniqueInput = Prisma.AtLeast<{
   termType?: Prisma.StringFilter<"CustomTerm"> | string
   institutionId?: Prisma.StringNullableFilter<"CustomTerm"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CustomTerm"> | Date | string
-}, "id" | "code">
+}, "id" | "code" | "institutionId_termType_term">
 
 export type CustomTermOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -298,6 +299,12 @@ export type CustomTermUncheckedUpdateManyInput = {
   termType?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type CustomTermInstitutionIdTermTypeTermCompoundUniqueInput = {
+  institutionId: string
+  termType: string
+  term: string
 }
 
 export type CustomTermCountOrderByAggregateInput = {

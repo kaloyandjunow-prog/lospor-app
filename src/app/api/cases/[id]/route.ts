@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma"
 import { mapPreop, mapPreopUpdate, mapIntraop, mapIntraopUpdate, mapPostop, mapPostopUpdate } from "../_mappers"
 import { z } from "zod"
 import { logAudit } from "@/lib/audit"
-import caseEmitter from "@/lib/caseEmitter"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { parseLenient } from "@/lib/lenient-parse"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
@@ -317,16 +316,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (preop)  after(() => writeFieldDiffsSafe(prisma, id, "preop",  existing.preop  ?? {}, preop,  userId))
     if (postop) after(() => writeFieldDiffsSafe(prisma, id, "postop", existing.postop ?? {}, postop, userId))
     after(() => syncCaseRelationalSafe(prisma, id, userId))
-    caseEmitter.emit(id, {
-      type: "case_updated",
-      sections: {
-        preop: Boolean(preop),
-        intraop: Boolean(intraop),
-        postop: Boolean(postop),
-        status: Boolean(finalStatus),
-        notes: notes !== undefined,
-      },
-    })
+    // No in-process event emit here any more: clients poll
+    // GET /api/cases/[id]/version, which works across serverless instances.
 
     const updated = await prisma.case.findUnique({
       where: { id },
@@ -378,6 +369,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   await prisma.case.delete({ where: { id } })
   after(() => logAudit(userId, "CASE_DELETE", id))
-  caseEmitter.emit(id, { type: "case_deleted" })
   return NextResponse.json({ ok: true })
 }

@@ -172,9 +172,80 @@ export function projectTimetable(log: LogEvent[], start: Date) {
 
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+/**
+ * The moment column 0 of the chart represents.
+ *
+ * This is the clinician's entered start time — the induction time — anchored to
+ * the day the case actually happened. It is NOT when they first got a hand free
+ * to chart: in a real theatre nobody documents at the moment of induction, so a
+ * case begun at 08:00 and first charted at 08:25 must still start its chart at
+ * 08:00.
+ *
+ * `startTime` is stored with a fixed dummy date (2000-01-01) under this schema's
+ * time-only convention, so only its hours/minutes are meaningful and they have
+ * to be recombined with the case's real day.
+ *
+ * Returns null when no start time was recorded — callers then fall back to the
+ * earliest event, which is the best guess available.
+ */
+export function chartAnchorFor(intraop: { startTime: Date | null; createdAt: Date } | null): Date | null {
+  if (!intraop?.startTime) return null
+  const day = intraop.createdAt ?? new Date()
+  const dayStartMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
+  const timeOfDayMs = (intraop.startTime.getUTCHours() * 3600 + intraop.startTime.getUTCMinutes() * 60) * 1000
+  return new Date(dayStartMs + timeOfDayMs)
+}
+
+/** Fallback origin: the earliest event we have. Only used when no start time exists. */
 function chartStartFrom(log: LogEvent[]): Date {
   const sorted = [...log].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
   return sorted[0]?.ts ? new Date(sorted[0].ts) : new Date()
+}
+
+/**
+ * A chart must contain its own events. If the earliest event predates the
+ * entered start time by more than this, the two cannot be reconciled — the
+ * record's timestamps are not on the same footing as its start time — and the
+ * events win.
+ *
+ * This is not hypothetical: some legacy records carry event timestamps on the
+ * dummy 2000-01-01 reference date. Anchoring those to the real day would push
+ * every event before column 0, where `colFor` clamps them — collapsing an
+ * entire operation into a single column. Falling back leaves such a chart
+ * exactly as it reads today instead of destroying it.
+ *
+ * A small tolerance is allowed for genuine retrospective entry just before
+ * induction.
+ */
+const PRE_START_TOLERANCE_MS = 60 * 60_000
+
+/**
+ * How long after the entered start time charting may plausibly begin. Nobody
+ * documents at the moment of induction, but they do not wait half a day either
+ * — a larger gap means the start time and the event timestamps are not on the
+ * same clock, which older records genuinely are not (they were written with a
+ * different encoding). Trusting the anchor there would stretch a one-hour case
+ * into a twenty-one-hour chart.
+ */
+const LATE_START_TOLERANCE_MS = 12 * 60 * 60_000
+
+export function resolveChartStart(
+  intraop: { startTime: Date | null; createdAt: Date } | null,
+  log: LogEvent[],
+): Date {
+  const anchor = chartAnchorFor(intraop)
+  if (!anchor) return chartStartFrom(log)
+  if (log.length === 0) return anchor
+
+  // The entered start time is authoritative only when the events it is meant to
+  // describe actually sit alongside it. Outside that window the two disagree
+  // too much to reconcile, so the events — which are the source of truth — win,
+  // leaving the chart exactly as it reads today rather than mangling it.
+  const earliest = chartStartFrom(log).getTime()
+  const withinWindow =
+    earliest >= anchor.getTime() - PRE_START_TOLERANCE_MS &&
+    earliest <= anchor.getTime() + LATE_START_TOLERANCE_MS
+  return withinWindow ? anchor : chartStartFrom(log)
 }
 
 // Stable, order-independent comparison so a resend of an unchanged event is a
@@ -320,17 +391,13 @@ export async function ensureBackfilled(tx: Tx, caseId: string): Promise<void> {
   const keyEvents = (intra?.keyEvents as LegacyKeyEvents | null) ?? {}
   let log: LogEvent[] = Array.isArray(keyEvents.log) ? keyEvents.log : []
   if (log.length === 0) {
-    // The legacy format only ever stored a 5-minute column index, never a
-    // real timestamp. Anchor reconstructed timestamps to the case's actual
-    // day (when the intraop record was created) combined with startTime's
-    // time-of-day — startTime itself is stored with a fixed dummy date by
-    // this schema's time-only convention, so only its hours/minutes are real.
+    // The legacy format only ever stored a 5-minute column index, never a real
+    // timestamp, so reconstructed timestamps hang off the same chart anchor the
+    // projection uses — one definition of column 0, shared.
+    const anchor = intra ? chartAnchorFor(intra) : null
     const day = intra?.createdAt ?? new Date()
-    const dayStartMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
-    const timeOfDayMs = intra?.startTime
-      ? (intra.startTime.getUTCHours() * 3600 + intra.startTime.getUTCMinutes() * 60) * 1000
-      : 0
-    log = reverseProject(keyEvents, dayStartMs + timeOfDayMs)
+    const fallbackMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
+    log = reverseProject(keyEvents, anchor?.getTime() ?? fallbackMs)
   }
 
   for (const ev of log) {
@@ -448,7 +515,16 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   // value could flip between rebuilds.
   const log = sortLogDeterministic([...byLogical.values()]).map(x => x.ev)
 
-  const start = chartStartFrom(log)
+  // Column 0 is the entered start time, not the first thing that got charted.
+  // Using the earliest event meant the stored projection disagreed with what the
+  // web client drew locally, and the difference only became visible when another
+  // device opened the case — the "timetable starts at the wrong time on reopen"
+  // report. Fall back to the earliest event only when no start time exists.
+  const intraopRec = await tx.intraoperativeRecord.findUnique({
+    where:  { caseId },
+    select: { startTime: true, createdAt: true },
+  })
+  const start = resolveChartStart(intraopRec, log)
   const projected = projectTimetable(log, start)
 
   // The projected shape is a real, JSON-serializable plain object — optional

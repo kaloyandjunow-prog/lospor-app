@@ -1,22 +1,28 @@
 import { z } from "zod"
 
-// Accepts number, string, or null/undefined from HTML inputs; coerces to number or null.
-// Using Number() instead of parseInt so "12abc" is rejected (returns NaN) rather than silently
-// parsed as 12 — this catches typo inputs before they reach the database.
-// `undefined` and `null` are NOT the same thing here:
-//   undefined → the client did not mention this field, so leave the stored
-//               value alone. Returning null instead made every field-level
-//               PATCH silently wipe the fields it did not mention.
-//   null / "" → the user actively cleared the field, so store null.
-const numPreprocess = (v: unknown): number | null | undefined => {
+// Three distinct inputs that must stay distinct — collapsing any pair of them
+// has already cost stored clinical data once:
+//
+//   undefined  → the client did not mention this field. Leave the stored value
+//                alone. (Returning null here made every field-level PATCH wipe
+//                the fields it did not mention.)
+//   null / ""  → the user actively cleared the field. Store null.
+//   "12abc"    → a typo. Must FAIL validation so the field is reported back in
+//                `rejectedFields`. Returning null here silently overwrote a
+//                real measurement with "cleared" and told nobody — the same
+//                failure mode as the undefined case, one step further along.
+//
+// Unparseable input is therefore passed through untouched: `z.number()` then
+// rejects it, which is exactly what we want it to do.
+const numPreprocess = (v: unknown): unknown => {
   if (v === undefined) return undefined
   if (v === "" || v === null) return null
   const n = Number(v)
-  return Number.isFinite(n) ? n : null
+  return Number.isFinite(n) ? n : v
 }
-const intPreprocess = (v: unknown): number | null | undefined => {
+const intPreprocess = (v: unknown): unknown => {
   const n = numPreprocess(v)
-  return (n === null || n === undefined) ? n : Math.round(n)
+  return typeof n === "number" ? Math.round(n) : n
 }
 
 const coerceNum = z.preprocess(numPreprocess, z.number().nullable().optional())
@@ -38,7 +44,7 @@ const labelledItem = z.object({
 
 export const preopSchema = z.object({
   ageYears:  cInt(0, 149),
-  sex:       z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  sex:       z.enum(["MALE", "FEMALE", "OTHER", "UNKNOWN"]).optional(),
   heightCm:  cNum(30, 280),
   weightKg:  cNum(0.1, 700),
   bmi:       coerceNum,
