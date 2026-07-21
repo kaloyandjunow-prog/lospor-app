@@ -1,5 +1,57 @@
 # Changelog - LOSPOR Web App
 
+## [5.4.0] - 2026-07-21
+
+Start and end times are now stored as real instants with the timezone they were
+entered in. **This release alters the production database** (additive only).
+
+### Fixed
+
+- **The start time could lock itself to 00:00 with no way to correct it.** Reach
+  the intraoperative screen, change anything at all — a monitoring checkbox is
+  enough — leave, and come back, and the field showed a locked "00:00". The
+  column could not represent "not started yet", so the first save wrote a
+  fabricated midnight; because that is a real date as far as the code is
+  concerned, every check that asked "has this case started?" answered yes. The
+  same fabricated value could also be written by logging a single event.
+  "Not started" is now genuinely empty, and the field stays editable until a
+  time is actually entered.
+- **The chart origin was an hour or three out, depending on where you were.**
+  Start times were kept as a bare wall clock — "08:00" and nothing else — while
+  everything charted against them is a real moment in time. Combining the two
+  put the origin out by the local UTC offset, which in Bulgaria meant the
+  correction shipped in 5.3.0 failed its own consistency check every time and
+  quietly fell back to the previous behaviour. It only ever worked in a zone at
+  UTC+0. Times are now stored with their zone, so the chart begins where the
+  clinician said it began, anywhere.
+- **Elapsed duration was computed from the clock face rather than elapsed time,**
+  so a case spanning a daylight-saving change was an hour out.
+- Finalising a case now genuinely blocks when no start time was recorded. That
+  check existed but could never fire.
+- The research export no longer emits a fabricated date as the day of surgery.
+
+### Changed
+
+- `IntraoperativeRecord` gains `startedAt`, `endedAt` and `timezone`. The
+  previous `startTime`/`endTime` columns are kept and still readable, and
+  records written before this release are unchanged — their timezone was never
+  recorded, and inventing one would produce a timestamp indistinguishable from a
+  real one. Nothing is rewritten or guessed.
+
+### Added
+
+- `npm run smoke:start-time` — the real HTTP path: a save that never mentions
+  the start time must not invent one, a local time must resolve to the correct
+  instant, and neither a later save nor a malformed value may disturb a stored
+  time.
+- Timezone and daylight-saving coverage across UTC−5, UTC±0, UTC+3 and UTC+9,
+  including both clock changes and the hour that repeats in autumn.
+
+### Migration
+
+`20260721180000_intraop_real_instants` — additive: adds the three columns and
+drops `NOT NULL` from `startTime`. No data is rewritten.
+
 ## [5.3.0] - 2026-07-21
 
 Remediation of an external code review, plus a parity pass over the intraoperative

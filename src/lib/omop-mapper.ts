@@ -359,7 +359,13 @@ type CaseRow = {
     }[]
   } | null
   intraop?: {
-    startTime: Date
+    // Real instants when the record has them — the only form that can be placed
+    // on a timeline or compared across sites.
+    startedAt?: Date | null
+    endedAt?: Date | null
+    // Legacy bare wall clock, nullable: a case may not have started, and older
+    // rows carry no zone so this cannot be resolved to a true instant.
+    startTime: Date | null
     endTime: Date | null
     durationMinutes: number | null
     monthYear: string | null
@@ -574,8 +580,15 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
   for (const c of cases) {
     const personId = pseudonymId("person", c.id)
     const visitId  = pseudonymId("visit", c.id)
-    const startDate = isoDate(c.intraop?.startTime ?? c.createdAt)
-    const endDate   = isoDate(c.intraop?.endTime ?? c.intraop?.startTime ?? c.createdAt)
+    // Prefer the real instants. The legacy startTime/endTime columns hold a bare
+    // wall clock on a dummy date (2000-01-01) with no zone, so using them as a
+    // date would export the year 2000 for every legacy case; fall back to
+    // createdAt instead, which is at least a genuine moment. Never emit the
+    // dummy date as if it were the day of surgery.
+    const legacyDay = (d: Date | null | undefined) =>
+      d && d.getUTCFullYear() > 2000 ? d : null
+    const startDate = isoDate(c.intraop?.startedAt ?? legacyDay(c.intraop?.startTime) ?? c.createdAt)
+    const endDate   = isoDate(c.intraop?.endedAt ?? legacyDay(c.intraop?.endTime) ?? c.intraop?.startedAt ?? c.createdAt)
 
     // care_site: prefer case-level institutionId, fall back to user institution
     const careSite = c.institutionId ?? c.user?.institution?.name ?? null

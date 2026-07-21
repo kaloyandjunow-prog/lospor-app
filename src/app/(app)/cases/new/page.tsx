@@ -13,6 +13,7 @@ import { PostopForm, type PostopData } from "@/components/forms/PostopForm"
 import { UserRound, CheckCircle2 } from "lucide-react"
 import { CaseMeta } from "@/components/CaseMeta"
 import { calcBMI } from "@/lib/scores"
+import { localTimeOf } from "@/lib/intraop-time"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
@@ -481,8 +482,18 @@ export default function NewCasePage() {
     // id/caseId/createdAt/updatedAt are DB metadata; timeSeriesData/durationMinutes are computed.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, caseId, createdAt, updatedAt, keyEvents, timeSeriesData, durationMinutes, ...formFields } = intraop
-    const endTimeNextDay = !!(intraop.endTime &&
+    const endTimeNextDay = !!(intraop.endTime && intraop.startTime &&
       new Date(intraop.endTime).getTime() - new Date(intraop.startTime).getTime() > 12 * 60 * 60 * 1000)
+
+    // Prefer the real instants, rendered in the zone the case was charted in —
+    // so a case reads the same wall clock wherever it is later opened. Legacy
+    // rows fall back to their bare stored wall clock.
+    const tz = intraop.timezone ?? null
+    const startFromInstant = intraop.startedAt && tz
+      ? localTimeOf(new Date(intraop.startedAt), tz) ?? undefined : undefined
+    const endFromInstant = intraop.endedAt && tz
+      ? localTimeOf(new Date(intraop.endedAt), tz) ?? undefined : undefined
+
     return {
       // JSON-blob fields (positions, techniques, airwayDevices, etc.) are
       // unknown on CaseDetailIntraop - genuinely loosely shaped at the DB
@@ -490,8 +501,8 @@ export default function NewCasePage() {
       // practice, same boundary as the rest of this file's DB?>form mapping.
       ...(formFields as Partial<IntraopData>),
       monthYear:      intraop.monthYear ?? undefined,
-      startTime:      isoToHHMM(intraop.startTime),
-      endTime:        intraop.endTime ? isoToHHMM(intraop.endTime) : undefined,
+      startTime:      startFromInstant ?? isoToHHMM(intraop.startTime),
+      endTime:        endFromInstant ?? (intraop.endTime ? isoToHHMM(intraop.endTime) : undefined),
       endTimeNextDay,
     }
   }
@@ -529,7 +540,14 @@ export default function NewCasePage() {
         // Update existing case
         const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
           ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
-        const payload = section === "preop" ? { ...data, bmi } : data
+        // Intraop times are the clinician's local wall clock. Send the zone
+        // they were entered in so the server can resolve them to real instants
+        // — without it "08:00" is just four digits, and the chart, the elapsed
+        // duration and the research export all have to guess.
+        const payload =
+          section === "preop"  ? { ...data, bmi } :
+          section === "intraop" ? { ...data, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } :
+          data
         const existingCaseId = caseIdRef.current
         const fullPayload = payload as Record<string, unknown>
         // Field-level saves: PATCH only what changed since the last confirmed

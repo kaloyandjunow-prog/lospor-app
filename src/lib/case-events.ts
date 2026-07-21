@@ -173,6 +173,18 @@ export function projectTimetable(log: LogEvent[], start: Date) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 /**
+ * What the chart origin can be derived from.
+ *
+ * `startedAt` is a true instant and is used directly. `startTime` is the legacy
+ * bare wall clock, kept only so records written before the change still draw.
+ */
+export type ChartAnchorSource = {
+  startedAt?: Date | null
+  startTime: Date | null
+  createdAt: Date
+}
+
+/**
  * The moment column 0 of the chart represents.
  *
  * This is the clinician's entered start time — the induction time — anchored to
@@ -188,7 +200,16 @@ export function projectTimetable(log: LogEvent[], start: Date) {
  * Returns null when no start time was recorded — callers then fall back to the
  * earliest event, which is the best guess available.
  */
-export function chartAnchorFor(intraop: { startTime: Date | null; createdAt: Date } | null): Date | null {
+export function chartAnchorFor(intraop: ChartAnchorSource | null): Date | null {
+  // A real instant needs no reconstruction — it is already the moment column 0
+  // represents, on the same clock as the events it brackets.
+  if (intraop?.startedAt) return intraop.startedAt
+
+  // Legacy rows only. `startTime` is a bare wall clock with no zone recorded,
+  // so the best that can be done is to read it as UTC against the case's UTC
+  // day. That is wrong by exactly the clinician's offset — three hours in
+  // Bulgaria in summer — which is why `resolveChartStart` sanity-checks the
+  // result against the events rather than trusting it.
   if (!intraop?.startTime) return null
   const day = intraop.createdAt ?? new Date()
   const dayStartMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
@@ -230,12 +251,19 @@ const PRE_START_TOLERANCE_MS = 60 * 60_000
 const LATE_START_TOLERANCE_MS = 12 * 60 * 60_000
 
 export function resolveChartStart(
-  intraop: { startTime: Date | null; createdAt: Date } | null,
+  intraop: ChartAnchorSource | null,
   log: LogEvent[],
 ): Date {
   const anchor = chartAnchorFor(intraop)
   if (!anchor) return chartStartFrom(log)
   if (log.length === 0) return anchor
+
+  // A real instant is authoritative full stop. It is on the same clock as the
+  // events, so there is nothing to reconcile and no reason to second-guess the
+  // clinician: if they charted five hours after induction, the chart starts at
+  // induction. The window below exists only because legacy wall-clock values
+  // are measured against a different clock and can be an offset out.
+  if (intraop?.startedAt) return anchor
 
   // The entered start time is authoritative only when the events it is meant to
   // describe actually sit alongside it. Outside that window the two disagree
@@ -387,7 +415,7 @@ export async function ensureBackfilled(tx: Tx, caseId: string): Promise<void> {
   const count = await tx.caseEvent.count({ where: { caseId } })
   if (count > 0) return
 
-  const intra = await tx.intraoperativeRecord.findUnique({ where: { caseId }, select: { keyEvents: true, startTime: true, createdAt: true } })
+  const intra = await tx.intraoperativeRecord.findUnique({ where: { caseId }, select: { keyEvents: true, startedAt: true, startTime: true, createdAt: true } })
   const keyEvents = (intra?.keyEvents as LegacyKeyEvents | null) ?? {}
   let log: LogEvent[] = Array.isArray(keyEvents.log) ? keyEvents.log : []
   if (log.length === 0) {
@@ -522,7 +550,7 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   // report. Fall back to the earliest event only when no start time exists.
   const intraopRec = await tx.intraoperativeRecord.findUnique({
     where:  { caseId },
-    select: { startTime: true, createdAt: true },
+    select: { startedAt: true, startTime: true, createdAt: true },
   })
   const start = resolveChartStart(intraopRec, log)
   const projected = projectTimetable(log, start)
@@ -539,6 +567,10 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   await tx.intraoperativeRecord.upsert({
     where:  { caseId },
     update: { keyEvents, ...fluidTotals },
-    create: { caseId, startTime: new Date("2000-01-01T00:00:00.000Z"), keyEvents, ...fluidTotals },
+    // No start time: logging an event does not mean the clinician has told us
+    // when the case began. This used to plant a midnight sentinel, which — being
+    // a truthy Date — read downstream as a genuine 00:00 start and locked the
+    // form with no way back.
+    create: { caseId, startTime: null, keyEvents, ...fluidTotals },
   })
 }

@@ -98,7 +98,11 @@ async function main() {
   await patch({ heightCm: null })
   preop = await read()
   check("height cleared to null", preop.heightCm === null, preop.heightCm)
-  check("weight untouched by the clear", preop.weightKg === 99, preop.weightKg)
+  // 76, not 99: the typo check above deliberately saved a new weight alongside
+  // the rejected height. This expectation was left at 99 when that step was
+  // added, so it failed for the right reason on the wrong value — the point
+  // being tested is that clearing height leaves weight alone, whatever it is.
+  check("weight untouched by the clear", preop.weightKg === 76, preop.weightKg)
 
   // ── 5. a clean save reports nothing ───────────────────────────────────────
   console.log("\nA fully valid save reports no rejections")

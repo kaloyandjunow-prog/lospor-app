@@ -117,8 +117,17 @@ export type CaseDetailIntraop = {
 
   monthYear: string | null
   durationMinutes: number | null
-  startTime: string
+
+  // Legacy bare wall clock ("08:00" on a dummy date, no zone). Null when the
+  // case has not been started — it used to be a fabricated midnight, which read
+  // downstream as a real start time.
+  startTime: string | null
   endTime: string | null
+
+  // The real instants, and the zone they were entered in.
+  startedAt?: string | null
+  endedAt?: string | null
+  timezone?: string | null
 
   positions: unknown
   techniques: unknown

@@ -124,3 +124,62 @@ describe("resolveChartStart", () => {
     expect(start.toISOString()).toBe("2026-03-04T09:05:00.000Z")
   })
 })
+
+// ── The timezone bug ─────────────────────────────────────────────────────────
+//
+// v5.3.0 made the entered start time the chart origin, but start times were a
+// bare wall clock and events are real instants. The anchor therefore landed one
+// UTC offset out, failed its own sanity window, and silently fell back to the
+// old behaviour. It only ever worked at UTC±0 — so it never worked in Bulgaria,
+// which is why "the timetable starts at the wrong time" kept coming back.
+//
+// These run the same clinical scenario at four offsets. Before the fix, only
+// the UTC row passed.
+
+describe("chart origin is correct at every offset", () => {
+  // Induction 08:00 local, first charted 08:25 local — an ordinary case.
+  const CASES = [
+    { tz: "Europe/Sofia",     startedAt: "2026-07-21T05:00:00.000Z", first: "2026-07-21T05:25:00.000Z" }, // UTC+3
+    { tz: "UTC",              startedAt: "2026-07-21T08:00:00.000Z", first: "2026-07-21T08:25:00.000Z" }, // UTC+0
+    { tz: "America/New_York", startedAt: "2026-07-21T12:00:00.000Z", first: "2026-07-21T12:25:00.000Z" }, // UTC-4
+    { tz: "Asia/Tokyo",       startedAt: "2026-07-20T23:00:00.000Z", first: "2026-07-20T23:25:00.000Z" }, // UTC+9
+  ]
+
+  for (const c of CASES) {
+    it(`anchors to the entered start time in ${c.tz}`, () => {
+      const intraop = {
+        startedAt: new Date(c.startedAt),
+        startTime: null,
+        createdAt: new Date(c.first),
+      }
+      const log = [{ ts: c.first }, { ts: new Date(new Date(c.first).getTime() + 45 * 60_000).toISOString() }]
+      const resolved = resolveChartStart(intraop, log as never)
+      // The chart must begin at induction, not when charting began.
+      expect(resolved.toISOString()).toBe(c.startedAt)
+    })
+  }
+
+  it("trusts a real instant even when charting began hours later", () => {
+    // A long gap is a busy theatre, not corrupt data. With instants there is
+    // nothing to reconcile, so the tolerance window does not apply.
+    const intraop = {
+      startedAt: new Date("2026-07-21T05:00:00.000Z"),
+      startTime: null,
+      createdAt: new Date("2026-07-21T10:00:00.000Z"),
+    }
+    const log = [{ ts: "2026-07-21T10:00:00.000Z" }]
+    expect(resolveChartStart(intraop, log as never).toISOString()).toBe("2026-07-21T05:00:00.000Z")
+  })
+
+  it("still falls back to the events for a legacy wall-clock row", () => {
+    // Legacy rows have no zone, so their anchor may be an offset out. The
+    // sanity window stays in place for them and their charts read as they
+    // always have — no silent rewriting of existing records.
+    const intraop = {
+      startTime: new Date("2000-01-01T08:00:00.000Z"),
+      createdAt: new Date("2026-07-21T05:25:00.000Z"),
+    }
+    const log = [{ ts: "2026-07-21T05:25:00.000Z" }]
+    expect(resolveChartStart(intraop, log as never).toISOString()).toBe("2026-07-21T05:25:00.000Z")
+  })
+})

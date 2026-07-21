@@ -706,8 +706,25 @@ model IntraoperativeRecord {
 
   monthYear       String?
   durationMinutes Int?
-  startTime       DateTime
+
+  // Legacy time-only columns. These store a bare local wall clock on a dummy
+  // date (2000-01-01T08:00:00Z means "08:00", nothing more) with no record of
+  // which timezone it was, so they cannot be placed on a real timeline. Kept
+  // read-only for rows written before startedAt/endedAt existed; never written
+  // for new records. `startTime` was non-nullable, which forced the code to
+  // fake "not started yet" as midnight — a Date is always truthy, so every
+  // `if (startTime)` guard was defeated and the UI locked to 00:00.
+  startTime       DateTime?
   endTime         DateTime?
+
+  // True UTC instants, plus the IANA zone they were entered in (e.g.
+  // "Europe/Sofia"). CaseEvent.timestamp is already an instant, so this puts
+  // start/end on the same footing as the events they bracket — comparable
+  // across sites and against the event stream. Local wall clock stays exactly
+  // derivable for display from the instant + zone.
+  startedAt       DateTime?
+  endedAt         DateTime?
+  timezone        String?
 
   positions Json @default("[]")
 

@@ -1,5 +1,6 @@
 // Shared data-mapping helpers for POST and PATCH case routes
 import { Prisma } from "@/generated/prisma/client"
+import { instantFromLocalTime, isValidTimeZone, durationMinutesBetween } from "@/lib/intraop-time"
 
 // Copies full[k] into r[k] for each key present in the raw payload. A plain
 // `r[k] = full[k]` inside a loop over a key UNION can't statically prove the
@@ -196,10 +197,16 @@ export function mapIntraopUpdate(intraop: Record<string, unknown>) {
 
   // Timing — only update when the relevant field was provided
   if (has("monthYear"))       r.monthYear       = full.monthYear
-  if (has("startTime") || has("endTime") || has("endTimeNextDay")) {
-    // Only write startTime when it is a real HH:MM — never overwrite with the sentinel 00:00 default
+  if (has("startTime") || has("endTime") || has("endTimeNextDay") || has("startedAt") || has("endedAt")) {
+    // Only write a start time when it is real. An absent or malformed value
+    // means "not mentioned in this partial save", never "clear it" — otherwise
+    // an autosave triggered by an unrelated field would blank a time the
+    // clinician had already set.
     if (has("startTime") && HHMMRE.test(String(intraop.startTime ?? ""))) r.startTime = full.startTime
     if (has("endTime"))       r.endTime         = full.endTime
+    if (full.startedAt)       r.startedAt       = full.startedAt
+    if (full.endedAt)         r.endedAt         = full.endedAt
+    if (full.timezone)        r.timezone        = full.timezone
                               r.durationMinutes = full.durationMinutes
   }
 
@@ -255,6 +262,50 @@ type IntraopRawInput = Partial<Prisma.IntraoperativeRecordUncheckedCreateWithout
   endTimeNextDay?: boolean
 }
 
+/**
+ * Work out the real instants a case started and ended at.
+ *
+ * Clients may send either form:
+ *
+ *  - `startedAt`/`endedAt` as full ISO instants plus `timezone` — what current
+ *    clients send, and the only form that can be placed on a real timeline.
+ *  - a bare `startTime`/`endTime` of "HH:MM" — older clients, and offline
+ *    payloads queued before an upgrade. Combined with `timezone` and the case
+ *    day, that still yields a correct instant.
+ *
+ * Without a usable zone there is no honest conversion, so the instants are left
+ * null and the legacy wall-clock columns carry the value alone. A guessed
+ * timestamp is worse than a missing one: it is indistinguishable from a real
+ * one afterwards.
+ */
+function resolveIntraopInstants(intraop: Record<string, unknown>): {
+  startedAt: Date | null
+  endedAt: Date | null
+  timezone: string | null
+} {
+  const tz = isValidTimeZone(intraop.timezone) ? intraop.timezone : null
+
+  const asInstant = (v: unknown): Date | null => {
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v
+    if (typeof v !== "string" || !v) return null
+    const d = new Date(v)
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+
+  // The day the case belongs to, for converting a bare "HH:MM".
+  const day = asInstant(intraop.caseDay) ?? asInstant(intraop.createdAt) ?? new Date()
+  const fromWallClock = (hhmm: unknown): Date | null =>
+    tz && typeof hhmm === "string" && HHMMRE.test(hhmm)
+      ? instantFromLocalTime(day, hhmm, tz)
+      : null
+
+  return {
+    startedAt: asInstant(intraop.startedAt) ?? fromWallClock(intraop.startTime),
+    endedAt:   asInstant(intraop.endedAt)   ?? fromWallClock(intraop.endTime),
+    timezone:  tz,
+  }
+}
+
 export function mapIntraop(rawIntraop: Record<string, unknown>): Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput {
   const intraop = rawIntraop as IntraopRawInput
   // Use a stable reference date (2000-01-01) for startTime/endTime — only the HH:MM matters for the timetable.
@@ -277,11 +328,20 @@ export function mapIntraop(rawIntraop: Record<string, unknown>): Prisma.Intraope
     if (diff < 0) diff += 24 * 60
     return diff
   })()
+  const instants = resolveIntraopInstants(intraop)
   return {
     monthYear:       intraop.monthYear ?? null,
-    durationMinutes: durationMinutes,
-    startTime: isHHMM(intraop.startTime) ? new Date(`${REF_DATE}T${intraop.startTime}:00.000Z`)    : new Date(`${REF_DATE}T00:00:00.000Z`),
+    // A real elapsed time when we have real instants; otherwise the wall-clock
+    // subtraction, which cannot see a daylight-saving change.
+    durationMinutes: durationMinutesBetween(instants.startedAt, instants.endedAt) ?? durationMinutes,
+    // "Not started" is null, never a fabricated midnight. A JS Date is always
+    // truthy, so a sentinel here defeated every `if (startTime)` guard in the
+    // app — locking the form to 00:00 and killing the finalise check.
+    startTime: isHHMM(intraop.startTime) ? new Date(`${REF_DATE}T${intraop.startTime}:00.000Z`)    : null,
     endTime:   isHHMM(intraop.endTime)   ? new Date(`${endRefDate}T${intraop.endTime}:00.000Z`)   : null,
+    startedAt: instants.startedAt,
+    endedAt:   instants.endedAt,
+    timezone:  instants.timezone,
     positions:       intraop.positions        ?? [],
     techniques:      intraop.techniques       ?? [],
     tubeSize:        intraop.tubeSize        ?? null,

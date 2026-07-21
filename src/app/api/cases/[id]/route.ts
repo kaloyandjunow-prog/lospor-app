@@ -74,10 +74,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const existing = await prisma.case.findUnique({
     where: { id },
     select: {
-      userId: true, status: true,
+      userId: true, status: true, createdAt: true,
       user:   { select: { institutionId: true } },
       preop:  true,
-      intraop: { select: { id: true, keyEvents: true, startTime: true, createdAt: true, updatedAt: true } },
+      intraop: { select: { id: true, keyEvents: true, startedAt: true, startTime: true, createdAt: true, updatedAt: true } },
       postop:  true,
     },
   })
@@ -206,7 +206,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await prisma.case.update({ where: { id }, data: { preop: op } })
     }
     if (intraop) {
-      let effectiveIntraop = intraop
+      // The day this case belongs to, so a bare "HH:MM" plus the client's zone
+      // can be resolved to a real instant. Taken from the record rather than
+      // "now" — editing a case the morning after must not redate it.
+      let effectiveIntraop: Record<string, unknown> = {
+        caseDay: existing.intraop?.createdAt ?? existing.createdAt,
+        ...intraop,
+      }
       if ("timetableData" in intraop && intraop.timetableData) {
         const existingKev = (existing.intraop?.keyEvents as LegacyKeyEvents | null) ?? {}
         const existingLog: LogEvent[] = Array.isArray(existingKev.log) ? existingKev.log : []
