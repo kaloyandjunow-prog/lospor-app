@@ -162,7 +162,8 @@
       "intraop": "Интраоперативен",
       "postop": "Следоперативен",
       "summary": "Резюме"
-    }
+    },
+    "notSaved": "Не е запазено"
   },
   "transfer": {
     "awaitingAcceptance": "Очаква се приемане",

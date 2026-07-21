@@ -1,5 +1,42 @@
 # Changelog - LOSPOR Web App
 
+## [5.4.1] - 2026-07-22
+
+### Fixed
+
+- **A single out-of-range value could destroy an entire preoperative
+  assessment.** The height slider on the web could be dragged below the
+  30 cm the record accepts. Creating a case validated all-or-nothing, so that
+  one value made the whole request fail and **no case was written at all** —
+  meaning there was no draft to come back to, and leaving the page lost
+  everything typed. Creating a case is now lenient in exactly the way saving an
+  existing one has been since 5.2.1: the offending value is refused and named,
+  everything else is stored.
+- **Four pickers offered values the record refuses.** Systolic pressure started
+  at 1 where the minimum accepted is 40, diastolic at 1 against 20, heart rate
+  at 1 against 10, and temperature at 0 against 25. Dragging any of those
+  sliders to the bottom produced a save that could not be stored. Every picker
+  is now bounded by the same figures the API enforces, and a test feeds each
+  boundary through the real validator so the two cannot drift apart again —
+  that test is what found these four.
+- **A refused value is now visible where it was typed.** The server has reported
+  rejected fields since 5.2.1 but the web app never read them, so a refused
+  value was dropped in silence while the form looked saved. The field is now
+  outlined and carries the accepted range — "Not saved — must be 30–250 cm"
+  rather than "Invalid request" — and the message stays until the value is
+  corrected, so it cannot be missed by leaving the screen.
+
+### Notes
+
+Reporting a refused value can never interrupt charting: a missing, malformed or
+unrecognised response is ignored rather than surfaced, and nothing on this path
+blocks a save or navigation.
+
+**Deployment:** the option library must be re-seeded
+(`npx tsx scripts/seed-option-library.ts`) for the corrected picker bounds to
+reach an existing database. Without it the app falls back to the bundled
+snapshot, which is already correct.
+
 ## [5.4.0] - 2026-07-21
 
 Start and end times are now stored as real instants with the timezone they were

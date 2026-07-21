@@ -162,7 +162,8 @@
       "intraop": "Intraoperative",
       "postop": "Postoperative",
       "summary": "Summary"
-    }
+    },
+    "notSaved": "Not saved"
   },
   "transfer": {
     "awaitingAcceptance": "Awaiting acceptance",

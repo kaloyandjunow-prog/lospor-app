@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
+import { parseLenient, type RejectedField } from "@/lib/lenient-parse"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { caseWhereForUser } from "@/lib/access-control"
@@ -48,9 +49,43 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const preop   = preopSchema.parse(body.preop)
-    const intraop = body.intraop ? intraopSchema.parse(body.intraop) : undefined
-    const postop  = body.postop  ? postopSchema.parse(body.postop)   : undefined
+    // Lenient, exactly like PATCH. Creating a case is an autosave-style partial
+    // write — the first draft save — and it used to be strict: one out-of-range
+    // value (a height still being dragged past 12 cm) threw, the whole request
+    // 400'd, and no case row was written at all. With no case id there was no
+    // draft to return to, so leaving the screen destroyed the entire assessment.
+    // Now the offending field is dropped and named, and everything else is kept.
+    //
+    // Finalising a case still uses a strict parse — that is where completeness
+    // has to be enforced.
+    const rejectedFields: RejectedField[] = []
+    const takeRejected = (section: "preop" | "intraop" | "postop", rejected: RejectedField[]) => {
+      // Prefix the section so one client mapper handles POST and PATCH alike.
+      for (const r of rejected) rejectedFields.push({ ...r, path: `${section}.${r.path}` })
+    }
+
+    const preopParsed = parseLenient(preopSchema, body.preop)
+    takeRejected("preop", preopParsed.rejected)
+    const preop = preopParsed.value
+
+    let intraop: z.infer<typeof intraopSchema> | undefined
+    if (body.intraop) {
+      const p = parseLenient(intraopSchema, body.intraop)
+      takeRejected("intraop", p.rejected)
+      intraop = p.value
+    }
+
+    let postop: z.infer<typeof postopSchema> | undefined
+    if (body.postop) {
+      const p = parseLenient(postopSchema, body.postop)
+      takeRejected("postop", p.rejected)
+      postop = p.value
+    }
+
+    if (rejectedFields.length) {
+      // Paths only — the values are clinical data and must not reach the logs.
+      console.warn(`[POST /api/cases] rejected fields:`, rejectedFields.map(f => f.path).join(", "))
+    }
 
     const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes: body.notes })
     if (piiError) {
@@ -103,6 +138,7 @@ export async function POST(req: NextRequest) {
       id: caseRecord.id,
       caseCode: caseRecord.caseCode,
       preopUpdatedAt: caseRecord.preop?.updatedAt,
+      ...(rejectedFields.length ? { rejectedFields } : {}),
     }, { status: 201 })
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: "Invalid request" }, { status: 400 })

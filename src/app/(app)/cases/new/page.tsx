@@ -14,6 +14,7 @@ import { UserRound, CheckCircle2 } from "lucide-react"
 import { CaseMeta } from "@/components/CaseMeta"
 import { calcBMI } from "@/lib/scores"
 import { localTimeOf } from "@/lib/intraop-time"
+import { readRejectedFields, rejectionsForSection, rejectionMessages } from "@/lib/rejected-fields"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
@@ -217,6 +218,25 @@ export default function NewCasePage() {
   const [submitting, setSubmitting]   = useState(false)
   const [saveStatus, setSaveStatus]   = useState<SaveStatus>("idle")
   const [autoSaveErrMsg, setAutoSaveErrMsg] = useState<string | null>(null)
+
+  // Values the server refused, per section, shown on the field that carries
+  // them. Sticky: a message that lives only in the header is missed by anyone
+  // who leaves the screen straight after typing — which is exactly when this
+  // happens. Cleared when the section next saves with nothing refused.
+  const [rejections, setRejections] = useState<Record<string, Map<string, string>>>({})
+  const noteRejections = useCallback((section: "preop" | "intraop" | "postop", body: unknown) => {
+    // Never allowed to throw: this runs on the save path of a clinical form.
+    try {
+      const mine = rejectionsForSection(readRejectedFields(body), section)
+      setRejections(prev => {
+        const next = rejectionMessages(mine, t("case.notSaved"))
+        if (next.size === 0 && !prev[section]) return prev   // nothing to change
+        return { ...prev, [section]: next }
+      })
+    } catch {
+      /* a broken notifier must never break charting */
+    }
+  }, [t])
   const [loading, setLoading]         = useState(false)
   const [patientName, setPatientName] = useState("")
   const [patientId,   setPatientId]   = useState("")
@@ -528,7 +548,9 @@ export default function NewCasePage() {
           const body = await res.json().catch(() => ({}))
           throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
         }
-        const { id, caseCode: code, preopUpdatedAt } = await res.json()
+        const createdBody = await res.json()
+        const { id, caseCode: code, preopUpdatedAt } = createdBody
+        noteRejections("preop", createdBody)
         caseIdRef.current = id
         setCaseId(id)
         if (code) setCaseCode(code)
@@ -634,6 +656,7 @@ export default function NewCasePage() {
           if (created.caseCode) setCaseCode(created.caseCode)
           if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
           sectionSnapshotsRef.current.confirm(created.id, "preop", fullPayload)
+          noteRejections("preop", created)
           router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
         } else if (!outcome.ok) {
           const body = (outcome.body ?? {}) as { error?: string }
@@ -651,6 +674,7 @@ export default function NewCasePage() {
           await caseOutbox.clearOne(existingCaseId, section).catch(() => {})
           // The server confirmed this state — future autosaves diff against it.
           sectionSnapshotsRef.current.confirm(existingCaseId, section, fullPayload)
+          noteRejections(section, result)
         }
       }
 
@@ -666,7 +690,7 @@ export default function NewCasePage() {
       onError?.(errMsg)
       return false
     }
-  }, [t, router])
+  }, [t, router, noteRejections])
 
   // Public save entry: serialized through the per-case write queue so callers
   // (autosave, manual submit, conflict resolution) can never interleave.
@@ -999,6 +1023,7 @@ export default function NewCasePage() {
 
         {!loading && step === 0 && (
           <PreopForm
+            rejectedFields={rejections.preop}
             defaultValues={preopData ?? undefined}
             onSubmit={handlePreopSubmit}
             onNameChange={setPatientName}
@@ -1051,6 +1076,7 @@ export default function NewCasePage() {
         )}
         {!loading && step === 2 && (
           <PostopForm
+            rejectedFields={rejections.postop}
             defaultValues={postopData ?? undefined}
             onSubmit={handlePostopSubmit}
             onBack={() => setStep(1)}

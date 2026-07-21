@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import fallbackSnapshot from "@/data/option-library-fallback.json"
+import { CLINICAL_RANGES, type ClinicalRangeKey } from "@lospor/core"
 
 export type LibraryOption = {
   id: string
@@ -152,6 +153,25 @@ export type RangeSpec = { min: number; max: number; step: number; unit: string }
 export function useRangeSpec(category: string): RangeSpec | undefined {
   const { options } = useOptionLibrary(category)
   return options[0]?.metadata as RangeSpec | undefined
+}
+
+/**
+ * A numeric range that is always safe to hand to a picker.
+ *
+ * `useRangeSpec` returns undefined until the library loads, so every call site
+ * used to carry its own `?? 0` fallback — and three of them disagreed with the
+ * API. Height fell back to a minimum of 0 while the API requires 30, so a
+ * clinician could pick 12 cm, and the save was refused.
+ *
+ * Falling back to the canonical range in @lospor/core instead removes the
+ * chance to get it wrong: there is no literal for a call site to mistype, and
+ * core's values are asserted against the API schema in
+ * src/__tests__/range-schema-agreement.test.ts.
+ */
+export function useRange(key: ClinicalRangeKey): RangeSpec {
+  const spec = useRangeSpec(key)
+  const canonical = CLINICAL_RANGES[key]
+  return spec ?? { ...canonical, unit: canonical.unit }
 }
 
 // Used by the offline-library banner to know if anything is currently

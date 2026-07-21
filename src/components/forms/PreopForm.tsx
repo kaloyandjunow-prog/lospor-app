@@ -21,7 +21,7 @@ import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { AIAdvisor } from "@/components/AIAdvisor"
 import { LabResults, type LabResult } from "@/components/LabResults"
 import GuardedTextarea from "@/components/GuardedTextarea"
-import { useOptionLibrary, useRangeSpec } from "@/hooks/useOptionLibrary"
+import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
 import { schema, type PreopData } from "@/components/forms/preopSchema"
 
 export type { PreopData } from "@/components/forms/preopSchema"
@@ -103,7 +103,18 @@ const DISCRETE_PREOP_FIELDS = new Set<string>([
 ])
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId }: {
+/**
+ * Shown under a field whose value the server declined to store.
+ *
+ * `role="status"` rather than `role="alert"`: it is worth announcing, but it
+ * must not interrupt someone mid-entry. Nothing here can block the form.
+ */
+function RejectionNote({ msg }: { msg?: string }) {
+  if (!msg) return null
+  return <p className="text-red-500 text-xs mt-1" role="status">{msg}</p>
+}
+
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
@@ -111,6 +122,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   onAutoSave?: (data: PreopData) => void | Promise<void>
   layoutMode?: "tabs" | "scroll"
   caseId?: string | null
+  /** Values the server refused, keyed by field, shown beside the field itself. */
+  rejectedFields?: Map<string, string>
 }) {
   const t      = useTranslations()
   const locale = useLocale()
@@ -121,17 +134,17 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   const { options: mallampatiOptions }   = useOptionLibrary("MALLAMPATI")
   const { options: upperLipBiteOptions } = useOptionLibrary("UPPER_LIP_BITE")
   const { options: cormackLehaneOptions }= useOptionLibrary("CORMACK_LEHANE")
-  const ageRange         = useRangeSpec("AGE_RANGE")
-  const heightRange      = useRangeSpec("HEIGHT_RANGE")
-  const weightRange      = useRangeSpec("WEIGHT_RANGE")
-  const bpSystolicRange  = useRangeSpec("BP_SYSTOLIC_RANGE")
-  const bpDiastolicRange = useRangeSpec("BP_DIASTOLIC_RANGE")
-  const heartRateRange   = useRangeSpec("HEART_RATE_RANGE")
-  const spo2Range        = useRangeSpec("SPO2_RANGE")
-  const temperatureRange = useRangeSpec("TEMPERATURE_RANGE")
-  const respiratoryRange = useRangeSpec("RESPIRATORY_RATE_RANGE")
-  const mouthOpeningRange= useRangeSpec("MOUTH_OPENING_RANGE")
-  const thyromentalRange = useRangeSpec("THYROMENTAL_RANGE")
+  const ageRange         = useRange("AGE_RANGE")
+  const heightRange      = useRange("HEIGHT_RANGE")
+  const weightRange      = useRange("WEIGHT_RANGE")
+  const bpSystolicRange  = useRange("BP_SYSTOLIC_RANGE")
+  const bpDiastolicRange = useRange("BP_DIASTOLIC_RANGE")
+  const heartRateRange   = useRange("HEART_RATE_RANGE")
+  const spo2Range        = useRange("SPO2_RANGE")
+  const temperatureRange = useRange("TEMPERATURE_RANGE")
+  const respiratoryRange = useRange("RESPIRATORY_RATE_RANGE")
+  const mouthOpeningRange= useRange("MOUTH_OPENING_RANGE")
+  const thyromentalRange = useRange("THYROMENTAL_RANGE")
   const { register, handleSubmit, control, watch, setValue, getValues } = useForm<PreopData>({
     // Same zod-v4/react-hook-form resolver-typing friction as IntraopForm.tsx
     // (a large schema with many .optional()/.default() fields doesn't
@@ -287,9 +300,22 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   const refMap = useRef<Record<string, HTMLDivElement | null>>({})
 
   function fe(key: string) {
-    return fieldErrors.has(key)
+    // A server-refused value gets the same ring as a missing required one —
+    // both mean "this field needs you", and one visual language is enough.
+    return fieldErrors.has(key) || rejectedFields?.has(key)
       ? "ring-2 ring-red-500 dark:ring-red-500 rounded-lg"
       : ""
+  }
+
+  /**
+   * The message under a field whose value the server would not store.
+   *
+   * States the accepted range, so it can be acted on without guessing, and
+   * stays until the value is corrected — an alert that only appears in a header
+   * is missed by anyone who types and immediately navigates away.
+   */
+  function rejectionOf(key: string): string | undefined {
+    return rejectedFields?.get(key)
   }
 
   function validate(data: PreopData): string[] {
@@ -391,20 +417,23 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.age")} <span className="text-red-500">*</span></Label>
             <Controller name="ageYears" control={control} render={({ field }) => (
-              <div className={fe("ageYears")}><NumberStepper value={field.value} onChange={field.onChange} min={ageRange?.min ?? 0} max={ageRange?.max ?? 150} step={ageRange?.step ?? 1} unit="yrs" showSlider /></div>
+              <div className={fe("ageYears")}><NumberStepper value={field.value} onChange={field.onChange} min={ageRange.min} max={ageRange.max} step={ageRange.step} unit="yrs" showSlider /></div>
             )} />
+            <RejectionNote msg={rejectionOf("ageYears")} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.height")} <span className="text-red-500">*</span></Label>
             <Controller name="heightCm" control={control} render={({ field }) => (
-              <div className={fe("heightCm")}><ConvertedStepper measurement="height" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={heightRange?.min ?? 0} canonicalMax={heightRange?.max ?? 250} canonicalStep={heightRange?.step ?? 1} showSlider /></div>
+              <div className={fe("heightCm")}><ConvertedStepper measurement="height" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={heightRange.min} canonicalMax={heightRange.max} canonicalStep={heightRange.step} showSlider /></div>
             )} />
+            <RejectionNote msg={rejectionOf("heightCm")} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.weight")} <span className="text-red-500">*</span></Label>
             <Controller name="weightKg" control={control} render={({ field }) => (
-              <div className={fe("weightKg")}><ConvertedStepper measurement="weight" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={weightRange?.min ?? 0} canonicalMax={weightRange?.max ?? 250} canonicalStep={weightRange?.step ?? 1} showSlider /></div>
+              <div className={fe("weightKg")}><ConvertedStepper measurement="weight" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={weightRange.min} canonicalMax={weightRange.max} canonicalStep={weightRange.step} showSlider /></div>
             )} />
+            <RejectionNote msg={rejectionOf("weightKg")} />
           </div>
         </div>
 
@@ -810,26 +839,27 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
                     <Controller name="bpSystolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={bpSystolicRange?.min ?? 1} max={bpSystolicRange?.max ?? 300} step={bpSystolicRange?.step ?? 1} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpSystolicRange.min} max={bpSystolicRange.max} step={bpSystolicRange.step} showSlider />
                     )} />
                   </div>
                   <span className="text-2xl font-light text-slate-300 mt-4">/</span>
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
                     <Controller name="bpDiastolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={bpDiastolicRange?.min ?? 1} max={bpDiastolicRange?.max ?? 200} step={bpDiastolicRange?.step ?? 1} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpDiastolicRange.min} max={bpDiastolicRange.max} step={bpDiastolicRange.step} showSlider />
                     )} />
                   </div>
                 </div>
             }
             {fieldErrors.has("bp") && !vitalsUTO.has("bp") && <p className="text-red-500 text-xs">{t("common.required")}</p>}
+            <RejectionNote msg={rejectionOf("bpSystolic") ?? rejectionOf("bpDiastolic")} />
           </div>
 
           {([
-            { id: "heartRate",      label: t("preop.heartRate"),      min: heartRateRange?.min ?? 1,   max: heartRateRange?.max ?? 300,   step: heartRateRange?.step ?? 1,   unit: "bpm",  required: true,  slider: true, measurement: undefined as "temperature" | undefined },
-            { id: "spO2",           label: t("preop.spO2"),           min: spo2Range?.min ?? 0,        max: spo2Range?.max ?? 100,        step: spo2Range?.step ?? 1,        unit: "%",    required: false, slider: true, measurement: undefined as "temperature" | undefined },
-            { id: "temperature",    label: t("preop.temperature"),    min: temperatureRange?.min ?? 0, max: temperatureRange?.max ?? 45,  step: temperatureRange?.step ?? 0.1, unit: "°C",   required: false, slider: true, measurement: "temperature" as "temperature" | undefined },
-            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: respiratoryRange?.min ?? 0, max: respiratoryRange?.max ?? 50,  step: respiratoryRange?.step ?? 1,  unit: "/min", required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "heartRate",      label: t("preop.heartRate"),      min: heartRateRange.min,   max: heartRateRange.max,   step: heartRateRange.step,   unit: "bpm",  required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "spO2",           label: t("preop.spO2"),           min: spo2Range.min,        max: spo2Range.max,        step: spo2Range.step,        unit: "%",    required: false, slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "temperature",    label: t("preop.temperature"),    min: temperatureRange.min, max: temperatureRange.max,  step: temperatureRange.step, unit: "°C",   required: false, slider: true, measurement: "temperature" as "temperature" | undefined },
+            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: respiratoryRange.min, max: respiratoryRange.max,  step: respiratoryRange.step,  unit: "/min", required: true,  slider: true, measurement: undefined as "temperature" | undefined },
           ] as const).map(v => (
             <div key={v.id} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -865,6 +895,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                       </div>
                     )} />
                     {fieldErrors.has(v.id) && <p className="text-red-500 text-xs">{t("common.required")}</p>}
+                    <RejectionNote msg={rejectionOf(v.id)} />
                   </>
               }
             </div>
@@ -911,13 +942,13 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <div className="space-y-1">
             <Label>{t("preop.mouthOpening")}</Label>
             <Controller name="mouthOpeningCm" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={mouthOpeningRange?.min ?? 0} max={mouthOpeningRange?.max ?? 10} step={mouthOpeningRange?.step ?? 0.5} unit="cm" />
+              <NumberStepper value={field.value} onChange={field.onChange} min={mouthOpeningRange.min} max={mouthOpeningRange.max} step={mouthOpeningRange.step} unit="cm" />
             )} />
           </div>
           <div className="space-y-1">
             <Label>{t("preop.thyromental")}</Label>
             <Controller name="thyromental" control={control} render={({ field }) => (
-              <NumberStepper value={field.value} onChange={field.onChange} min={thyromentalRange?.min ?? 0} max={thyromentalRange?.max ?? 15} step={thyromentalRange?.step ?? 1} unit="cm" />
+              <NumberStepper value={field.value} onChange={field.onChange} min={thyromentalRange.min} max={thyromentalRange.max} step={thyromentalRange.step} unit="cm" />
             )} />
           </div>
           <div className="space-y-2 col-span-2 sm:col-span-3">

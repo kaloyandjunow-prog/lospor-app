@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, Save } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
-import { useOptionLibrary, useRangeSpec } from "@/hooks/useOptionLibrary"
+import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
 
 const schema = z.object({
   aldreteActivity:      z.coerce.number().min(0).max(2).optional(),
@@ -204,13 +204,15 @@ export const HANDOVER_GROUPS_BG: HandoverGroup[] = [
   ]},
 ]
 
-export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues }: {
+export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues, rejectedFields }: {
   onSubmit: (data: PostopData) => void
   onBack: () => void
   submitting?: boolean
   onAutoSave?: (data: PostopData) => void
   initialComplicationsText?: string
   defaultValues?: Partial<PostopData>
+  /** Values the server refused, keyed by field, shown beside the field itself. */
+  rejectedFields?: Map<string, string>
 }) {
   const t      = useTranslations()
   const locale = useLocale()
@@ -223,12 +225,12 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
       group: lbl(group),
       items: handoverOptions.filter(o => o.parentId === group.id).map(item => ({ code: item.value, label: lbl(item) })),
     }))
-  const recoveryBpSystolicRange  = useRangeSpec("BP_SYSTOLIC_RANGE")
-  const recoveryBpDiastolicRange = useRangeSpec("BP_DIASTOLIC_RANGE")
-  const recoveryHeartRateRange   = useRangeSpec("HEART_RATE_RANGE")
-  const recoverySpo2Range        = useRangeSpec("SPO2_RANGE")
-  const recoveryTemperatureRange = useRangeSpec("TEMPERATURE_RANGE")
-  const painNrsRange             = useRangeSpec("PAIN_NRS_RANGE")
+  const recoveryBpSystolicRange  = useRange("BP_SYSTOLIC_RANGE")
+  const recoveryBpDiastolicRange = useRange("BP_DIASTOLIC_RANGE")
+  const recoveryHeartRateRange   = useRange("HEART_RATE_RANGE")
+  const recoverySpo2Range        = useRange("SPO2_RANGE")
+  const recoveryTemperatureRange = useRange("TEMPERATURE_RANGE")
+  const painNrsRange             = useRange("PAIN_NRS_RANGE")
   const { register, handleSubmit, control, watch, setValue, getValues } = useForm<PostopData>({
     // Same zod-v4/react-hook-form resolver-typing friction as IntraopForm.tsx/PreopForm.tsx
     resolver: zodResolver(schema) as Resolver<PostopData>,
@@ -322,6 +324,14 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* BP */}
           <div className="space-y-2 sm:col-span-2">
+            {/* Recovery observations are all numeric, so one summary above them
+                reaches every field the server can refuse without threading a
+                note through each control. */}
+            {rejectedFields && rejectedFields.size > 0 && (
+              <p className="text-red-500 text-xs mb-2" role="status">
+                {[...rejectedFields.values()].join(" · ")}
+              </p>
+            )}
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.bloodPressure")}</Label>
               <button type="button"
@@ -337,14 +347,14 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
                 <div className="flex-1">
                   <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
                   <Controller name="recoveryBpSystolic" control={control} render={({ field }) => (
-                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpSystolicRange?.min ?? 1} max={recoveryBpSystolicRange?.max ?? 300} step={recoveryBpSystolicRange?.step ?? 1} showSlider />
+                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpSystolicRange.min} max={recoveryBpSystolicRange.max} step={recoveryBpSystolicRange.step} showSlider />
                   )} />
                 </div>
                 <span className="text-2xl font-light text-slate-300 mt-4">/</span>
                 <div className="flex-1">
                   <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
                   <Controller name="recoveryBpDiastolic" control={control} render={({ field }) => (
-                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpDiastolicRange?.min ?? 1} max={recoveryBpDiastolicRange?.max ?? 200} step={recoveryBpDiastolicRange?.step ?? 1} showSlider />
+                    <NumberStepper value={field.value} onChange={field.onChange} min={recoveryBpDiastolicRange.min} max={recoveryBpDiastolicRange.max} step={recoveryBpDiastolicRange.step} showSlider />
                   )} />
                 </div>
               </div>
@@ -365,7 +375,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
               <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
             ) : (
               <Controller name="recoveryHeartRate" control={control} render={({ field }) => (
-                <NumberStepper value={field.value} onChange={field.onChange} min={recoveryHeartRateRange?.min ?? 1} max={recoveryHeartRateRange?.max ?? 300} step={recoveryHeartRateRange?.step ?? 1} unit="bpm" showSlider />
+                <NumberStepper value={field.value} onChange={field.onChange} min={recoveryHeartRateRange.min} max={recoveryHeartRateRange.max} step={recoveryHeartRateRange.step} unit="bpm" showSlider />
               )} />
             )}
           </div>
@@ -384,7 +394,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
               <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
             ) : (
               <Controller name="recoverySpO2" control={control} render={({ field }) => (
-                <NumberStepper value={field.value} onChange={field.onChange} min={recoverySpo2Range?.min ?? 0} max={recoverySpo2Range?.max ?? 100} step={recoverySpo2Range?.step ?? 1} unit="%" showSlider />
+                <NumberStepper value={field.value} onChange={field.onChange} min={recoverySpo2Range.min} max={recoverySpo2Range.max} step={recoverySpo2Range.step} unit="%" showSlider />
               )} />
             )}
           </div>
@@ -403,7 +413,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
               <p className="text-sm text-slate-400 italic py-2">{t("preop.unableToObtain")}</p>
             ) : (
               <Controller name="temperatureCelsius" control={control} render={({ field }) => (
-                <ConvertedStepper measurement="temperature" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={recoveryTemperatureRange?.min ?? 0} canonicalMax={recoveryTemperatureRange?.max ?? 45} canonicalStep={recoveryTemperatureRange?.step ?? 0.1} showSlider />
+                <ConvertedStepper measurement="temperature" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={recoveryTemperatureRange.min} canonicalMax={recoveryTemperatureRange.max} canonicalStep={recoveryTemperatureRange.step} showSlider />
               )} />
             )}
           </div>
@@ -412,7 +422,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("postop.painNRS")}</Label>
             <div className="flex items-center gap-2">
-              <input type="range" min={painNrsRange?.min ?? 0} max={painNrsRange?.max ?? 10} step={painNrsRange?.step ?? 1}
+              <input type="range" min={painNrsRange.min} max={painNrsRange.max} step={painNrsRange.step}
                 {...register("painScoreNRS")}
                 className="flex-1 h-2 rounded-lg appearance-none bg-slate-200 dark:bg-[#333] accent-blue-600 cursor-pointer" />
               <span className="text-sm font-bold w-6 text-center text-slate-700 dark:text-slate-200">{watch("painScoreNRS") ?? 0}</span>

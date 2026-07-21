@@ -110,6 +110,34 @@ async function main() {
   check("returns 200", good.status === 200, good.status)
   check("no rejectedFields key", good.body.rejectedFields === undefined, good.body.rejectedFields)
 
+  // ── 6. creating a case with one bad field must not lose the rest ──────────
+  //
+  // The reported failure: the web height picker allowed 12 cm, POST /api/cases
+  // validated strictly, the whole request 400'd, and no case row was written —
+  // so leaving the screen destroyed the entire assessment. Create is now
+  // lenient like PATCH.
+  console.log("\nA bad field on create refuses the field, not the case")
+  const created2 = await fetch(`${BASE}/api/cases`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ preop: { ageYears: 40, sex: "MALE", heightCm: 12, weightKg: 70, diagnosis: "Smoke test" } }),
+  })
+  check("create still succeeds", created2.ok, created2.status)
+  const createdBody = await created2.json().catch(() => ({})) as Record<string, unknown>
+  const id2 = createdBody.id as string | undefined
+  check("a case was actually created", !!id2, createdBody)
+  check("the bad height is reported back",
+        JSON.stringify(createdBody.rejectedFields ?? "").includes("heightCm"), createdBody.rejectedFields)
+
+  if (id2) {
+    const res2 = await fetch(`${BASE}/api/cases/${id2}`, { headers: auth })
+    const body2 = await res2.json() as { preop?: Record<string, unknown> }
+    check("the out-of-range height was not stored", body2.preop?.heightCm == null, body2.preop?.heightCm)
+    check("everything else in the same save survived",
+          body2.preop?.weightKg === 70 && body2.preop?.ageYears === 40,
+          { weightKg: body2.preop?.weightKg, ageYears: body2.preop?.ageYears })
+    await fetch(`${BASE}/api/cases/${id2}`, { method: "DELETE", headers: auth }).catch(() => {})
+  }
+
   await fetch(`${BASE}/api/cases/${id}`, { method: "DELETE", headers: auth }).catch(() => {})
 
   console.log(failures === 0 ? "\nAll autosave smoke checks passed." : `\n${failures} check(s) FAILED.`)
