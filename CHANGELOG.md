@@ -69,7 +69,7 @@ surface. **This release alters the production database** (see Migration below).
 
 - `GET /api/cases/[id]/version` — a cheap change marker for live refresh.
 - `npm run smoke:transfer` — the transfer path against a real database.
-- `npm run reproject-cases` — realigns stored charts to the corrected origin.
+- `npm run reproject:cases` — realigns stored charts to the corrected origin.
   Dry-run by default.
 
 ### Migration
