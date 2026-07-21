@@ -2,7 +2,6 @@
   "buildCommand": "prisma migrate deploy && npm run build",
   "crons": [
     {
-      "_comment": "Retention purge: anonymises accounts soft-deleted >30 days ago. Requires CRON_SECRET in the environment; the route refuses to run without it.",
       "path": "/api/internal/purge-deleted",
       "schedule": "0 3 * * *"
     }
