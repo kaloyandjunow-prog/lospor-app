@@ -65,8 +65,18 @@ const PAL_DARK: Palette = {
 
 // Chart-internal labels (everything else on the sheet is translated in CaseSummary).
 const CHART_STR = {
-  en: { time: "Time", drugs: "Drugs", agent: "Agent", infusion: "Infusion", gas: "Gas", fluids: "Fluids", position: "Position" },
-  bg: { time: "Час",  drugs: "Лекарства", agent: "Агент", infusion: "Инфузия", gas: "Газ", fluids: "Течности", position: "Позиция" },
+  en: {
+    time: "Time", drugs: "Drugs", agent: "Agent", infusion: "Infusion", gas: "Gas", fluids: "Fluids", position: "Position",
+    bp: "BP", hr: "HR", spo2: "SpO₂", etco2: "EtCO₂", temp: "Temp",
+    sbp: "SBP", dbp: "DBP", units: "mmHg / bpm",
+  },
+  bg: {
+    time: "Час",  drugs: "Лекарства", agent: "Агент", infusion: "Инфузия", gas: "Газова смес", fluids: "Флуиди", position: "Позиция",
+    // Chart row labels stay abbreviated — the column is narrow. SpO₂/EtCO₂ are
+    // written the same way in Bulgarian clinical practice.
+    bp: "АН", hr: "СЧ", spo2: "SpO₂", etco2: "EtCO₂", temp: "Темп",
+    sbp: "САН", dbp: "ДАН", units: "mmHg / удм",
+  },
 }
 type ChartStr = typeof CHART_STR.en
 
@@ -211,11 +221,11 @@ function buildSVG(
 
   // Numeric grid rows (only those with any data in this window).
   const gridDefs: { k: string; f: (v: VitalsEntry) => string }[] = [
-    { k: "BP",    f: (v: VitalsEntry) => (v.systolic != null && v.diastolic != null) ? `${v.systolic}/${v.diastolic}` : (v.systolic != null ? `${v.systolic}` : "") },
-    { k: "HR",    f: (v: VitalsEntry) => v.heartRate != null ? `${v.heartRate}` : "" },
-    { k: "SpO₂",  f: (v: VitalsEntry) => v.spO2 != null ? `${v.spO2}` : "" },
-    { k: "EtCO₂", f: (v: VitalsEntry) => v.etco2 != null ? `${v.etco2}` : "" },
-    { k: "Temp",  f: (v: VitalsEntry) => v.temp != null ? v.temp.toFixed(1) : "" },
+    { k: S.bp,    f: (v: VitalsEntry) => (v.systolic != null && v.diastolic != null) ? `${v.systolic}/${v.diastolic}` : (v.systolic != null ? `${v.systolic}` : "") },
+    { k: S.hr,    f: (v: VitalsEntry) => v.heartRate != null ? `${v.heartRate}` : "" },
+    { k: S.spo2,  f: (v: VitalsEntry) => v.spO2 != null ? `${v.spO2}` : "" },
+    { k: S.etco2, f: (v: VitalsEntry) => v.etco2 != null ? `${v.etco2}` : "" },
+    { k: S.temp,  f: (v: VitalsEntry) => v.temp != null ? v.temp.toFixed(1) : "" },
   ].filter(row => vitals.some((v, idx) => inRange(idx) && row.f(v ?? {}) !== ""))
 
   const gRows    = gridDefs.length
@@ -284,9 +294,9 @@ function buildSVG(
   // ── graph legend (left column) ──
   {
     const ly = graphTop + graphH / 2 - 10
-    s += `<text x="8" y="${ly}" font-size="8.5" fill="${P.sbp}">▽ SBP  △ DBP</text>`
-    s += `<text x="8" y="${ly + 12}" font-size="8.5" fill="${P.hr}">● HR</text>`
-    s += `<text x="8" y="${ly + 24}" font-size="7.5" fill="${P.faint}">mmHg / bpm</text>`
+    s += `<text x="8" y="${ly}" font-size="8.5" fill="${P.sbp}">▽ ${S.sbp}  △ ${S.dbp}</text>`
+    s += `<text x="8" y="${ly + 12}" font-size="8.5" fill="${P.hr}">● ${S.hr}</text>`
+    s += `<text x="8" y="${ly + 24}" font-size="7.5" fill="${P.faint}">${S.units}</text>`
   }
 
   // ── vitals traces — FULL resolution (every recorded point plots; only the

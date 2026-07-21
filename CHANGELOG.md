@@ -1,5 +1,21 @@
 # Changelog - LOSPOR Web App
 
+## [5.2.1] - 2026-07-21
+
+### Fixed
+- **A field-level save no longer erases the fields it did not mention.** The case schema treated "field not sent" and "field cleared" as the same thing, so a patch carrying only a new weight silently wrote `null` over the stored height, age and every other numeric preoperative value. Since both clients save field-level diffs, this affected ordinary editing, not just edge cases. `undefined` now means "leave it alone" while an explicit `null`/`""` still clears the field.
+- **One rejected value no longer discards the whole save.** `PATCH /api/cases/[id]` validated the entire body at once, so a single out-of-range number (a half-entered height, for instance) returned 400 and threw away every other edit in that autosave. Invalid fields are now dropped individually, the rest of the section is stored, and the response lists them under `rejectedFields` so the client can tell the user which value was refused.
+- Height, weight and age pickers now offer only values the API accepts — previously the height wheel started at 0 while the API required at least 30 cm, which is what made autosave fail.
+- Live case timetable: a start time later than the current clock is no longer read as "started yesterday". Entering a future start marched the now-marker toward 23 hours elapsed, grew the chart by an hour every ten seconds, and could backfill hours of fabricated vital signs into the record.
+
+### Changed
+- **OMOP export now emits `PERSON` and `OBSERVATION_PERIOD`.** These are the root tables the OMOP model and OHDSI tooling (ATLAS, ACHILLES) require; without them the bundle was OMOP-shaped but could not be loaded. `year_of_birth` is derived from age at operation, with month and day left genuinely unknown rather than defaulted; race and ethnicity are emitted as concept 0 since they are not collected.
+- **Pseudonymous `person_id` is now derived from SHA-256**, as the export manifest had always claimed. The previous value was a 32-bit non-cryptographic string hash, where two unrelated cases would collide onto a single "person" somewhere around 70,000 cases. The identifier is now 52 bits, and the manifest also states plainly that one person is emitted per case, so the same patient across two operations appears as two persons.
+- Chart labels on the record and summary are translated in Bulgarian (АН, СЧ, Темп, Инфузия, Газова смес, Флуиди, Позиция, mmHg/удм).
+
+### Added
+- `npm run smoke:autosave` — an end-to-end check of the real save path (auth → create → patch → read back) covering both failures above. `BASE_URL` selects the target server.
+
 ## [5.2.0] - 2026-07-20
 
 Aligns the mobile summary, web summary, and printable protocol onto one shared case-summary model, and redesigns the A4 printable protocol around the intraoperative timetable.

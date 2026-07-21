@@ -6,6 +6,7 @@ import { z } from "zod"
 import { logAudit } from "@/lib/audit"
 import caseEmitter from "@/lib/caseEmitter"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
+import { parseLenient } from "@/lib/lenient-parse"
 import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { writeFieldDiffsSafe } from "@/lib/case-audit"
@@ -87,7 +88,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
 
   try {
-    const body = patchBodySchema.parse(await req.json())
+    // Autosave posts whole sections repeatedly, so a single out-of-range value
+    // must not discard the rest of the save. Invalid fields are dropped and
+    // reported back as `rejectedFields` for the client to surface.
+    const { value: body, rejected: rejectedFields } = parseLenient(patchBodySchema, await req.json())
+    // Keep the signal that used to arrive as a ZodError before this route
+    // started tolerating bad fields — a client sending consistently invalid
+    // values would otherwise be invisible. Paths only: the values themselves
+    // are clinical data and must not reach the logs.
+    if (rejectedFields.length) {
+      console.warn(`[PATCH /api/cases/:id] rejected fields on ${id}:`, rejectedFields.map(f => f.path).join(", "))
+    }
     const { preop, intraop, postop, status, notes, forceUpdate: forceUpdateField } = body
     const preopBase = req.headers.get("x-lospor-preop-updated-at")
     const postopBase = req.headers.get("x-lospor-postop-updated-at")
@@ -335,6 +346,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       preopUpdatedAt: updated?.preop?.updatedAt,
       postopUpdatedAt: updated?.postop?.updatedAt,
       intraopUpdatedAt: updated?.intraop?.updatedAt,
+      // Present only when something was refused — the client must tell the user
+      // rather than let them believe an out-of-range value was stored.
+      ...(rejectedFields.length ? { rejectedFields } : {}),
     })
   } catch (err: unknown) {
     if (err instanceof z.ZodError) {

@@ -1,16 +1,23 @@
 /**
- * OMOP CDM v5.4 mapper - v3.0
+ * OMOP CDM v5.4 mapper — export contract `source_version` 3.5.0.
  *
- * Current v3.0 export:
- * - Drug exposure now reads from CaseEvent rows (type="drug") instead of keyEvents.log
- * - Lab measurements now exported from LabResult rows (LOINC-coded, canonical units)
- * - care_site_source_value now uses Case.institutionId when available
- * - source_version updated to 3.0.0
+ * `source_version` tracks the shape of the export, not the app version: bump it
+ * whenever a table or column is added, removed or reinterpreted.
  *
- * Concept IDs remain 0 where LOSPOR does not have OMOP standard vocabulary mapping
- * (vitals and their LOINC codes are the exception - those have real concept_ids).
+ * 3.5.0 — emits PERSON and OBSERVATION_PERIOD, the root tables the CDM and the
+ *         OHDSI tools (ATLAS, ACHILLES) require; without them earlier bundles
+ *         were OMOP-shaped but could not be loaded. person_id is now derived
+ *         from SHA-256 (52 bits) instead of a 32-bit string hash that would
+ *         have collided two unrelated cases onto one person around ~70k cases.
+ * 3.4.x — drug exposure from CaseEvent rows; LOINC-coded lab measurements from
+ *         LabResult; care_site_source_value from Case.institutionId.
+ *
+ * Concept IDs stay 0 where LOSPOR has no confident standard-vocabulary mapping
+ * (vitals, which carry real LOINC-backed concept_ids, are the exception). No
+ * identifier is ever invented — source vocabulary and code are carried instead.
  */
 
+import { createHash } from "node:crypto"
 import { DICTIONARY_VERSION } from "@/lib/data-dictionary"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -19,13 +26,25 @@ let _counter = 1
 function nextId() { return _counter++ }
 function resetIds() { _counter = 1 }
 
-/** Deterministic numeric ID from a string - avoids collisions across tables */
-function hashId(s: string): number {
-  let h = 0
-  for (let i = 0; i < s.length; i++) {
-    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
-  }
-  return Math.abs(h) || 1
+// Optional deployment-wide salt. Keep it stable: changing it changes every
+// pseudonym, so two exports taken either side of a change cannot be related.
+const PSEUDONYM_SALT = process.env.OMOP_PSEUDONYM_SALT ?? ""
+
+/**
+ * Deterministic pseudonymous ID, derived from SHA-256.
+ *
+ * Takes 52 bits of the digest — the widest value that stays an exact JavaScript
+ * integer. Collision becomes likely (birthday bound) somewhere past 60 million
+ * cases rather than the ~70 thousand of the previous 32-bit string hash, which
+ * would have silently merged two unrelated operations into one "person".
+ *
+ * `kind` namespaces the id so a case's person and visit ids can never coincide.
+ */
+function pseudonymId(kind: string, key: string): number {
+  const digest = createHash("sha256").update(`${PSEUDONYM_SALT}|${kind}|${key}`).digest()
+  const hi = digest.readUInt32BE(0)         // 32 bits
+  const lo = digest.readUInt32BE(4) >>> 12  // top 20 bits of the next word
+  return hi * 0x100000 + lo + 1             // 52 bits, never zero
 }
 
 function isoDate(d: Date | string | null | undefined): string | null {
@@ -85,12 +104,39 @@ export interface OmopBundle {
     }
     note: string
   }
+  // PERSON is the root of the OMOP model — every clinical row references it,
+  // and OBSERVATION_PERIOD is what OHDSI tooling (ATLAS, ACHILLES) uses to
+  // decide when a person was under observation. Without both, the bundle is
+  // OMOP-shaped but not loadable.
+  person: OmopPerson[]
+  observation_period: OmopObservationPeriod[]
   visit_occurrence: OmopVisit[]
   condition_occurrence: OmopCondition[]
   drug_exposure: OmopDrug[]
   measurement: OmopMeasurement[]
   procedure_occurrence: OmopProcedure[]
   observation: OmopObservation[]
+}
+
+export interface OmopPerson {
+  person_id: number
+  gender_concept_id: number
+  year_of_birth: number | null
+  month_of_birth: null
+  day_of_birth: null
+  birth_datetime: null
+  race_concept_id: number
+  ethnicity_concept_id: number
+  person_source_value: string | null
+  gender_source_value: string | null
+}
+
+export interface OmopObservationPeriod {
+  observation_period_id: number
+  person_id: number
+  observation_period_start_date: string | null
+  observation_period_end_date: string | null
+  period_type_concept_id: number
 }
 
 export type ExportQualityWarning = {
@@ -506,6 +552,8 @@ function deriveQualityStatus(warnings: ExportQualityWarning[]): "PASS" | "WARNIN
 export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundle {
   resetIds()
 
+  const persons: OmopPerson[] = []
+  const observationPeriods: OmopObservationPeriod[] = []
   const visits: OmopVisit[] = []
   const conditions: OmopCondition[] = []
   const drugs: OmopDrug[] = []
@@ -524,13 +572,47 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
     sourceVocabulary && sourceCode ? `${sourceVocabulary}:${sourceCode}${label ? ` - ${label}` : ""}` : `${prefix}:${label ?? "unknown"}`
 
   for (const c of cases) {
-    const personId = hashId(c.id)
-    const visitId  = hashId(`visit:${c.id}`)
+    const personId = pseudonymId("person", c.id)
+    const visitId  = pseudonymId("visit", c.id)
     const startDate = isoDate(c.intraop?.startTime ?? c.createdAt)
     const endDate   = isoDate(c.intraop?.endTime ?? c.intraop?.startTime ?? c.createdAt)
 
     // care_site: prefer case-level institutionId, fall back to user institution
     const careSite = c.institutionId ?? c.user?.institution?.name ?? null
+
+    // ── PERSON ───────────────────────────────────────────────────────────────
+    // One person per case: LOSPOR deliberately stores no patient identifier, so
+    // the same patient returning for a second operation cannot be recognised.
+    // Documented as a research limitation, not an accident.
+    const GENDER_CONCEPT: Record<string, number> = { MALE: 8507, FEMALE: 8532 }
+    const ageAtOp = c.preop?.ageYears ?? null
+    const opYear = startDate ? Number(startDate.substring(0, 4)) : null
+    persons.push({
+      person_id:            personId,
+      // 0 = "no matching concept", the OMOP convention for unknown/other.
+      gender_concept_id:    (c.preop?.sex && GENDER_CONCEPT[c.preop.sex]) || 0,
+      // Only age-in-years is collected, so the birth year is approximate (±1)
+      // and month/day are genuinely unknown rather than defaulted.
+      year_of_birth:        (ageAtOp != null && opYear != null) ? opYear - ageAtOp : null,
+      month_of_birth:       null,
+      day_of_birth:         null,
+      birth_datetime:       null,
+      race_concept_id:      0,   // not collected
+      ethnicity_concept_id: 0,   // not collected
+      person_source_value:  c.caseCode,
+      gender_source_value:  c.preop?.sex ?? null,
+    })
+
+    // ── OBSERVATION_PERIOD ───────────────────────────────────────────────────
+    // Spans the operation itself: the only window in which this pseudonymous
+    // person is observed. OHDSI cohort tooling requires this to exist.
+    observationPeriods.push({
+      observation_period_id:         pseudonymId("obsperiod", c.id),
+      person_id:                     personId,
+      observation_period_start_date: startDate,
+      observation_period_end_date:   endDate ?? startDate,
+      period_type_concept_id:        32817, // EHR
+    })
 
     // ── VISIT_OCCURRENCE ─────────────────────────────────────────────────────
     visits.push({
@@ -915,6 +997,8 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
   }
 
   const tableCounts = {
+    person: persons.length,
+    observation_period: observationPeriods.length,
     visit_occurrence: visits.length,
     condition_occurrence: conditions.length,
     drug_exposure: drugs.length,
@@ -936,7 +1020,7 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
       generated_by_user_id:    ctx?.userId ?? "unknown",
       generated_by_role:       ctx?.userRole ?? "unknown",
       source:                  "LOSPOR",
-      source_version:          "3.4.3",
+      source_version:          "3.5.0",
       schema_version:          "3.4.3",
       concept_map_version:     "local-bilingual-map-v2",
       data_dictionary_version: DICTIONARY_VERSION,
@@ -953,7 +1037,7 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
       data_quality_status:     deriveQualityStatus(qualityWarnings),
       deidentification: {
         mode:                              "pseudonymised",
-        person_id_strategy:               "deterministic SHA-256 hash of internal case ID — not reversible without the source DB",
+        person_id_strategy:               "deterministic 52-bit identifier derived from SHA-256 of the internal case ID (optionally salted) — not reversible without the source database. One person per case: no patient identifier is stored, so the same patient across two operations appears as two persons.",
         direct_patient_identifiers_stored: false,
         event_timestamp_precision:        "exact_datetime",
         residual_linkage_risks: [
@@ -962,8 +1046,10 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
           "rare procedure, complication, and timeline combinations",
         ],
       },
-      note: "OMOP concept IDs are emitted only where LOSPOR has a confident local mapping. Source vocabulary, source code, English/Bulgarian labels, and source-only rows are preserved for research traceability. person_id is a deterministic pseudonymised hash of the internal case ID — no patient names, national IDs, or direct identifiers are stored. Intraoperative event timestamps are preserved at exact DateTime precision for clinical sequence analysis — see residual_linkage_risks.",
+      note: "OMOP concept IDs are emitted only where LOSPOR has a confident local mapping. Source vocabulary, source code, English/Bulgarian labels, and source-only rows are preserved for research traceability. person_id is a deterministic pseudonym derived from SHA-256 of the internal case ID — no patient names, national IDs, or direct identifiers are stored. PERSON carries an approximate year_of_birth derived from age at operation (month and day are unknown, not defaulted); race and ethnicity are not collected and are emitted as concept 0. OBSERVATION_PERIOD spans the operation only. Intraoperative event timestamps are preserved at exact DateTime precision for clinical sequence analysis — see residual_linkage_risks.",
     },
+    person:                persons,
+    observation_period:    observationPeriods,
     visit_occurrence:      visits,
     condition_occurrence:  conditions,
     drug_exposure:         drugs,

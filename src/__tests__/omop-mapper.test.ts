@@ -182,6 +182,10 @@ describe("mapCasesToOmop", () => {
       mapping_summary: { mapped_rows: 4, source_only_rows: 2, unmapped_rows: 1 },
     }))
     expect(bundle.metadata.table_counts).toEqual({
+      // PERSON and OBSERVATION_PERIOD are the OMOP root tables — without them
+      // the bundle cannot be loaded by OHDSI tooling.
+      person: 1,
+      observation_period: 1,
       visit_occurrence: 1,
       condition_occurrence: 2,
       drug_exposure: 3,

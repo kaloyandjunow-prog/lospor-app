@@ -10,6 +10,7 @@ import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
+import { elapsedSecsSinceStart, resolveStartAnchor } from "@/lib/intraop-clock"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import type { DoseProfileInput } from "@/data/option-library/dose-profile"
 import { POSITIONS } from "@/data/option-library/position"
@@ -521,15 +522,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
   const tsForCol = useCallback((col: number): string | null => {
     if (!startTime) return null
-    // Mirrors the live-clock math: columns anchor to today's wall clock at
-    // floorTo5(startTime); a start that appears to be in the future means the
-    // case started yesterday evening (midnight crossing) — anchor 24h back.
-    const startMs = (() => {
-      const base = new Date()
-      base.setHours(0, 0, 0, 0)
-      return base.getTime() + timeToMins(floorTo5(startTime)) * 60_000
-    })()
-    const anchored = startMs > Date.now() ? startMs - 24 * 3600_000 : startMs
+    // Shares the live clock's anchor rule: a start time that looks like it is
+    // in the future is only read as a midnight crossing when the case could
+    // plausibly still be running. Otherwise the case hasn't started and there
+    // is no real timestamp to give these observations.
+    const anchored = resolveStartAnchor(startTime, new Date())
+    if (anchored === null) return null
     return new Date(anchored + col * INTERVAL * 60_000).toISOString()
   }, [startTime])
 
@@ -767,10 +765,11 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     }
     if (lastDataCol < 0) return
 
-    const now = new Date()
-    let diffSecs = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds())
-                 - (timeToMins(floorTo5(startTime || "08:00")) * 60)
-    if (diffSecs < 0) diffSecs += 24 * 3600
+    // Case hasn't started (start time is in the future) — nothing to backfill.
+    // Without this guard a future start time read as ~23 h elapsed would fill
+    // hours of fabricated observations forward and persist them as events.
+    const diffSecs = elapsedSecsSinceStart(startTime, new Date())
+    if (diffSecs === null) return
     const currentCol = Math.max(0, Math.floor(diffSecs / (INTERVAL * 60)))
     if (currentCol <= lastDataCol) return
 
@@ -793,16 +792,21 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     if (!caseStarted) return          // case not started — don't run clock
     function tick() {
       if (endTimeRef.current) return  // case ended — stop the clock
-      const now = new Date()
-      let diffSecs = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds())
-                   - (timeToMins(floorTo5(startTime || "08:00")) * 60)
-      if (diffSecs < 0) diffSecs += 24 * 3600  // case started yesterday (midnight crossing)
-      if (diffSecs >= 0) {
+      const diffSecs = elapsedSecsSinceStart(startTime, new Date())
+      // Start time is in the future — the case hasn't begun. Park the clock:
+      // no now-marker, no table growth, no auto-extend of live bars.
+      if (diffSecs === null) { setNowOffsetPx(null); return }
+      {
         const px  = diffSecs / (INTERVAL * 60) * COL_W
-        const col = Math.min(Math.floor(diffSecs / (INTERVAL * 60)), colCountRef.current - 1)
+        // Size off the true elapsed column, not the clamped one: clamping to
+        // colCount-1 made the grow-check below always true, so the table crept
+        // outward one row per tick instead of sizing to the clock in one go.
+        const trueCol = Math.floor(diffSecs / (INTERVAL * 60))
+        if (trueCol + 1 >= colCountRef.current)
+          setColCount(layoutRef.current === "scroll" ? trueCol + 2 : Math.ceil((trueCol + 2) / ROW_COLS) * ROW_COLS)
+        const col = Math.min(trueCol, colCountRef.current - 1)
         setNowOffsetPx(Math.min(px, colCountRef.current * COL_W))
         setSelectedCol(col)
-        if (col + 1 >= colCountRef.current) setColCount(layoutRef.current === "scroll" ? colCountRef.current + 1 : Math.ceil((col + 2) / ROW_COLS) * ROW_COLS)
 
         // Auto-extend live bars to current column (any bar behind current that isn't stopped)
         const d   = dataRef.current

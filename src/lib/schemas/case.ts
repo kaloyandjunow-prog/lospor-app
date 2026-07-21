@@ -3,14 +3,20 @@ import { z } from "zod"
 // Accepts number, string, or null/undefined from HTML inputs; coerces to number or null.
 // Using Number() instead of parseInt so "12abc" is rejected (returns NaN) rather than silently
 // parsed as 12 — this catches typo inputs before they reach the database.
-const numPreprocess = (v: unknown): number | null => {
-  if (v === "" || v === null || v === undefined) return null
+// `undefined` and `null` are NOT the same thing here:
+//   undefined → the client did not mention this field, so leave the stored
+//               value alone. Returning null instead made every field-level
+//               PATCH silently wipe the fields it did not mention.
+//   null / "" → the user actively cleared the field, so store null.
+const numPreprocess = (v: unknown): number | null | undefined => {
+  if (v === undefined) return undefined
+  if (v === "" || v === null) return null
   const n = Number(v)
   return Number.isFinite(n) ? n : null
 }
-const intPreprocess = (v: unknown): number | null => {
+const intPreprocess = (v: unknown): number | null | undefined => {
   const n = numPreprocess(v)
-  return n === null ? null : Math.round(n)
+  return (n === null || n === undefined) ? n : Math.round(n)
 }
 
 const coerceNum = z.preprocess(numPreprocess, z.number().nullable().optional())

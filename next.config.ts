@@ -79,6 +79,14 @@ const nextConfig: NextConfig = {
   // Allow current local network IPs so HMR and JS hydration work when accessed from the LAN.
   ...(isDev ? { allowedDevOrigins: devHosts } : {}),
 
+  // Dev only. By default Next preloads every route's modules into memory when the
+  // server starts; on a project with this many API routes that footprint leaves too
+  // little headroom on an 8 GB machine to fork the compile workers, which then die
+  // with "Jest worker encountered 2 child process exceptions" and every route 500s.
+  // Loading entries on demand trades a slightly slower first hit per route for a much
+  // smaller resident footprint. Production is deliberately left on the default.
+  ...(isDev ? { experimental: { preloadEntriesOnStart: false } } : {}),
+
   async headers() {
     return [
     {

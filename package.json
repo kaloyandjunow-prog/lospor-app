@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "e2e:seed": "tsx scripts/seed-e2e-user.ts"
+    "e2e:seed": "tsx scripts/seed-e2e-user.ts",
+    "smoke:autosave": "tsx scripts/smoke-autosave.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -33,7 +34,7 @@
     "@base-ui/react": "^1.4.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.2",
-    "@lospor/core": "git+https://github.com/kaloyandjunow-prog/lospor-core.git#v5.2.0",
+    "@lospor/core": "git+https://github.com/kaloyandjunow-prog/lospor-core.git#v5.2.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@sentry/nextjs": "^10.57.0",

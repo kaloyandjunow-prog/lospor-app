@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-20T10:22:58.494Z",
+  "generatedAt": "2026-07-21T03:06:26.476Z",
   "sourceHash": "3d2818fc8b0d8f65faf138c078a4914d0fe64404b5a4f1076d84e0f5f38d1d92",
   "POSITION": [
     {
@@ -14937,7 +14937,7 @@
       "atcCode": null,
       "inn": null,
       "metadata": {
-        "max": 150,
+        "max": 149,
         "min": 0,
         "step": 1,
         "unit": "years"
@@ -14959,7 +14959,7 @@
       "inn": null,
       "metadata": {
         "max": 250,
-        "min": 0,
+        "min": 30,
         "step": 1,
         "unit": "cm"
       }
@@ -14980,7 +14980,7 @@
       "inn": null,
       "metadata": {
         "max": 250,
-        "min": 0,
+        "min": 0.5,
         "step": 1,
         "unit": "kg"
       }
@@ -15087,7 +15087,8 @@
         "max": 45,
         "min": 0,
         "step": 0.1,
-        "unit": "°C"
+        "unit": "°C",
+        "precision": 1
       }
     }
   ],
@@ -15129,7 +15130,8 @@
         "max": 10,
         "min": 0,
         "step": 0.5,
-        "unit": "cm"
+        "unit": "cm",
+        "precision": 1
       }
     }
   ],
