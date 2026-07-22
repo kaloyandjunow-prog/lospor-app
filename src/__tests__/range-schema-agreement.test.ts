@@ -85,6 +85,30 @@ describe("the specific values that were reported or found broken", () => {
   })
 })
 
+describe("a whole number is always on the picker grid", () => {
+  // The gap that shipped in 5.4.1: raising weight's minimum to 0.5 while its
+  // step stayed 1 put every valid value on a half-kilo (…104.5, 105.5), so a
+  // clinician could not enter a whole number of kilograms — the commonest
+  // input there is. The API accepted the min and max, so the earlier check
+  // passed while the picker was unusable. A stepper's valid values are
+  // min + n*step, so a whole number is reachable only when (wholeNumber - min)
+  // is a whole multiple of step.
+  const onGrid = (value: number, min: number, step: number) => {
+    const steps = (value - min) / step
+    return Math.abs(steps - Math.round(steps)) < 1e-9
+  }
+
+  for (const key of Object.keys(CLINICAL_RANGES) as ClinicalRangeKey[]) {
+    const r = CLINICAL_RANGES[key]
+    // A whole kilo/cm/mmHg near the middle of the range — a value a clinician
+    // will actually type.
+    const mid = Math.round((r.min + r.max) / 2)
+    it(`${key} accepts the whole number ${mid}`, () => {
+      expect(onGrid(mid, r.min, r.step)).toBe(true)
+    })
+  }
+})
+
 describe("ranges are internally coherent", () => {
   for (const key of Object.keys(CLINICAL_RANGES) as ClinicalRangeKey[]) {
     it(`${key} has min < max and a positive step`, () => {

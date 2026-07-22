@@ -1,5 +1,22 @@
 # Changelog - LOSPOR Web App
 
+## [5.4.2] - 2026-07-22
+
+### Fixed
+
+- **Whole-number weights were rejected.** Raising the weight floor to 0.5 kg in
+  5.4.1, while the step stayed at 1, put every accepted value on a half-kilo —
+  so entering 105 kg was refused with "the two nearest are 104.5 and 105.5".
+  The step is now 0.5 kg, so whole and half kilos are both valid. This was the
+  only picker affected; it is the only one whose minimum is not a whole number.
+- The picker/API agreement test now also checks that a whole number lands on
+  each picker's grid, not only that the range ends are accepted — the gap that
+  let the weight step through.
+
+**Deployment:** re-seed the option library
+(`npx tsx scripts/seed-option-library.ts`) so the corrected step reaches an
+existing database.
+
 ## [5.4.1] - 2026-07-22
 
 ### Fixed

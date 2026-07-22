@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T21:46:22.131Z",
+  "generatedAt": "2026-07-22T04:55:39.830Z",
   "sourceHash": "3d2818fc8b0d8f65faf138c078a4914d0fe64404b5a4f1076d84e0f5f38d1d92",
   "POSITION": [
     {
@@ -14981,7 +14981,7 @@
       "metadata": {
         "max": 250,
         "min": 0.5,
-        "step": 1,
+        "step": 0.5,
         "unit": "kg"
       }
     }
