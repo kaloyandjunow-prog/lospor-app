@@ -44,7 +44,7 @@
 - History: comorbidities JSON, allergy flag/details, latex allergy, current medications, family anaesthesia problems/details, dental prosthetics, loose teeth, smoking, substance abuse.
 - Vitals: BP, heart rate, arrhythmia flag, SpO2, temperature, respiratory rate, and unable-to-obtain flags.
 - Airway: Mallampati, mouth opening, thyromental distance, neck mobility, ULBT, retrognathia, prominent incisors, facial hair, difficult-airway history/notes, Cormack-Lehane, airway-unobtainable flag.
-- Risk: ASA, elective/emergency/high-risk surgery, individual RCRI/Apfel/STOP-BANG inputs, computed RCRI/Gupta/Apfel/STOP-BANG scores.
+- Risk: ASA, elective/emergency/high-risk surgery, individual RCRI/Apfel/STOP-BANG inputs, computed RCRI/Apfel/STOP-BANG scores.
 - Labs: canonical lab-result JSON used by the app plus normalized `LabResult` rows.
 - AI: opt-in flag for AI support.
 
