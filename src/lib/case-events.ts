@@ -478,6 +478,33 @@ export async function addEvent(tx: Tx, caseId: string, userId: string, ev: LogEv
   return true
 }
 
+/** Tombstone one logical event. Repeating the same delete is a safe no-op. */
+export async function deleteEvent(tx: Tx, caseId: string, logicalId: string): Promise<boolean> {
+  await ensureBackfilled(tx, caseId)
+  const { active } = await indexRows(tx, caseId)
+  const current = active.get(logicalId)
+  if (!current) return false
+  await tx.caseEvent.update({ where: { id: current.id }, data: { status: "deleted" } })
+  return true
+}
+
+/**
+ * Atomically claim the section revision before a multi-statement event write.
+ * A crashed request may leave a harmless revision gap, but another writer
+ * cannot rebuild the timetable from an older event snapshot.
+ */
+export async function reserveIntraopRevision(
+  tx: Tx,
+  caseId: string,
+  expectedRevision: number,
+): Promise<boolean> {
+  const result = await tx.intraoperativeRecord.updateMany({
+    where: { caseId, syncRevision: expectedRevision },
+    data: { syncRevision: { increment: 1 } },
+  })
+  return result.count === 1
+}
+
 // Reconcile the full client log into append-only rows: new ids inserted, changed
 // content superseded, ids missing from the incoming log tombstoned.
 export async function reconcileFullLog(tx: Tx, caseId: string, userId: string, incoming: LogEvent[], source: string): Promise<void> {
@@ -526,7 +553,11 @@ export function sortLogDeterministic<T extends { version: number; logicalId: str
   })
 }
 
-export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
+export async function rebuildProjection(
+  tx: Tx,
+  caseId: string,
+  options: { revisionAlreadyReserved?: boolean } = {},
+): Promise<void> {
   const rows = await tx.caseEvent.findMany({
     where:   { caseId, status: "active" },
     select:  { logicalId: true, version: true, metadataJson: true },
@@ -550,7 +581,15 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   // report. Fall back to the earliest event only when no start time exists.
   const intraopRec = await tx.intraoperativeRecord.findUnique({
     where:  { caseId },
-    select: { startedAt: true, startTime: true, createdAt: true },
+    select: {
+      startedAt: true,
+      startTime: true,
+      createdAt: true,
+      keyEvents: true,
+      crystalloidsMl: true,
+      colloidsMl: true,
+      bloodMl: true,
+    },
   })
   const start = resolveChartStart(intraopRec, log)
   const projected = projectTimetable(log, start)
@@ -564,13 +603,27 @@ export async function rebuildProjection(tx: Tx, caseId: string): Promise<void> {
   // — the case-PATCH mapper no longer accepts them. Same core function both
   // apps used, so values are identical to before, just server-authoritative.
   const fluidTotals = fluidTotalsPatch(calculateFluidTotals(projected.fluids))
+  const projectionUnchanged = !!intraopRec
+    && sameContent(
+      intraopRec.keyEvents as Record<string, unknown>,
+      keyEvents as unknown as Record<string, unknown>,
+    )
+    && intraopRec.crystalloidsMl === fluidTotals.crystalloidsMl
+    && intraopRec.colloidsMl === fluidTotals.colloidsMl
+    && intraopRec.bloodMl === fluidTotals.bloodMl
+  if (projectionUnchanged) return
+
   await tx.intraoperativeRecord.upsert({
     where:  { caseId },
-    update: { keyEvents, ...fluidTotals },
+    update: {
+      keyEvents,
+      ...fluidTotals,
+      ...(options.revisionAlreadyReserved ? {} : { syncRevision: { increment: 1 } }),
+    },
     // No start time: logging an event does not mean the clinician has told us
     // when the case began. This used to plant a midnight sentinel, which — being
     // a truthy Date — read downstream as a genuine 00:00 start and locked the
     // form with no way back.
-    create: { caseId, startTime: null, keyEvents, ...fluidTotals },
+    create: { caseId, startTime: null, keyEvents, ...fluidTotals, syncRevision: 1 },
   })
 }

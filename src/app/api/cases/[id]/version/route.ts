@@ -28,9 +28,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     select: {
       updatedAt: true,
       status:    true,
-      preop:   { select: { updatedAt: true } },
-      intraop: { select: { updatedAt: true } },
-      postop:  { select: { updatedAt: true } },
+      preop:   { select: { updatedAt: true, syncRevision: true } },
+      intraop: { select: { updatedAt: true, syncRevision: true } },
+      postop:  { select: { updatedAt: true, syncRevision: true } },
     },
   })
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS(req) })
@@ -41,5 +41,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     preopUpdatedAt:   found.preop?.updatedAt ?? null,
     intraopUpdatedAt: found.intraop?.updatedAt ?? null,
     postopUpdatedAt:  found.postop?.updatedAt ?? null,
+    preopRevision:    found.preop?.syncRevision ?? null,
+    intraopRevision:  found.intraop?.syncRevision ?? null,
+    postopRevision:   found.postop?.syncRevision ?? null,
   }, { headers: CORS(req) })
 }

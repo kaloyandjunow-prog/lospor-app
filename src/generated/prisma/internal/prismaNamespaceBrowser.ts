@@ -618,7 +618,8 @@ export const PreoperativeAssessmentScalarFieldEnum = {
   labResults: 'labResults',
   aiOptIn: 'aiOptIn',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  syncRevision: 'syncRevision'
 } as const
 
 export type PreoperativeAssessmentScalarFieldEnum = (typeof PreoperativeAssessmentScalarFieldEnum)[keyof typeof PreoperativeAssessmentScalarFieldEnum]
@@ -693,7 +694,8 @@ export const IntraoperativeRecordScalarFieldEnum = {
   keyEvents: 'keyEvents',
   complications: 'complications',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  syncRevision: 'syncRevision'
 } as const
 
 export type IntraoperativeRecordScalarFieldEnum = (typeof IntraoperativeRecordScalarFieldEnum)[keyof typeof IntraoperativeRecordScalarFieldEnum]
@@ -724,7 +726,8 @@ export const PostoperativeRecordScalarFieldEnum = {
   dispositionNotes: 'dispositionNotes',
   handoverItems: 'handoverItems',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  syncRevision: 'syncRevision'
 } as const
 
 export type PostoperativeRecordScalarFieldEnum = (typeof PostoperativeRecordScalarFieldEnum)[keyof typeof PostoperativeRecordScalarFieldEnum]

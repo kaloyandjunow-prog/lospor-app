@@ -3,7 +3,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { checkEventPII } from "@/lib/clinical-pii"
 import { logAudit } from "@/lib/audit"
-import { addEvent, reconcileFullLog, rebuildProjection, type LogEvent } from "@/lib/case-events"
+import { addEvent, reconcileFullLog, rebuildProjection, reserveIntraopRevision, type LogEvent } from "@/lib/case-events"
 import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import { z } from "zod"
@@ -46,6 +46,28 @@ function sourceFrom(req: NextRequest): string {
   return authz.startsWith("Bearer ") ? "mobile" : "web"
 }
 
+function revisionFrom(req: NextRequest): number | null | "invalid" {
+  const raw = req.headers.get("x-lospor-intraop-revision")
+  if (raw == null) return null
+  if (!/^\d+$/.test(raw)) return "invalid"
+  const value = Number(raw)
+  return Number.isSafeInteger(value) ? value : "invalid"
+}
+
+async function revisionConflict(id: string) {
+  const intraop = await prisma.intraoperativeRecord.findUnique({
+    where: { caseId: id },
+    select: { updatedAt: true, syncRevision: true },
+  })
+  return NextResponse.json({
+    error: "conflict",
+    section: "intraop",
+    serverVersion: intraop
+      ? { updatedAt: intraop.updatedAt, revision: intraop.syncRevision }
+      : undefined,
+  }, { status: 409 })
+}
+
 async function authorize(req: NextRequest, id: string) {
   const user = await getAuthUser(req)
   if (!user?.id) return { error: "Unauthorized", status: 401 as const }
@@ -55,7 +77,7 @@ async function authorize(req: NextRequest, id: string) {
     select: {
       userId: true, status: true,
       user:    { select: { institutionId: true } },
-      intraop: { select: { keyEvents: true, startTime: true, updatedAt: true } },
+      intraop: { select: { keyEvents: true, startTime: true, updatedAt: true, syncRevision: true } },
     },
   })
   if (!existing) return { error: "Not found", status: 404 as const }
@@ -76,6 +98,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { user, existing } = auth
 
   if (existing.status === "COMPLETE") return NextResponse.json({ error: "Case is finalised" }, { status: 403 })
+  const revision = revisionFrom(req)
+  if (revision === "invalid") return NextResponse.json({ error: "Invalid intraop revision" }, { status: 400 })
+  if (revision != null && existing.intraop && existing.intraop.syncRevision !== revision) {
+    return revisionConflict(id)
+  }
 
   let event: z.infer<typeof eventSchema>
   try {
@@ -106,8 +133,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // (P2028), which is exactly what was causing 500s here, worse under
       // load. addEvent/rebuildProjection accept a plain PrismaClient for
       // this reason (see the Tx type in case-events.ts).
+      const revisionReserved = revision != null && !!existing.intraop
+      if (revisionReserved && !await reserveIntraopRevision(prisma, id, revision)) {
+        return revisionConflict(id)
+      }
       const added = await addEvent(prisma, id, user.id, event as unknown as LogEvent, source)
-      await rebuildProjection(prisma, id)
+      await rebuildProjection(prisma, id, { revisionAlreadyReserved: revisionReserved })
 
       if (existing.status === "DRAFT") {
         await prisma.case.update({ where: { id }, data: { status: "IN_PROGRESS" } })
@@ -115,8 +146,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (added) {
         after(() => logAudit(user.id, "CASE_EVENT_ADD", id, { type: event.type, source }))
       }
-      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
-      return NextResponse.json({ ok: true, id: event.id, intraopUpdatedAt: intraop?.updatedAt })
+      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true, syncRevision: true } })
+      return NextResponse.json({
+        ok: true,
+        id: event.id,
+        intraopUpdatedAt: intraop?.updatedAt,
+        intraopRevision: intraop?.syncRevision,
+      })
     } catch (e: unknown) {
       // Serialization failure (P2034) or a unique race (P2002) — retry a few times.
       if ((e && typeof e === "object" && "code" in e && (e.code === "P2034" || e.code === "P2002")) && attempt < 5) continue
@@ -152,19 +188,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     )
   }
   const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
+  const revisionRaw = req.headers.get("x-lospor-intraop-revision")
+  const intraopRevision = revisionRaw == null
+    ? null
+    : /^\d+$/.test(revisionRaw) && Number.isSafeInteger(Number(revisionRaw))
+      ? Number(revisionRaw)
+      : "invalid"
+  if (intraopRevision === "invalid") {
+    return NextResponse.json({ error: "Invalid intraop revision" }, { status: 400 })
+  }
   if (intraopBase && Number.isNaN(new Date(intraopBase).getTime())) {
     return NextResponse.json({ error: "Invalid intraop conflict timestamp" }, { status: 400 })
   }
-  if (!intraopBase && existing.intraop?.updatedAt) {
+  if (intraopRevision == null && !intraopBase && existing.intraop?.updatedAt) {
     return NextResponse.json({
       error: "conflict",
       section: "intraop",
       reason: "missing_conflict_timestamp",
-      serverVersion: { updatedAt: existing.intraop.updatedAt },
+      serverVersion: { updatedAt: existing.intraop.updatedAt, revision: existing.intraop.syncRevision },
     }, { status: 409 })
   }
-  if (intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
-    return NextResponse.json({ error: "conflict", section: "intraop", serverVersion: { updatedAt: existing.intraop.updatedAt } }, { status: 409 })
+  if (intraopRevision != null && existing.intraop && existing.intraop.syncRevision !== intraopRevision) {
+    return NextResponse.json({
+      error: "conflict",
+      section: "intraop",
+      serverVersion: { updatedAt: existing.intraop.updatedAt, revision: existing.intraop.syncRevision },
+    }, { status: 409 })
+  }
+  if (intraopRevision == null && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+    return NextResponse.json({ error: "conflict", section: "intraop", serverVersion: { updatedAt: existing.intraop.updatedAt, revision: existing.intraop.syncRevision } }, { status: 409 })
   }
 
   // Validate + PII-check every entry before it becomes the working set.
@@ -190,25 +242,33 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       // actually causing the 500 on event removal specifically. The
       // check-then-write conflict window this opens is the same accepted
       // trade-off documented in case/[id]/route.ts.
-      if (intraopBase) {
-        const fresh = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
-        if (fresh?.updatedAt && fresh.updatedAt.getTime() > new Date(intraopBase).getTime()) {
-          throw new Error("INTRAOP_CONFLICT")
+      if (intraopBase || intraopRevision != null) {
+        if (intraopRevision != null && existing.intraop) {
+          if (!await reserveIntraopRevision(prisma, id, intraopRevision)) throw new Error("INTRAOP_CONFLICT")
+        } else {
+          const fresh = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+          if (intraopBase && fresh?.updatedAt && fresh.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+            throw new Error("INTRAOP_CONFLICT")
+          }
         }
       }
       await reconcileFullLog(prisma, id, user.id, log as unknown as LogEvent[], source)
-      await rebuildProjection(prisma, id)
+      await rebuildProjection(prisma, id, { revisionAlreadyReserved: intraopRevision != null && !!existing.intraop })
 
       after(() => logAudit(user.id, "CASE_EVENT_EDIT", id, { count: log.length, source }))
-      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
-      return NextResponse.json({ ok: true, intraopUpdatedAt: intraop?.updatedAt })
+      const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true, syncRevision: true } })
+      return NextResponse.json({
+        ok: true,
+        intraopUpdatedAt: intraop?.updatedAt,
+        intraopRevision: intraop?.syncRevision,
+      })
     } catch (e: unknown) {
       if (e instanceof Error && e.message === "INTRAOP_CONFLICT") {
-        const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true } })
+        const intraop = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id }, select: { updatedAt: true, syncRevision: true } })
         return NextResponse.json({
           error: "conflict",
           section: "intraop",
-          serverVersion: intraop?.updatedAt ? { updatedAt: intraop.updatedAt } : undefined,
+          serverVersion: intraop?.updatedAt ? { updatedAt: intraop.updatedAt, revision: intraop.syncRevision } : undefined,
         }, { status: 409 })
       }
       if ((e && typeof e === "object" && "code" in e && (e.code === "P2034" || e.code === "P2002")) && attempt < 5) continue

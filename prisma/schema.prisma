@@ -695,6 +695,7 @@ model PreoperativeAssessment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  syncRevision Int @default(0)
 }
 
 // ─── Intraoperative ──────────────────────────────────────────────────────────
@@ -800,6 +801,7 @@ model IntraoperativeRecord {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  syncRevision Int @default(0)
 }
 
 // ─── Postoperative ───────────────────────────────────────────────────────────
@@ -835,6 +837,7 @@ model PostoperativeRecord {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  syncRevision Int @default(0)
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ export async function OPTIONS(req: NextRequest) {
 async function findIdempotentCase(userId: string, idempotencyKey: string) {
   return prisma.case.findFirst({
     where: { userId, clientDraftId: idempotencyKey },
-    select: { id: true, caseCode: true, preop: { select: { updatedAt: true } } },
+    select: { id: true, caseCode: true, preop: { select: { updatedAt: true, syncRevision: true } } },
   })
 }
 
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
           id: existing.id,
           caseCode: existing.caseCode,
           preopUpdatedAt: existing.preop?.updatedAt,
+          preopRevision: existing.preop?.syncRevision,
         }, { status: 200 })
       }
     }
@@ -105,12 +106,12 @@ export async function POST(req: NextRequest) {
             institutionId: user.institutionId ?? null,
             caseCode: await generateCaseCode(userId, prisma),
             ...(idempotencyKey ? { clientDraftId: idempotencyKey } : {}),
-            preop: { create: mapPreop(preop) },
-            ...(intraop ? { intraop: { create: mapIntraop(intraop) } } : {}),
-            ...(postop  ? { postop:  { create: mapPostop(postop)  } } : {}),
+            preop: { create: { ...mapPreop(preop), syncRevision: 1 } },
+            ...(intraop ? { intraop: { create: { ...mapIntraop(intraop), syncRevision: 1 } } } : {}),
+            ...(postop  ? { postop:  { create: { ...mapPostop(postop), syncRevision: 1 } } } : {}),
           },
           include: {
-            preop: { select: { updatedAt: true } },
+            preop: { select: { updatedAt: true, syncRevision: true } },
           },
         })
         break
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
               id: existing.id,
               caseCode: existing.caseCode,
               preopUpdatedAt: existing.preop?.updatedAt,
+              preopRevision: existing.preop?.syncRevision,
             }, { status: 200 })
           }
         }
@@ -138,6 +140,7 @@ export async function POST(req: NextRequest) {
       id: caseRecord.id,
       caseCode: caseRecord.caseCode,
       preopUpdatedAt: caseRecord.preop?.updatedAt,
+      preopRevision: caseRecord.preop?.syncRevision,
       ...(rejectedFields.length ? { rejectedFields } : {}),
     }, { status: 201 })
   } catch (err) {

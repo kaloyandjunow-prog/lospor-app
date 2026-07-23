@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { autosaveManager } from "@/lib/autosave-manager"
 
 export function DeleteDraftButton({ caseId }: { caseId: string }) {
   const t = useTranslations()
@@ -26,7 +27,11 @@ export function DeleteDraftButton({ caseId }: { caseId: string }) {
     if (timerRef.current) clearTimeout(timerRef.current)
     setStage("deleting")
     fetch(`/api/cases/${caseId}`, { method: "DELETE" })
-      .then(() => router.refresh())
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Delete failed (${response.status})`)
+        await autosaveManager.discardCase(caseId)
+        router.refresh()
+      })
       .catch(() => setStage("idle"))
   }
 

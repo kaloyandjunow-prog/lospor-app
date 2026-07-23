@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest"
-import { projectTimetable, sortLogDeterministic } from "./case-events"
+import { describe, expect, it, vi } from "vitest"
+import { projectTimetable, reserveIntraopRevision, sortLogDeterministic } from "./case-events"
 import type { LogEvent } from "@/types/timetable"
 
 const START = new Date("2026-01-01T08:00:00.000Z")
@@ -86,5 +86,23 @@ describe("sortLogDeterministic", () => {
     const early = entry("z", 9, at(0), 60)
     const late = entry("a", 1, at(5), 65)
     expect(sortLogDeterministic([late, early])[0]).toBe(early)
+  })
+})
+
+describe("reserveIntraopRevision", () => {
+  it("claims the expected revision with one atomic conditional update", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 })
+    const tx = { intraoperativeRecord: { updateMany } }
+
+    await expect(reserveIntraopRevision(tx as never, "case-1", 7)).resolves.toBe(true)
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { caseId: "case-1", syncRevision: 7 },
+      data: { syncRevision: { increment: 1 } },
+    })
+  })
+
+  it("reports a lost claim when another writer advanced first", async () => {
+    const tx = { intraoperativeRecord: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) } }
+    await expect(reserveIntraopRevision(tx as never, "case-1", 7)).resolves.toBe(false)
   })
 })

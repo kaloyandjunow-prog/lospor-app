@@ -1,5 +1,35 @@
 # Changelog - LOSPOR Web App
 
+## [5.6.0] - 2026-07-23
+
+### Added
+
+- The web/PWA case editor now uses the shared Autosave Manager for section
+  saves, event appends, event edits, and event deletions. IndexedDB stores each
+  operation before it is sent.
+- Preop, intraop, and postop records now carry monotonic `syncRevision`
+  counters. Event writes reserve the expected revision atomically before
+  rebuilding the timetable projection.
+- Targeted `PUT`/`DELETE /api/cases/:id/events/:eventId` operations replace the
+  old whole-log edit/delete path.
+- Reopening a case reapplies queued fields and event mutations over the server
+  snapshot. Finalization waits for the case queue to drain and refuses to close
+  a case with unsynced work.
+
+### Fixed
+
+- Simultaneous autosave, offline replay, and timetable event writes can no
+  longer race through separate client queues.
+- Idempotent projection rebuilds no longer advance a revision when the
+  projected timetable and fluid totals are unchanged.
+- Deleting a draft also removes every queued operation for that case.
+
+### Database
+
+- Added and applied the development migration
+  `20260723000000_autosave_manager_revisions`. Production was not migrated or
+  deployed during this local implementation pass.
+
 ## [5.5.1] - 2026-07-23
 
 ### Fixed

@@ -47,15 +47,24 @@ async function main() {
     method: "POST", headers: auth,
     body: JSON.stringify({ preop: { ageYears: 40, sex: "MALE", heightCm: 176, weightKg: 70 } }),
   })
-  const { id } = await created.json() as { id: string }
+  const createdCase = await created.json() as { id: string; preopRevision?: number }
+  const { id } = createdCase
+  let preopRevision = createdCase.preopRevision
   if (!id) { console.error("Could not create a test case"); process.exit(1) }
   console.log(`test case ${id}\n`)
 
   const patch = async (preop: Record<string, unknown>) => {
     const res = await fetch(`${BASE}/api/cases/${id}`, {
-      method: "PATCH", headers: auth, body: JSON.stringify({ preop }),
+      method: "PATCH",
+      headers: {
+        ...auth,
+        ...(preopRevision != null ? { "x-lospor-preop-revision": String(preopRevision) } : {}),
+      },
+      body: JSON.stringify({ preop }),
     })
-    return { status: res.status, body: await res.json().catch(() => ({})) as Record<string, unknown> }
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>
+    if (typeof body.preopRevision === "number") preopRevision = body.preopRevision
+    return { status: res.status, body }
   }
   const read = async () => {
     const res = await fetch(`${BASE}/api/cases/${id}`, { headers: auth })
@@ -109,6 +118,39 @@ async function main() {
   const good = await patch({ heightCm: 181, weightKg: 83 })
   check("returns 200", good.status === 200, good.status)
   check("no rejectedFields key", good.body.rejectedFields === undefined, good.body.rejectedFields)
+
+  console.log("\nEvent append/edit/delete uses one advancing intraop revision")
+  const eventId = `smoke-event-${Date.now()}`
+  const appendEvent = await fetch(`${BASE}/api/cases/${id}/events`, {
+    method: "POST",
+    headers: { ...auth, "x-lospor-idempotency-key": `${id}:${eventId}` },
+    body: JSON.stringify({ id: eventId, type: "clinical_event", label: "Smoke event", ts: new Date().toISOString() }),
+  })
+  const appendBody = await appendEvent.json().catch(() => ({})) as Record<string, unknown>
+  let intraopRevision = typeof appendBody.intraopRevision === "number" ? appendBody.intraopRevision : undefined
+  check("event append succeeds", appendEvent.ok && intraopRevision != null, appendBody)
+
+  const editEvent = await fetch(`${BASE}/api/cases/${id}/events/${eventId}`, {
+    method: "PUT",
+    headers: {
+      ...auth,
+      ...(intraopRevision != null ? { "x-lospor-intraop-revision": String(intraopRevision) } : {}),
+    },
+    body: JSON.stringify({ type: "clinical_event", label: "Smoke event edited", ts: new Date().toISOString() }),
+  })
+  const editBody = await editEvent.json().catch(() => ({})) as Record<string, unknown>
+  if (typeof editBody.intraopRevision === "number") intraopRevision = editBody.intraopRevision
+  check("targeted event edit succeeds", editEvent.ok, editBody)
+
+  const deleteEvent = await fetch(`${BASE}/api/cases/${id}/events/${eventId}`, {
+    method: "DELETE",
+    headers: {
+      ...auth,
+      ...(intraopRevision != null ? { "x-lospor-intraop-revision": String(intraopRevision) } : {}),
+    },
+  })
+  const deleteBody = await deleteEvent.json().catch(() => ({})) as Record<string, unknown>
+  check("targeted event delete succeeds", deleteEvent.ok, deleteBody)
 
   // ── 6. creating a case with one bad field must not lose the rest ──────────
   //

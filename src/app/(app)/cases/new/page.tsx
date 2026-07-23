@@ -22,36 +22,14 @@ import { CaseSummary } from "@/components/CaseSummary"
 import { useTour } from "@/context/TourContext"
 import { useCaseLock } from "@/hooks/useCaseLock"
 import { WatchingBanner } from "@/components/WatchingBanner"
-import { ConflictModal } from "@/components/ConflictModal"
 import {
-  classifyPatchResponse,
-  createCaseWriteQueue,
-  sendWithConflictRetry,
-  FORCE_UPDATE_HEADER,
-  SECTION_CONFLICT_HEADER,
-  createSectionSnapshotStore,
-  eventIdempotencyKey,
   IDEMPOTENCY_HEADER,
-  SOURCE_HEADER,
-  type CasePatchResponse,
-  type ConflictBody,
-  type ConflictRetryOutcome,
 } from "@lospor/core/sync"
-import { caseOutbox, isNetworkSaveError, onOutboxChange } from "@/lib/case-outbox"
-import { eventOutbox } from "@/lib/event-outbox"
+import { onOutboxChange } from "@/lib/case-outbox"
+import { autosaveManager } from "@/lib/autosave-manager"
 import { randomId } from "@/lib/random-id"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
-
-interface ConflictState {
-  open: boolean
-  localValues: Record<string, unknown>
-  serverValues: Record<string, unknown>
-  section: "preop" | "intraop" | "postop"
-  pendingData: PreopData | IntraopData | PostopData
-  nextStep?: number
-  showToast?: boolean
-}
 
 export default function NewCasePage() {
   const router       = useRouter()
@@ -68,112 +46,50 @@ export default function NewCasePage() {
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [eventLog, setEventLog] = useState<LogEvent[]>([])
 
-  // Full-log PUT through the shared engine: per-case write queue + one-shot
-  // 409 self-heal with the server's timestamp (same contract as mobile's
-  // full-log sync). Returns false when the save did not land.
-  async function putEventLog(newLog: LogEvent[]): Promise<boolean> {
-    const currentCaseId = caseIdRef.current
-    if (!currentCaseId) return false
-    try {
-      // Advance intraopUpdatedAtRef INSIDE the enqueued op (see handleLogEvent):
-      // the queue must not release the next write until the conflict base is
-      // current, or a section autosave queued behind this PUT reads a stale base
-      // and 409s against our own write.
-      const outcome = await writeQueueRef.current.enqueue(currentCaseId, async () => {
-        const res = await sendWithConflictRetry<{ intraopUpdatedAt?: string }>(
-          async (base) => {
-            const r = await fetch(`/api/cases/${currentCaseId}/events`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                [SOURCE_HEADER]: "web",
-                ...(base ? { [SECTION_CONFLICT_HEADER.intraop]: base } : {}),
-              },
-              body: JSON.stringify({ log: newLog }),
-            })
-            return classifyPatchResponse<{ intraopUpdatedAt?: string }>(r)
-          },
-          intraopUpdatedAtRef,
-        )
-        if (res.ok && res.body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(res.body.intraopUpdatedAt).toISOString()
-        return res
-      })
-      if (!outcome.ok) return false
-      return true
-    } catch {
-      return false
-    }
-  }
-
   async function handleDeleteEvent(evId: string) {
-    if (!caseId) return
-    const newLog = eventLog.filter(e => e.id !== evId)
-    const previousLog = eventLog
-    setEventLog(newLog)
-    if (!await putEventLog(newLog)) {
-      setEventLog(previousLog)
-      // Deletes/edits of existing timeline items are deliberately NOT queued
-      // offline (replaying a stale full log could resurrect deleted events) —
-      // the change reverts and the user is told to retry with connectivity.
+    const currentCaseId = caseIdRef.current
+    if (!currentCaseId) return
+    setEventLog(prev => prev.filter(e => e.id !== evId))
+    try {
+      await autosaveManager.stageEventMutation({
+        operationId: `web-delete-${randomId()}`,
+        caseId: currentCaseId,
+        kind: "event.delete",
+        eventId: evId,
+        baseRevision: autosaveManager.getRevision(currentCaseId, "intraop"),
+        queuedAt: new Date().toISOString(),
+      })
+    } catch {
       toast.error(t("case.timelineEditFailed"))
     }
   }
-  // Per-action event from the intraop timetable (bolus/infusion/agent/fluid/
-  // clinical event) - posts one CaseEvent row, mirroring how mobile already
-  // persists these, instead of only the legacy keyEvents JSON blob.
+
   async function handleLogEvent(event: LogEvent) {
     const currentCaseId = caseIdRef.current
     if (!currentCaseId) return
-    // Replace-not-stack: vitals reuse a stable per-column id (web-vital-N), so
-    // a re-edit must replace the optimistic entry, not add a duplicate key.
-    setEventLog(prev => [event, ...prev.filter(e => e.id !== event.id)])
+    const durableEvent = { ...event, id: event.id ?? randomId() }
+    const replacesExisting = eventLog.some((item) => item.id === durableEvent.id)
+    setEventLog(prev => [durableEvent, ...prev.filter(e => e.id !== durableEvent.id)])
     try {
-      // Idempotency key + source header + per-case ordering: full parity with
-      // how mobile appends events, so a retried/replayed POST stores the
-      // event exactly once and never interleaves with another write.
-      //
-      // The response parse AND the intraop conflict-base advance both happen
-      // INSIDE the enqueued op, so the write queue does not release the next
-      // write (e.g. a debounced section autosave) until intraopUpdatedAtRef is
-      // current. Advancing it after `await enqueue(...)` — outside the critical
-      // section — let a queued section save read a stale base and 409 against
-      // this event's own write, surfacing a false "edit conflict".
-      const result = await writeQueueRef.current.enqueue(currentCaseId, async () => {
-        const res = await fetch(`/api/cases/${currentCaseId}/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // web LogEvent.id is optional in the type but always set by the
-            // timetable (uid()); skip the dedup key rather than send a shared one.
-            ...(event.id ? { [IDEMPOTENCY_HEADER]: eventIdempotencyKey(currentCaseId, event.id) } : {}),
-            [SOURCE_HEADER]: "web",
-          },
-          body: JSON.stringify(event),
+      if (replacesExisting) {
+        await autosaveManager.stageEventMutation({
+          operationId: `web-upsert-${randomId()}`,
+          caseId: currentCaseId,
+          kind: "event.upsert",
+          eventId: durableEvent.id,
+          event: durableEvent as Record<string, unknown>,
+          baseRevision: autosaveManager.getRevision(currentCaseId, "intraop"),
+          queuedAt: new Date().toISOString(),
         })
-        if (!res.ok) return { ok: false as const, text: await res.text().catch(() => "") }
-        const body = await res.json().catch(() => ({}))
-        if (body.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(body.intraopUpdatedAt).toISOString()
-        return { ok: true as const }
-      })
-      if (!result.ok) console.error("[intraop event] save failed", result.text)
-    } catch (err) {
-      if (err instanceof TypeError) {
-        // Offline: journal the event (IndexedDB) — it stays visible in local
-        // state AND survives a reload; the flusher replays it idempotently.
-        const pending = await eventOutbox.loadPending(currentCaseId).catch(() => [])
-        await eventOutbox
-          .storePending(currentCaseId, [{ ...event, id: event.id ?? randomId() } as Record<string, unknown> & { id: string }, ...pending.filter(p => p.id !== event.id)])
-          .catch(() => {})
-        toast.info(t("case.savedOffline"))
-        return
+      } else {
+        await autosaveManager.appendEvent(currentCaseId, durableEvent as Record<string, unknown> & { id: string })
       }
-      console.error("[intraop event] save failed", err)
+    } catch (error) {
+      console.error("[intraop event] journal failed", error)
+      toast.error(t("case.timelineEditFailed"))
     }
   }
-  // Deleting an infusion/fluid bar removes ALL events that share its
-  // infId/fluidId (start + any rate changes/stop), via the full-log PUT
-  // reconcile - same mechanism handleDeleteEvent already uses, generalized
-  // to a correlation-id match instead of a single event id.
+
   async function handleLogEventDelete(match: { infId?: string; fluidId?: string }) {
     if (!caseIdRef.current) return
     const key = match.infId ? "infId" : "fluidId"
@@ -181,10 +97,20 @@ export default function NewCasePage() {
     if (!value) return
     const newLog = eventLog.filter(e => e[key] !== value)
     if (newLog.length === eventLog.length) return
-    const previousLog = eventLog
+    const removed = eventLog.filter(e => e[key] === value && e.id)
     setEventLog(newLog)
-    if (!await putEventLog(newLog)) {
-      setEventLog(previousLog)
+    try {
+      for (const event of removed) {
+        await autosaveManager.stageEventMutation({
+          operationId: `web-delete-${randomId()}`,
+          caseId: caseIdRef.current,
+          kind: "event.delete",
+          eventId: event.id!,
+          baseRevision: autosaveManager.getRevision(caseIdRef.current, "intraop"),
+          queuedAt: new Date().toISOString(),
+        })
+      }
+    } catch {
       toast.error(t("case.timelineEditFailed"))
     }
   }
@@ -241,11 +167,6 @@ export default function NewCasePage() {
   const [patientName, setPatientName] = useState("")
   const [patientId,   setPatientId]   = useState("")
   const [caseCode, setCaseCode]       = useState<string | null>(null)
-  const [conflict, setConflict]       = useState<ConflictState | null>(null)
-  // Tracks the last known server updatedAt timestamps so conflict headers are sent correctly
-  const preopUpdatedAtRef  = useRef<string | null>(null)
-  const postopUpdatedAtRef = useRef<string | null>(null)
-  const intraopUpdatedAtRef = useRef<string | null>(null)
   // Undo finalization state
   const [finalizedCaseId,   setFinalizedCaseId]   = useState<string | null>(null)
   const [undoSecsLeft,      setUndoSecsLeft]       = useState<number | null>(null)
@@ -278,15 +199,9 @@ export default function NewCasePage() {
   // Refs for synchronous access inside async callbacks
   const caseIdRef  = useRef<string | null>(null)
   const savingRef  = useRef(false)
-  // All writes go through the shared per-case write queue: a save that starts
-  // while another is in flight is queued behind it, not dropped or interleaved.
-  const writeQueueRef = useRef(createCaseWriteQueue())
   // One idempotency key per form session: a create retried after a network
   // blip (autosave re-fires while caseIdRef is still null) can't double-create.
   const createDraftIdRef = useRef(`web-${randomId()}`)
-  // Field-level saves: last payload the server confirmed, per case+section, so
-  // autosaves PATCH only the fields that actually changed (see core field-diff).
-  const sectionSnapshotsRef = useRef(createSectionSnapshotStore())
   const startCloseCountdownRef = useRef<() => void>(() => {})
   const dbIntraopToFormRef = useRef<(intraop: CaseDetailIntraop) => Partial<IntraopData>>(() => ({}))
 
@@ -306,7 +221,7 @@ export default function NewCasePage() {
         }
         return r.json()
       })
-      .then((record: CaseDetail) => {
+      .then(async (record: CaseDetail) => {
         if (record.status === "COMPLETE") {
           toast(t("case.caseFinalisedRedirect"))
           router.replace(`/cases/${continueId}`)
@@ -315,26 +230,67 @@ export default function NewCasePage() {
         caseIdRef.current = continueId
         setCaseId(continueId)
         if (record.caseCode) setCaseCode(record.caseCode)
-        if (record.preop)   setPreopData(dbPreopToForm(record.preop) as PreopData)
-        if (record.postop)  setPostopData(dbPostopToForm(record.postop))
-        preopUpdatedAtRef.current = record.preop?.updatedAt ? new Date(record.preop.updatedAt).toISOString() : null
-        postopUpdatedAtRef.current = record.postop?.updatedAt ? new Date(record.postop.updatedAt).toISOString() : null
-        intraopUpdatedAtRef.current = record.intraop?.updatedAt ? new Date(record.intraop.updatedAt).toISOString() : null
+
+        const [queuedPreop, queuedIntraop, queuedPostop, pendingEvents, pendingMutations] = await Promise.all([
+          autosaveManager.outbox.load<Record<string, unknown>>(continueId, "preop").catch(() => null),
+          autosaveManager.outbox.load<Record<string, unknown>>(continueId, "intraop").catch(() => null),
+          autosaveManager.outbox.load<Record<string, unknown>>(continueId, "postop").catch(() => null),
+          autosaveManager.pendingEvents.loadPending<Record<string, unknown> & { id: string }>(continueId).catch(() => []),
+          autosaveManager.eventMutations.load(continueId).catch(() => []),
+        ])
+
+        if (record.preop) {
+          const serverForm = dbPreopToForm(record.preop) as PreopData
+          autosaveManager.hydrateSection(
+            continueId,
+            "preop",
+            sectionPayload("preop", serverForm),
+            record.preop.syncRevision ?? record.preop.updatedAt,
+          )
+          setPreopData(dbPreopToForm({ ...record.preop, ...queuedPreop } as CaseDetailPreop) as PreopData)
+        }
+        if (record.postop) {
+          const serverForm = dbPostopToForm(record.postop)
+          autosaveManager.hydrateSection(
+            continueId,
+            "postop",
+            sectionPayload("postop", serverForm),
+            record.postop.syncRevision ?? record.postop.updatedAt,
+          )
+          setPostopData(dbPostopToForm({ ...record.postop, ...queuedPostop } as CaseDetailPostop))
+        }
         if (record.intraop) {
-          setIntraopData(dbIntraopToFormRef.current(record.intraop) as IntraopData)
+          const serverForm = dbIntraopToFormRef.current(record.intraop) as IntraopData
+          autosaveManager.hydrateSection(
+            continueId,
+            "intraop",
+            sectionPayload("intraop", serverForm),
+            record.intraop.syncRevision ?? record.intraop.updatedAt,
+          )
+          setIntraopData(dbIntraopToFormRef.current({ ...record.intraop, ...queuedIntraop } as CaseDetailIntraop) as IntraopData)
           // keyEvents must be a non-array object with a "vitals" key - the old
           // Prisma default was "[]" which is an array; skip that gracefully.
           const ke = record.intraop.keyEvents
           if (ke && typeof ke === "object" && !Array.isArray(ke) && "vitals" in (ke as object)) {
             try { setTimetableDefault(ke as TimetableData) } catch {}
           }
-          // Extract mobile event log if present
-          if (ke && typeof ke === "object" && !Array.isArray(ke) && "log" in (ke as object)) {
-            const mobileLog = (ke as { log?: unknown }).log
-            if (Array.isArray(mobileLog) && mobileLog.length > 0) {
-              setEventLog(mobileLog)
+          const serverLog = ke && typeof ke === "object" && !Array.isArray(ke) && "log" in (ke as object)
+            ? (ke as { log?: unknown }).log
+            : []
+          let restoredLog: LogEvent[] = [
+            ...(pendingEvents as LogEvent[]),
+            ...(Array.isArray(serverLog) ? serverLog as LogEvent[] : [])
+              .filter((event) => !pendingEvents.some((pending) => pending.id === event.id)),
+          ]
+          for (const operation of pendingMutations) {
+            if (operation.kind === "event.delete") {
+              restoredLog = restoredLog.filter((event) => event.id !== operation.eventId)
+            } else {
+              const event = operation.event as LogEvent
+              restoredLog = [event, ...restoredLog.filter((item) => item.id !== operation.eventId)]
             }
           }
+          if (restoredLog.length > 0) setEventLog(restoredLog)
         }
         // URL step param wins; fall back to deriving from saved data
         const target = stepParam
@@ -528,154 +484,60 @@ export default function NewCasePage() {
   }
   dbIntraopToFormRef.current = dbIntraopToForm
 
-  // ── Core save / patch function ──────────────────────────────────────────────
+  function sectionPayload(
+    section: "preop" | "intraop" | "postop",
+    data: PreopData | IntraopData | PostopData,
+  ): Record<string, unknown> {
+    if (section === "preop") {
+      const preop = data as PreopData
+      const bmi = preop.heightCm && preop.weightKg ? calcBMI(preop.heightCm, preop.weightKg) : undefined
+      return { ...preop, bmi }
+    }
+    if (section === "intraop") {
+      return {
+        ...(data as IntraopData),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }
+    }
+    return data as Record<string, unknown>
+  }
+
   const saveSectionInner = useCallback(async (
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
-    { showToast = false, nextStep, forceUpdate = false, onError }: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; onError?: (msg: string) => void } = {}
+    { showToast = false, onError }: { showToast?: boolean; onError?: (msg: string) => void } = {}
   ) => {
     try {
+      const payload = sectionPayload(section, data)
       if (!caseIdRef.current) {
-        // First save: create the case
-        const preopData = data as PreopData
-        const bmi = preopData.heightCm && preopData.weightKg ? calcBMI(preopData.heightCm, preopData.weightKg) : 0
         const res = await fetch("/api/cases", {
           method: "POST",
           headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
-          body: JSON.stringify({ preop: { ...data, bmi } }),
+          body: JSON.stringify({ preop: payload }),
         })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
           throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
         }
         const createdBody = await res.json()
-        const { id, caseCode: code, preopUpdatedAt } = createdBody
+        const { id, caseCode: code, preopUpdatedAt, preopRevision } = createdBody
         noteRejections("preop", createdBody)
         caseIdRef.current = id
         setCaseId(id)
         if (code) setCaseCode(code)
-        if (preopUpdatedAt) preopUpdatedAtRef.current = new Date(preopUpdatedAt).toISOString()
-        sectionSnapshotsRef.current.confirm(id, "preop", { ...data, bmi } as Record<string, unknown>)
-        // Update URL so page refresh restores the correct step
+        autosaveManager.hydrateSection(id, "preop", payload, preopRevision ?? preopUpdatedAt ?? null)
         router.replace(`/cases/new?continue=${id}`, { scroll: false })
       } else {
-        // Update existing case
-        const bmi = section === "preop" && (data as PreopData).heightCm && (data as PreopData).weightKg
-          ? calcBMI((data as PreopData).heightCm!, (data as PreopData).weightKg!) : undefined
-        // Intraop times are the clinician's local wall clock. Send the zone
-        // they were entered in so the server can resolve them to real instants
-        // — without it "08:00" is just four digits, and the chart, the elapsed
-        // duration and the research export all have to guess.
-        const payload =
-          section === "preop"  ? { ...data, bmi } :
-          section === "intraop" ? { ...data, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } :
-          data
         const existingCaseId = caseIdRef.current
-        const fullPayload = payload as Record<string, unknown>
-        // Field-level saves: PATCH only what changed since the last confirmed
-        // save. Full payload on force-update (conflict resolution) so the
-        // user's explicit choice always lands whole; full payload also when no
-        // snapshot exists yet (first save after load — converges by design).
-        const body = forceUpdate || !existingCaseId
-          ? fullPayload
-          : sectionSnapshotsRef.current.diff(existingCaseId, section, fullPayload)
-        if (!body) return true // nothing changed — skip the network round-trip
-        const baseRef =
-          section === "preop" ? preopUpdatedAtRef :
-          section === "postop" ? postopUpdatedAtRef : intraopUpdatedAtRef
-        // Shared conflict-retry engine. Web policy: only auto-retry the
-        // uninitialized-timestamp case (missing_conflict_timestamp — e.g. the
-        // case-ID was set from URL params before the case fetch completed);
-        // genuine conflicts open the resolution modal below.
-        let outcome: ConflictRetryOutcome<CasePatchResponse>
-        try {
-          outcome = await sendWithConflictRetry<CasePatchResponse>(
-            async (base) => {
-              const headers: Record<string, string> = { "Content-Type": "application/json" }
-              if (base) headers[SECTION_CONFLICT_HEADER[section]] = base
-              if (forceUpdate) headers[FORCE_UPDATE_HEADER] = "true"
-              const res = await fetch(`/api/cases/${caseIdRef.current}`, {
-                method: "PATCH",
-                headers,
-                body: JSON.stringify({ [section]: body }),
-              })
-              return classifyPatchResponse<CasePatchResponse>(res)
-            },
-            baseRef,
-            (body) => (body as ConflictBody | undefined)?.reason === "missing_conflict_timestamp",
-          )
-        } catch (err) {
-          if (isNetworkSaveError(err)) {
-            // Offline tray: keep the changed fields locally (merge-on-queue
-            // accumulates successive diffs, latest value per field wins) and
-            // let the flusher replay them when back online. The snapshot is
-            // NOT advanced, so later diffs keep carrying these fields until a
-            // save is actually confirmed.
-            await caseOutbox.queue(existingCaseId, section, body, baseRef.current)
-            if (showToast) toast.info(t("case.savedOffline"))
-            return "queued" as const
-          }
-          throw err
+        const outcome = await autosaveManager.saveSection(existingCaseId, section, payload, {
+          fullPayload: payload,
+        })
+        if (outcome.response) noteRejections(section, outcome.response)
+        if (outcome.result === "queued" || outcome.result === "failed") {
+          if (showToast) toast.info(t("case.savedOffline"))
+          return "queued" as const
         }
-        if (!outcome.ok && outcome.conflict) {
-          const body = (outcome.body ?? {}) as ConflictBody
-          if (body.error === "conflict" && body.serverVersion) {
-            // Open conflict resolution modal instead of throwing
-            setConflict({
-              open: true,
-              localValues: payload,
-              serverValues: body.serverVersion,
-              section,
-              pendingData: data,
-              nextStep,
-              showToast,
-            })
-            return false
-          }
-          // Unknown 409 - treat as error
-          throw new Error("Save conflict - please reload and try again.")
-        }
-        if (!outcome.ok && outcome.status === 404 && section === "preop") {
-          caseIdRef.current = null
-          setCaseId(null)
-          preopUpdatedAtRef.current = null
-          postopUpdatedAtRef.current = null
-          intraopUpdatedAtRef.current = null
-          const createRes = await fetch("/api/cases", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
-            body: JSON.stringify({ preop: payload }),
-          })
-          if (!createRes.ok) {
-            const body = await createRes.json().catch(() => ({}))
-            throw new Error(body.error ?? `Save failed (HTTP ${createRes.status})`)
-          }
-          const created = await createRes.json()
-          caseIdRef.current = created.id
-          setCaseId(created.id)
-          if (created.caseCode) setCaseCode(created.caseCode)
-          if (created.preopUpdatedAt) preopUpdatedAtRef.current = new Date(created.preopUpdatedAt).toISOString()
-          sectionSnapshotsRef.current.confirm(created.id, "preop", fullPayload)
-          noteRejections("preop", created)
-          router.replace(`/cases/new?continue=${created.id}`, { scroll: false })
-        } else if (!outcome.ok) {
-          const body = (outcome.body ?? {}) as { error?: string }
-          console.error(`[saveSection] HTTP ${outcome.status}`, JSON.stringify(outcome.body ?? {}).slice(0, 500))
-          throw new Error(body.error ?? `Save failed (HTTP ${outcome.status})`)
-        } else {
-          // Track updated timestamps so future saves include correct conflict headers
-          const result = outcome.body
-          if (result.preopUpdatedAt) preopUpdatedAtRef.current = new Date(result.preopUpdatedAt).toISOString()
-          if (result.postopUpdatedAt) postopUpdatedAtRef.current = new Date(result.postopUpdatedAt).toISOString()
-          if (result.intraopUpdatedAt) intraopUpdatedAtRef.current = new Date(result.intraopUpdatedAt).toISOString()
-          // A direct save supersedes any older patch still in the offline
-          // tray for this section — drop it so the flusher can't replay
-          // stale data over what we just saved.
-          await caseOutbox.clearOne(existingCaseId, section).catch(() => {})
-          // The server confirmed this state — future autosaves diff against it.
-          sectionSnapshotsRef.current.confirm(existingCaseId, section, fullPayload)
-          noteRejections(section, result)
-        }
+        if (outcome.result === "empty") throw new Error(t("case.saveFailed"))
       }
 
       if (showToast) toast.success(
@@ -692,13 +554,13 @@ export default function NewCasePage() {
     }
   }, [t, router, noteRejections])
 
-  // Public save entry: serialized through the per-case write queue so callers
-  // (autosave, manual submit, conflict resolution) can never interleave.
   const saveSection = useCallback((
     section: "preop" | "intraop" | "postop",
     data: PreopData | IntraopData | PostopData,
-    opts: { showToast?: boolean; nextStep?: number; forceUpdate?: boolean; onError?: (msg: string) => void } = {}
-  ) => writeQueueRef.current.enqueue(caseIdRef.current ?? "new-case", () => saveSectionInner(section, data, opts)),
+    opts: { showToast?: boolean; onError?: (msg: string) => void } = {}
+  ) => caseIdRef.current
+    ? saveSectionInner(section, data, opts)
+    : autosaveManager.runExclusive("new-case", () => saveSectionInner(section, data, opts)),
   [saveSectionInner])
 
   // ── Auto-save (debounced, called by each form) ──────────────────────────────
@@ -754,14 +616,9 @@ export default function NewCasePage() {
     if (!caseIdRef.current) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/cases/${caseIdRef.current}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postop: postopData }),
-      })
-      if (!res.ok) throw new Error()
+      const saved = await saveSection("postop", postopData, { showToast: true })
+      if (!saved || saved === "queued") throw new Error()
       setPostopData(postopData)
-      toast.success(t("case.savedSuccess"))
       // Start 30-minute graceful close countdown before finalising
       startCloseCountdown()
       setStep(3); window.scrollTo(0, 0)
@@ -807,6 +664,11 @@ export default function NewCasePage() {
     if (closeTimerRef.current) { clearInterval(closeTimerRef.current); closeTimerRef.current = null }
     localStorage.removeItem(`summaryOpenedAt_${id}`)
     try {
+      await autosaveManager.flushCase(id)
+      await autosaveManager.waitForCase(id)
+      if (autosaveManager.getState(id).pending > 0) {
+        throw new Error("Pending changes must sync before finalization")
+      }
       const res = await fetch(`/api/cases/${id}/finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -874,32 +736,8 @@ export default function NewCasePage() {
     }
   }
 
-  async function handleConflictResolve(resolved: Record<string, unknown>) {
-    if (!conflict) return
-    setConflict(null)
-    // Retry the save with forceUpdate so the server accepts it
-    const ok = await saveSection(conflict.section, resolved as PreopData | IntraopData | PostopData, {
-      showToast: conflict.showToast,
-      nextStep: conflict.nextStep,
-      forceUpdate: true,
-    })
-    if (ok && conflict.nextStep !== undefined) {
-      setStep(conflict.nextStep)
-      window.scrollTo(0, 0)
-    }
-  }
-
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
-      {conflict && (
-        <ConflictModal
-          open={conflict.open}
-          onClose={() => setConflict(null)}
-          localValues={conflict.localValues}
-          serverValues={conflict.serverValues}
-          onResolve={handleConflictResolve}
-        />
-      )}
       {/* Undo finalization banner - shown for 5 minutes after finalizing */}
       {(undoSecsLeft !== null || undoExpired) && (
         <div className={`no-print rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${

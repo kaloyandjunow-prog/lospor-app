@@ -12,7 +12,7 @@ import { validateCookieWriteOrigin } from "@/lib/csrf"
 // x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
 // x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.
 const CORS_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-const CORS_REQUEST_HEADERS = "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key"
+const CORS_REQUEST_HEADERS = "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-preop-revision, x-lospor-postop-revision, x-lospor-intraop-revision, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key, x-lospor-operation-id"
 
 function handleCorsOptions(req: NextRequest): NextResponse | null {
   if (req.method !== "OPTIONS") return null

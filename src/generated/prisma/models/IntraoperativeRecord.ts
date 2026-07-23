@@ -39,6 +39,7 @@ export type IntraoperativeRecordAvgAggregateOutputType = {
   colloidsMl: number | null
   bloodMl: number | null
   urineMl: number | null
+  syncRevision: number | null
 }
 
 export type IntraoperativeRecordSumAggregateOutputType = {
@@ -54,6 +55,7 @@ export type IntraoperativeRecordSumAggregateOutputType = {
   colloidsMl: number | null
   bloodMl: number | null
   urineMl: number | null
+  syncRevision: number | null
 }
 
 export type IntraoperativeRecordMinAggregateOutputType = {
@@ -117,6 +119,7 @@ export type IntraoperativeRecordMinAggregateOutputType = {
   complications: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type IntraoperativeRecordMaxAggregateOutputType = {
@@ -180,6 +183,7 @@ export type IntraoperativeRecordMaxAggregateOutputType = {
   complications: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type IntraoperativeRecordCountAggregateOutputType = {
@@ -252,6 +256,7 @@ export type IntraoperativeRecordCountAggregateOutputType = {
   complications: number
   createdAt: number
   updatedAt: number
+  syncRevision: number
   _all: number
 }
 
@@ -269,6 +274,7 @@ export type IntraoperativeRecordAvgAggregateInputType = {
   colloidsMl?: true
   bloodMl?: true
   urineMl?: true
+  syncRevision?: true
 }
 
 export type IntraoperativeRecordSumAggregateInputType = {
@@ -284,6 +290,7 @@ export type IntraoperativeRecordSumAggregateInputType = {
   colloidsMl?: true
   bloodMl?: true
   urineMl?: true
+  syncRevision?: true
 }
 
 export type IntraoperativeRecordMinAggregateInputType = {
@@ -347,6 +354,7 @@ export type IntraoperativeRecordMinAggregateInputType = {
   complications?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type IntraoperativeRecordMaxAggregateInputType = {
@@ -410,6 +418,7 @@ export type IntraoperativeRecordMaxAggregateInputType = {
   complications?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type IntraoperativeRecordCountAggregateInputType = {
@@ -482,6 +491,7 @@ export type IntraoperativeRecordCountAggregateInputType = {
   complications?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
   _all?: true
 }
 
@@ -641,6 +651,7 @@ export type IntraoperativeRecordGroupByOutputType = {
   complications: string | null
   createdAt: Date
   updatedAt: Date
+  syncRevision: number
   _count: IntraoperativeRecordCountAggregateOutputType | null
   _avg: IntraoperativeRecordAvgAggregateOutputType | null
   _sum: IntraoperativeRecordSumAggregateOutputType | null
@@ -736,6 +747,7 @@ export type IntraoperativeRecordWhereInput = {
   complications?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   createdAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntFilter<"IntraoperativeRecord"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   vascularAccessRows?: Prisma.VascularAccessListRelationFilter
   premedicationRows?: Prisma.PremedicationAdministrationListRelationFilter
@@ -811,6 +823,7 @@ export type IntraoperativeRecordOrderByWithRelationInput = {
   complications?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
   vascularAccessRows?: Prisma.VascularAccessOrderByRelationAggregateInput
   premedicationRows?: Prisma.PremedicationAdministrationOrderByRelationAggregateInput
@@ -889,6 +902,7 @@ export type IntraoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   complications?: Prisma.StringNullableFilter<"IntraoperativeRecord"> | string | null
   createdAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"IntraoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntFilter<"IntraoperativeRecord"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   vascularAccessRows?: Prisma.VascularAccessListRelationFilter
   premedicationRows?: Prisma.PremedicationAdministrationListRelationFilter
@@ -964,6 +978,7 @@ export type IntraoperativeRecordOrderByWithAggregationInput = {
   complications?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   _count?: Prisma.IntraoperativeRecordCountOrderByAggregateInput
   _avg?: Prisma.IntraoperativeRecordAvgOrderByAggregateInput
   _max?: Prisma.IntraoperativeRecordMaxOrderByAggregateInput
@@ -1044,6 +1059,7 @@ export type IntraoperativeRecordScalarWhereWithAggregatesInput = {
   complications?: Prisma.StringNullableWithAggregatesFilter<"IntraoperativeRecord"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"IntraoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"IntraoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntWithAggregatesFilter<"IntraoperativeRecord"> | number
 }
 
 export type IntraoperativeRecordCreateInput = {
@@ -1115,6 +1131,7 @@ export type IntraoperativeRecordCreateInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutIntraopInput
   vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
   premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
@@ -1190,6 +1207,7 @@ export type IntraoperativeRecordUncheckedCreateInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
 }
@@ -1263,6 +1281,7 @@ export type IntraoperativeRecordUpdateInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
   vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
   premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
@@ -1338,6 +1357,7 @@ export type IntraoperativeRecordUncheckedUpdateInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
 }
@@ -1412,6 +1432,7 @@ export type IntraoperativeRecordCreateManyInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type IntraoperativeRecordUpdateManyMutationInput = {
@@ -1483,6 +1504,7 @@ export type IntraoperativeRecordUpdateManyMutationInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type IntraoperativeRecordUncheckedUpdateManyInput = {
@@ -1555,6 +1577,7 @@ export type IntraoperativeRecordUncheckedUpdateManyInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type IntraoperativeRecordNullableScalarRelationFilter = {
@@ -1632,6 +1655,7 @@ export type IntraoperativeRecordCountOrderByAggregateInput = {
   complications?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type IntraoperativeRecordAvgOrderByAggregateInput = {
@@ -1647,6 +1671,7 @@ export type IntraoperativeRecordAvgOrderByAggregateInput = {
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
   urineMl?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type IntraoperativeRecordMaxOrderByAggregateInput = {
@@ -1710,6 +1735,7 @@ export type IntraoperativeRecordMaxOrderByAggregateInput = {
   complications?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type IntraoperativeRecordMinOrderByAggregateInput = {
@@ -1773,6 +1799,7 @@ export type IntraoperativeRecordMinOrderByAggregateInput = {
   complications?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type IntraoperativeRecordSumOrderByAggregateInput = {
@@ -1788,6 +1815,7 @@ export type IntraoperativeRecordSumOrderByAggregateInput = {
   colloidsMl?: Prisma.SortOrder
   bloodMl?: Prisma.SortOrder
   urineMl?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type IntraoperativeRecordScalarRelationFilter = {
@@ -1948,6 +1976,7 @@ export type IntraoperativeRecordCreateWithoutCaseInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
   premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
 }
@@ -2021,6 +2050,7 @@ export type IntraoperativeRecordUncheckedCreateWithoutCaseInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
 }
@@ -2110,6 +2140,7 @@ export type IntraoperativeRecordUpdateWithoutCaseInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
   premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
 }
@@ -2183,6 +2214,7 @@ export type IntraoperativeRecordUncheckedUpdateWithoutCaseInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
 }
@@ -2256,6 +2288,7 @@ export type IntraoperativeRecordCreateWithoutVascularAccessRowsInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutIntraopInput
   premedicationRows?: Prisma.PremedicationAdministrationCreateNestedManyWithoutIntraopInput
 }
@@ -2330,6 +2363,7 @@ export type IntraoperativeRecordUncheckedCreateWithoutVascularAccessRowsInput = 
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedCreateNestedManyWithoutIntraopInput
 }
 
@@ -2418,6 +2452,7 @@ export type IntraoperativeRecordUpdateWithoutVascularAccessRowsInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
   premedicationRows?: Prisma.PremedicationAdministrationUpdateManyWithoutIntraopNestedInput
 }
@@ -2492,6 +2527,7 @@ export type IntraoperativeRecordUncheckedUpdateWithoutVascularAccessRowsInput = 
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   premedicationRows?: Prisma.PremedicationAdministrationUncheckedUpdateManyWithoutIntraopNestedInput
 }
 
@@ -2564,6 +2600,7 @@ export type IntraoperativeRecordCreateWithoutPremedicationRowsInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutIntraopInput
   vascularAccessRows?: Prisma.VascularAccessCreateNestedManyWithoutIntraopInput
 }
@@ -2638,6 +2675,7 @@ export type IntraoperativeRecordUncheckedCreateWithoutPremedicationRowsInput = {
   complications?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   vascularAccessRows?: Prisma.VascularAccessUncheckedCreateNestedManyWithoutIntraopInput
 }
 
@@ -2726,6 +2764,7 @@ export type IntraoperativeRecordUpdateWithoutPremedicationRowsInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutIntraopNestedInput
   vascularAccessRows?: Prisma.VascularAccessUpdateManyWithoutIntraopNestedInput
 }
@@ -2800,6 +2839,7 @@ export type IntraoperativeRecordUncheckedUpdateWithoutPremedicationRowsInput = {
   complications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   vascularAccessRows?: Prisma.VascularAccessUncheckedUpdateManyWithoutIntraopNestedInput
 }
 
@@ -2913,6 +2953,7 @@ export type IntraoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.
   complications?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   vascularAccessRows?: boolean | Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs>
   premedicationRows?: boolean | Prisma.IntraoperativeRecord$premedicationRowsArgs<ExtArgs>
@@ -2989,6 +3030,7 @@ export type IntraoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtim
   complications?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intraoperativeRecord"]>
 
@@ -3062,6 +3104,7 @@ export type IntraoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtim
   complications?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intraoperativeRecord"]>
 
@@ -3135,9 +3178,10 @@ export type IntraoperativeRecordSelectScalar = {
   complications?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
 }
 
-export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "startedAt" | "endedAt" | "timezone" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "lmaSize" | "oralTubeSize" | "oralCuffed" | "nasalTubeSize" | "nasalCuffed" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt", ExtArgs["result"]["intraoperativeRecord"]>
+export type IntraoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "monthYear" | "durationMinutes" | "startTime" | "endTime" | "startedAt" | "endedAt" | "timezone" | "positions" | "techniques" | "airwayDevice" | "tubeSize" | "cuffed" | "peepCmH2O" | "ippv" | "jetVentilation" | "fob" | "airwayTools" | "airwayNotes" | "cormackLehane" | "airwayDevices" | "ventilationModes" | "lmaSize" | "oralTubeSize" | "oralCuffed" | "nasalTubeSize" | "nasalCuffed" | "dltType" | "dltSide" | "dltSize" | "endobronchialSize" | "volatileAgent" | "plexusBlock" | "cvkSite" | "arterialLineSite" | "ecg" | "urinaryCatheter" | "stomachTube" | "spO2Monitor" | "invasiveBP" | "cvpMonitor" | "bglMonitor" | "bloodGasMonitor" | "neuroMonitor" | "nbpMonitor" | "etco2Monitor" | "tempMonitor" | "paCatheter" | "tee" | "bis" | "entropyMonitor" | "nirsMonitor" | "evokedPotentials" | "tofMonitor" | "vascularAccesses" | "premedicationEvening" | "premedicationMorning" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "bloodProductsNote" | "urineMl" | "timeSeriesData" | "keyEvents" | "complications" | "createdAt" | "updatedAt" | "syncRevision", ExtArgs["result"]["intraoperativeRecord"]>
 export type IntraoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   vascularAccessRows?: boolean | Prisma.IntraoperativeRecord$vascularAccessRowsArgs<ExtArgs>
@@ -3228,6 +3272,7 @@ export type $IntraoperativeRecordPayload<ExtArgs extends runtime.Types.Extension
     complications: string | null
     createdAt: Date
     updatedAt: Date
+    syncRevision: number
   }, ExtArgs["result"]["intraoperativeRecord"]>
   composites: {}
 }
@@ -3723,6 +3768,7 @@ export interface IntraoperativeRecordFieldRefs {
   readonly complications: Prisma.FieldRef<"IntraoperativeRecord", 'String'>
   readonly createdAt: Prisma.FieldRef<"IntraoperativeRecord", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"IntraoperativeRecord", 'DateTime'>
+  readonly syncRevision: Prisma.FieldRef<"IntraoperativeRecord", 'Int'>
 }
     
 

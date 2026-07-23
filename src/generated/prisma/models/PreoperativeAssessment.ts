@@ -43,6 +43,7 @@ export type PreoperativeAssessmentAvgAggregateOutputType = {
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  syncRevision: number | null
 }
 
 export type PreoperativeAssessmentSumAggregateOutputType = {
@@ -62,6 +63,7 @@ export type PreoperativeAssessmentSumAggregateOutputType = {
   gutaScore: number | null
   apfelScore: number | null
   stopBangScore: number | null
+  syncRevision: number | null
 }
 
 export type PreoperativeAssessmentMinAggregateOutputType = {
@@ -137,6 +139,7 @@ export type PreoperativeAssessmentMinAggregateOutputType = {
   aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type PreoperativeAssessmentMaxAggregateOutputType = {
@@ -212,6 +215,7 @@ export type PreoperativeAssessmentMaxAggregateOutputType = {
   aiOptIn: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type PreoperativeAssessmentCountAggregateOutputType = {
@@ -291,6 +295,7 @@ export type PreoperativeAssessmentCountAggregateOutputType = {
   aiOptIn: number
   createdAt: number
   updatedAt: number
+  syncRevision: number
   _all: number
 }
 
@@ -312,6 +317,7 @@ export type PreoperativeAssessmentAvgAggregateInputType = {
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  syncRevision?: true
 }
 
 export type PreoperativeAssessmentSumAggregateInputType = {
@@ -331,6 +337,7 @@ export type PreoperativeAssessmentSumAggregateInputType = {
   gutaScore?: true
   apfelScore?: true
   stopBangScore?: true
+  syncRevision?: true
 }
 
 export type PreoperativeAssessmentMinAggregateInputType = {
@@ -406,6 +413,7 @@ export type PreoperativeAssessmentMinAggregateInputType = {
   aiOptIn?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type PreoperativeAssessmentMaxAggregateInputType = {
@@ -481,6 +489,7 @@ export type PreoperativeAssessmentMaxAggregateInputType = {
   aiOptIn?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type PreoperativeAssessmentCountAggregateInputType = {
@@ -560,6 +569,7 @@ export type PreoperativeAssessmentCountAggregateInputType = {
   aiOptIn?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
   _all?: true
 }
 
@@ -726,6 +736,7 @@ export type PreoperativeAssessmentGroupByOutputType = {
   aiOptIn: boolean
   createdAt: Date
   updatedAt: Date
+  syncRevision: number
   _count: PreoperativeAssessmentCountAggregateOutputType | null
   _avg: PreoperativeAssessmentAvgAggregateOutputType | null
   _sum: PreoperativeAssessmentSumAggregateOutputType | null
@@ -828,6 +839,7 @@ export type PreoperativeAssessmentWhereInput = {
   aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
+  syncRevision?: Prisma.IntFilter<"PreoperativeAssessment"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   diagnoses?: Prisma.PreopDiagnosisListRelationFilter
   procedureRows?: Prisma.PreopProcedureListRelationFilter
@@ -913,6 +925,7 @@ export type PreoperativeAssessmentOrderByWithRelationInput = {
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
   diagnoses?: Prisma.PreopDiagnosisOrderByRelationAggregateInput
   procedureRows?: Prisma.PreopProcedureOrderByRelationAggregateInput
@@ -1001,6 +1014,7 @@ export type PreoperativeAssessmentWhereUniqueInput = Prisma.AtLeast<{
   aiOptIn?: Prisma.BoolFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PreoperativeAssessment"> | Date | string
+  syncRevision?: Prisma.IntFilter<"PreoperativeAssessment"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
   diagnoses?: Prisma.PreopDiagnosisListRelationFilter
   procedureRows?: Prisma.PreopProcedureListRelationFilter
@@ -1086,6 +1100,7 @@ export type PreoperativeAssessmentOrderByWithAggregationInput = {
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   _count?: Prisma.PreoperativeAssessmentCountOrderByAggregateInput
   _avg?: Prisma.PreoperativeAssessmentAvgOrderByAggregateInput
   _max?: Prisma.PreoperativeAssessmentMaxOrderByAggregateInput
@@ -1173,6 +1188,7 @@ export type PreoperativeAssessmentScalarWhereWithAggregatesInput = {
   aiOptIn?: Prisma.BoolWithAggregatesFilter<"PreoperativeAssessment"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PreoperativeAssessment"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"PreoperativeAssessment"> | Date | string
+  syncRevision?: Prisma.IntWithAggregatesFilter<"PreoperativeAssessment"> | number
 }
 
 export type PreoperativeAssessmentCreateInput = {
@@ -1251,6 +1267,7 @@ export type PreoperativeAssessmentCreateInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
@@ -1336,6 +1353,7 @@ export type PreoperativeAssessmentUncheckedCreateInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
@@ -1419,6 +1437,7 @@ export type PreoperativeAssessmentUpdateInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
@@ -1504,6 +1523,7 @@ export type PreoperativeAssessmentUncheckedUpdateInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
@@ -1588,6 +1608,7 @@ export type PreoperativeAssessmentCreateManyInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type PreoperativeAssessmentUpdateManyMutationInput = {
@@ -1666,6 +1687,7 @@ export type PreoperativeAssessmentUpdateManyMutationInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PreoperativeAssessmentUncheckedUpdateManyInput = {
@@ -1745,6 +1767,7 @@ export type PreoperativeAssessmentUncheckedUpdateManyInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PreoperativeAssessmentNullableScalarRelationFilter = {
@@ -1829,6 +1852,7 @@ export type PreoperativeAssessmentCountOrderByAggregateInput = {
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PreoperativeAssessmentAvgOrderByAggregateInput = {
@@ -1848,6 +1872,7 @@ export type PreoperativeAssessmentAvgOrderByAggregateInput = {
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PreoperativeAssessmentMaxOrderByAggregateInput = {
@@ -1923,6 +1948,7 @@ export type PreoperativeAssessmentMaxOrderByAggregateInput = {
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PreoperativeAssessmentMinOrderByAggregateInput = {
@@ -1998,6 +2024,7 @@ export type PreoperativeAssessmentMinOrderByAggregateInput = {
   aiOptIn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PreoperativeAssessmentSumOrderByAggregateInput = {
@@ -2017,6 +2044,7 @@ export type PreoperativeAssessmentSumOrderByAggregateInput = {
   gutaScore?: Prisma.SortOrder
   apfelScore?: Prisma.SortOrder
   stopBangScore?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PreoperativeAssessmentScalarRelationFilter = {
@@ -2234,6 +2262,7 @@ export type PreoperativeAssessmentCreateWithoutCaseInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityCreateNestedManyWithoutPreopInput
@@ -2317,6 +2346,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutCaseInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
@@ -2416,6 +2446,7 @@ export type PreoperativeAssessmentUpdateWithoutCaseInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUpdateManyWithoutPreopNestedInput
@@ -2499,6 +2530,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutCaseInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
@@ -2582,6 +2614,7 @@ export type PreoperativeAssessmentCreateWithoutDiagnosesInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityCreateNestedManyWithoutPreopInput
@@ -2666,6 +2699,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutDiagnosesInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
   labRows?: Prisma.LabResultUncheckedCreateNestedManyWithoutPreopInput
@@ -2764,6 +2798,7 @@ export type PreoperativeAssessmentUpdateWithoutDiagnosesInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUpdateManyWithoutPreopNestedInput
@@ -2848,6 +2883,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutDiagnosesInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
   labRows?: Prisma.LabResultUncheckedUpdateManyWithoutPreopNestedInput
@@ -2930,6 +2966,7 @@ export type PreoperativeAssessmentCreateWithoutProcedureRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityCreateNestedManyWithoutPreopInput
@@ -3014,6 +3051,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutProcedureRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
   labRows?: Prisma.LabResultUncheckedCreateNestedManyWithoutPreopInput
@@ -3112,6 +3150,7 @@ export type PreoperativeAssessmentUpdateWithoutProcedureRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUpdateManyWithoutPreopNestedInput
@@ -3196,6 +3235,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutProcedureRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
   labRows?: Prisma.LabResultUncheckedUpdateManyWithoutPreopNestedInput
@@ -3278,6 +3318,7 @@ export type PreoperativeAssessmentCreateWithoutComorbidityRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
@@ -3362,6 +3403,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutComorbidityRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   labRows?: Prisma.LabResultUncheckedCreateNestedManyWithoutPreopInput
@@ -3460,6 +3502,7 @@ export type PreoperativeAssessmentUpdateWithoutComorbidityRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
@@ -3544,6 +3587,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutComorbidityRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   labRows?: Prisma.LabResultUncheckedUpdateManyWithoutPreopNestedInput
@@ -3626,6 +3670,7 @@ export type PreoperativeAssessmentCreateWithoutLabRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
@@ -3710,6 +3755,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutLabRowsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
@@ -3808,6 +3854,7 @@ export type PreoperativeAssessmentUpdateWithoutLabRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
@@ -3892,6 +3939,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutLabRowsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
@@ -3974,6 +4022,7 @@ export type PreoperativeAssessmentCreateWithoutMedicationsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPreopInput
   diagnoses?: Prisma.PreopDiagnosisCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureCreateNestedManyWithoutPreopInput
@@ -4058,6 +4107,7 @@ export type PreoperativeAssessmentUncheckedCreateWithoutMedicationsInput = {
   aiOptIn?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   diagnoses?: Prisma.PreopDiagnosisUncheckedCreateNestedManyWithoutPreopInput
   procedureRows?: Prisma.PreopProcedureUncheckedCreateNestedManyWithoutPreopInput
   comorbidityRows?: Prisma.ComorbidityUncheckedCreateNestedManyWithoutPreopInput
@@ -4156,6 +4206,7 @@ export type PreoperativeAssessmentUpdateWithoutMedicationsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPreopNestedInput
   diagnoses?: Prisma.PreopDiagnosisUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUpdateManyWithoutPreopNestedInput
@@ -4240,6 +4291,7 @@ export type PreoperativeAssessmentUncheckedUpdateWithoutMedicationsInput = {
   aiOptIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   diagnoses?: Prisma.PreopDiagnosisUncheckedUpdateManyWithoutPreopNestedInput
   procedureRows?: Prisma.PreopProcedureUncheckedUpdateManyWithoutPreopNestedInput
   comorbidityRows?: Prisma.ComorbidityUncheckedUpdateManyWithoutPreopNestedInput
@@ -4390,6 +4442,7 @@ export type PreoperativeAssessmentSelect<ExtArgs extends runtime.Types.Extension
   aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   diagnoses?: boolean | Prisma.PreoperativeAssessment$diagnosesArgs<ExtArgs>
   procedureRows?: boolean | Prisma.PreoperativeAssessment$procedureRowsArgs<ExtArgs>
@@ -4476,6 +4529,7 @@ export type PreoperativeAssessmentSelectCreateManyAndReturn<ExtArgs extends runt
   aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["preoperativeAssessment"]>
 
@@ -4556,6 +4610,7 @@ export type PreoperativeAssessmentSelectUpdateManyAndReturn<ExtArgs extends runt
   aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["preoperativeAssessment"]>
 
@@ -4636,9 +4691,10 @@ export type PreoperativeAssessmentSelectScalar = {
   aiOptIn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
 }
 
-export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "physicalExamReport" | "notes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "bpUnobtainable" | "heartRateUnobtainable" | "spO2Unobtainable" | "temperatureUnobtainable" | "respiratoryRateUnobtainable" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "airwayUnobtainable" | "asaScore" | "elective" | "emergencySurgery" | "highRiskSurgery" | "rcriIschemicHeart" | "rcriCHF" | "rcriCVD" | "rcriInsulinDM" | "rcriCreatinine" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "apfelPONVHistory" | "apfelPostopOpioids" | "stopbangSnoring" | "stopbangTired" | "stopbangObserved" | "stopbangBP" | "stopbangNeck" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt", ExtArgs["result"]["preoperativeAssessment"]>
+export type PreoperativeAssessmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "ageYears" | "sex" | "heightCm" | "weightKg" | "bmi" | "bloodType" | "rhFactor" | "diagnosis" | "diagnosesJson" | "plannedProcedure" | "proceduresJson" | "icdCode" | "teamNotes" | "physicalExamReport" | "notes" | "comorbidities" | "allergies" | "allergyDetails" | "latexAllergy" | "currentMedications" | "familyAnesthesiaProblems" | "familyAnesthesiaDetails" | "dentalProsthetics" | "looseTeeth" | "smoking" | "substanceAbuse" | "bpSystolic" | "bpDiastolic" | "heartRate" | "heartArrhythmia" | "spO2" | "temperature" | "respiratoryRate" | "bpUnobtainable" | "heartRateUnobtainable" | "spO2Unobtainable" | "temperatureUnobtainable" | "respiratoryRateUnobtainable" | "mallampati" | "mouthOpeningCm" | "thyromental" | "neckMobility" | "upperLipBiteTest" | "retrognathia" | "prominentIncisors" | "facialHair" | "difficultAirwayHistory" | "difficultAirwayNotes" | "cormackLehane" | "airwayUnobtainable" | "asaScore" | "elective" | "emergencySurgery" | "highRiskSurgery" | "rcriIschemicHeart" | "rcriCHF" | "rcriCVD" | "rcriInsulinDM" | "rcriCreatinine" | "rcriScore" | "gutaScore" | "apfelScore" | "stopBangScore" | "apfelPONVHistory" | "apfelPostopOpioids" | "stopbangSnoring" | "stopbangTired" | "stopbangObserved" | "stopbangBP" | "stopbangNeck" | "labResults" | "aiOptIn" | "createdAt" | "updatedAt" | "syncRevision", ExtArgs["result"]["preoperativeAssessment"]>
 export type PreoperativeAssessmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
   diagnoses?: boolean | Prisma.PreoperativeAssessment$diagnosesArgs<ExtArgs>
@@ -4742,6 +4798,7 @@ export type $PreoperativeAssessmentPayload<ExtArgs extends runtime.Types.Extensi
     aiOptIn: boolean
     createdAt: Date
     updatedAt: Date
+    syncRevision: number
   }, ExtArgs["result"]["preoperativeAssessment"]>
   composites: {}
 }
@@ -5247,6 +5304,7 @@ export interface PreoperativeAssessmentFieldRefs {
   readonly aiOptIn: Prisma.FieldRef<"PreoperativeAssessment", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"PreoperativeAssessment", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"PreoperativeAssessment", 'DateTime'>
+  readonly syncRevision: Prisma.FieldRef<"PreoperativeAssessment", 'Int'>
 }
     
 

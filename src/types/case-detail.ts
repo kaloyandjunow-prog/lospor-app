@@ -109,6 +109,7 @@ export type CaseDetailPreop = {
 
   createdAt: string
   updatedAt: string
+  syncRevision: number
 }
 
 export type CaseDetailIntraop = {
@@ -198,6 +199,7 @@ export type CaseDetailIntraop = {
 
   createdAt: string
   updatedAt: string
+  syncRevision: number
 }
 
 export type CaseDetailPostop = {
@@ -230,6 +232,7 @@ export type CaseDetailPostop = {
 
   createdAt: string
   updatedAt: string
+  syncRevision: number
 }
 
 export type CaseDetail = {

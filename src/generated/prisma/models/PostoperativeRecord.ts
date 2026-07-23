@@ -39,6 +39,7 @@ export type PostoperativeRecordAvgAggregateOutputType = {
   recoverySpO2: number | null
   painScoreNRS: number | null
   temperatureCelsius: number | null
+  syncRevision: number | null
 }
 
 export type PostoperativeRecordSumAggregateOutputType = {
@@ -54,6 +55,7 @@ export type PostoperativeRecordSumAggregateOutputType = {
   recoverySpO2: number | null
   painScoreNRS: number | null
   temperatureCelsius: number | null
+  syncRevision: number | null
 }
 
 export type PostoperativeRecordMinAggregateOutputType = {
@@ -81,6 +83,7 @@ export type PostoperativeRecordMinAggregateOutputType = {
   dispositionNotes: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type PostoperativeRecordMaxAggregateOutputType = {
@@ -108,6 +111,7 @@ export type PostoperativeRecordMaxAggregateOutputType = {
   dispositionNotes: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  syncRevision: number | null
 }
 
 export type PostoperativeRecordCountAggregateOutputType = {
@@ -136,6 +140,7 @@ export type PostoperativeRecordCountAggregateOutputType = {
   handoverItems: number
   createdAt: number
   updatedAt: number
+  syncRevision: number
   _all: number
 }
 
@@ -153,6 +158,7 @@ export type PostoperativeRecordAvgAggregateInputType = {
   recoverySpO2?: true
   painScoreNRS?: true
   temperatureCelsius?: true
+  syncRevision?: true
 }
 
 export type PostoperativeRecordSumAggregateInputType = {
@@ -168,6 +174,7 @@ export type PostoperativeRecordSumAggregateInputType = {
   recoverySpO2?: true
   painScoreNRS?: true
   temperatureCelsius?: true
+  syncRevision?: true
 }
 
 export type PostoperativeRecordMinAggregateInputType = {
@@ -195,6 +202,7 @@ export type PostoperativeRecordMinAggregateInputType = {
   dispositionNotes?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type PostoperativeRecordMaxAggregateInputType = {
@@ -222,6 +230,7 @@ export type PostoperativeRecordMaxAggregateInputType = {
   dispositionNotes?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
 }
 
 export type PostoperativeRecordCountAggregateInputType = {
@@ -250,6 +259,7 @@ export type PostoperativeRecordCountAggregateInputType = {
   handoverItems?: true
   createdAt?: true
   updatedAt?: true
+  syncRevision?: true
   _all?: true
 }
 
@@ -365,6 +375,7 @@ export type PostoperativeRecordGroupByOutputType = {
   handoverItems: runtime.JsonValue
   createdAt: Date
   updatedAt: Date
+  syncRevision: number
   _count: PostoperativeRecordCountAggregateOutputType | null
   _avg: PostoperativeRecordAvgAggregateOutputType | null
   _sum: PostoperativeRecordSumAggregateOutputType | null
@@ -416,6 +427,7 @@ export type PostoperativeRecordWhereInput = {
   handoverItems?: Prisma.JsonFilter<"PostoperativeRecord">
   createdAt?: Prisma.DateTimeFilter<"PostoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PostoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntFilter<"PostoperativeRecord"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
 }
 
@@ -445,6 +457,7 @@ export type PostoperativeRecordOrderByWithRelationInput = {
   handoverItems?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   case?: Prisma.CaseOrderByWithRelationInput
 }
 
@@ -477,6 +490,7 @@ export type PostoperativeRecordWhereUniqueInput = Prisma.AtLeast<{
   handoverItems?: Prisma.JsonFilter<"PostoperativeRecord">
   createdAt?: Prisma.DateTimeFilter<"PostoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PostoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntFilter<"PostoperativeRecord"> | number
   case?: Prisma.XOR<Prisma.CaseScalarRelationFilter, Prisma.CaseWhereInput>
 }, "id" | "caseId">
 
@@ -506,6 +520,7 @@ export type PostoperativeRecordOrderByWithAggregationInput = {
   handoverItems?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
   _count?: Prisma.PostoperativeRecordCountOrderByAggregateInput
   _avg?: Prisma.PostoperativeRecordAvgOrderByAggregateInput
   _max?: Prisma.PostoperativeRecordMaxOrderByAggregateInput
@@ -542,6 +557,7 @@ export type PostoperativeRecordScalarWhereWithAggregatesInput = {
   handoverItems?: Prisma.JsonWithAggregatesFilter<"PostoperativeRecord">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PostoperativeRecord"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"PostoperativeRecord"> | Date | string
+  syncRevision?: Prisma.IntWithAggregatesFilter<"PostoperativeRecord"> | number
 }
 
 export type PostoperativeRecordCreateInput = {
@@ -569,6 +585,7 @@ export type PostoperativeRecordCreateInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
   case: Prisma.CaseCreateNestedOneWithoutPostopInput
 }
 
@@ -598,6 +615,7 @@ export type PostoperativeRecordUncheckedCreateInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type PostoperativeRecordUpdateInput = {
@@ -625,6 +643,7 @@ export type PostoperativeRecordUpdateInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
   case?: Prisma.CaseUpdateOneRequiredWithoutPostopNestedInput
 }
 
@@ -654,6 +673,7 @@ export type PostoperativeRecordUncheckedUpdateInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PostoperativeRecordCreateManyInput = {
@@ -682,6 +702,7 @@ export type PostoperativeRecordCreateManyInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type PostoperativeRecordUpdateManyMutationInput = {
@@ -709,6 +730,7 @@ export type PostoperativeRecordUpdateManyMutationInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PostoperativeRecordUncheckedUpdateManyInput = {
@@ -737,6 +759,7 @@ export type PostoperativeRecordUncheckedUpdateManyInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PostoperativeRecordNullableScalarRelationFilter = {
@@ -770,6 +793,7 @@ export type PostoperativeRecordCountOrderByAggregateInput = {
   handoverItems?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PostoperativeRecordAvgOrderByAggregateInput = {
@@ -785,6 +809,7 @@ export type PostoperativeRecordAvgOrderByAggregateInput = {
   recoverySpO2?: Prisma.SortOrder
   painScoreNRS?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PostoperativeRecordMaxOrderByAggregateInput = {
@@ -812,6 +837,7 @@ export type PostoperativeRecordMaxOrderByAggregateInput = {
   dispositionNotes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PostoperativeRecordMinOrderByAggregateInput = {
@@ -839,6 +865,7 @@ export type PostoperativeRecordMinOrderByAggregateInput = {
   dispositionNotes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PostoperativeRecordSumOrderByAggregateInput = {
@@ -854,6 +881,7 @@ export type PostoperativeRecordSumOrderByAggregateInput = {
   recoverySpO2?: Prisma.SortOrder
   painScoreNRS?: Prisma.SortOrder
   temperatureCelsius?: Prisma.SortOrder
+  syncRevision?: Prisma.SortOrder
 }
 
 export type PostoperativeRecordCreateNestedOneWithoutCaseInput = {
@@ -917,6 +945,7 @@ export type PostoperativeRecordCreateWithoutCaseInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type PostoperativeRecordUncheckedCreateWithoutCaseInput = {
@@ -944,6 +973,7 @@ export type PostoperativeRecordUncheckedCreateWithoutCaseInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  syncRevision?: number
 }
 
 export type PostoperativeRecordCreateOrConnectWithoutCaseInput = {
@@ -987,6 +1017,7 @@ export type PostoperativeRecordUpdateWithoutCaseInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PostoperativeRecordUncheckedUpdateWithoutCaseInput = {
@@ -1014,6 +1045,7 @@ export type PostoperativeRecordUncheckedUpdateWithoutCaseInput = {
   handoverItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  syncRevision?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -1044,6 +1076,7 @@ export type PostoperativeRecordSelect<ExtArgs extends runtime.Types.Extensions.I
   handoverItems?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["postoperativeRecord"]>
 
@@ -1073,6 +1106,7 @@ export type PostoperativeRecordSelectCreateManyAndReturn<ExtArgs extends runtime
   handoverItems?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["postoperativeRecord"]>
 
@@ -1102,6 +1136,7 @@ export type PostoperativeRecordSelectUpdateManyAndReturn<ExtArgs extends runtime
   handoverItems?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["postoperativeRecord"]>
 
@@ -1131,9 +1166,10 @@ export type PostoperativeRecordSelectScalar = {
   handoverItems?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  syncRevision?: boolean
 }
 
-export type PostoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "aldreteActivity" | "aldreteRespiration" | "aldreteCirculation" | "aldreteConsciousness" | "aldreteSpO2" | "aldreteTotal" | "recoveryBpSystolic" | "recoveryBpDiastolic" | "recoveryHeartRate" | "recoverySpO2" | "painScoreNRS" | "ponv" | "temperatureCelsius" | "recoveryBpUnobtainable" | "recoveryHeartRateUnobtainable" | "recoverySpO2Unobtainable" | "recoveryTemperatureUnobtainable" | "complications" | "disposition" | "dispositionNotes" | "handoverItems" | "createdAt" | "updatedAt", ExtArgs["result"]["postoperativeRecord"]>
+export type PostoperativeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "caseId" | "aldreteActivity" | "aldreteRespiration" | "aldreteCirculation" | "aldreteConsciousness" | "aldreteSpO2" | "aldreteTotal" | "recoveryBpSystolic" | "recoveryBpDiastolic" | "recoveryHeartRate" | "recoverySpO2" | "painScoreNRS" | "ponv" | "temperatureCelsius" | "recoveryBpUnobtainable" | "recoveryHeartRateUnobtainable" | "recoverySpO2Unobtainable" | "recoveryTemperatureUnobtainable" | "complications" | "disposition" | "dispositionNotes" | "handoverItems" | "createdAt" | "updatedAt" | "syncRevision", ExtArgs["result"]["postoperativeRecord"]>
 export type PostoperativeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   case?: boolean | Prisma.CaseDefaultArgs<ExtArgs>
 }
@@ -1175,6 +1211,7 @@ export type $PostoperativeRecordPayload<ExtArgs extends runtime.Types.Extensions
     handoverItems: runtime.JsonValue
     createdAt: Date
     updatedAt: Date
+    syncRevision: number
   }, ExtArgs["result"]["postoperativeRecord"]>
   composites: {}
 }
@@ -1624,6 +1661,7 @@ export interface PostoperativeRecordFieldRefs {
   readonly handoverItems: Prisma.FieldRef<"PostoperativeRecord", 'Json'>
   readonly createdAt: Prisma.FieldRef<"PostoperativeRecord", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"PostoperativeRecord", 'DateTime'>
+  readonly syncRevision: Prisma.FieldRef<"PostoperativeRecord", 'Int'>
 }
     
 

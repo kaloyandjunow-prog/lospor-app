@@ -11,6 +11,7 @@ import { LogOut } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
 import { eventOutbox, eventOutboxCount } from "@/lib/event-outbox"
+import { autosaveManager } from "@/lib/autosave-manager"
 
 export function SignOutButton({ signOutAction }: { signOutAction: () => Promise<void> }) {
   const t = useTranslations()
@@ -35,6 +36,7 @@ export function SignOutButton({ signOutAction }: { signOutAction: () => Promise<
       await Promise.all([
         caseOutbox.clearAll().catch(() => {}),
         eventOutbox.clearAll().catch(() => {}),
+        autosaveManager.eventMutations.clearAll().catch(() => {}),
       ])
       formRef.current?.requestSubmit()
     } finally {

@@ -8,8 +8,7 @@
 // want the result subscribe via onOutboxChange instead of mounting again.
 import { useEffect, useRef } from "react"
 import { createBackoffPolicy } from "@lospor/core/sync"
-import { caseOutbox } from "@/lib/case-outbox"
-import { eventOutbox } from "@/lib/event-outbox"
+import { autosaveManager } from "@/lib/autosave-manager"
 
 export function useOutboxFlusher(onFlushed?: (result: { saved: number; failed: number; discarded: number }) => void) {
   const onFlushedRef = useRef(onFlushed)
@@ -39,13 +38,21 @@ export function useOutboxFlusher(onFlushed?: (result: { saved: number; failed: n
         const run = async () => {
           if (!reconciled) {
             reconciled = true
-            await caseOutbox.reconcile()
+            await autosaveManager.outbox.reconcile()
           }
-          const result = await caseOutbox.flushAll()
-          // Also replay journaled intraop events (idempotent server-side).
-          const events = await eventOutbox.flushAll()
-          outcome = result.failed + events.failed > 0 ? "failed" : (result.saved + events.saved > 0 || result.discarded > 0) ? "ok" : "idle"
-          if (!cancelled && (result.saved + events.saved > 0 || result.discarded > 0)) onFlushedRef.current?.(result)
+          const before =
+            (await autosaveManager.outbox.summary()).count +
+            await autosaveManager.pendingEvents.totalPending() +
+            await autosaveManager.eventMutations.total()
+          await autosaveManager.flushAll()
+          const queued =
+            (await autosaveManager.outbox.summary()).count +
+            await autosaveManager.pendingEvents.totalPending() +
+            await autosaveManager.eventMutations.total()
+          outcome = queued > 0 ? "failed" : before > 0 ? "ok" : "idle"
+          if (!cancelled && queued === 0 && before > 0) {
+            onFlushedRef.current?.({ saved: before, failed: 0, discarded: 0 })
+          }
         }
         if (typeof navigator !== "undefined" && navigator.locks?.request) {
           await navigator.locks.request("lospor-outbox-flush", { ifAvailable: true }, async (lock) => {

@@ -17,6 +17,19 @@ import type { LegacyKeyEvents, LogEvent, ClinicalEvent } from "@/types/timetable
 import type { CaseStatus } from "@/generated/prisma/enums"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
+const REVISION_HEADER = {
+  preop: "x-lospor-preop-revision",
+  postop: "x-lospor-postop-revision",
+  intraop: "x-lospor-intraop-revision",
+} as const
+
+function readRevision(req: NextRequest, section: keyof typeof REVISION_HEADER): number | null | "invalid" {
+  const raw = req.headers.get(REVISION_HEADER[section])
+  if (raw == null) return null
+  if (!/^\d+$/.test(raw)) return "invalid"
+  const value = Number(raw)
+  return Number.isSafeInteger(value) ? value : "invalid"
+}
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: CORS(req) })
@@ -77,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       userId: true, status: true, createdAt: true,
       user:   { select: { institutionId: true } },
       preop:  true,
-      intraop: { select: { id: true, keyEvents: true, startedAt: true, startTime: true, createdAt: true, updatedAt: true } },
+      intraop: { select: { id: true, keyEvents: true, startedAt: true, startTime: true, createdAt: true, updatedAt: true, syncRevision: true } },
       postop:  true,
     },
   })
@@ -102,8 +115,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const preopBase = req.headers.get("x-lospor-preop-updated-at")
     const postopBase = req.headers.get("x-lospor-postop-updated-at")
     const intraopBase = req.headers.get("x-lospor-intraop-updated-at")
+    const preopRevision = readRevision(req, "preop")
+    const postopRevision = readRevision(req, "postop")
+    const intraopRevision = readRevision(req, "intraop")
     const forceUpdate = req.headers.get("x-lospor-force-update") === "true" ||
       forceUpdateField === true
+
+    for (const [name, revision] of [["preop", preopRevision], ["postop", postopRevision], ["intraop", intraopRevision]] as const) {
+      if (revision === "invalid") {
+        return NextResponse.json({ error: `Invalid ${name} revision` }, { status: 400 })
+      }
+    }
 
     // Reject an unparseable conflict header instead of silently skipping the
     // guard (NaN comparisons are always false -> a stale write would slip through).
@@ -147,21 +169,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // owner's own writes — the same user in two tabs/devices could previously
     // silently overwrite themselves. Clients self-heal via the shared
     // conflict-retry engine or surface the conflict-resolution UI.
-    if (!forceUpdate && preop && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
+    if (!forceUpdate && preop && preopRevision != null && preopRevision !== "invalid" && existing.preop && existing.preop.syncRevision !== preopRevision) {
       return NextResponse.json({
         error: "conflict",
         section: "preop",
         serverVersion: existing.preop,
       }, { status: 409 })
     }
-    if (!forceUpdate && postop && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
+    if (!forceUpdate && postop && postopRevision != null && postopRevision !== "invalid" && existing.postop && existing.postop.syncRevision !== postopRevision) {
       return NextResponse.json({
         error: "conflict",
         section: "postop",
         serverVersion: existing.postop,
       }, { status: 409 })
     }
-    if (!forceUpdate && intraop && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
+    if (!forceUpdate && intraop && intraopRevision != null && intraopRevision !== "invalid" && existing.intraop && existing.intraop.syncRevision !== intraopRevision) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "intraop",
+        serverVersion: { updatedAt: existing.intraop.updatedAt, revision: existing.intraop.syncRevision },
+      }, { status: 409 })
+    }
+    if (!forceUpdate && preop && preopRevision == null && preopBase && existing.preop?.updatedAt && existing.preop.updatedAt.getTime() > new Date(preopBase).getTime()) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "preop",
+        serverVersion: existing.preop,
+      }, { status: 409 })
+    }
+    if (!forceUpdate && postop && postopRevision == null && postopBase && existing.postop?.updatedAt && existing.postop.updatedAt.getTime() > new Date(postopBase).getTime()) {
+      return NextResponse.json({
+        error: "conflict",
+        section: "postop",
+        serverVersion: existing.postop,
+      }, { status: 409 })
+    }
+    if (!forceUpdate && intraop && intraopRevision == null && intraopBase && existing.intraop?.updatedAt && existing.intraop.updatedAt.getTime() > new Date(intraopBase).getTime()) {
       return NextResponse.json({
         error: "conflict",
         section: "intraop",
@@ -202,8 +245,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Partial update: only touch fields present in the payload, so a stale
       // or partial save never wipes existing preop data. Create still uses
       // the full mapPreop (with defaults) for brand-new records.
-      const op = existing.preop ? { update: mapPreopUpdate(preop) } : { create: mapPreop(preop) }
-      await prisma.case.update({ where: { id }, data: { preop: op } })
+      if (existing.preop) {
+        const updated = await prisma.preoperativeAssessment.updateMany({
+          where: {
+            caseId: id,
+            ...(!forceUpdate && preopRevision != null && preopRevision !== "invalid"
+              ? { syncRevision: preopRevision }
+              : {}),
+          },
+          data: { ...mapPreopUpdate(preop), syncRevision: { increment: 1 } },
+        })
+        if (updated.count === 0) {
+          const current = await prisma.preoperativeAssessment.findUnique({ where: { caseId: id } })
+          return NextResponse.json({
+            error: "conflict",
+            section: "preop",
+            serverVersion: current,
+          }, { status: 409 })
+        }
+      } else {
+        await prisma.preoperativeAssessment.create({
+          data: { caseId: id, ...mapPreop(preop), syncRevision: 1 },
+        })
+      }
     }
     if (intraop) {
       // The day this case belongs to, so a bare "HH:MM" plus the client's zone
@@ -238,8 +302,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         }
         effectiveIntraop = { ...intraop, timetableData: { ...(intraop.timetableData as LegacyKeyEvents), log: mergedLog } }
       }
-      const op = existing.intraop ? { update: mapIntraopUpdate(effectiveIntraop) } : { create: mapIntraop(effectiveIntraop) }
-      await prisma.case.update({ where: { id }, data: { intraop: op } })
+      if (existing.intraop) {
+        const updated = await prisma.intraoperativeRecord.updateMany({
+          where: {
+            caseId: id,
+            ...(!forceUpdate && intraopRevision != null && intraopRevision !== "invalid"
+              ? { syncRevision: intraopRevision }
+              : {}),
+          },
+          data: { ...mapIntraopUpdate(effectiveIntraop), syncRevision: { increment: 1 } },
+        })
+        if (updated.count === 0) {
+          const current = await prisma.intraoperativeRecord.findUnique({ where: { caseId: id } })
+          return NextResponse.json({
+            error: "conflict",
+            section: "intraop",
+            serverVersion: current ? { updatedAt: current.updatedAt, revision: current.syncRevision } : undefined,
+          }, { status: 409 })
+        }
+      } else {
+        await prisma.intraoperativeRecord.create({
+          data: { caseId: id, ...mapIntraop(effectiveIntraop), syncRevision: 1 },
+        })
+      }
       if ("timetableData" in effectiveIntraop && effectiveIntraop.timetableData) {
         const start = (() => {
           const hhmm = typeof effectiveIntraop.startTime === "string" ? effectiveIntraop.startTime : null
@@ -285,7 +370,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         if (projectedLog.length > 0) {
           try {
             await reconcileFullLog(prisma, id, userId, projectedLog, "web")
-            await rebuildProjection(prisma, id)
+            await rebuildProjection(prisma, id, { revisionAlreadyReserved: true })
           } catch (reconcileErr: unknown) {
             const code = (reconcileErr as { code?: string })?.code
             if (code !== "P2003" && code !== "P2025") throw reconcileErr
@@ -296,8 +381,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     if (postop) {
       // Partial update for existing records (see mapPreopUpdate rationale)
-      const op = existing.postop ? { update: mapPostopUpdate(postop) } : { create: mapPostop(postop) }
-      await prisma.case.update({ where: { id }, data: { postop: op } })
+      if (existing.postop) {
+        const updated = await prisma.postoperativeRecord.updateMany({
+          where: {
+            caseId: id,
+            ...(!forceUpdate && postopRevision != null && postopRevision !== "invalid"
+              ? { syncRevision: postopRevision }
+              : {}),
+          },
+          data: { ...mapPostopUpdate(postop), syncRevision: { increment: 1 } },
+        })
+        if (updated.count === 0) {
+          const current = await prisma.postoperativeRecord.findUnique({ where: { caseId: id } })
+          return NextResponse.json({
+            error: "conflict",
+            section: "postop",
+            serverVersion: current,
+          }, { status: 409 })
+        }
+      } else {
+        await prisma.postoperativeRecord.create({
+          data: { caseId: id, ...mapPostop(postop), syncRevision: 1 },
+        })
+      }
+    }
+
+    if (preop || intraop || postop) {
+      // Direct child-table updates above provide atomic revision checks. Keep
+      // the parent case clock moving for dashboard/version consumers.
+      await prisma.case.update({ where: { id }, data: { updatedAt: new Date() } })
     }
 
     // Status transition rules:
@@ -330,9 +442,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       select: {
         updatedAt: true,
         finalizedAt: true,
-        preop:   { select: { updatedAt: true } },
-        postop:  { select: { updatedAt: true } },
-        intraop: { select: { updatedAt: true } },
+        preop:   { select: { updatedAt: true, syncRevision: true } },
+        postop:  { select: { updatedAt: true, syncRevision: true } },
+        intraop: { select: { updatedAt: true, syncRevision: true } },
       },
     })
 
@@ -343,6 +455,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       preopUpdatedAt: updated?.preop?.updatedAt,
       postopUpdatedAt: updated?.postop?.updatedAt,
       intraopUpdatedAt: updated?.intraop?.updatedAt,
+      preopRevision: updated?.preop?.syncRevision,
+      postopRevision: updated?.postop?.syncRevision,
+      intraopRevision: updated?.intraop?.syncRevision,
       // Present only when something was refused — the client must tell the user
       // rather than let them believe an out-of-range value was stored.
       ...(rejectedFields.length ? { rejectedFields } : {}),

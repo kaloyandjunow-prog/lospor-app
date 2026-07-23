@@ -4,10 +4,14 @@ const DEFAULT_HEADERS = [
   "x-lospor-preop-updated-at",
   "x-lospor-postop-updated-at",
   "x-lospor-intraop-updated-at",
+  "x-lospor-preop-revision",
+  "x-lospor-postop-revision",
+  "x-lospor-intraop-revision",
   "x-lospor-updated-at",
   "x-lospor-force-update",
   "x-lospor-source",
   "x-idempotency-key",
+  "x-lospor-operation-id",
 ].join(", ")
 
 function allowlist(): string[] {
