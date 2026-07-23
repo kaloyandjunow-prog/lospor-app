@@ -1,5 +1,18 @@
 # Changelog - LOSPOR Web App
 
+## [5.6.1] - 2026-07-24
+
+### Changed
+
+- Case-detail and intraoperative timetable types now come from the shared Core
+  package, removing parallel web/mobile definitions that could drift.
+- Legacy number-or-text infusion rates are normalized explicitly before totals,
+  dragging, or rate editing.
+
+### Release
+
+- No database migration is required.
+
 ## [5.6.0] - 2026-07-23
 
 ### Added

@@ -37,7 +37,7 @@ export function calcInfTotals(timetable: LegacyKeyEvents) {
   return infs.map(inf => {
     const cols = Math.max(0, (inf.endCol ?? 0) - (inf.startCol ?? 0))
     const hrs  = (cols * 5) / 60
-    const total = Math.round(inf.rate * hrs * 10) / 10
+    const total = Math.round((Number(inf.rate) || 0) * hrs * 10) / 10
     return { name: inf.name ?? "", total, unit: inf.unit ?? "ml" }
   })
 }

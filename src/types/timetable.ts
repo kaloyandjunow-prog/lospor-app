@@ -1,70 +1,38 @@
-// Canonical shape of the intraop timetable wire format — shared between the
-// server (src/lib/case-events.ts, the append-only CaseEvent projection) and
-// the client (src/components/IntraopTimetable.tsx, the live chart). Lives in
-// its own type-only file rather than either of those two so neither has to
-// import from the other (one is server-only Prisma infrastructure, the other
-// is "use client").
+import type {
+  AgentSegment,
+  ClinicalEvent,
+  EventType,
+  GasSettingsSegment,
+  LogEvent as CoreLogEvent,
+  PhaseSegment,
+  PositionSegment,
+  TimetableData,
+  TimetableDrug,
+  TimetableFluid,
+  TimetableInfusion,
+  VitalsEntry,
+} from "@lospor/core/intraop-types"
 
-export interface VitalsEntry    { systolic?: number; diastolic?: number; heartRate?: number; spO2?: number; etco2?: number; temp?: number; bgl?: number }
-export interface TimetableDrug  { colIdx: number; name: string; dose: string; unit: string; drugId?: string; atcCode?: string; inn?: string; route?: string }
-export interface TimetableFluid { id: string; name: string; category?: string; volume: string; color: string; startCol: number; endCol: number; stopped?: boolean }
-export interface AgentSegment   { name: string; color?: string; startCol: number; endCol: number; n2o?: number; percent?: number; stopped?: boolean }
-export interface TimetableInfusion { id: string; name: string; rate: number; unit: string; startCol: number; endCol: number; color: string; stopped?: boolean; concentration?: string; route?: string; drugId?: string; atcCode?: string; inn?: string; rateChanges?: { col: number; rate: number; unit: string; concentration?: string }[] }
-export interface ClinicalEvent    { colIdx: number; label: string; color: string }
-// FGF/carrier-gas/FiO2 — unlike agents (single static value per segment),
-// these get titrated continuously during a real case (especially FiO2 in
-// response to SpO2), so this carries the same change-tracking shape as
-// TimetableInfusion's rateChanges rather than the simpler AgentSegment model.
-export interface GasSettingsSegment {
-  id: string; startCol: number; endCol: number; stopped?: boolean
-  fgf: number; carrierGas: string | null; fio2: number; fiAir?: number; fiN2O?: number
-  settingsChanges?: { col: number; fgf: number; carrierGas: string | null; fio2: number; fiAir?: number; fiN2O?: number }[]
-}
-// Time-anchored position/phase segments — projected from position_change /
-// phase_change events the same way agent segments are (each change closes the
-// previous segment; the last one stays open-tailed to the end of the chart).
-export interface PositionSegment { position: string; startCol: number; endCol: number }
-export interface PhaseSegment    { phase: string; startCol: number; endCol: number }
-export interface TimetableData  { vitals: VitalsEntry[]; drugs: TimetableDrug[]; fluids: TimetableFluid[]; agents: AgentSegment[]; infusions: TimetableInfusion[]; gasSettings?: GasSettingsSegment[]; clinicalEvents?: ClinicalEvent[]; positions?: PositionSegment[]; phases?: PhaseSegment[] }
-
-// Raw append-only log event — what case-events.ts persists/replays and what
-// IntraopTimetable.tsx's mobile-event-log + onLogEvent callback deal in. This
-// is the single source of truth other than the alias re-exported as
-// IntraopLogEvent from IntraopTimetable.tsx for existing import sites.
-export type LogEvent = {
-  id?: string
-  ts?: string
-  type?: string
-  name?: string
-  dose?: string
-  unit?: string
-  category?: string
-  color?: string
-  systolic?: number
-  diastolic?: number
-  heartRate?: number
-  spO2?: number
-  etco2?: number
-  temp?: number
-  bgl?: number
-  infId?: string
-  rate?: string
-  fluidId?: string
-  volume?: string
-  label?: string
-  value?: string
-  atcCode?: string
-  drugId?: string
-  inn?: string
-  drugRoute?: string
-  concentration?: string
-  fgf?: number
-  carrierGas?: string | null
-  fio2?: number
-  fiAir?: number
-  fiN2O?: number
+export type {
+  AgentSegment,
+  ClinicalEvent,
+  GasSettingsSegment,
+  PhaseSegment,
+  PositionSegment,
+  TimetableData,
+  TimetableDrug,
+  TimetableFluid,
+  TimetableInfusion,
+  VitalsEntry,
 }
 
-// Shape of the IntraoperativeRecord.keyEvents Json column: the projected
-// TimetableData arrays plus the raw append-only log they were built from.
-export type LegacyKeyEvents = Partial<TimetableData> & { log?: LogEvent[] }
+// The API accepts old projected snapshots whose events predate required ids
+// and timestamps. New live events use CoreLogEvent; this boundary type keeps
+// legacy reads explicit without weakening Core's canonical event contract.
+export type LogEvent = Partial<Omit<CoreLogEvent, "type">> & {
+  type?: EventType | string
+}
+
+export type LegacyKeyEvents = Partial<TimetableData> & {
+  log?: LogEvent[]
+}

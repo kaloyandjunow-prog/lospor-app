@@ -1616,7 +1616,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                                 draggable
                                 className="absolute left-0 top-1 bottom-1 w-[2px] cursor-col-resize z-30 rounded-full opacity-70 hover:opacity-100"
                                 style={{ backgroundColor: color }}
-                                onDragStart={e => { e.stopPropagation(); const rc = sortedChanges.find(r => r.col === ci)!; setMovingRatePill({ infId: seg.id, fromCol: ci, rate: rc.rate, unit: rc.unit }) }}
+                                onDragStart={e => { e.stopPropagation(); const rc = sortedChanges.find(r => r.col === ci)!; setMovingRatePill({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit }) }}
                                 onDragEnd={() => { setMovingRatePill(null); setMovingRatePillCol(null) }}
                                 onClick={e => e.stopPropagation()}
                               />
@@ -2684,7 +2684,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                     pillCol === seg.startCol ? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
                     : (seg.rateChanges ?? []).find(rc => rc.col === pillCol) ?? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
                   ) : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
-                  setRateDialog({ segId: seg.id, name: baseDrugName, rate: cur.rate, unit: cur.unit, units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step, color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "", editFromCol: pillCol, concentration: cur.concentration, baseDrugName })
+                  setRateDialog({ segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit, units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step, color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "", editFromCol: pillCol, concentration: cur.concentration, baseDrugName })
                   setInfMenu(null)
                 }}
                 className="w-full text-left text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-[#333] transition-colors text-slate-700 dark:text-slate-200">
