@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { getLiveSession } from "@/lib/live-session"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -104,8 +104,8 @@ function StatCard({
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams?: Promise<{ scope?: string }> }) {
-  const session = await auth()
-  if (!session) return null
+  const session = await getLiveSession()
+  if (!session?.user?.id) return null
   const t = await getTranslations()
   const params = await searchParams
   const requestedScope = params?.scope
@@ -114,7 +114,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     : "all"
 
   const role          = session.user.role ?? "MEMBER"
-  const userId        = session.user!.id
+  const userId        = session.user.id
   const institutionId = session.user.institutionId ?? null
   const now           = new Date()
 

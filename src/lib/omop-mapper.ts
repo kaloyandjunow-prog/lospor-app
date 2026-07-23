@@ -1,9 +1,12 @@
 /**
- * OMOP CDM v5.4 mapper — export contract `source_version` 3.5.0.
+ * OMOP CDM v5.4 mapper — export contract `source_version` 3.5.1.
  *
  * `source_version` tracks the shape of the export, not the app version: bump it
  * whenever a table or column is added, removed or reinterpreted.
  *
+ * 3.5.1 — production export includes real intraoperative start/end instants in
+ *         the selected row shape, so visit dates use startedAt/endedAt when
+ *         present instead of falling back to legacy wall-clock columns.
  * 3.5.0 — emits PERSON and OBSERVATION_PERIOD, the root tables the CDM and the
  *         OHDSI tools (ATLAS, ACHILLES) require; without them earlier bundles
  *         were OMOP-shaped but could not be loaded. person_id is now derived
@@ -363,6 +366,7 @@ type CaseRow = {
     // on a timeline or compared across sites.
     startedAt?: Date | null
     endedAt?: Date | null
+    timezone?: string | null
     // Legacy bare wall clock, nullable: a case may not have started, and older
     // rows carry no zone so this cannot be resolved to a true instant.
     startTime: Date | null
@@ -470,8 +474,10 @@ function buildQualityWarnings(
   }
 
   const impossibleTimestampCount = cases.filter(c => {
-    if (!c.intraop?.startTime || !c.intraop?.endTime) return false
-    return c.intraop.endTime < c.intraop.startTime
+    const start = c.intraop?.startedAt ?? c.intraop?.startTime
+    const end = c.intraop?.endedAt ?? c.intraop?.endTime
+    if (!start || !end) return false
+    return end < start
   }).length
   if (impossibleTimestampCount > 0) {
     warnings.push({
@@ -1036,7 +1042,7 @@ export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundl
       generated_by_user_id:    ctx?.userId ?? "unknown",
       generated_by_role:       ctx?.userRole ?? "unknown",
       source:                  "LOSPOR",
-      source_version:          "3.5.0",
+      source_version:          "3.5.1",
       schema_version:          "3.4.3",
       concept_map_version:     "local-bilingual-map-v2",
       data_dictionary_version: DICTIONARY_VERSION,

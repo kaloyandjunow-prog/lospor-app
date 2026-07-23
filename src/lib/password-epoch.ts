@@ -14,6 +14,8 @@ type AccountState = {
   deletedAt: number | null
   role: string | null
   institutionId: string | null
+  institutionName: string | null
+  complete: boolean
   fetchedAt: number
 }
 
@@ -28,6 +30,10 @@ function fresh(e: AccountState | undefined): e is AccountState {
   return !!e && Date.now() - e.fetchedAt < ENTRY_TTL_MS
 }
 
+function freshComplete(e: AccountState | undefined): e is AccountState {
+  return fresh(e) && e.complete
+}
+
 async function fetchState(userId: string): Promise<AccountState | null> {
   const existing = inflight.get(userId)
   if (existing) return existing
@@ -35,7 +41,13 @@ async function fetchState(userId: string): Promise<AccountState | null> {
     try {
       const u = await prisma.user.findUnique({
         where: { id: userId },
-        select: { passwordChangedAt: true, deletedAt: true, role: true, institutionId: true },
+        select: {
+          passwordChangedAt: true,
+          deletedAt: true,
+          role: true,
+          institutionId: true,
+          institution: { select: { name: true } },
+        },
       })
       if (!u) return null
       const state: AccountState = {
@@ -43,6 +55,8 @@ async function fetchState(userId: string): Promise<AccountState | null> {
         deletedAt:         u.deletedAt?.getTime() ?? null,
         role:              u.role ?? null,
         institutionId:     u.institutionId ?? null,
+        institutionName:   u.institution?.name ?? null,
+        complete:          true,
         fetchedAt:         Date.now(),
       }
       cache.set(userId, state)
@@ -68,6 +82,8 @@ export function notePasswordChanged(userId: string, changedAt: Date): void {
     deletedAt:         prev?.deletedAt ?? null,
     role:              prev?.role ?? null,
     institutionId:     prev?.institutionId ?? null,
+    institutionName:   prev?.institutionName ?? null,
+    complete:          prev?.complete ?? false,
     fetchedAt:         Date.now(),
   })
 }
@@ -91,10 +107,11 @@ export type ResolvedAccount = {
   /** Current role from the database, not the (possibly hours-old) token claim. */
   role: string | null
   institutionId: string | null
+  institutionName: string | null
 }
 
 /**
- * Authoritative account check for the bearer path. Returns `null` when the
+ * Authoritative account check for bearer and web session paths. Returns `null` when the
  * token must be refused: unknown account, deleted account, or issued before the
  * password epoch. Otherwise returns the live role, so demoting an administrator
  * takes effect within the cache TTL instead of persisting for the token's
@@ -102,11 +119,11 @@ export type ResolvedAccount = {
  */
 export async function resolveAccount(userId: string, iatSeconds: number | undefined): Promise<ResolvedAccount | null> {
   const cached = cache.get(userId)
-  const state = fresh(cached) ? cached : await fetchState(userId)
+  const state = freshComplete(cached) ? cached : await fetchState(userId)
   if (!state) return null
   if (state.deletedAt !== null) return null
   if (issuedBeforeEpoch(iatSeconds, state.passwordChangedAt)) return null
-  return { role: state.role, institutionId: state.institutionId }
+  return { role: state.role, institutionId: state.institutionId, institutionName: state.institutionName }
 }
 
 /** Async variant kept for callers that only need the staleness answer. */
@@ -116,8 +133,8 @@ export async function isIssuedBeforePasswordChangeAsync(userId: string, iatSecon
 
 /**
  * Sync variant — cache-only, for the NextAuth JWT callback which cannot await.
- * A cold instance has an empty cache and will accept the token; the cookie path
- * is re-validated against the database on the next request that can await.
+ * A cold instance has an empty cache and will accept the token; request paths
+ * that can await re-validate against the database before using session claims.
  */
 export function isIssuedBeforePasswordChange(userId: string, iatSeconds: number | undefined): boolean {
   const e = cache.get(userId)

@@ -5,13 +5,10 @@ import { PrismaPg } from "@prisma/adapter-pg"
 function createPrismaClient() {
   // `max` deliberately small: node-postgres's own default (10) is sized for a
   // single long-running server process, not one pool per serverless
-  // container. The intraop live-refresh SSE route (/api/cases/[id]/stream)
-  // keeps a container alive for its whole connection — with enough
-  // concurrent long-lived streams, N containers x a 10-connection pool each
-  // blows past Postgres's absolute connection ceiling even though any one
-  // container is nearly idle. A small per-container pool keeps the
-  // aggregate footprint bounded regardless of how many containers Vercel
-  // scales out.
+  // container. Serverless scale-out still multiplies the pool by container
+  // count, even without the removed live-refresh SSE route. A small
+  // per-container pool keeps the aggregate footprint bounded regardless of how
+  // many containers Vercel scales out.
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 3 })
   return new PrismaClient({ adapter } satisfies Prisma.PrismaClientOptions)
 }

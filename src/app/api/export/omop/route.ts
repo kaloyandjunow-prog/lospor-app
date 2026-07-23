@@ -151,6 +151,7 @@ const CASE_SELECT = {
   },
   intraop: {
     select: {
+      startedAt: true, endedAt: true, timezone: true,
       startTime: true, endTime: true, durationMinutes: true, monthYear: true,
       techniques: true, keyEvents: true, airwayDevice: true,
       crystalloidsMl: true, colloidsMl: true, bloodMl: true, urineMl: true,

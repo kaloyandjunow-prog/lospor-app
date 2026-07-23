@@ -1,4 +1,4 @@
-﻿import { auth } from "@/lib/auth"
+﻿import { getLiveSession } from "@/lib/live-session"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { LayoutDashboard, FilePlus, Shield } from "lucide-react"
@@ -15,8 +15,8 @@ import { OutboxBadge } from "@/components/OutboxBadge"
 import { prisma } from "@/lib/prisma"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth()
-  if (!session) redirect("/login")
+  const session = await getLiveSession()
+  if (!session?.user?.id) redirect("/login")
 
   const userId = session.user?.id
   const user = userId ? await prisma.user.findUnique({ where: { id: userId }, select: { acceptedTermsAt: true } }) : null

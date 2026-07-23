@@ -178,7 +178,7 @@ Failed saves are queued locally through the shared sync engine (`@lospor/core/sy
 
 ### Live Refresh
 
-The app polls `GET /api/cases/[id]` (30-second fallback interval) and subscribes to `GET /api/cases/[id]/stream` (SSE) to reflect web-side changes in near-real time.
+The app polls `GET /api/cases/[id]/version` for lightweight change detection and reloads `GET /api/cases/[id]` only when the version stamp changes. There is no push subscription in the current production live-refresh path.
 
 **Relevant files:**
 - `src/lib/use-live-refresh.ts`

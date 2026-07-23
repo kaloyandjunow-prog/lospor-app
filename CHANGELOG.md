@@ -1,5 +1,25 @@
 # Changelog - LOSPOR Web App
 
+## [5.5.0] - 2026-07-23
+
+### Fixed
+
+- Web cookie sessions and server-rendered clinical pages now revalidate against
+  the live account row before using role, institution, deletion state, or the
+  password-reset epoch. A deleted user, stale reset-era session, or demoted
+  administrator is refused on the next request path that can await the database.
+- OMOP export now selects `startedAt`, `endedAt`, and `timezone` from
+  `IntraoperativeRecord`, so visit and observation-period dates use the real
+  operation instants when present. The export contract moves to
+  `source_version` `3.5.1`.
+- Current mobile sync docs now describe the production version-polling live
+  refresh path instead of the removed `/api/cases/[id]/stream` SSE endpoint.
+
+### Release
+
+- Web, mobile, core, and docs are aligned on the common `5.5.0` release line.
+  No database migration is required.
+
 ## [5.4.2] - 2026-07-22
 
 ### Fixed

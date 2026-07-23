@@ -175,6 +175,7 @@ describe("mapCasesToOmop", () => {
       generated_by_user_id: "admin-1",
       generated_by_role: "ADMIN",
       source: "LOSPOR",
+      source_version: "3.5.1",
       included_case_count: 1,
       excluded_case_count: 2,
       app_git_commit: "abc123",
@@ -278,6 +279,45 @@ describe("mapCasesToOmop", () => {
       expect.objectContaining({ code: "INSTITUTION_LINKAGE", severity: "info", count: 1 }),
       expect.objectContaining({ code: "REDACTED_FREE_TEXT_PRESENT", severity: "warning", count: 1 }),
     ]))
+  })
+
+  it("uses real intraoperative instants before legacy wall-clock fields", () => {
+    const base = completeCase()
+    const realInstantCase = completeCase({
+      createdAt: new Date("2026-07-19T12:00:00Z"),
+      preop: {
+        ...(base.preop as Record<string, unknown>),
+        ageYears: 40,
+      },
+      intraop: {
+        ...(base.intraop as Record<string, unknown>),
+        startTime: new Date("2000-01-01T08:00:00Z"),
+        endTime: new Date("2000-01-01T09:00:00Z"),
+        startedAt: new Date("2026-07-21T05:00:00Z"),
+        endedAt: new Date("2026-07-21T06:30:00Z"),
+        timezone: "Europe/Sofia",
+      },
+    })
+
+    const bundle = mapCasesToOmop([realInstantCase as never], {
+      userId: "admin-1",
+      userRole: "ADMIN",
+      statusFilter: ["COMPLETE"],
+      excludedCaseCount: 0,
+      gitCommit: "abc123",
+      forcedOverride: false,
+    })
+
+    expect(bundle.metadata.source_version).toBe("3.5.1")
+    expect(bundle.visit_occurrence[0]).toEqual(expect.objectContaining({
+      visit_start_date: "2026-07-21",
+      visit_end_date: "2026-07-21",
+    }))
+    expect(bundle.observation_period[0]).toEqual(expect.objectContaining({
+      observation_period_start_date: "2026-07-21",
+      observation_period_end_date: "2026-07-21",
+    }))
+    expect(bundle.person[0].year_of_birth).toBe(1986)
   })
 
   it("fails the quality gate for unsafe export inputs", () => {

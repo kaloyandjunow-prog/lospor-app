@@ -1,8 +1,8 @@
 import "server-only"
 import { SignJWT, jwtVerify } from "jose"
-import { auth } from "@/lib/auth"
 import { isRevokedAsync } from "@/lib/token-blocklist"
 import { resolveAccount } from "@/lib/password-epoch"
+import { getLiveSession } from "@/lib/live-session"
 
 // Shape returned by getAuthUser — same fields that route files pull from session.user
 export type AuthUser = {
@@ -61,8 +61,8 @@ export async function getAuthUser(req: Request): Promise<AuthUser | null> {
       return {
         id:              payload.id as string,
         role:            account.role ?? (payload.role as string),
-        institutionId:   account.institutionId ?? (payload.institutionId as string) ?? null,
-        institutionName: (payload.institutionName as string) ?? null,
+        institutionId:   account.institutionId,
+        institutionName: account.institutionName ?? (account.institutionId ? (payload.institutionName as string) : null) ?? null,
         firstName:       (payload.firstName as string) ?? null,
         lastName:        (payload.lastName as string) ?? null,
         title:           (payload.title as string) ?? null,
@@ -75,7 +75,7 @@ export async function getAuthUser(req: Request): Promise<AuthUser | null> {
 
   // Cookie path — web browser
   if (!req.headers.get("cookie")) return null
-  const session = await auth().catch(() => null)
+  const session = await getLiveSession()
   if (!session?.user?.id) return null
   const u = session.user
   return {

@@ -9,7 +9,7 @@ export const authConfig: NextAuthConfig = {
   providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user
+      const isLoggedIn = !!auth?.user?.id
       const isPublicPage =
         nextUrl.pathname.startsWith("/privacy") ||
         nextUrl.pathname.startsWith("/terms") ||
@@ -53,13 +53,14 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id              = token.id ?? ""
         session.user.role            = token.role ?? ""
-        session.user.institutionId   = token.institutionId ?? ""
+        session.user.institutionId   = token.institutionId ?? null
         session.user.institutionName = token.institutionName ?? ""
         session.user.firstName       = token.firstName ?? ""
         session.user.lastName        = token.lastName ?? ""
         session.user.title           = token.title ?? ""
         session.user.jti             = token.jti
         session.user.lastLoginAt     = token.lastLoginAt ?? null
+        session.user.iat             = typeof token.iat === "number" ? token.iat : undefined
       }
       return session
     },

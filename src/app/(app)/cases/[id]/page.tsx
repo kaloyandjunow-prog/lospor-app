@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { getLiveSession } from "@/lib/live-session"
 import { prisma } from "@/lib/prisma"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound, redirect } from "next/navigation"
@@ -25,8 +25,8 @@ export default async function CasePage({
 
   // Printing moved to /cases/[id]/print (which also handles the mobile
   // print-token flow) — this page is the live summary and needs a session.
-  const session = await auth()
-  if (!session) redirect(`/login?callbackUrl=/cases/${id}`)
+  const session = await getLiveSession()
+  if (!session?.user?.id) redirect(`/login?callbackUrl=/cases/${id}`)
   const me  = session.user
   const userId = me.id
   const role   = me.role
@@ -77,7 +77,7 @@ export default async function CasePage({
         </div>
       </div>
 
-      {/* Live sync — receives SSE events from mobile and refreshes the page */}
+      {/* Live sync polls the lightweight version endpoint and refreshes on change */}
       <LiveCaseUpdater caseId={id} />
 
       {/* Live case summary (printing lives on /cases/[id]/print) */}

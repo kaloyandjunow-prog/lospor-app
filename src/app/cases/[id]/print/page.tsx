@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth"
+import { getLiveSession } from "@/lib/live-session"
 import { jwtVerify } from "jose"
 import { isRevokedAsync } from "@/lib/token-blocklist"
 import { prisma } from "@/lib/prisma"
@@ -62,8 +62,8 @@ export default async function PrintCasePage({
   if (isTokenMode) {
     where = { id }
   } else {
-    const session = await auth()
-    if (!session) redirect(`/login?callbackUrl=/cases/${id}/print`)
+    const session = await getLiveSession()
+    if (!session?.user?.id) redirect(`/login?callbackUrl=/cases/${id}/print`)
     const me = session.user
     where = me.role === "ADMIN"
       ? { id }
