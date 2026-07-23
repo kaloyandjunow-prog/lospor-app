@@ -33,6 +33,17 @@ import { useFluidHandlers } from "@/hooks/useFluidHandlers"
 import { useAgentHandlers } from "@/hooks/useAgentHandlers"
 import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
 import { DivChart, VITAL_ROW_DEFS } from "@/components/intraop/TimetableVitalsChart"
+import {
+  activeTimetableColumnForTimestamp,
+  autoFillVitalKeys,
+  latestVitalColumn,
+  normalizeAutoFillVitalsPreferences,
+  planAutoFillVitalEvents,
+  type AutoFillVitalKey,
+  type AutoFillVitalsPreferences,
+  type PlannedAutoFilledVitalEvent,
+} from "@lospor/core/intraop-vitals"
+import type { LogEvent as CoreLogEvent } from "@lospor/core/intraop-types"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COL_W     = 74
@@ -74,6 +85,82 @@ type FluidConflict =
   | { phase: "choose";   newName: string; newCat: string; newColor: string; newVol: string; newCol: number; existingId: string; existingName: string; anchor: FConflictAnchor }
   | { phase: "finished"; newName: string; newCat: string; newColor: string; newVol: string; newCol: number; existingId: string; anchor: FConflictAnchor }
   | { phase: "volume";   newName: string; newCat: string; newColor: string; newVol: string; newCol: number; existingId: string; volInput: string; anchor: FConflictAnchor }
+
+type VitalLogKey = AutoFillVitalKey | "bgl"
+const WEB_AUTOFILL_STORAGE_KEYS = new Set(["autoFillVitals", "autoFillBP", "autoFillBackground"])
+const VITAL_LOG_KEYS: VitalLogKey[] = [...autoFillVitalKeys(true), "bgl"]
+const VITAL_COPY_KEYS = autoFillVitalKeys(true)
+
+function readWebAutoFillPreferences(): AutoFillVitalsPreferences {
+  if (typeof window === "undefined") return normalizeAutoFillVitalsPreferences({})
+  return normalizeAutoFillVitalsPreferences({
+    enabled: localStorage.getItem("autoFillVitals") === "on",
+    includeBloodPressure: localStorage.getItem("autoFillBP") === "on",
+    backfillOnReopen: localStorage.getItem("autoFillBackground") === "on",
+  })
+}
+
+function useWebAutoFillPreferences(): AutoFillVitalsPreferences {
+  const [preferences, setPreferences] = useState(readWebAutoFillPreferences)
+
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key && !WEB_AUTOFILL_STORAGE_KEYS.has(e.key)) return
+      setPreferences(readWebAutoFillPreferences())
+    }
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [])
+
+  return preferences
+}
+
+function hasAnyVitalValue(entry: VitalsEntry | undefined): boolean {
+  return !!entry && VITAL_LOG_KEYS.some(key => typeof entry[key] === "number")
+}
+
+function vitalsToAutoFillLog(vitals: VitalsEntry[] | undefined, chartStart: Date): CoreLogEvent[] {
+  const chartStartMs = chartStart.getTime()
+  return (vitals ?? []).flatMap((entry, col) => {
+    if (!hasAnyVitalValue(entry)) return []
+    return [{
+      id: `web-vital-${col}`,
+      ts: new Date(chartStartMs + col * INTERVAL * 60_000).toISOString(),
+      type: "vital",
+      ...entry,
+    }]
+  })
+}
+
+function applyAutoFillVitalPlan(
+  vitals: VitalsEntry[] | undefined,
+  planned: PlannedAutoFilledVitalEvent[],
+): { vitals: VitalsEntry[]; filledCols: number[] } {
+  const sourceVitals = vitals ?? []
+  let nextVitals = sourceVitals
+  const filledCols: number[] = []
+
+  for (const plannedEvent of planned) {
+    if (nextVitals === sourceVitals) nextVitals = [...sourceVitals]
+    while (nextVitals.length <= plannedEvent.col) nextVitals.push({} as VitalsEntry)
+
+    const current = nextVitals[plannedEvent.col] ?? ({} as VitalsEntry)
+    let updated = current
+    for (const key of VITAL_COPY_KEYS) {
+      const value = plannedEvent.event[key]
+      if (typeof value !== "number" || current[key] != null) continue
+      if (updated === current) updated = { ...current }
+      updated[key] = value
+    }
+
+    if (updated !== current) {
+      nextVitals[plannedEvent.col] = updated
+      filledCols.push(plannedEvent.col)
+    }
+  }
+
+  return { vitals: nextVitals, filledCols }
+}
 
 // ── Module-level types ────────────────────────────────────────────────────────
 type TtSel = { type: "drug"; idx: number } | { type: "infusion"; id: string } | { type: "fluid"; id: string } | { type: "agent"; startCol: number }
@@ -284,6 +371,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // Shortlist the clinician chose in settings — the same server-side list the
   // phone reads, so both devices open on the same favourites.
   const { favouriteDrugs, favouriteInfusions } = useIntraopFavourites()
+  const autoFillPreferences = useWebAutoFillPreferences()
   // In-cell fluid picker
   const [fluidPicker, setFluidPicker] = useState<{ ci: number; rect: DOMRect } | null>(null)
   const [fpSearch,    setFpSearch]    = useState("")
@@ -750,52 +838,47 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   // ── Mount-time backfill: fill any gap from last vitals col to current col ──
   useEffect(() => {
     if (!caseStarted) return
-    if (localStorage.getItem("autoFillVitals") !== "on") return
-    if (localStorage.getItem("autoFillBackground") !== "on") return
+    if (!autoFillPreferences.enabled || !autoFillPreferences.backfillOnReopen) return
 
     const d = dataRef.current
-    const AUTO_FILL_KEYS    = ["etco2", "temp", "spO2"] as const
-    const AUTO_FILL_BP_KEYS = ["systolic", "diastolic", "heartRate"] as const
-    const fillBP  = localStorage.getItem("autoFillBP") === "on"
-    const allKeys = fillBP ? [...AUTO_FILL_KEYS, ...AUTO_FILL_BP_KEYS] : AUTO_FILL_KEYS
-
-    let lastDataCol = -1
-    for (let i = (d.vitals?.length ?? 0) - 1; i >= 0; i--) {
-      if (allKeys.some(k => d.vitals[i]?.[k] != null)) { lastDataCol = i; break }
-    }
-    if (lastDataCol < 0) return
 
     // Case hasn't started (start time is in the future) — nothing to backfill.
     // Without this guard a future start time read as ~23 h elapsed would fill
     // hours of fabricated observations forward and persist them as events.
-    const diffSecs = elapsedSecsSinceStart(startTime, new Date())
-    if (diffSecs === null) return
-    const currentCol = Math.max(0, Math.floor(diffSecs / (INTERVAL * 60)))
+    const now = new Date()
+    const chartStartMs = resolveStartAnchor(startTime, now)
+    if (chartStartMs === null) return
+    const chartStart = new Date(chartStartMs)
+    const log = vitalsToAutoFillLog(d.vitals, chartStart)
+    const lastDataCol = latestVitalColumn(log, chartStart)
+    if (lastDataCol === null) return
+    const currentCol = activeTimetableColumnForTimestamp(chartStart, now.getTime())
+    if (currentCol === null) return
     if (currentCol <= lastDataCol) return
 
-    const newVitals = [...(d.vitals ?? [])]
-    while (newVitals.length <= currentCol) newVitals.push({} as VitalsEntry)
-    for (let col = lastDataCol + 1; col <= currentCol; col++) {
-      allKeys.forEach(k => {
-        const pv = newVitals[lastDataCol]?.[k]
-        if (pv != null && newVitals[col]?.[k] == null)
-          newVitals[col] = { ...newVitals[col], [k]: pv }
-      })
-      // Backfilled vitals are clinical data — persist them as events too.
-      markVitalColDirtyRef.current(col)
-    }
+    const planned = planAutoFillVitalEvents({
+      log,
+      chartStart,
+      fromCol: lastDataCol + 1,
+      toCol: currentCol,
+      preferences: autoFillPreferences,
+    })
+    const { vitals: newVitals, filledCols } = applyAutoFillVitalPlan(d.vitals, planned)
+    if (!filledCols.length) return
+    filledCols.forEach(col => markVitalColDirtyRef.current(col))
     rawOnChangeRef.current({ ...d, vitals: newVitals })
-  }, [caseStarted, rawOnChangeRef, startTime])
+  }, [caseStarted, rawOnChangeRef, startTime, autoFillPreferences])
 
   // ── Live clock: advance selectedCol + pixel offset every 10 s ──────────────
   useEffect(() => {
     if (!caseStarted) return          // case not started — don't run clock
     function tick() {
       if (endTimeRef.current) return  // case ended — stop the clock
-      const diffSecs = elapsedSecsSinceStart(startTime, new Date())
+      const now = new Date()
+      const diffSecs = elapsedSecsSinceStart(startTime, now)
       // Start time is in the future — the case hasn't begun. Park the clock:
       // no now-marker, no table growth, no auto-extend of live bars.
-      if (diffSecs === null) { setNowOffsetPx(null); return }
+      if (diffSecs === null) { setNowOffsetPx(null); prevColRef.current = null; return }
       {
         const px  = diffSecs / (INTERVAL * 60) * COL_W
         // Size off the true elapsed column, not the clamped one: clamping to
@@ -819,24 +902,23 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
           (d.agents    ?? []).some(a => a.endCol < col && !a.stopped) ||
           (d.gasSettings ?? []).some(g => g.endCol < col && !g.stopped)
 
-        // Auto-fill vitals from previous column when clock advances
-        const AUTO_FILL_KEYS    = ["etco2", "temp", "spO2"] as const
-        const AUTO_FILL_BP_KEYS = ["systolic", "diastolic", "heartRate"] as const
         let newVitals = d.vitals
-        if (prevCol !== null && col > prevCol && localStorage.getItem("autoFillVitals") === "on") {
-          const fillBP   = localStorage.getItem("autoFillBP") === "on"
-          const allKeys  = fillBP ? [...AUTO_FILL_KEYS, ...AUTO_FILL_BP_KEYS] : AUTO_FILL_KEYS
-          const hasToFill = allKeys.some(k => d.vitals[prevCol]?.[k] != null && d.vitals[col]?.[k] == null)
-          if (hasToFill) {
-            newVitals = [...d.vitals]
-            while (newVitals.length <= col) newVitals.push({} as VitalsEntry)
-            allKeys.forEach(k => {
-              const pv = d.vitals[prevCol]?.[k]
-              if (pv != null && newVitals[col]?.[k] == null)
-                newVitals[col] = { ...newVitals[col], [k]: pv }
+        if (prevCol !== null && trueCol > prevCol && autoFillPreferences.enabled) {
+          const chartStartMs = resolveStartAnchor(startTime, now)
+          if (chartStartMs !== null) {
+            const chartStart = new Date(chartStartMs)
+            const planned = planAutoFillVitalEvents({
+              log: vitalsToAutoFillLog(d.vitals, chartStart),
+              chartStart,
+              fromCol: prevCol + 1,
+              toCol: trueCol,
+              preferences: autoFillPreferences,
             })
-            // Auto-filled vitals are clinical data — persist them as events too.
-            markVitalColDirtyRef.current(col)
+            const applied = applyAutoFillVitalPlan(d.vitals, planned)
+            if (applied.filledCols.length) {
+              newVitals = applied.vitals
+              applied.filledCols.forEach(filledCol => markVitalColDirtyRef.current(filledCol))
+            }
           }
         }
 
@@ -850,13 +932,13 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
             gasSettings: (d.gasSettings ?? []).map(g => g.endCol < col && !g.stopped ? { ...g, endCol: col } : g),
           })
         }
-        prevColRef.current = col
+        prevColRef.current = trueCol
       }
     }
     tick()
     const id = setInterval(tick, 10_000)
     return () => clearInterval(id)
-  }, [startTime, caseStarted])
+  }, [startTime, caseStarted, autoFillPreferences])
 
   const nowCol    = nowOffsetPx !== null ? Math.min(Math.floor(nowOffsetPx / COL_W), colCount - 1) : null
 

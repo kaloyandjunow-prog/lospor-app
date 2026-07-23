@@ -1,5 +1,22 @@
 # Changelog - LOSPOR Web App
 
+## [5.5.1] - 2026-07-23
+
+### Fixed
+
+- Intraoperative vital auto-fill now uses the shared core planner instead of
+  web-only copy logic. If the browser resumes after missing more than one
+  5-minute tick, every skipped empty vital column is filled and persisted as a
+  `vital` event.
+- The Auto-fill vitals setting is now the master switch: turning it off also
+  clears Auto-fill BP & HR and Backfill on reopen, preventing hidden stale
+  options from reactivating later.
+
+### Release
+
+- Web, mobile, core, and docs are aligned on the common `5.5.1` release line.
+  No database migration is required.
+
 ## [5.5.0] - 2026-07-23
 
 ### Fixed

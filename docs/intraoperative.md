@@ -172,17 +172,21 @@ Rows appear dynamically based on which monitors are selected in the form:
 - Sevoflurane, Desflurane, Isoflurane
 - Rendered as a continuous agent bar
 - Switching agents auto-stops the previous one
-
 ### Auto-fill
 
-Two automation settings (Settings → Automation):
+Three automation settings (Settings -> Automation) share one canonical rule set
+with the mobile app:
 
 | Setting | Behaviour |
 |---------|-----------|
-| Auto-fill vitals | When the clock advances, creates a saved event containing the previous EtCO₂, SpO₂, and temperature if the new column is empty |
-| Auto-fill BP & HR | Secondary toggle (requires Auto-fill vitals): also carries forward systolic BP, diastolic BP, and heart rate |
+| Auto-fill vitals | Master switch. When the clock advances, creates saved events containing the previous EtCO2, SpO2, and temperature for each missed empty 5-minute column |
+| Auto-fill BP & HR | Child toggle (requires Auto-fill vitals): also carries forward systolic BP, diastolic BP, and heart rate |
+| Backfill on reopen | Child toggle (requires Auto-fill vitals): when an in-progress case is reopened, fills empty columns between the last recorded vitals and the current time |
 
-Automatically carried-forward values are saved as real events through the shared API, so they are visible on the other client and survive timetable reconstruction. Since v5 this applies to the **web** timetable too: every vitals column typed, auto-filled, or backfilled on web is persisted as a `vital` event (one stable id per 5-minute column — `web-vital-N`, the same scheme mobile and the server bridge use — emitted ~1.2 s after the last edit; re-editing a column supersedes the event instead of stacking a duplicate). Previously web vitals lived only inside the projected timetable blob and could be lost when the projection was rebuilt. The server additionally bridges grid vitals from older cached web clients into events.
+Turning off **Auto-fill vitals** also turns off the child options on both web
+and mobile, so stale background settings cannot generate observations later.
+
+Automatically carried-forward values are saved as real events through the shared API, so they are visible on the other client and survive timetable reconstruction. Since v5 this applies to the **web** timetable too: every vitals column typed, auto-filled, or backfilled on web is persisted as a `vital` event (one stable id per 5-minute column - `web-vital-N`, the same scheme mobile and the server bridge use - emitted ~1.2 s after the last edit; re-editing a column supersedes the event instead of stacking a duplicate). Previously web vitals lived only inside the projected timetable blob and could be lost when the projection was rebuilt. The server additionally bridges grid vitals from older cached web clients into events.
 
 Offline behavior (v5.1): **adding** events (drugs, fluids, vitals, clinical events) works offline on web — they are journaled in IndexedDB and replayed idempotently on reconnect, counted in the header badge. **Deleting or editing existing timeline items** requires connectivity: those go through a full-log reconcile, and replaying a stale log after reconnecting could resurrect deleted events, so the change reverts with a message instead of queueing.
 

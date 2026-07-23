@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
+import { normalizeAutoFillVitalsPreferences } from "@lospor/core/intraop-vitals"
 
 type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
@@ -160,9 +161,14 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     if (dm === "standard" || dm === "advanced") setDefMon(dm as "standard" | "advanced")
 
     setVitalsExp(localStorage.getItem("vitalsExpanded") !== "false")
-    setAutoFill(localStorage.getItem("autoFillVitals") === "on")
-    setAutoFillBP(localStorage.getItem("autoFillBP") === "on")
-    setAutoFillBg(localStorage.getItem("autoFillBackground") === "on")
+    const autoFillPreferences = normalizeAutoFillVitalsPreferences({
+      enabled: localStorage.getItem("autoFillVitals") === "on",
+      includeBloodPressure: localStorage.getItem("autoFillBP") === "on",
+      backfillOnReopen: localStorage.getItem("autoFillBackground") === "on",
+    })
+    setAutoFill(autoFillPreferences.enabled)
+    setAutoFillBP(autoFillPreferences.includeBloodPressure)
+    setAutoFillBg(autoFillPreferences.backfillOnReopen)
 
     const hu = localStorage.getItem("heightUnit")
     if (hu === "cm" || hu === "in") setHeightUnitState(hu)
@@ -205,7 +211,16 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   function applyTtLayout(mode: "expand" | "scroll") { setTtLayout(mode); setSetting("timetableLayout", mode) }
   function applyDefMon(mode: "standard" | "advanced") { setDefMon(mode); setSetting("defaultMonitoring", mode) }
   function applyVitalsExp(val: boolean) { setVitalsExp(val); setSetting("vitalsExpanded", val ? "true" : "false") }
-  function applyAutoFill(val: boolean) { setAutoFill(val); setSetting("autoFillVitals", val ? "on" : "off") }
+  function applyAutoFill(val: boolean) {
+    setAutoFill(val)
+    setSetting("autoFillVitals", val ? "on" : "off")
+    if (!val) {
+      setAutoFillBP(false)
+      setAutoFillBg(false)
+      setSetting("autoFillBP", "off")
+      setSetting("autoFillBackground", "off")
+    }
+  }
   function applyAutoFillBP(val: boolean) { setAutoFillBP(val); setSetting("autoFillBP", val ? "on" : "off") }
   function applyAutoFillBg(val: boolean) { setAutoFillBg(val); setSetting("autoFillBackground", val ? "on" : "off") }
   function applyHeightUnit(u: "cm" | "in") { setHeightUnitState(u); setSetting("heightUnit", u) }
