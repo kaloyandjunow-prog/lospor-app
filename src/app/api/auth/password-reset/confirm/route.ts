@@ -4,14 +4,11 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { hashAuthToken } from "@/lib/auth-email-tokens"
 import { notePasswordChanged } from "@/lib/password-epoch"
+import { passwordSchema } from "@/lib/password-policy"
 
 const schema = z.object({
   token: z.string().min(20),
-  password: z.string()
-    .min(8, "At least 8 characters")
-    .regex(/[A-Z]/, "At least one uppercase letter")
-    .regex(/[0-9]/, "At least one number")
-    .regex(/[^A-Za-z0-9]/, "At least one special character"),
+  password: passwordSchema,
 })
 
 export async function POST(req: NextRequest) {

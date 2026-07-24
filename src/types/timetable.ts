@@ -35,4 +35,5 @@ export type LogEvent = Partial<Omit<CoreLogEvent, "type">> & {
 
 export type LegacyKeyEvents = Partial<TimetableData> & {
   log?: LogEvent[]
+  legacyUnanchored?: boolean
 }

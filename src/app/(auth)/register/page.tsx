@@ -16,18 +16,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { Sun, Moon, Check, Search, ChevronDown, X } from "lucide-react"
 import { BrandBackdrop, LosporBrand } from "@/components/LosporBrand"
+import {
+  ACCOUNT_COUNTRIES,
+  passwordPolicyIssues,
+} from "@lospor/core/account"
+import { passwordSchema } from "@/lib/password-policy"
 
 
-const COUNTRIES = [
-  "Bulgaria", "Romania", "Greece", "Turkey", "Serbia",
-  "North Macedonia", "Germany", "United Kingdom", "France",
-  "Italy", "Spain", "Portugal", "Netherlands", "Belgium",
-  "Austria", "Switzerland", "Poland", "Czech Republic",
-  "Hungary", "Croatia", "Slovenia", "Slovakia", "Other",
-]
-
-const passwordSchema = z.string()
-  .min(8).regex(/[A-Z]/).regex(/[0-9]/).regex(/[^A-Za-z0-9]/)
+const COUNTRIES = ACCOUNT_COUNTRIES
 
 const schema = z.object({
   title:           z.string().optional(),
@@ -135,11 +131,12 @@ function InstitutionPicker({
 // ── Password strength checklist ───────────────────────────────────────────────
 function PasswordStrength({ value }: { value: string }) {
   const t = useTranslations()
+  const issues = new Set(passwordPolicyIssues(value))
   const checks = [
-    { label: t("auth.pwLength"),   ok: value.length >= 8 },
-    { label: t("auth.pwUppercase"), ok: /[A-Z]/.test(value) },
-    { label: t("auth.pwNumber"),   ok: /[0-9]/.test(value) },
-    { label: t("auth.pwSpecial"),  ok: /[^A-Za-z0-9]/.test(value) },
+    { label: t("auth.pwLength"),    ok: !issues.has("too_short") },
+    { label: t("auth.pwUppercase"), ok: !issues.has("missing_uppercase") },
+    { label: t("auth.pwNumber"),    ok: !issues.has("missing_number") },
+    { label: t("auth.pwSpecial"),   ok: !issues.has("missing_special") },
   ]
   return (
     <div className="space-y-1 pt-1">

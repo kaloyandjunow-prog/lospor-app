@@ -6,22 +6,24 @@ import { z } from "zod"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { parseLenient } from "@/lib/lenient-parse"
-import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
+import { checkClinicalPayloadPII, piiErrorBody } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { writeFieldDiffsSafe } from "@/lib/case-audit"
-import { rebuildProjection, reconcileFullLog, reverseProject } from "@/lib/case-events"
+import { rebuildProjection, reconcileFullLog, snapshotLogForReconcile } from "@/lib/case-events"
 import { canAccessCase, caseWhereForUser } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
 import type { CaseDetail, Serialized } from "@/types/case-detail"
 import type { LegacyKeyEvents, LogEvent, ClinicalEvent } from "@/types/timetable"
 import type { CaseStatus } from "@/generated/prisma/enums"
+import {
+  INTRAOP_COLUMN_MS,
+  intraopInstantForColumn,
+} from "@lospor/core/intraop-engine"
+import { SECTION_REVISION_HEADER } from "@lospor/core/sync"
+import { normalizeOptionCodes } from "@lospor/core/option-aliases"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
-const REVISION_HEADER = {
-  preop: "x-lospor-preop-revision",
-  postop: "x-lospor-postop-revision",
-  intraop: "x-lospor-intraop-revision",
-} as const
+const REVISION_HEADER = SECTION_REVISION_HEADER
 
 function readRevision(req: NextRequest, section: keyof typeof REVISION_HEADER): number | null | "invalid" {
   const raw = req.headers.get(REVISION_HEADER[section])
@@ -57,10 +59,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     include: { preop: true, intraop: true, postop: true, institution: { select: { name: true, city: true } } },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  // Compile-time check only: if the Prisma query/schema shape changes without
-  // CaseDetail being updated to match, this line fails to typecheck.
-  const _shapeCheck: CaseDetail = record as unknown as Serialized<typeof record>
-  void _shapeCheck
+  const normalizedRecord = record.intraop && Array.isArray(record.intraop.techniques)
+    ? {
+        ...record,
+        intraop: {
+          ...record.intraop,
+          techniques: normalizeOptionCodes(
+            "TECHNIQUE",
+            record.intraop.techniques.filter(
+              (value): value is string => typeof value === "string",
+            ),
+          ),
+        },
+      }
+    : record
+  // Prisma JSON columns are intentionally broad at the persistence boundary.
+  // The response contract is the shared serialised CaseDetail shape.
+  const responseRecord = normalizedRecord as unknown as Serialized<CaseDetail>
 
   // Extending open infusion/fluid/agent bars to "now" on read used to happen here,
   // server-side. It was removed: the server has no way to know the client's local
@@ -74,7 +89,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // of that comparison are in the same wall-clock frame, so it round-trips correctly
   // regardless of actual UTC offset.
 
-  return NextResponse.json(record)
+  return NextResponse.json(responseRecord)
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -214,8 +229,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes })
     if (piiError) {
-      after(() => logAudit(userId, "PII_BLOCKED", id, { error: piiError }))
-      return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+      after(() => logAudit(userId, "PII_BLOCKED", id, { field: piiError.field, reason: piiError.reason }))
+      return NextResponse.json(piiErrorBody(piiError), { status: 400 })
     }
 
     // Helper: compute the next status once, reused by both transaction and audit log
@@ -286,13 +301,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         let mergedLog = existingLog
         if (webCEs.length > 0 && existingLog.length > 0) {
           const sortedLog = [...existingLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
-          const chartStartMs = sortedLog[0]?.ts ? new Date(sortedLog[0].ts).getTime() : null
+          const chartStartMs = existing.intraop?.startedAt?.getTime()
+            ?? (sortedLog[0]?.ts ? new Date(sortedLog[0].ts).getTime() : null)
           if (chartStartMs) {
             const newEntries: LogEvent[] = webCEs
               .filter(ce => !logLabels.has(ce.label))
               .map(ce => ({
                 id: `web-${ce.colIdx}-${ce.label}`,
-                ts: new Date(chartStartMs + ce.colIdx * 5 * 60_000).toISOString(),
+                ts: intraopInstantForColumn(chartStartMs, ce.colIdx).toISOString(),
                 type: "clinical_event",
                 label: ce.label,
                 color: ce.color,
@@ -326,32 +342,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         })
       }
       if ("timetableData" in effectiveIntraop && effectiveIntraop.timetableData) {
-        const start = (() => {
-          const hhmm = typeof effectiveIntraop.startTime === "string" ? effectiveIntraop.startTime : null
-          const baseDay = existing.intraop?.createdAt ?? new Date()
-          const baseMs = Date.UTC(baseDay.getUTCFullYear(), baseDay.getUTCMonth(), baseDay.getUTCDate())
-          if (!hhmm) {
-            const saved = existing.intraop?.startTime
-            return baseMs + (saved ? (saved.getUTCHours() * 3600 + saved.getUTCMinutes() * 60) * 1000 : 0)
-          }
-          const [h, m] = hhmm.split(":").map(Number)
-          return baseMs + ((h || 0) * 3600 + (m || 0) * 60) * 1000
-        })()
         const keyEvents = effectiveIntraop.timetableData as LegacyKeyEvents
+        const savedTiming = await prisma.intraoperativeRecord.findUnique({
+          where: { caseId: id },
+          select: { startedAt: true },
+        })
+        const start = savedTiming?.startedAt?.getTime() ?? null
+        const eventRowCount = await prisma.caseEvent.count({ where: { caseId: id } })
         let projectedLog = Array.isArray(keyEvents.log) && keyEvents.log.length > 0
           ? keyEvents.log
-          : reverseProject(keyEvents, start)
+          : eventRowCount === 0
+            ? snapshotLogForReconcile(keyEvents, start)
+            : null
         // Bridge grid vitals from clients that don't emit vital events yet
         // (older cached web builds): any non-empty vitals column with no
         // vital event in that 5-minute bucket becomes one. Without this,
         // rebuildProjection (which rebuilds keyEvents purely from event rows)
         // silently wipes web-typed vitals as soon as the case has any events.
         const gridVitals = Array.isArray(keyEvents.vitals) ? keyEvents.vitals : []
-        if (gridVitals.length > 0 && projectedLog.length > 0) {
+        if (start !== null && gridVitals.length > 0 && projectedLog && projectedLog.length > 0) {
           const vitalCols = new Set(
             projectedLog
               .filter(e => e.type === "vital" && typeof e.ts === "string")
-              .map(e => Math.floor((new Date(e.ts as string).getTime() - start) / (5 * 60_000)))
+              .map(e => Math.floor((new Date(e.ts as string).getTime() - start) / INTRAOP_COLUMN_MS))
           )
           const bridged: LogEvent[] = []
           gridVitals.forEach((v, col) => {
@@ -360,14 +373,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             if (vitalCols.has(col)) return
             bridged.push({
               id: `web-vital-${col}`,
-              ts: new Date(start + col * 5 * 60_000).toISOString(),
+              ts: intraopInstantForColumn(start, col).toISOString(),
               type: "vital",
               ...v,
             } as LogEvent)
           })
           if (bridged.length > 0) projectedLog = [...projectedLog, ...bridged]
         }
-        if (projectedLog.length > 0) {
+        if (projectedLog && projectedLog.length > 0) {
           try {
             await reconcileFullLog(prisma, id, userId, projectedLog, "web")
             await rebuildProjection(prisma, id, { revisionAlreadyReserved: true })
@@ -376,6 +389,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             if (code !== "P2003" && code !== "P2025") throw reconcileErr
             console.warn("[PATCH /api/cases/:id] reconcileFullLog skipped — case deleted mid-save", code)
           }
+        } else if (eventRowCount > 0) {
+          await rebuildProjection(prisma, id, { revisionAlreadyReserved: true })
         }
       }
     }

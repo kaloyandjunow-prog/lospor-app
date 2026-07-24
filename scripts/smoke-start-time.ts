@@ -20,6 +20,10 @@
  * Exits non-zero on the first failure so it can gate a release.
  */
 import { E2E_EMAIL, E2E_PASSWORD } from "../e2e/credentials"
+import {
+  buildIntraopStartTiming,
+  startInstantForWallClock,
+} from "@lospor/core/intraop-time"
 
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "")
 
@@ -79,10 +83,15 @@ async function main() {
         afterUnrelated?.startedAt == null, afterUnrelated?.startedAt)
 
   // ── 2. A real start time, in local wall clock ──────────────────────────────
+  const startInstant = startInstantForWallClock(new Date(), "08:00", "Europe/Sofia")
+  const timing = startInstant
+    ? buildIntraopStartTiming(startInstant, "Europe/Sofia")
+    : null
+  if (!timing) throw new Error("Could not build start timing.")
   const patch2 = await fetch(`${BASE}/api/cases/${caseId}`, {
     method: "PATCH",
     headers: auth,
-    body: JSON.stringify({ intraop: { startTime: "08:00", timezone: "Europe/Sofia" } }),
+    body: JSON.stringify({ intraop: timing }),
   })
   check("start time saves", patch2.ok, patch2.status)
 
@@ -90,7 +99,7 @@ async function main() {
   check("legacy wall clock still recorded",
         typeof started?.startTime === "string" && /T08:00:00/.test(started.startTime as string),
         started?.startTime)
-  check("resolved to a real instant", started?.startedAt != null, started?.startedAt)
+  check("exact start instant recorded", started?.startedAt === timing.startedAt, started?.startedAt)
   check("timezone recorded", started?.timezone === "Europe/Sofia", started?.timezone)
 
   if (typeof started?.startedAt === "string") {

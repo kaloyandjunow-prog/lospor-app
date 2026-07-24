@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 // Static import (not a runtime fs.readFileSync) so Vercel's serverless
 // function file-tracing always bundles this JSON alongside the route,
 // regardless of how its dependency-tracing handles dynamic file reads.
-import snapshot from "@/data/option-library-fallback.json"
+import { BUNDLED_CATALOG_SNAPSHOT } from "@lospor/core/catalog"
 
 // Serves the option-library fallback snapshot that THIS deployment's build
 // generated (npm run build → gen:option-library-fallback, see package.json)
@@ -24,5 +24,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  return NextResponse.json(snapshot)
+  return NextResponse.json(BUNDLED_CATALOG_SNAPSHOT)
 }

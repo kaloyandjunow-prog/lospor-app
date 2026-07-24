@@ -1,6 +1,11 @@
 import { Prisma } from "@/generated/prisma/client"
 import { calculateFluidTotals, fluidTotalsPatch } from "@lospor/core/intraop-totals"
-import { projectIntraopEvents, reverseProjectIntraop } from "@lospor/core/intraop-engine"
+import {
+  INTRAOP_COLUMN_MS,
+  gasFractions,
+  projectIntraopEvents,
+  reverseProjectIntraop,
+} from "@lospor/core/intraop-engine"
 import { parseLogEvents, type LegacyKeyEvents as CoreLegacyKeyEvents } from "@lospor/core/intraop-types"
 import type {
   LogEvent,
@@ -26,15 +31,6 @@ export type { LogEvent }
 const INTRAOP_GLUCOSE_LOINC_CODE = "2345-7"
 const INTRAOP_GLUCOSE_UNIT_CANON = "mmol/L"
 
-function gasFractions(carrierGas: string | null | undefined, fio2: number | null | undefined) {
-  const safeFio2 = carrierGas == null ? 100 : Math.min(100, Math.max(21, Number(fio2 ?? 21)))
-  return {
-    fio2: safeFio2,
-    fiAir: carrierGas === "air" ? 100 - safeFio2 : 0,
-    fiN2O: carrierGas === "n2o" ? 100 - safeFio2 : 0,
-  }
-}
-
 // ─── Projection (moved verbatim from the events route) ───────────────────────
 export function projectTimetable(log: LogEvent[], start: Date) {
   const parsed = parseLogEvents(log.map((event, index) => ({
@@ -45,108 +41,29 @@ export function projectTimetable(log: LogEvent[], start: Date) {
 }
 
 
-/**
- * What the chart origin can be derived from.
- *
- * `startedAt` is a true instant and is used directly. `startTime` is the legacy
- * bare wall clock, kept only so records written before the change still draw.
- */
+/** `startedAt` is a real instant; legacy wall clocks are display-only. */
 export type ChartAnchorSource = {
   startedAt?: Date | null
   startTime: Date | null
   createdAt: Date
 }
 
-/**
- * The moment column 0 of the chart represents.
- *
- * This is the clinician's entered start time — the induction time — anchored to
- * the day the case actually happened. It is NOT when they first got a hand free
- * to chart: in a real theatre nobody documents at the moment of induction, so a
- * case begun at 08:00 and first charted at 08:25 must still start its chart at
- * 08:00.
- *
- * `startTime` is stored with a fixed dummy date (2000-01-01) under this schema's
- * time-only convention, so only its hours/minutes are meaningful and they have
- * to be recombined with the case's real day.
- *
- * Returns null when no start time was recorded — callers then fall back to the
- * earliest event, which is the best guess available.
- */
+/** The trusted instant represented by column zero, when one was persisted. */
 export function chartAnchorFor(intraop: ChartAnchorSource | null): Date | null {
-  // A real instant needs no reconstruction — it is already the moment column 0
-  // represents, on the same clock as the events it brackets.
-  if (intraop?.startedAt) return intraop.startedAt
-
-  // Legacy rows only. `startTime` is a bare wall clock with no zone recorded,
-  // so the best that can be done is to read it as UTC against the case's UTC
-  // day. That is wrong by exactly the clinician's offset — three hours in
-  // Bulgaria in summer — which is why `resolveChartStart` sanity-checks the
-  // result against the events rather than trusting it.
-  if (!intraop?.startTime) return null
-  const day = intraop.createdAt ?? new Date()
-  const dayStartMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
-  const timeOfDayMs = (intraop.startTime.getUTCHours() * 3600 + intraop.startTime.getUTCMinutes() * 60) * 1000
-  return new Date(dayStartMs + timeOfDayMs)
+  return intraop?.startedAt ?? null
 }
 
-/** Fallback origin: the earliest event we have. Only used when no start time exists. */
+/** Fallback origin for legacy event logs that have no persisted start instant. */
 function chartStartFrom(log: LogEvent[]): Date {
   const sorted = [...log].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime())
   return sorted[0]?.ts ? new Date(sorted[0].ts) : new Date()
 }
 
-/**
- * A chart must contain its own events. If the earliest event predates the
- * entered start time by more than this, the two cannot be reconciled — the
- * record's timestamps are not on the same footing as its start time — and the
- * events win.
- *
- * This is not hypothetical: some legacy records carry event timestamps on the
- * dummy 2000-01-01 reference date. Anchoring those to the real day would push
- * every event before column 0, where `colFor` clamps them — collapsing an
- * entire operation into a single column. Falling back leaves such a chart
- * exactly as it reads today instead of destroying it.
- *
- * A small tolerance is allowed for genuine retrospective entry just before
- * induction.
- */
-const PRE_START_TOLERANCE_MS = 60 * 60_000
-
-/**
- * How long after the entered start time charting may plausibly begin. Nobody
- * documents at the moment of induction, but they do not wait half a day either
- * — a larger gap means the start time and the event timestamps are not on the
- * same clock, which older records genuinely are not (they were written with a
- * different encoding). Trusting the anchor there would stretch a one-hour case
- * into a twenty-one-hour chart.
- */
-const LATE_START_TOLERANCE_MS = 12 * 60 * 60_000
-
 export function resolveChartStart(
   intraop: ChartAnchorSource | null,
   log: LogEvent[],
 ): Date {
-  const anchor = chartAnchorFor(intraop)
-  if (!anchor) return chartStartFrom(log)
-  if (log.length === 0) return anchor
-
-  // A real instant is authoritative full stop. It is on the same clock as the
-  // events, so there is nothing to reconcile and no reason to second-guess the
-  // clinician: if they charted five hours after induction, the chart starts at
-  // induction. The window below exists only because legacy wall-clock values
-  // are measured against a different clock and can be an offset out.
-  if (intraop?.startedAt) return anchor
-
-  // The entered start time is authoritative only when the events it is meant to
-  // describe actually sit alongside it. Outside that window the two disagree
-  // too much to reconcile, so the events — which are the source of truth — win,
-  // leaving the chart exactly as it reads today rather than mangling it.
-  const earliest = chartStartFrom(log).getTime()
-  const withinWindow =
-    earliest >= anchor.getTime() - PRE_START_TOLERANCE_MS &&
-    earliest <= anchor.getTime() + LATE_START_TOLERANCE_MS
-  return withinWindow ? anchor : chartStartFrom(log)
+  return chartAnchorFor(intraop) ?? chartStartFrom(log)
 }
 
 // Stable, order-independent comparison so a resend of an unchanged event is a
@@ -239,6 +156,45 @@ export function reverseProject(keyEvents: LegacyKeyEvents, baseMs: number): LogE
   return reverseProjectIntraop(keyEvents as CoreLegacyKeyEvents, baseMs)
 }
 
+export function snapshotLogForReconcile(
+  keyEvents: LegacyKeyEvents,
+  startedAtMs: number | null,
+  nowMs = Date.now(),
+): LogEvent[] | null {
+  if (Array.isArray(keyEvents.log) && keyEvents.log.length > 0) return keyEvents.log
+  if (startedAtMs === null) return null
+  const projected = reverseProject(keyEvents, startedAtMs)
+  const futureLimit = nowMs + INTRAOP_COLUMN_MS
+  return projected.some(event => {
+    const ts = typeof event.ts === "string" ? Date.parse(event.ts) : NaN
+    return Number.isFinite(ts) && ts > futureLimit
+  }) ? null : projected
+}
+
+function hasProjectedSnapshot(keyEvents: LegacyKeyEvents): boolean {
+  return [
+    keyEvents.vitals,
+    keyEvents.drugs,
+    keyEvents.infusions,
+    keyEvents.fluids,
+    keyEvents.agents,
+    keyEvents.gasSettings,
+    keyEvents.positions,
+    keyEvents.phases,
+    keyEvents.clinicalEvents,
+  ].some(value => Array.isArray(value) && value.length > 0)
+}
+
+export function shouldPreserveUnanchoredSnapshot(
+  startedAt: Date | null | undefined,
+  keyEvents: LegacyKeyEvents,
+): boolean {
+  return !startedAt &&
+    (keyEvents.legacyUnanchored === true ||
+      ((!Array.isArray(keyEvents.log) || keyEvents.log.length === 0) &&
+        hasProjectedSnapshot(keyEvents)))
+}
+
 // If a case has no CaseEvent rows yet (its intraop data predates the
 // event-sourced write path), seed them from its existing keyEvents (log if
 // present, else reverse-projected from the legacy column-indexed arrays) so
@@ -255,9 +211,8 @@ export async function ensureBackfilled(tx: Tx, caseId: string): Promise<void> {
     // timestamp, so reconstructed timestamps hang off the same chart anchor the
     // projection uses — one definition of column 0, shared.
     const anchor = intra ? chartAnchorFor(intra) : null
-    const day = intra?.createdAt ?? new Date()
-    const fallbackMs = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate())
-    log = reverseProject(keyEvents, anchor?.getTime() ?? fallbackMs)
+    if (!anchor) return
+    log = reverseProject(keyEvents, anchor.getTime())
   }
 
   for (const ev of log) {
@@ -427,13 +382,22 @@ export async function rebuildProjection(
       bloodMl: true,
     },
   })
+  const existingKeyEvents = (intraopRec?.keyEvents as LegacyKeyEvents | null) ?? {}
+  const preserveUnanchored = shouldPreserveUnanchoredSnapshot(
+    intraopRec?.startedAt,
+    existingKeyEvents,
+  )
   const start = resolveChartStart(intraopRec, log)
-  const projected = projectTimetable(log, start)
+  const projected = preserveUnanchored ? existingKeyEvents : projectTimetable(log, start)
 
   // The projected shape is a real, JSON-serializable plain object — optional
   // fields just don't structurally match Prisma's InputJsonValue (which
   // disallows `undefined`), hence the cast rather than a real mismatch.
-  const keyEvents = { ...projected, log } as unknown as Prisma.InputJsonValue
+  const keyEvents = {
+    ...projected,
+    log,
+    ...(preserveUnanchored ? { legacyUnanchored: true } : {}),
+  } as unknown as Prisma.InputJsonValue
   // Fluid totals are derived from the fluid events, so they are computed here
   // (the single source of truth) rather than PATCHed separately by each client
   // — the case-PATCH mapper no longer accepts them. Same core function both

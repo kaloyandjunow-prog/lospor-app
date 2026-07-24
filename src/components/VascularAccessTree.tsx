@@ -5,6 +5,11 @@ import { useTranslations } from "next-intl"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
+import {
+  VASCULAR_PREEXISTING_QUICK_OPTIONS,
+  buildOptionTree,
+} from "@lospor/core/catalog"
+import { vascularAccessDefaultUnit } from "@lospor/core/intraop"
 
 export type VascularAccess = {
   site:        string
@@ -22,25 +27,17 @@ interface Node { v: string; label: string; children?: Node[] }
 // buildTree below, called from VascularAccessTree) instead of a hardcoded
 // literal — same pattern as TechniqueTree.tsx.
 function buildTree(rows: LibraryOption[]): Node[] {
-  const byParent = new Map<string | null, LibraryOption[]>()
-  for (const r of rows) {
-    const key = r.parentId
-    if (!byParent.has(key)) byParent.set(key, [])
-    byParent.get(key)!.push(r)
-  }
-  function build(parentId: string | null): Node[] {
-    return (byParent.get(parentId) ?? []).map(r => ({
-      v: r.value,
-      label: r.label,
-      children: byParent.has(r.id) ? build(r.id) : undefined,
-    }))
-  }
-  return build(null)
+  const mapNodes = (
+    nodes: ReturnType<typeof buildOptionTree<LibraryOption>>,
+  ): Node[] => nodes.map(node => ({
+    v: node.value,
+    label: node.label,
+    children: node.children?.length ? mapNodes(node.children) : undefined,
+  }))
+  return mapNodes(buildOptionTree(rows))
 }
 
-function defaultUnit(site: string) {
-  return site.startsWith("ART_") || site === "VEN_PERIPHERAL" ? "G" : "Fr"
-}
+const defaultUnit = vascularAccessDefaultUnit
 
 function shortLabel(a: VascularAccess): string {
   const detail = [
@@ -121,7 +118,7 @@ function DetailForm({
       <div className="space-y-1">
         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("intraop.vascular.unit")}</p>
         <div className="flex gap-2">
-          {["G", "Fr"].map(u => (
+          {(["G", "Fr"] as const).map(u => (
             <button key={u} type="button" onClick={() => { setSizeUnit(u); setSize("") }}
               className={`px-4 py-1.5 rounded-lg border-2 text-sm font-bold transition-all ${
                 sizeUnit === u
@@ -200,12 +197,11 @@ function DetailForm({
   )
 }
 
-const PREEXISTING_QUICK: { v: string; label: string; crumb: string }[] = [
-  { v: "VEN_PERIPHERAL", label: "Peripheral IV",    crumb: "Venous › Peripheral IV"                              },
-  { v: "CVK_IJV",        label: "CVC (IJV)",        crumb: "Venous › Central › Central line › Internal jugular"  },
-  { v: "CVK_SUBCLAVIAN", label: "CVC (Subclavian)", crumb: "Venous › Central › Central line › Subclavian"        },
-  { v: "ART_RADIAL",     label: "Art line (Radial)", crumb: "Arterial › Radial"                                   },
-]
+const PREEXISTING_QUICK = VASCULAR_PREEXISTING_QUICK_OPTIONS.map(option => ({
+  v: option.value,
+  label: option.label,
+  crumb: option.crumb,
+}))
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function VascularAccessTree({

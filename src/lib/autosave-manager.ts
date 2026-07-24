@@ -4,9 +4,12 @@ import {
   createAutosaveManager,
   eventIdempotencyKey,
   IDEMPOTENCY_HEADER,
-  SECTION_CONFLICT_HEADER,
-  SECTION_REVISION_HEADER,
+  OPERATION_ID_HEADER,
   SOURCE_HEADER,
+  buildSectionRevisionHeaders,
+  readBlockedSaveIssue,
+  serverVersionRevision,
+  type BlockedSaveIssue,
   type EventMutation,
   type OutboxSummary,
   type PatchFailure,
@@ -19,28 +22,11 @@ class AutosaveHttpError extends Error {
   constructor(
     public status: number,
     public serverRevision?: SectionRevision,
+    public blocked?: BlockedSaveIssue,
+    message = `Save failed (HTTP ${status})`,
   ) {
-    super(`Save failed (HTTP ${status})`)
+    super(message)
   }
-}
-
-function revisionHeaders(
-  section: "preop" | "postop" | "intraop",
-  revision: SectionRevision | undefined,
-): Record<string, string> {
-  if (typeof revision === "number") return { [SECTION_REVISION_HEADER[section]]: String(revision) }
-  if (typeof revision === "string") return { [SECTION_CONFLICT_HEADER[section]]: revision }
-  return {}
-}
-
-function serverRevision(body: unknown): SectionRevision | undefined {
-  if (!body || typeof body !== "object") return undefined
-  const version = (body as { serverVersion?: unknown }).serverVersion
-  if (!version || typeof version !== "object") return undefined
-  const revision = (version as { revision?: unknown }).revision
-  if (typeof revision === "number") return revision
-  const updatedAt = (version as { updatedAt?: unknown }).updatedAt
-  return typeof updatedAt === "string" ? updatedAt : undefined
 }
 
 function classifyError(error: unknown): PatchFailure {
@@ -49,6 +35,8 @@ function classifyError(error: unknown): PatchFailure {
     return {
       kind: "http",
       status: error.status,
+      blocked: error.blocked,
+      message: error.message,
       ...(typeof error.serverRevision === "number"
         ? { serverRevision: error.serverRevision }
         : typeof error.serverRevision === "string"
@@ -79,8 +67,8 @@ async function sendMutation(operation: EventMutation, revision: SectionRevision)
       headers: {
         "Content-Type": "application/json",
         [SOURCE_HEADER]: "web",
-        "x-lospor-operation-id": operation.operationId,
-        ...revisionHeaders("intraop", revision),
+        [OPERATION_ID_HEADER]: operation.operationId,
+        ...buildSectionRevisionHeaders("intraop", revision),
       },
       body: operation.kind === "event.upsert" ? JSON.stringify(operation.event) : undefined,
     },
@@ -96,7 +84,7 @@ async function sendMutation(operation: EventMutation, revision: SectionRevision)
       typeof body.intraopRevision === "number" ? body.intraopRevision :
       typeof body.intraopUpdatedAt === "string" ? body.intraopUpdatedAt :
       undefined,
-    serverRevision: serverRevision(body),
+    serverRevision: serverVersionRevision(body) ?? undefined,
   }
 }
 
@@ -108,12 +96,22 @@ export const autosaveManager = createAutosaveManager({
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...revisionHeaders(section, revision),
+          ...buildSectionRevisionHeaders(section, revision),
         },
         body: JSON.stringify({ [section]: payload }),
       })
       const body = await response.json().catch(() => ({}))
-      if (!response.ok) throw new AutosaveHttpError(response.status, serverRevision(body))
+      if (!response.ok) {
+        const message = body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string"
+          ? (body as { error: string }).error
+          : `Save failed (HTTP ${response.status})`
+        throw new AutosaveHttpError(
+          response.status,
+          serverVersionRevision(body) ?? undefined,
+          readBlockedSaveIssue(body) ?? undefined,
+          message,
+        )
+      }
       return body
     },
     classifyError,
@@ -132,7 +130,7 @@ export const autosaveManager = createAutosaveManager({
           "Content-Type": "application/json",
           ...(event.id ? { [IDEMPOTENCY_HEADER]: eventIdempotencyKey(caseId, String(event.id)) } : {}),
           [SOURCE_HEADER]: "web",
-          ...revisionHeaders("intraop", revision),
+          ...buildSectionRevisionHeaders("intraop", revision),
         },
         body: JSON.stringify(event),
       })

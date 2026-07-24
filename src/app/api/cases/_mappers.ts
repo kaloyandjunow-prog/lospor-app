@@ -1,11 +1,17 @@
 // Shared data-mapping helpers for POST and PATCH case routes
 import { Prisma } from "@/generated/prisma/client"
-import { instantFromLocalTime, isValidTimeZone, durationMinutesBetween } from "@/lib/intraop-time"
+import {
+  durationMinutesBetween,
+  endInstantForWallClock,
+  instantFromLocalTime,
+  isValidTimeZone,
+} from "@/lib/intraop-time"
 import {
   canonicalizeIntraopPatch,
   canonicalizePostopPatch,
   canonicalizePreopPatch,
 } from "@lospor/core/case-payloads"
+import { normalizeOptionCodes } from "@lospor/core/option-aliases"
 
 // Copies full[k] into r[k] for each key present in the raw payload. A plain
 // `r[k] = full[k]` inside a loop over a key UNION can't statically prove the
@@ -209,8 +215,8 @@ export function mapIntraopUpdate(intraop: Record<string, unknown>) {
     // clinician had already set.
     if (has("startTime") && HHMMRE.test(String(intraop.startTime ?? ""))) r.startTime = full.startTime
     if (has("endTime"))       r.endTime         = full.endTime
-    if (full.startedAt)       r.startedAt       = full.startedAt
-    if (full.endedAt)         r.endedAt         = full.endedAt
+    if (has("startedAt")) r.startedAt = full.startedAt
+    if (has("endedAt"))   r.endedAt   = full.endedAt
     if (full.timezone)        r.timezone        = full.timezone
                               r.durationMinutes = full.durationMinutes
   }
@@ -304,9 +310,16 @@ function resolveIntraopInstants(intraop: Record<string, unknown>): {
       ? instantFromLocalTime(day, hhmm, tz)
       : null
 
+  const startedAt = asInstant(intraop.startedAt) ?? fromWallClock(intraop.startTime)
+  const endedAt = asInstant(intraop.endedAt) ?? (
+    startedAt && tz && typeof intraop.endTime === "string"
+      ? endInstantForWallClock(startedAt, intraop.endTime, tz, intraop.endTimeNextDay === true)
+      : null
+  )
+
   return {
-    startedAt: asInstant(intraop.startedAt) ?? fromWallClock(intraop.startTime),
-    endedAt:   asInstant(intraop.endedAt)   ?? fromWallClock(intraop.endTime),
+    startedAt,
+    endedAt,
     timezone:  tz,
   }
 }
@@ -348,7 +361,12 @@ export function mapIntraop(rawIntraop: Record<string, unknown>): Prisma.Intraope
     endedAt:   instants.endedAt,
     timezone:  instants.timezone,
     positions:       intraop.positions        ?? [],
-    techniques:      intraop.techniques       ?? [],
+    techniques: normalizeOptionCodes(
+      "TECHNIQUE",
+      Array.isArray(intraop.techniques)
+        ? intraop.techniques.filter((value): value is string => typeof value === "string")
+        : [],
+    ),
     tubeSize:        intraop.tubeSize        ?? null,
     cuffed:          intraop.cuffed          ?? null,
     lmaSize:         intraop.lmaSize         ?? null,

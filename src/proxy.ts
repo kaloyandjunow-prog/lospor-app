@@ -4,6 +4,7 @@ import NextAuth, { type NextAuthRequest } from "next-auth"
 import { authConfig } from "@/lib/auth.config"
 import { corsHeaders } from "@/lib/cors"
 import { validateCookieWriteOrigin } from "@/lib/csrf"
+import { CORS_REQUEST_HEADERS_VALUE } from "@lospor/core/sync"
 
 // ── CORS preflight handler ────────────────────────────────────────────────────
 // Handles OPTIONS for every /api/* route centrally so individual route files
@@ -12,12 +13,11 @@ import { validateCookieWriteOrigin } from "@/lib/csrf"
 // x-lospor-* are conflict-detection timestamp + sync headers sent by mobile/PWA;
 // x-idempotency-key / x-lospor-source are sent by the intraop event endpoints.
 const CORS_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-const CORS_REQUEST_HEADERS = "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-preop-revision, x-lospor-postop-revision, x-lospor-intraop-revision, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key, x-lospor-operation-id"
 
 function handleCorsOptions(req: NextRequest): NextResponse | null {
   if (req.method !== "OPTIONS") return null
   if (!req.nextUrl.pathname.startsWith("/api/")) return null
-  return new NextResponse(null, { status: 204, headers: corsHeaders(req, CORS_METHODS, CORS_REQUEST_HEADERS) })
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req, CORS_METHODS, CORS_REQUEST_HEADERS_VALUE) })
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

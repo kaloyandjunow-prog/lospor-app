@@ -1,5 +1,49 @@
 # Changelog - LOSPOR Web App
 
+## [6.0.0] - Unreleased
+
+### Changed
+
+- Clinical catalogs, offline fallback records, labs, ASA/risk decisions,
+  readiness checks, Aldrete/handover rules, summaries, timing, units, account
+  policy, and search contracts now come from Core.
+- The database remains the runtime catalog mirror. Seeding imports Core and
+  applies non-destructive upserts instead of maintaining a second authored
+  option library.
+- Option loading, lock leases/takeover, polling, and revision/conflict headers
+  use shared Core controllers with web storage and HTTP adapters.
+- Finalization blocks on hard requirements, presents one shared warning list,
+  and reconciles relational rows before writing the immutable snapshot.
+- CI rejects copied fallback catalogs, hardcoded clinical option arrays,
+  duplicated threshold functions, aliases, and timetable interval arithmetic.
+
+### Fixed
+
+- A PII-rejected field now remains visible locally with its specific reason
+  beside the field and in autosave status. Safe fields continue saving, and
+  the rejected value is retried only after it is edited.
+- Uppercase ICD-10 diagnoses and comorbidities selected from the coded
+  catalogue no longer trigger the probable-name heuristic. EGN, long-number,
+  date, and email checks still apply.
+- The gas-settings bar now shows each FGF/carrier-gas/FiO2 change at its
+  five-minute column, uses the same rounded edges as other timetable bars, and
+  allows editing from any active cell.
+- Gas start, change, and stop rows in the web event log now show clinical
+  descriptions instead of raw `gas_start`/`gas_change` type names.
+- Live timetable clocks and event columns use persisted `startedAt` instants,
+  never a bare `HH:MM` reconstructed against the browser or server clock.
+- Routine form autosave no longer sends a competing whole-timetable snapshot.
+  Legacy snapshots without a trusted start remain readable and cannot create
+  future synthetic events.
+- Added a dry-run shifted-event report plus a separately guarded, audited
+  tombstone repair command. No repair runs automatically.
+- Legacy `GENERAL_COMBINED` cases are returned and persisted as canonical
+  `GENERAL_BALANCED`, while existing translated display labels remain valid.
+
+### Release
+
+- No database migration is required.
+
 ## [5.6.1] - 2026-07-24
 
 ### Changed

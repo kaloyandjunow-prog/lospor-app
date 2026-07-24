@@ -6,6 +6,7 @@
  * 2. Populates typed CaseEvent query columns from metadataJson.
  */
 import "dotenv/config"
+import { gasFractions } from "@lospor/core/intraop-engine"
 import { PrismaClient, Prisma } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { syncCaseRelational } from "../src/lib/relational-sync"
@@ -21,15 +22,6 @@ async function backfillCaseRows() {
     if (++done % 50 === 0) console.log(`  ...${done}/${cases.length} cases`)
   }
   console.log(`Relational rows synced for ${done} cases (${failed} failed).`)
-}
-
-function gasFractions(carrierGas: string | null | undefined, fio2: number | null | undefined) {
-  const safeFio2 = carrierGas == null ? 100 : Math.min(100, Math.max(21, Number(fio2 ?? 21)))
-  return {
-    fio2: safeFio2,
-    fiAir: carrierGas === "air" ? 100 - safeFio2 : 0,
-    fiN2O: carrierGas === "n2o" ? 100 - safeFio2 : 0,
-  }
 }
 
 async function backfillEventColumns() {

@@ -6,6 +6,7 @@ import {
   calculateDrugTotals,
   naturalTimetableColumnCount,
 } from "@lospor/core/intraop-summary"
+import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
 import { calcInfusionTotals } from "@lospor/core/intraop-totals"
 import type {
   LegacyKeyEvents, TimetableInfusion, VitalsEntry,
@@ -14,13 +15,7 @@ import type {
 } from "@/types/timetable"
 
 function colToHHMM(col: number, startISO?: string | null) {
-  if (!startISO) return `+${col * 5}m`
-  const d = new Date(startISO)
-  // DB times are stored as UTC; use UTC methods to recover the original entered time.
-  const totalMins = d.getUTCHours() * 60 + d.getUTCMinutes() + col * 5
-  const hh = Math.floor(totalMins / 60) % 24
-  const mm = totalMins % 60
-  return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`
+  return sharedColToHHMM(col, startISO)
 }
 
 // ── Drug/fluid totals ─────────────────────────────────────────────────────────

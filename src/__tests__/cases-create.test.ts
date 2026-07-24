@@ -107,4 +107,34 @@ describe("POST /api/cases", () => {
     expect(res.status).toBe(400)
     expect(createMock).not.toHaveBeenCalled()
   })
+
+  it("returns a structured permanent PII error for legacy free-text diagnosis", async () => {
+    const res = await POST(makeRequest({
+      preop: { ...MINIMAL_PREOP, diagnosis: "Ivan Petrov" },
+    }))
+
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({
+      code: "PII_BLOCKED",
+      field: "diagnosis",
+      reason: "likely_name",
+      retryable: false,
+      blockedKeys: ["diagnosis", "icdCode"],
+    })
+    expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it("accepts an uppercase Bulgarian diagnosis selected from ICD-10", async () => {
+    const res = await POST(makeRequest({
+      preop: {
+        ...MINIMAL_PREOP,
+        diagnoses: [{ code: "K35", label: "ОСТЪР АПЕНДИСИТ", system: "ICD-10" }],
+        diagnosis: "ОСТЪР АПЕНДИСИТ",
+        icdCode: "K35",
+      },
+    }))
+
+    expect(res.status).toBe(201)
+    expect(createMock).toHaveBeenCalled()
+  })
 })

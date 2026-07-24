@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ComplicationsPicker, ALL_COMPLICATIONS } from "@/components/intraop/ComplicationsPicker"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 import type { IntraopLogEvent } from "@/components/IntraopTimetable"
+import { describeIntraopEvent } from "@lospor/core/intraop-summary"
 
 export function ComplicationsSection({ t, control, watch, eventLog, onDeleteEvent }: {
   t: (key: string) => string
@@ -47,26 +48,8 @@ export function ComplicationsSection({ t, control, watch, eventLog, onDeleteEven
           <div className="space-y-0">
             {[...eventLog].sort((a, b) => new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime()).map((ev) => {
               const hhmm = (() => { const d = new Date(ev.ts ?? 0); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` })()
-              let text = ""
-              let color = "#64748b"
-              if (ev.type === "drug") { text = `${ev.name} ${ev.dose} ${ev.unit}`; color = ev.color ?? "#3b82f6" }
-              else if (ev.type === "vital") {
-                const parts: string[] = []
-                if (ev.systolic != null && ev.diastolic != null) parts.push(`BP ${ev.systolic}/${ev.diastolic}`)
-                if (ev.heartRate != null) parts.push(`HR ${ev.heartRate}`)
-                if (ev.spO2 != null) parts.push(`SpO2 ${ev.spO2}%`)
-                if (ev.etco2 != null) parts.push(`EtCO2 ${ev.etco2}`)
-                text = parts.join("  "); color = "#22c55e"
-              }
-              else if (ev.type === "clinical_event") { text = ev.label ?? "Event"; color = ev.color ?? "#6366f1" }
-              else if (ev.type === "infusion_start") { text = `${ev.name} ${ev.rate} ${ev.unit} started`; color = ev.color ?? "#8b5cf6" }
-              else if (ev.type === "infusion_stop") { text = `${ev.name} stopped`; color = "#64748b" }
-              else if (ev.type === "infusion_rate") { text = `${ev.name} -> ${ev.rate} ${ev.unit}`; color = ev.color ?? "#8b5cf6" }
-              else if (ev.type === "fluid_start") { text = `${ev.name} ${ev.volume} mL`; color = ev.color ?? "#06b6d4" }
-              else if (ev.type === "fluid_end") { text = `${ev.name} complete`; color = "#64748b" }
-              else if (ev.type === "agent_start") { text = `${ev.name} on`; color = ev.color ?? "#a855f7" }
-              else if (ev.type === "agent_stop") { text = `${ev.name} off`; color = "#64748b" }
-              else { text = ev.type ?? ""; color = "#64748b" }
+              const descriptor = describeIntraopEvent(ev)
+              const { text, color } = descriptor
               return (
                 <div key={ev.id} className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0 group">
                   <span className="text-[11px] text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmm}</span>

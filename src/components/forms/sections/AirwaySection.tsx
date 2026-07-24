@@ -10,6 +10,17 @@ import type { LibraryOption } from "@/hooks/useOptionLibrary"
 import type { Control, UseFormWatch, UseFormSetValue, UseFormRegister, Path } from "react-hook-form"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 import { VENT_ASSISTED, VENT_CONTROLLED } from "@lospor/core/ventilation"
+import {
+  AIRWAY_DEVICE_REQUIRED_FIELDS,
+  AIRWAY_DEVICES_WITH_SUBOPTIONS,
+  DLT_SIDES,
+  DLT_SIZES,
+  DLT_TYPES,
+  ENDOBRONCHIAL_SIZES,
+  ETT_SIZES,
+  LMA_SIZES,
+  type AirwayDeviceWithProfile,
+} from "@lospor/core/intraop"
 
 // Device/airway-tool field names are DB-driven (OptionLibrary), not
 // compile-time literals — see MonitoringSection.tsx's asPath for the same pattern.
@@ -191,14 +202,7 @@ export function AirwaySection({
           DOUBLE_LUMEN_TUBE: (dltType || dltSide || dltSize != null) ? `DLT${dltType ? " " + dltType : ""}${dltSide ? " " + dltSide : ""}${dltSize != null ? " " + dltSize + "Fr" : ""}` : null,
           ENDOBRONCHIAL_TUBE:ebSize != null ? `Endobronchial ${ebSize}mm` : null,
         }
-        const HAS_SUBOPTIONS = ["LMA","ORAL_ETT","NASAL_ETT","DOUBLE_LUMEN_TUBE","ENDOBRONCHIAL_TUBE"]
-        const DEVICE_FIELDS: Record<string, [string, ...string[]]> = {
-          LMA: ["lmaSize"],
-          ORAL_ETT: ["oralTubeSize", "oralCuffed"],
-          NASAL_ETT: ["nasalTubeSize", "nasalCuffed"],
-          DOUBLE_LUMEN_TUBE: ["dltType", "dltSide", "dltSize"],
-          ENDOBRONCHIAL_TUBE: ["endobronchialSize"],
-        }
+        const HAS_SUBOPTIONS: readonly string[] = AIRWAY_DEVICES_WITH_SUBOPTIONS
 
         const DEVICES: { v: string; label: string }[] = airwayDeviceOptions.map(o => ({ v: o.value, label: o.label }))
 
@@ -213,7 +217,9 @@ export function AirwaySection({
         function removeComplexDevice(v: string) {
           if (devs.includes(v)) setValue("airwayDevices", devs.filter(d => d !== v))
           if (airwayExpandedDevice === v) setAirwayExpandedDevice(null)
-          for (const field of DEVICE_FIELDS[v]) setValue(asPath(field), undefined)
+          for (const field of AIRWAY_DEVICE_REQUIRED_FIELDS[v as AirwayDeviceWithProfile] ?? []) {
+            setValue(asPath(field), undefined)
+          }
         }
 
         return (
@@ -263,7 +269,7 @@ export function AirwaySection({
               <div className="rounded-lg border border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a] p-3 space-y-3">
                 <div className="w-40 space-y-1">
                   <Label>{t("intraop.airway.lmaSize")}</Label>
-                  <RangeSelect name="lmaSize" control={control} values={[1, 1.5, 2, 2.5, 3, 4, 5]} placeholder="— size" />
+                  <RangeSelect name="lmaSize" control={control} values={[...LMA_SIZES]} placeholder="— size" />
                 </div>
               </div>
             )}
@@ -274,7 +280,7 @@ export function AirwaySection({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.tubeSizeMmId")}</Label>
-                    <RangeSelect name="oralTubeSize" control={control} min={2} max={10} step={0.5} placeholder="— size" />
+                    <RangeSelect name="oralTubeSize" control={control} values={[...ETT_SIZES]} placeholder="— size" />
                   </div>
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.cuffed")}</Label>
@@ -300,7 +306,7 @@ export function AirwaySection({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.tubeSizeMmId")}</Label>
-                    <RangeSelect name="nasalTubeSize" control={control} min={2} max={10} step={0.5} placeholder="— size" />
+                    <RangeSelect name="nasalTubeSize" control={control} values={[...ETT_SIZES]} placeholder="— size" />
                   </div>
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.cuffed")}</Label>
@@ -328,7 +334,7 @@ export function AirwaySection({
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.dltType")}</Label>
                     <div className="flex gap-2">
-                      {(["Carlens","Robertshaw"] as const).map(t => (
+                      {DLT_TYPES.map(t => (
                         <button key={t} type="button"
                           onClick={() => setValue("dltType", dltType === t ? undefined : t)}
                           className={`flex-1 text-xs py-1.5 rounded-lg border-2 font-semibold transition-all ${
@@ -343,7 +349,7 @@ export function AirwaySection({
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.dltSide")}</Label>
                     <div className="flex gap-2">
-                      {(["Left","Right"] as const).map(s => (
+                      {DLT_SIDES.map(s => (
                         <button key={s} type="button"
                           onClick={() => setValue("dltSide", dltSide === s ? undefined : s)}
                           className={`flex-1 text-xs py-1.5 rounded-lg border-2 font-semibold transition-all ${
@@ -358,7 +364,7 @@ export function AirwaySection({
                   <div className="space-y-1">
                     <Label>{t("intraop.airway.dltSizeFr")}</Label>
                     <div className="flex flex-wrap gap-1.5">
-                      {[26,28,32,35,37,39,41].map(sz => (
+                      {DLT_SIZES.map(sz => (
                         <button key={sz} type="button"
                           onClick={() => setValue("dltSize", dltSize === sz ? undefined : sz)}
                           className={`px-2.5 py-1 rounded-full text-xs font-semibold border-2 transition-all ${
@@ -379,7 +385,7 @@ export function AirwaySection({
                 <div className="space-y-1">
                   <Label>{t("intraop.airway.ebSizeMmId")}</Label>
                   <div className="flex flex-wrap gap-1.5">
-                    {[6.0,6.5,7.0,7.5,8.0].map(sz => (
+                    {ENDOBRONCHIAL_SIZES.map(sz => (
                       <button key={sz} type="button"
                         onClick={() => setValue("endobronchialSize", ebSize === sz ? undefined : sz)}
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold border-2 transition-all ${

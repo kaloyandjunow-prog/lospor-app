@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { corsHeaders } from "@/lib/cors"
+import { CASE_LOCK_TTL_MS } from "@lospor/core/sync"
 
 // ---------------------------------------------------------------------------
 // Helper — resolve case ownership (same pattern as [id]/route.ts)
@@ -41,8 +42,6 @@ export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: CORS(req) })
 }
 
-const LOCK_TTL_MS = 30_000
-
 // ---------------------------------------------------------------------------
 // POST /api/cases/[id]/lock — acquire lock
 // Body: { deviceId: string }
@@ -58,14 +57,14 @@ export async function POST(
 
   // COMPLETE cases need no locking
   if (status === "COMPLETE") {
-    return NextResponse.json({ acquired: true, yours: true })
+    return NextResponse.json({ acquired: true, locked: false, yours: true })
   }
 
   const body: { deviceId?: string } = await req.json().catch(() => ({}))
   const deviceId = typeof body.deviceId === "string" ? body.deviceId : ""
 
   const now = new Date()
-  const expiresAt = new Date(now.getTime() + LOCK_TTL_MS)
+  const expiresAt = new Date(now.getTime() + CASE_LOCK_TTL_MS)
 
   const existing = await prisma.caseLock.findUnique({ where: { caseId: id } })
 
@@ -79,14 +78,14 @@ export async function POST(
         data: { expiresAt },
       })
       if (refreshed.count > 0) {
-        return NextResponse.json({ acquired: true, yours: true })
+        return NextResponse.json({ acquired: true, locked: false, yours: true })
       }
       await prisma.caseLock.upsert({
         where: { caseId: id },
         create: { caseId: id, userId, deviceId, expiresAt },
         update: { userId, deviceId, expiresAt },
       })
-      return NextResponse.json({ acquired: true, yours: true })
+      return NextResponse.json({ acquired: true, locked: false, yours: true })
     }
     // Different device/user holds the lock — look up holder name for the watching banner
     let holderName: string | null = null
@@ -97,7 +96,12 @@ export async function POST(
       })
       holderName = holder?.name ?? holder?.email ?? null
     } catch {}
-    return NextResponse.json({ acquired: false, holderName }, { status: 409 })
+    return NextResponse.json({
+      acquired: false,
+      locked: true,
+      holder: { holderName },
+      holderName,
+    }, { status: 409 })
   }
 
   // No lock or expired lock — upsert
@@ -106,7 +110,7 @@ export async function POST(
     create: { caseId: id, userId, deviceId, expiresAt },
     update: { userId, deviceId, expiresAt },
   })
-  return NextResponse.json({ acquired: true })
+  return NextResponse.json({ acquired: true, locked: false })
 }
 
 // ---------------------------------------------------------------------------
@@ -126,13 +130,13 @@ export async function PATCH(
   const deviceId = typeof body.deviceId === "string" ? body.deviceId : ""
 
   const now = new Date()
-  const expiresAt = new Date(now.getTime() + LOCK_TTL_MS)
+  const expiresAt = new Date(now.getTime() + CASE_LOCK_TTL_MS)
 
   const existing = await prisma.caseLock.findUnique({ where: { caseId: id } })
 
   if (existing && existing.expiresAt > now && (existing.userId !== userId || existing.deviceId !== deviceId)) {
     // A different device/user actively holds an unexpired lock — genuine conflict.
-    return NextResponse.json({ extended: false }, { status: 409 })
+    return NextResponse.json({ acquired: false, locked: true, extended: false }, { status: 409 })
   }
 
   // Either we already hold it, or it's expired/missing — safe to (re)claim.
@@ -145,14 +149,14 @@ export async function PATCH(
     data: { expiresAt },
   })
   if (refreshed.count > 0) {
-    return NextResponse.json({ extended: true })
+    return NextResponse.json({ acquired: true, locked: false, extended: true })
   }
   await prisma.caseLock.upsert({
     where: { caseId: id },
     create: { caseId: id, userId, deviceId, expiresAt },
     update: { userId, deviceId, expiresAt },
   })
-  return NextResponse.json({ extended: true })
+  return NextResponse.json({ acquired: true, locked: false, extended: true })
 }
 
 // ---------------------------------------------------------------------------

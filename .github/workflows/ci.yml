@@ -24,6 +24,6 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma validate
       - run: npx tsc --noEmit --pretty false
+      - run: npm run check:shared-core
       - run: npm run lint
       - run: npm test
-      - run: npm run check:option-library-fallback-fresh

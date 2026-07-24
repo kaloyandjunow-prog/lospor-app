@@ -10,9 +10,8 @@ import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
-import { elapsedSecsSinceStart, resolveStartAnchor } from "@/lib/intraop-clock"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
-import { POSITIONS } from "@/data/option-library/position"
+import { POSITIONS } from "@lospor/core/catalog"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData,
   LogEvent as IntraopLogEvent,
@@ -23,6 +22,13 @@ import { ScenarioPicker } from "@/components/intraop/ScenarioPicker"
 import { HotkeysModal } from "@/components/intraop/HotkeysModal"
 import { useIntraopFavourites } from "@/hooks/useIntraopFavourites"
 import { BOLUS_SCENARIOS, INFUSION_SCENARIOS } from "@lospor/core"
+import {
+  INTRAOP_COLUMN_MINUTES,
+  INTRAOP_RESUME_WINDOW_MS,
+  INTRAOP_RESUME_WINDOW_SECONDS,
+} from "@lospor/core/intraop-engine"
+import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
+import { formatGasMixLabel, formatGasSettingsLabel } from "@/lib/intraop-gas-display"
 import { useDrugHandlers } from "@/hooks/useDrugHandlers"
 import { useVitalsHandlers } from "@/hooks/useVitalsHandlers"
 import { useClinicalEventHandlers } from "@/hooks/useClinicalEventHandlers"
@@ -59,8 +65,8 @@ import { metadataString } from "@lospor/core/option-contracts"
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COL_W     = 74
 const LABEL_W   = 96
-const INTERVAL  = 5
-const ROW_COLS  = 12  // columns per row = 60 min per row (1 hour)
+const INTERVAL  = INTRAOP_COLUMN_MINUTES
+const ROW_COLS  = 60 / INTRAOP_COLUMN_MINUTES
 
 // The selectable libraries (agents, drugs, fluids, clinical events, infusion
 // configs/weight-basis, LA concentrations, bolus dose hints) used to be
@@ -85,7 +91,7 @@ export type {
 } from "@/types/timetable"
 export type { LogEvent as IntraopLogEvent } from "@/types/timetable"
 
-interface Props { startTime: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onComplicationAdded?: (labels: string[]) => void; onLogEvent?: (event: IntraopLogEvent) => void; onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void }
+interface Props { startTime: string; startedAt?: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onComplicationAdded?: (labels: string[]) => void; onLogEvent?: (event: IntraopLogEvent) => void; onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Pure HH:MM time math lives in src/lib/timetable-time.ts (imported above).
@@ -197,8 +203,13 @@ type TtFP = {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function IntraopTimetable({ startTime, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onComplicationAdded, onLogEvent, onLogEventDelete }: Props) {
+export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onComplicationAdded, onLogEvent, onLogEventDelete }: Props) {
   const t = useTranslations()
+  const trustedStartMs = useMemo(() => {
+    if (!startedAt) return null
+    const ms = Date.parse(startedAt)
+    return Number.isFinite(ms) ? ms : null
+  }, [startedAt])
   // Derived (not mutated) from the shared library — see the comment above
   // this component for why these are plain local consts instead of the
   // module-level mutated containers this used to be.
@@ -432,7 +443,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     const id = setInterval(() => {
       if (!endedAtRef.current) return
       const elapsed = Math.floor((Date.now() - endedAtRef.current.getTime()) / 1000)
-      const left    = Math.max(0, 30 * 60 - elapsed)
+      const left    = Math.max(0, INTRAOP_RESUME_WINDOW_SECONDS - elapsed)
       setResumeSecsLeft(left)
     }, 1000)
     return () => clearInterval(id)
@@ -584,15 +595,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const vitalsEmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const tsForCol = useCallback((col: number): string | null => {
-    if (!startTime) return null
-    // Shares the live clock's anchor rule: a start time that looks like it is
-    // in the future is only read as a midnight crossing when the case could
-    // plausibly still be running. Otherwise the case hasn't started and there
-    // is no real timestamp to give these observations.
-    const anchored = resolveStartAnchor(startTime, new Date())
-    if (anchored === null) return null
-    return new Date(anchored + col * INTERVAL * 60_000).toISOString()
-  }, [startTime])
+    if (trustedStartMs === null) return null
+    return new Date(trustedStartMs + col * INTERVAL * 60_000).toISOString()
+  }, [trustedStartMs])
 
   const flushVitalEvents = useCallback(() => {
     vitalsEmitTimerRef.current = null
@@ -820,10 +825,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     // Case hasn't started (start time is in the future) — nothing to backfill.
     // Without this guard a future start time read as ~23 h elapsed would fill
     // hours of fabricated observations forward and persist them as events.
+    if (trustedStartMs === null) return
     const now = new Date()
-    const chartStartMs = resolveStartAnchor(startTime, now)
-    if (chartStartMs === null) return
-    const chartStart = new Date(chartStartMs)
+    const chartStart = new Date(trustedStartMs)
     const log = vitalsToAutoFillLog(d.vitals, chartStart)
     const lastDataCol = latestVitalColumn(log, chartStart)
     if (lastDataCol === null) return
@@ -842,7 +846,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     if (!filledCols.length) return
     filledCols.forEach(col => markVitalColDirtyRef.current(col))
     rawOnChangeRef.current({ ...d, vitals: newVitals })
-  }, [caseStarted, rawOnChangeRef, startTime, autoFillPreferences])
+  }, [caseStarted, rawOnChangeRef, trustedStartMs, autoFillPreferences])
 
   // ── Live clock: advance selectedCol + pixel offset every 10 s ──────────────
   useEffect(() => {
@@ -850,10 +854,12 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     function tick() {
       if (endTimeRef.current) return  // case ended — stop the clock
       const now = new Date()
-      const diffSecs = elapsedSecsSinceStart(startTime, now)
+      const diffSecs = trustedStartMs === null
+        ? null
+        : Math.floor((now.getTime() - trustedStartMs) / 1000)
       // Start time is in the future — the case hasn't begun. Park the clock:
       // no now-marker, no table growth, no auto-extend of live bars.
-      if (diffSecs === null) { setNowOffsetPx(null); prevColRef.current = null; return }
+      if (diffSecs === null || diffSecs < 0) { setNowOffsetPx(null); prevColRef.current = null; return }
       {
         const px  = diffSecs / (INTERVAL * 60) * COL_W
         // Size off the true elapsed column, not the clamped one: clamping to
@@ -879,7 +885,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
         let newVitals = d.vitals
         if (prevCol !== null && trueCol > prevCol && autoFillPreferences.enabled) {
-          const chartStartMs = resolveStartAnchor(startTime, now)
+          const chartStartMs = trustedStartMs
           if (chartStartMs !== null) {
             const chartStart = new Date(chartStartMs)
             const planned = planAutoFillVitalEvents({
@@ -913,7 +919,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     tick()
     const id = setInterval(tick, 10_000)
     return () => clearInterval(id)
-  }, [startTime, caseStarted, autoFillPreferences])
+  }, [trustedStartMs, caseStarted, autoFillPreferences])
 
   const nowCol    = nowOffsetPx !== null ? Math.min(Math.floor(nowOffsetPx / COL_W), colCount - 1) : null
 
@@ -981,7 +987,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     gasSettings, gasPicker, gasPickerRect, pickerFgf, setPickerFgf, pickerCarrierGas, setPickerCarrierGas, pickerFio2, setPickerFio2,
     openPickerForSeg: openGasPickerForSeg, openPickerEmpty: openGasPickerEmpty, closeGasPicker,
     startGas, applyGasChange, stopGas,
-  } = useGasSettingsHandlers(data, onChange, dataRef, onChangeRef, emitLogEvent)
+  } = useGasSettingsHandlers(data, onChange, dataRef, onChangeRef, emitLogEvent, tsForCol)
 
   function handleEndCaseConfirm(result: {
     continuedItems: string[]
@@ -1027,9 +1033,9 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     })
     const endedAt = new Date()
     endedAtRef.current = endedAt
-    const resumeUntil = new Date(endedAt.getTime() + 30 * 60 * 1000)
+    const resumeUntil = new Date(endedAt.getTime() + INTRAOP_RESUME_WINDOW_MS)
     setResumeUntilLabel(`${String(resumeUntil.getHours()).padStart(2,"0")}:${String(resumeUntil.getMinutes()).padStart(2,"0")}`)
-    setResumeSecsLeft(30 * 60)
+    setResumeSecsLeft(INTRAOP_RESUME_WINDOW_SECONDS)
     onEndCase?.()
     if (result.continuedItems.length > 0) onPostopContinued?.(result.continuedItems)
     if (result.infusionTotals.length > 0) onInfusionTotals?.(result.infusionTotals)
@@ -1383,24 +1389,29 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
                 const isStart = seg?.startCol === ci
                 const isEnd   = seg !== null && ci === seg.endCol
                 const isRowCont = !isStart && seg != null && ci === colStart && seg.startCol < colStart
-                const label = (isStart || isRowCont)
-                  ? `FGF ${seg!.fgf}L/min${seg!.carrierGas ? ` · ${seg!.carrierGas.toUpperCase()}` : ""} · FiO2 ${seg!.fio2}%`
-                  : null
+                const isRowExit = seg != null && barContinues(seg.endCol) && ci === colEnd - 1 && !isEnd
+                const settings = seg ? gasSettingsAtColumn(seg, ci) : null
+                const isChange = settings?.changeCol === ci
+                const showSettingsLabel = Boolean(settings && (isStart || isRowCont || isChange))
                 return (
                   <div key={ci} style={{ width: colW, minWidth: colW }}
                     className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
                     onClick={e => {
                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                      if (seg && isStart) openGasPickerForSeg(ci, seg, rect)
+                      if (seg) openGasPickerForSeg(ci, seg, rect)
                       else if (!seg) openGasPickerEmpty(ci, rect)
                     }}>
                     {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">tap to start</span>}
                     {seg && (
-                      <div className={`absolute inset-y-1 left-0 right-0 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
+                      <div className={`absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${leftCls(isStart || isRowCont)} ${rightCls(seg.endCol, isEnd && !isRowExit)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
                     )}
-                    {label && (
-                      <span className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-[10px] font-bold whitespace-nowrap text-indigo-700 dark:text-indigo-300 px-1">
-                        {label}
+                    {showSettingsLabel && settings && (
+                      <span
+                        title={formatGasSettingsLabel(settings)}
+                        className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-[9px] font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
+                      >
+                        <span>FGF {settings.fgf} L/min</span>
+                        <span className="text-[8px]">{formatGasMixLabel(settings)}</span>
                       </span>
                     )}
                     {isEnd && seg && !seg.stopped && (
@@ -2411,7 +2422,7 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
     )}
     {gasPicker !== null && gasPickerRect && typeof document !== "undefined" && createPortal(
       (() => {
-        const pickerSeg = gasSettings.find(g => g.startCol === gasPicker) ?? null
+        const pickerSeg = gasSettings.find(g => gasPicker >= g.startCol && gasPicker <= g.endCol) ?? null
         const POP_W = 210
         const spaceBelow = window.innerHeight - gasPickerRect.bottom
         const showAbove = spaceBelow < 280
@@ -2761,7 +2772,10 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
           {rateDialog.step === "time" && (() => {
             const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))
-            const mins  = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"))
+            const mins = Array.from(
+              { length: 60 / INTRAOP_COLUMN_MINUTES },
+              (_, index) => String(index * INTRAOP_COLUMN_MINUTES).padStart(2, "0"),
+            )
             const selCls = "flex h-10 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 flex-1"
             return (
               <>

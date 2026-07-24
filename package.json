@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
-    "build": "npm run gen:option-library-fallback && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:shared-core": "node scripts/check-shared-core-boundaries.mjs",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "gen:option-library-fallback": "tsx scripts/generate-option-library-fallback.ts",
-    "check:option-library-fallback-fresh": "tsx scripts/check-option-library-fallback-fresh.ts",
+    "seed:icd10-bg": "tsx scripts/seed-vocabularies.ts --bg-only",
     "seed:athena": "tsx scripts/seed-athena-vocabularies.ts",
     "seed:concept-maps": "tsx scripts/seed-concept-maps.ts",
     "data-quality": "tsx scripts/data-quality-report.ts",
@@ -23,7 +23,9 @@
     "smoke:autosave": "tsx scripts/smoke-autosave.ts",
     "smoke:transfer": "tsx scripts/smoke-transfer.ts",
     "reproject:cases": "tsx scripts/reproject-cases.ts",
-    "smoke:start-time": "tsx scripts/smoke-start-time.ts"
+    "smoke:start-time": "tsx scripts/smoke-start-time.ts",
+    "report:intraop-time": "tsx scripts/intraop-time-anomalies.ts",
+    "repair:intraop-time": "tsx scripts/intraop-time-anomalies.ts --apply"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

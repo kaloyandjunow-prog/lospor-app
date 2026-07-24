@@ -5,7 +5,7 @@ import { mapPreop, mapIntraop, mapPostop } from "./_mappers"
 import { logAudit } from "@/lib/audit"
 import { preopSchema, intraopSchema, postopSchema } from "@/lib/schemas/case"
 import { parseLenient, type RejectedField } from "@/lib/lenient-parse"
-import { checkClinicalPayloadPII } from "@/lib/clinical-pii"
+import { checkClinicalPayloadPII, piiErrorBody } from "@/lib/clinical-pii"
 import { syncCaseRelationalSafe } from "@/lib/relational-sync"
 import { caseWhereForUser } from "@/lib/access-control"
 import { generateCaseCode, isPrismaUniqueError } from "@/lib/case-code"
@@ -90,8 +90,8 @@ export async function POST(req: NextRequest) {
 
     const piiError = checkClinicalPayloadPII({ preop, intraop, postop, notes: body.notes })
     if (piiError) {
-      after(() => logAudit(userId, "PII_BLOCKED", "new", { error: piiError }))
-      return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+      after(() => logAudit(userId, "PII_BLOCKED", "new", { field: piiError.field, reason: piiError.reason }))
+      return NextResponse.json(piiErrorBody(piiError), { status: 400 })
     }
 
     const status = postop ? "AWAITING_REVIEW" : intraop ? "IN_PROGRESS" : "DRAFT"

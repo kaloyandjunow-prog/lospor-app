@@ -4,7 +4,7 @@ import { z } from "zod"
 import { canAccessCase } from "@/lib/access-control"
 import { logAudit } from "@/lib/audit"
 import { addEvent, deleteEvent, rebuildProjection, reserveIntraopRevision, type LogEvent } from "@/lib/case-events"
-import { checkEventPII } from "@/lib/clinical-pii"
+import { checkEventPII, piiErrorBody } from "@/lib/clinical-pii"
 import { corsHeaders } from "@/lib/cors"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
@@ -110,7 +110,7 @@ export async function PUT(
   }
   const event = { ...parsed, id: eventId }
   const piiError = checkEventPII(event)
-  if (piiError) return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+  if (piiError) return NextResponse.json(piiErrorBody(piiError), { status: 400 })
 
   const reservation = await reserveRevision(id, revision, !!auth.existing.intraop)
   if ("response" in reservation) return reservation.response

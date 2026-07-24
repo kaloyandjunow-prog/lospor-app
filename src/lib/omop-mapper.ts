@@ -22,6 +22,7 @@
 
 import { createHash } from "node:crypto"
 import { DICTIONARY_VERSION } from "@/lib/data-dictionary"
+import { deriveQualityStatus } from "@lospor/core/omop"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -553,12 +554,6 @@ export interface ExportContext {
   excludedCaseCount: number
   gitCommit: string
   forcedOverride: boolean
-}
-
-function deriveQualityStatus(warnings: ExportQualityWarning[]): "PASS" | "WARNING" | "FAIL" {
-  if (warnings.some(w => w.severity === "error"))   return "FAIL"
-  if (warnings.some(w => w.severity === "warning")) return "WARNING"
-  return "PASS"
 }
 
 export function mapCasesToOmop(cases: CaseRow[], ctx?: ExportContext): OmopBundle {

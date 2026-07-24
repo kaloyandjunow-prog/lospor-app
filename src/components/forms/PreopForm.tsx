@@ -553,6 +553,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </div>
             )} />
             {fieldErrors.has("diagnoses") && <p className="text-red-500 text-xs">At least one diagnosis is required.</p>}
+            <RejectionNote msg={rejectionOf("diagnoses")} />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label>{t("preop.procedure")} <span className="text-red-500">*</span></Label>
@@ -571,6 +572,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </div>
             )} />
             {fieldErrors.has("procedures") && <p className="text-red-500 text-xs">{t("preop.procedureRequired")}</p>}
+            <RejectionNote msg={rejectionOf("procedures")} />
           </div>
           <div className="space-y-1 col-span-full">
             <Label>{t("preop.teamNotes")} <span className="font-normal text-slate-400">({t("common.optional")})</span></Label>
@@ -580,6 +582,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               rows={2}
               placeholder={t("preop.teamNotesPlaceholder")}
             />
+            <RejectionNote msg={rejectionOf("teamNotes")} />
           </div>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
@@ -645,6 +648,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             />
           </>
         )} />
+        <RejectionNote msg={rejectionOf("comorbidities")} />
       </SectionCard>
 
       {/* Medications */}
@@ -663,6 +667,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             placeholder={t("preop.medicationsPlaceholder")}
           />
         )} />
+        <RejectionNote msg={rejectionOf("currentMedications")} />
       </SectionCard>
 
       {/* Anamnesis, habits & risk factor checkboxes */}
@@ -679,20 +684,23 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             <Label htmlFor="allergies" className="font-normal cursor-pointer">{t("preop.allergies")}</Label>
           </div>
           {allergies && (
-            <Controller name="allergyDetails" control={control} render={({ field }) => (
-              <TagInput
-                value={(field.value ?? []) as Tag[]}
-                onChange={field.onChange}
-                searchUrl="/api/search/drugs"
-                renderSuggestion={(item: DrugSearchItem) => ({
-                  label: item.inn ? `${item.inn}${item.strength ? ` ${item.strength}` : ""}` : item.name,
-                  sub: item.name !== item.inn ? item.name : undefined,
-                  inn: item.inn ?? undefined,
-                  atcCode: item.atcCode ?? undefined,
-                })}
-                placeholder={t("preop.allergenSearchPlaceholder")}
-              />
-            )} />
+            <>
+              <Controller name="allergyDetails" control={control} render={({ field }) => (
+                <TagInput
+                  value={(field.value ?? []) as Tag[]}
+                  onChange={field.onChange}
+                  searchUrl="/api/search/drugs"
+                  renderSuggestion={(item: DrugSearchItem) => ({
+                    label: item.inn ? `${item.inn}${item.strength ? ` ${item.strength}` : ""}` : item.name,
+                    sub: item.name !== item.inn ? item.name : undefined,
+                    inn: item.inn ?? undefined,
+                    atcCode: item.atcCode ?? undefined,
+                  })}
+                  placeholder={t("preop.allergenSearchPlaceholder")}
+                />
+              )} />
+              <RejectionNote msg={rejectionOf("allergyDetails")} />
+            </>
           )}
           <div className="flex items-center gap-2">
             <Controller name="latexAllergy" control={control} render={({ field }) => (
@@ -711,7 +719,12 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             )} />
             <Label htmlFor="familyAnesthesiaProblems" className="font-normal cursor-pointer">{t("preop.familyAnesthesia")}</Label>
           </div>
-          {familyAnesthesiaProblems && <Textarea maxLength={500} placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />}
+          {familyAnesthesiaProblems && (
+            <>
+              <Textarea maxLength={500} placeholder={t("common.details")} {...register("familyAnesthesiaDetails")} />
+              <RejectionNote msg={rejectionOf("familyAnesthesiaDetails")} />
+            </>
+          )}
           <Separator />
           {/* Dental */}
           <div className="flex items-center gap-2">
@@ -917,6 +930,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         <div className="space-y-1 pt-2">
           <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.physicalExamReport")}</Label>
           <Textarea maxLength={500} placeholder={t("preop.physicalExamPlaceholder")} rows={3} {...register("physicalExamReport")} />
+          <RejectionNote msg={rejectionOf("physicalExamReport")} />
         </div>
       </SectionCard>
       </div>
@@ -1036,6 +1050,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <div className="space-y-1">
             <Label>{t("common.details")}</Label>
             <Textarea maxLength={500} placeholder={t("preop.difficultAirwayDetails")} {...register("difficultAirwayNotes")} />
+            <RejectionNote msg={rejectionOf("difficultAirwayNotes")} />
           </div>
         )}
         {fieldErrors.has("airway") && !airwayUTO && (
@@ -1149,6 +1164,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         <div className="space-y-1 pt-2">
           <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.notesLabel")}</Label>
           <Textarea placeholder={t("preop.notesPlaceholder")} rows={3} {...register("notes")} />
+          <RejectionNote msg={rejectionOf("notes")} />
         </div>
       </SectionCard>
       </div>

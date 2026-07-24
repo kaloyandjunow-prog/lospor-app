@@ -90,7 +90,7 @@ describe("POST /api/cases/:id/finalize", () => {
     const res = await POST(makeRequest(), { params: Promise.resolve({ id: "case-1" }) })
     expect(res.status).toBe(422)
     const body = await res.json()
-    expect(body.reason).toBe("missing_intraop")
+    expect(body.reason).toBe("missing_start_time")
   })
 
   it("returns 422 when intraop has no technique", async () => {

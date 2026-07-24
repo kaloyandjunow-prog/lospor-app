@@ -144,6 +144,7 @@
     "savingDraft": "Saving draft…",
     "draftSaved": "✓ Draft saved",
     "draftQueued": "Saved locally — waiting for connection",
+    "draftBlocked": "Not saved — edit the highlighted field",
     "savedOffline": "No connection — saved locally, will sync automatically",
     "timelineEditFailed": "Could not save the timeline change — check your connection and try again. The change was reverted.",
     "autoSaveFailed": "Auto-save failed",
@@ -163,7 +164,13 @@
       "postop": "Postoperative",
       "summary": "Summary"
     },
-    "notSaved": "Not saved"
+    "notSaved": "Not saved",
+    "piiLikelyName": "{field} may contain a person's name. Remove identifying information to save.",
+    "piiEgn": "{field} may contain a Bulgarian personal ID number. Remove it to save.",
+    "piiLongNumber": "{field} may contain a long identifying number. Remove it to save.",
+    "piiDate": "{field} may contain a full date that could identify a patient. Remove it to save.",
+    "piiEmail": "{field} may contain an email address. Remove it to save.",
+    "piiGeneric": "{field} contains identifying information and was not saved."
   },
   "transfer": {
     "awaitingAcceptance": "Awaiting acceptance",

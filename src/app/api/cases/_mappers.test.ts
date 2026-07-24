@@ -178,10 +178,11 @@ describe("mapIntraopUpdate — a partial save never blanks a stored time", () =>
     expect(r.startTime).toBeUndefined()
   })
 
-  it("writes both forms when a real time is supplied", () => {
+  it("writes both forms when the client supplies a wall clock and real instant", () => {
     const r = mapIntraopUpdate({
-      startTime: "08:00", timezone: "Europe/Sofia",
-      caseDay: new Date("2026-07-21T05:25:00.000Z"),
+      startTime: "08:00",
+      startedAt: "2026-07-21T05:00:00.000Z",
+      timezone: "Europe/Sofia",
     })
     expect((r.startTime as Date).toISOString()).toBe("2000-01-01T08:00:00.000Z")
     expect((r.startedAt as Date).toISOString()).toBe("2026-07-21T05:00:00.000Z")

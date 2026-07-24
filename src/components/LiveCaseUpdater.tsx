@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { createSingleFlightPoller } from "@lospor/core/sync"
 
 const POLL_MS = 10_000
 
@@ -47,15 +48,24 @@ export function LiveCaseUpdater({ caseId }: { caseId: string }) {
       }
     }
 
-    const timer = setInterval(check, POLL_MS)
+    const poller = createSingleFlightPoller({
+      intervalMs: POLL_MS,
+      poll: check,
+      isActive: () => !document.hidden,
+      scheduler: {
+        schedule: (callback, delayMs) => window.setTimeout(callback, delayMs),
+        cancel: handle => window.clearTimeout(handle as number),
+      },
+    })
     // Catch up immediately when the user returns to the tab.
-    const onVisible = () => { if (!document.hidden) check() }
+    const onVisible = () => { if (!document.hidden) void poller.trigger() }
     document.addEventListener("visibilitychange", onVisible)
-    check()
+    poller.start()
+    void poller.trigger()
 
     return () => {
       cancelled = true
-      clearInterval(timer)
+      poller.stop()
       document.removeEventListener("visibilitychange", onVisible)
     }
   }, [caseId, router])

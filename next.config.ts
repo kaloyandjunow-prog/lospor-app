@@ -2,6 +2,7 @@ import type { NextConfig } from "next"
 import { networkInterfaces } from "node:os"
 import createNextIntlPlugin from "next-intl/plugin"
 import withPWAInit from "@ducanh2912/next-pwa"
+import { CORS_REQUEST_HEADERS_VALUE } from "@lospor/core/sync"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 const isDev = process.env.NODE_ENV !== "production"
@@ -95,7 +96,7 @@ const nextConfig: NextConfig = {
       headers: [
         { key: "Access-Control-Allow-Origin",  value: corsOrigin },
         { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-        { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, x-lospor-preop-updated-at, x-lospor-postop-updated-at, x-lospor-intraop-updated-at, x-lospor-updated-at, x-lospor-force-update, x-lospor-source, x-idempotency-key" },
+        { key: "Access-Control-Allow-Headers", value: CORS_REQUEST_HEADERS_VALUE },
       ],
     },
     {

@@ -2,6 +2,7 @@
 //
 // Usage:
 //   npx tsx scripts/seed-vocabularies.ts [--vocab-dir C:\losardoc\vocab]
+//   npx tsx scripts/seed-vocabularies.ts --bg-only [--vocab-dir C:\losardoc\vocab]
 //
 // Expects these files in vocab-dir:
 //   CONCEPT.csv            (from Athena download)
@@ -18,12 +19,16 @@ import path from "path"
 import readline from "readline"
 import { PrismaClient, Prisma } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { parseIcd10BgRows } from "../src/lib/icd10-bg-import"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter } satisfies Prisma.PrismaClientOptions)
-const VOCAB_DIR = process.argv.find(a => a.startsWith("--vocab-dir="))?.split("=")[1]
-  ?? process.argv[process.argv.indexOf("--vocab-dir") + 1]
+const args = process.argv.slice(2)
+const vocabDirIndex = args.indexOf("--vocab-dir")
+const VOCAB_DIR = args.find(a => a.startsWith("--vocab-dir="))?.split("=")[1]
+  ?? (vocabDirIndex >= 0 ? args[vocabDirIndex + 1] : undefined)
   ?? "C:\\losardoc\\vocab"
+const BG_ONLY = args.includes("--bg-only")
 
 const BATCH = 500
 
@@ -310,13 +315,17 @@ async function seedBgLabels() {
 
   console.log(`  Detected columns: code="${codeKey}", bg_label="${bgKey}"`)
 
-  const pairs: { code: string; labelBg: string }[] = []
-  for (const row of rows) {
-    const code   = String(row[codeKey] ?? "").trim().toUpperCase()
-    const labelBg = String(row[bgKey] ?? "").trim()
-    if (!code || !labelBg) continue
-    pairs.push({ code, labelBg })
+  const pairs = parseIcd10BgRows(sheetRows)
+  if (!pairs.length) {
+    for (const row of rows) {
+      const code = String(row[codeKey] ?? "").trim().toUpperCase()
+      const labelBg = String(row[bgKey] ?? "").trim()
+      if (!code || !labelBg) continue
+      pairs.push({ code, labelBg })
+    }
   }
+  if (!pairs.length) throw new Error("No valid Bulgarian ICD-10 rows found in workbook.")
+  console.log(`  Parsed ${pairs.length} Bulgarian ICD-10 labels.`)
 
   let updated = 0
   await batchInsert(pairs, async batch => {
@@ -356,6 +365,12 @@ async function seedDrugs() {
 
 async function main() {
   console.log(`Vocab directory: ${VOCAB_DIR}\n`)
+
+  if (BG_ONLY) {
+    await seedBgLabels()
+    console.log("\nBulgarian ICD-10 labels complete.")
+    return
+  }
 
   await seedAtc()
   const icd10Map = await seedIcd10Concepts()

@@ -16,6 +16,8 @@ const CORS = (req: NextRequest) => corsHeaders(req)
 const FINALIZATION_ERRORS: Partial<Record<ClinicalIssueCode, string>> = {
   missing_preop: "Cannot finalise: preoperative assessment is missing",
   missing_intraop: "Cannot finalise: intraoperative record has not been started",
+  missing_start_time: "Cannot finalise: intraoperative start time is missing",
+  missing_end_time: "Cannot finalise: intraoperative end time is missing",
   missing_technique: "Cannot finalise: at least one anaesthesia technique must be recorded",
   invalid_intraop_times: "Cannot finalise: intraop end time must be after start time",
   missing_postop: "Cannot finalise: postoperative record is missing",
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     postop: c.postop,
   })
   if (!readiness.valid) {
-    const blocker = readiness.issues[0]
+    const blocker = readiness.issues.find(issue => issue.severity === "error")!
     return NextResponse.json({
       error: FINALIZATION_ERRORS[blocker.code] ?? "Cannot finalise: required clinical documentation is incomplete",
       reason: blocker.code,

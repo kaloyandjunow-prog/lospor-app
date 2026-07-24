@@ -4,8 +4,16 @@ import { Controller, type Control, type UseFormWatch, type UseFormSetValue, type
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { TimePicker } from "@/components/forms/shared/TimePicker"
 import { Label } from "@/components/ui/label"
-import type { TimetableData } from "@/components/IntraopTimetable"
 import type { IntraopFormFields, IntraopData } from "@/components/forms/IntraopForm"
+import {
+  buildIntraopEndTiming,
+  buildIntraopStartTiming,
+  endInstantForWallClock,
+  isValidTimeZone,
+  resolvedTimeZone,
+  startInstantForWallClock,
+} from "@/lib/intraop-time"
+import { AIRWAY_DEVICES_WITH_SUBOPTIONS } from "@lospor/core/intraop"
 
 type Template = {
   id: string; label: string; desc: string
@@ -65,7 +73,7 @@ function nowHHMM() {
 }
 
 export function TimelineSection({
-  t, control, watch, setValue, getValues, onAutoSave, timetable, emptyTimetable,
+  t, control, watch, setValue, getValues, onAutoSave,
   timeErrors, setTimeErrors, monDefaultsAppliedRef, setAdvancedMonOpen, setAirwayExpandedDevice,
 }: {
   t: (key: string) => string
@@ -74,8 +82,6 @@ export function TimelineSection({
   setValue: UseFormSetValue<IntraopFormFields>
   getValues: UseFormGetValues<IntraopFormFields>
   onAutoSave?: (data: IntraopData) => void
-  timetable: TimetableData
-  emptyTimetable: TimetableData
   timeErrors: { startTime?: boolean; endTime?: boolean }
   setTimeErrors: (updater: (e: { startTime?: boolean; endTime?: boolean }) => { startTime?: boolean; endTime?: boolean }) => void
   monDefaultsAppliedRef: { current: boolean }
@@ -89,6 +95,49 @@ export function TimelineSection({
   const [startAtInput, setStartAtInput]       = useState("")
   const startHourRef = useRef<HTMLSelectElement>(null)
   const endHourRef   = useRef<HTMLSelectElement>(null)
+
+  function caseZone(): string | null {
+    const saved = getValues("timezone")
+    return isValidTimeZone(saved) ? saved : resolvedTimeZone()
+  }
+
+  function saveFormNow(overrides: Partial<IntraopFormFields>) {
+    onAutoSave?.({ ...getValues(), ...overrides })
+  }
+
+  function applyStartInstant(instant: Date) {
+    const zone = caseZone()
+    const timing = zone ? buildIntraopStartTiming(instant, zone) : null
+    if (!timing) return
+    setValue("startTime", timing.startTime)
+    setValue("startedAt", timing.startedAt)
+    setValue("timezone", timing.timezone)
+    setTimeErrors(e => ({ ...e, startTime: false }))
+    saveFormNow(timing)
+  }
+
+  function applyStartWallClock(hhmm: string) {
+    const zone = caseZone()
+    const instant = zone ? startInstantForWallClock(new Date(), hhmm, zone) : null
+    if (instant) applyStartInstant(instant)
+  }
+
+  function applyEndWallClock(hhmm: string, nextDay = !!getValues("endTimeNextDay")) {
+    const zone = caseZone()
+    const startedAt = getValues("startedAt")
+    const start = startedAt ? new Date(startedAt) : null
+    const instant = zone && start && !Number.isNaN(start.getTime())
+      ? endInstantForWallClock(start, hhmm, zone, nextDay)
+      : null
+    const timing = instant && zone ? buildIntraopEndTiming(instant, zone) : null
+    setValue("endTime", hhmm)
+    if (timing) {
+      setValue("endedAt", timing.endedAt)
+      setValue("timezone", timing.timezone)
+    }
+    setTimeErrors(e => ({ ...e, endTime: false }))
+    saveFormNow(timing ?? { endTime: hhmm })
+  }
 
   function applyTemplate(tpl: Template) {
     const currentDevs: string[] = watch("airwayDevices") ?? []
@@ -104,8 +153,8 @@ export function TimelineSection({
     monDefaultsAppliedRef.current = true
     const ADVANCED = ["etco2Monitor","tempMonitor","invasiveBP","cvpMonitor","paCatheter","tee","bis","entropyMonitor","nirsMonitor","evokedPotentials","tofMonitor","bglMonitor","bloodGasMonitor","urinaryCatheter","stomachTube"] as const
     if (ADVANCED.some(f => tpl.monitoring[f])) setAdvancedMonOpen(true)
-    const SUB = ["LMA","ORAL_ETT","NASAL_ETT","DOUBLE_LUMEN_TUBE","ENDOBRONCHIAL_TUBE"]
-    const firstSub = tpl.airwayDevices.find(d => SUB.includes(d))
+    const suboptions: readonly string[] = AIRWAY_DEVICES_WITH_SUBOPTIONS
+    const firstSub = tpl.airwayDevices.find(device => suboptions.includes(device))
     if (firstSub) setAirwayExpandedDevice(firstSub)
     setShowTemplates(false)
   }
@@ -168,7 +217,7 @@ export function TimelineSection({
               field.value
                 // Once start time is set the field is locked — show as read-only badge
                 ? <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] font-mono">{field.value} <span className="text-[10px] font-normal text-slate-400 ml-1">locked</span></span>
-                : <TimePicker ref={startHourRef} value={field.value} onChange={v => { field.onChange(v); setTimeErrors(e => ({ ...e, startTime: false })) }} />
+                : <TimePicker ref={startHourRef} value={field.value} onChange={applyStartWallClock} />
             )} />
             {!watch("startTime") && !watch("endTime") && (
               <button type="button"
@@ -183,15 +232,9 @@ export function TimelineSection({
               <div className="flex gap-2">
                 <button type="button"
                   onClick={() => {
-                    const time = nowHHMM()
-                    setValue("startTime", time)
+                    applyStartInstant(new Date())
                     setShowStartPrompt(false)
                     setShowStartAt(false)
-                    if (onAutoSave) {
-                      const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
-                        ? timetable : emptyTimetable
-                      onAutoSave({ ...getValues(), startTime: time, timetableData: safeT })
-                    }
                   }}
                   className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors">
                   Start now
@@ -220,14 +263,9 @@ export function TimelineSection({
                     disabled={!startAtInput}
                     onClick={() => {
                       if (!startAtInput) return
-                      setValue("startTime", startAtInput)
+                      applyStartWallClock(startAtInput)
                       setShowStartPrompt(false)
                       setShowStartAt(false)
-                      if (onAutoSave) {
-                        const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable)
-                          ? timetable : emptyTimetable
-                        onAutoSave({ ...getValues(), startTime: startAtInput, timetableData: safeT })
-                      }
                     }}
                     className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white transition-colors">
                     Confirm
@@ -250,7 +288,12 @@ export function TimelineSection({
             {/* Crosses midnight toggle */}
             <Controller name="endTimeNextDay" control={control} render={({ field }) => (
               <button type="button"
-                onClick={() => field.onChange(!field.value)}
+                onClick={() => {
+                  const nextDay = !field.value
+                  field.onChange(nextDay)
+                  const endTime = getValues("endTime")
+                  if (endTime) applyEndWallClock(endTime, nextDay)
+                }}
                 className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap
                   ${field.value
                     ? "bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300"
@@ -259,7 +302,7 @@ export function TimelineSection({
               </button>
             )} />
             <Controller name="endTime" control={control} render={({ field }) => (
-              <TimePicker ref={endHourRef} value={field.value} onChange={field.onChange} />
+              <TimePicker ref={endHourRef} value={field.value} onChange={applyEndWallClock} />
             )} />
             {!watch("endTime") && (
               <button type="button"
@@ -275,10 +318,21 @@ export function TimelineSection({
                 <button type="button"
                   onClick={() => {
                     const now = new Date()
-                    field.onChange(`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`)
-                    const st = getValues("startTime") || "00:00"
-                    const [sh, sm] = st.split(":").map(Number)
-                    if (now.getHours() * 60 + now.getMinutes() < sh * 60 + sm) setValue("endTimeNextDay", true)
+                    const zone = caseZone()
+                    const timing = zone ? buildIntraopEndTiming(now, zone) : null
+                    const endTime = timing?.endTime ?? nowHHMM()
+                    const startTime = getValues("startTime") || "00:00"
+                    const [sh, sm] = startTime.split(":").map(Number)
+                    const [eh, em] = endTime.split(":").map(Number)
+                    const nextDay = eh * 60 + em < sh * 60 + sm
+                    field.onChange(endTime)
+                    setValue("endTimeNextDay", nextDay)
+                    if (timing) {
+                      setValue("endedAt", timing.endedAt)
+                      setValue("timezone", timing.timezone)
+                    }
+                    setTimeErrors(e => ({ ...e, endTime: false }))
+                    saveFormNow(timing ?? { endTime })
                     setShowEndPrompt(false)
                   }}
                   className="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">

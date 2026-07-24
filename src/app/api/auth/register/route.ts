@@ -6,6 +6,8 @@ import { rateLimit } from "@/lib/rate-limit"
 import { corsHeaders } from "@/lib/cors"
 import { createAuthToken, EMAIL_VERIFICATION_TTL_MS, emailSchema, hashAuthToken, normalizeEmail, tokenExpiry } from "@/lib/auth-email-tokens"
 import { appUrl, sendVerificationEmail } from "@/lib/transactional-email"
+import { CURRENT_TERMS_VERSION } from "@lospor/core/account"
+import { passwordSchema } from "@/lib/password-policy"
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req, "POST, OPTIONS", "Content-Type, Authorization") })
@@ -18,11 +20,7 @@ const schema = z.object({
   email:          emailSchema,
   institutionId:  z.union([z.string().cuid(), z.literal(""), z.undefined()]).optional(),
   acceptedTerms:  z.boolean().refine(v => v === true, "You must accept the terms"),
-  password: z.string()
-    .min(8, "At least 8 characters")
-    .regex(/[A-Z]/, "At least one uppercase letter")
-    .regex(/[0-9]/, "At least one number")
-    .regex(/[^A-Za-z0-9]/, "At least one special character"),
+  password: passwordSchema,
 })
 
 export async function POST(req: NextRequest) {
@@ -68,7 +66,7 @@ export async function POST(req: NextRequest) {
         approvedAt:      null,
         emailVerifiedAt: null,
         acceptedTermsAt: new Date(),
-        termsVersion:    "4.0",
+        termsVersion:    CURRENT_TERMS_VERSION,
         emailVerificationTokens: {
           create: {
             tokenHash: hashAuthToken(token),

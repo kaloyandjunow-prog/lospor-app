@@ -5,13 +5,15 @@ import { format } from "date-fns"
 import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel, calcIBW } from "@/lib/scores"
 import { useLocale } from "next-intl"
 import { useRouter } from "next/navigation"
-import { HANDOVER_GROUPS_EN, HANDOVER_GROUPS_BG } from "@/components/forms/PostopForm"
+import { aldreteBand, handoverGroups } from "@lospor/core/postop"
+import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { CASE_STATUS_LABELS, type CaseStatus } from "@lospor/core/case-status"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { PrintTimetable, calcDrugTotals, calcInfTotals, naturalMaxCols, buildDrugLog } from "@/components/case-summary/PrintTimetable"
 import { planPanels, type PanelPlan } from "@lospor/core/print"
+import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
 const TECHNIQUE_LABELS: Record<string, { en: string; bg: string }> = {
@@ -325,7 +327,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const isPrint = mode === "print"
   const L = locale === "bg" ? LABELS.bg : LABELS.en
   const handoverLookup = (() => {
-    const groups = locale === "bg" ? HANDOVER_GROUPS_BG : HANDOVER_GROUPS_EN
+    const groups = handoverGroups(locale === "bg" ? "bg" : "en")
     const map: Record<string, string> = {}
     groups.forEach(g => g.items.forEach(i => { map[i.code] = i.label }))
     return map
@@ -426,19 +428,14 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const panelView = (pl: PanelPlan, withCaption: boolean) => ({
     c0: pl.startCol,
     c1: pl.endCol,
-    step: Math.max(1, Math.round(pl.intervalMin / 5)),
+    step: Math.max(1, Math.round(pl.intervalMin / INTRAOP_COLUMN_MINUTES)),
     // Time-window caption drawn inside the chart's top-left corner
     caption: withCaption
       ? `${pl.index > 0 ? `${contWord} · ` : ""}${colHHMM(pl.startCol)} – ${colHHMM(pl.endCol + 1)}`
       : undefined,
   })
   // Column → wall-clock label (same UTC convention as the timetable itself)
-  const colHHMM = (col: number) => {
-    if (!i?.startTime) return `+${col * 5}m`
-    const d = new Date(i.startTime)
-    const mins = d.getUTCHours() * 60 + d.getUTCMinutes() + col * 5
-    return `${String(Math.floor(mins / 60) % 24).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`
-  }
+  const colHHMM = (col: number) => sharedColToHHMM(col, i?.startTime)
 
   const activeMonitors = MON.filter(m => i?.[m.f]).map(m => m.l)
   const dateStr = (() => {
@@ -465,8 +462,9 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   }
 
   const aldreteTotal = o?.aldreteTotal ?? 0
-  const aldreteBg = aldreteTotal >= 9 ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700"
-    : aldreteTotal >= 7 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+  const aldreteStatus = aldreteBand(aldreteTotal)
+  const aldreteBg = aldreteStatus === "ready" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700"
+    : aldreteStatus === "observe" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700"
     : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700"
 
 
@@ -981,7 +979,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             <div className={`border rounded-lg text-center py-1.5 ${aldreteBg}`}>
               <p className="text-[8px] font-medium">{L.aldreteTotalLbl}</p>
               <p className="text-[15px] font-extrabold leading-tight">{o?.aldreteTotal ?? "—"} / 10</p>
-              <p className="text-[7px]">{aldreteTotal >= 9 ? L.readyDischarge : aldreteTotal >= 7 ? L.monitor : L.continueStr}</p>
+              <p className="text-[7px]">{aldreteStatus === "ready" ? L.readyDischarge : aldreteStatus === "observe" ? L.monitor : L.continueStr}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">

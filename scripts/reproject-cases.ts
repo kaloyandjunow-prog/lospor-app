@@ -39,7 +39,7 @@ async function main() {
 
   const cases = await prisma.case.findMany({
     where:  { intraop: { isNot: null } },
-    select: { id: true, caseCode: true, intraop: { select: { startTime: true, createdAt: true, keyEvents: true } } },
+    select: { id: true, caseCode: true, intraop: { select: { startedAt: true, startTime: true, createdAt: true, keyEvents: true } } },
     orderBy: { createdAt: "asc" },
   })
   console.log(`${cases.length} case(s) with an intraoperative record\n`)
@@ -47,7 +47,11 @@ async function main() {
   let changed = 0
   for (const c of cases) {
     const log = ((c.intraop?.keyEvents as { log?: unknown[] } | null)?.log ?? []) as Parameters<typeof resolveChartStart>[1]
-    const anchor = resolveChartStart(c.intraop ? { startTime: c.intraop.startTime, createdAt: c.intraop.createdAt } : null, log)
+    const anchor = resolveChartStart(c.intraop ? {
+      startedAt: c.intraop.startedAt,
+      startTime: c.intraop.startTime,
+      createdAt: c.intraop.createdAt,
+    } : null, log)
     const oldOrigin = firstEventTime(c.intraop?.keyEvents)
     const newOrigin = anchor?.toISOString() ?? null
     const differs = !!oldOrigin && !!newOrigin && oldOrigin !== newOrigin

@@ -4,6 +4,16 @@ import { useMemo } from "react"
 import { useState } from "react"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
+import {
+  buildOptionTree,
+  findLabeledValuePath,
+  formatTechniquePath,
+} from "@lospor/core/catalog"
+import {
+  isGeneralAnesthesiaCase,
+  techniqueNeedsRegionalBlock,
+  techniqueUsesGas as coreTechniqueUsesGas,
+} from "@lospor/core/intraop"
 
 // ── Tree data ──────────────────────────────────────────────────────────────────
 // Built from the OptionLibrary TECHNIQUE category via buildTree (exported so
@@ -12,20 +22,14 @@ import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
 export interface TechniqueNode { v: string; label: string; children?: TechniqueNode[] }
 
 export function buildTree(rows: LibraryOption[]): TechniqueNode[] {
-  const byParent = new Map<string | null, LibraryOption[]>()
-  for (const r of rows) {
-    const key = r.parentId
-    if (!byParent.has(key)) byParent.set(key, [])
-    byParent.get(key)!.push(r)
-  }
-  function build(parentId: string | null): TechniqueNode[] {
-    return (byParent.get(parentId) ?? []).map(r => ({
-      v: r.value,
-      label: r.label,
-      children: byParent.has(r.id) ? build(r.id) : undefined,
-    }))
-  }
-  return build(null)
+  const mapNodes = (
+    nodes: ReturnType<typeof buildOptionTree<LibraryOption>>,
+  ): TechniqueNode[] => nodes.map(node => ({
+    v: node.value,
+    label: node.label,
+    children: node.children?.length ? mapNodes(node.children) : undefined,
+  }))
+  return mapNodes(buildOptionTree(rows))
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,41 +43,11 @@ function techniqueColor(v: string): string {
   return "bg-slate-600 dark:bg-slate-500 border-slate-600 dark:border-slate-500 text-white"
 }
 
-function findPath(nodes: TechniqueNode[], target: string, path: TechniqueNode[] = []): TechniqueNode[] | null {
-  for (const n of nodes) {
-    const curr = [...path, n]
-    if (n.v === target) return curr
-    if (n.children) { const f = findPath(n.children, target, curr); if (f) return f }
-  }
-  return null
-}
-
-// Grouping nodes that add no clinical value in a compact pill label
-const TECH_SKIP_LABELS = new Set([
-  "Peripheral nerve block", "Upper extremity", "Lower extremity",
-  "Trunk / Abdominal wall", "Head & Neck", "Ophthalmic", "Single shot",
-])
-const TECH_ROOT_SHORT: Record<string, string> = {
-  "General anaesthesia": "General",
-  "Regional anaesthesia": "Regional",
-  "Sedation / MAC": "Sedation",
-  "Local infiltration": "Local infiltration",
-}
-
 // Category-aware label: e.g. "General Inhalational", "Regional Femoral nerve",
 // "Regional Neuraxial Epidural Lumbar". Takes the tree explicitly — callers
 // get it from useOptionLibrary("TECHNIQUE") + buildTree, not module state.
 export function techniqueDisplayLabel(v: string, tree: TechniqueNode[]): string {
-  if (v.startsWith("OTHER:")) return v.slice(6) || "Other"
-  const path = findPath(tree, v)
-  if (!path) return v
-  const parts = path
-    .map((n, i) => (i === 0 ? (TECH_ROOT_SHORT[n.label] ?? n.label) : n.label))
-    .filter(label => !TECH_SKIP_LABELS.has(label))
-    .map(label => label.replace(" (SAB)", ""))
-  const out: string[] = []
-  for (const p of parts) if (out[out.length - 1] !== p) out.push(p)
-  return out.join(" ")
+  return formatTechniquePath(v, findLabeledValuePath(v, tree))
 }
 
 // ── Inline tree picker ────────────────────────────────────────────────────────
@@ -209,14 +183,12 @@ export function TechniqueTree({ value = [], onChange }: {
 }
 
 // ── Show/hide helpers for IntraopForm ─────────────────────────────────────────
-export function techniqueIsGeneral(values: string[])  { return values.some(v => v.startsWith("GENERAL")) }
-export function techniqueUsesGas(values: string[])    { return values.some(v => v === "GENERAL_INHALATION" || v === "GENERAL_BALANCED") }
+export function techniqueIsGeneral(values: string[]) {
+  return isGeneralAnesthesiaCase(values)
+}
+export function techniqueUsesGas(values: string[]) {
+  return coreTechniqueUsesGas(values)
+}
 export function techniqueNeedsBlock(values: string[]) {
-  return values.some(v =>
-    v.startsWith("BLOCK_")    ||
-    v.startsWith("SPINAL_")   ||
-    v.startsWith("EPIDURAL_") ||
-    v.startsWith("CSE_")      ||
-    v === "DPE"
-  )
+  return techniqueNeedsRegionalBlock(values)
 }

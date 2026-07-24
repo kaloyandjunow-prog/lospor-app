@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm, useWatch, type Resolver } from "react-hook-form"
-import { useCallback, useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -14,6 +14,14 @@ import { calcInfusionTotal } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { calcIBW, calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
+import {
+  AIRWAY_DEVICE_REQUIRED_FIELDS,
+  isAirwayDeviceComplete,
+  requiredMonitoringFieldsForTechniques,
+  syncAirwayDeviceSelection,
+  type AirwayDeviceWithProfile,
+} from "@lospor/core/intraop"
+import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
@@ -31,6 +39,30 @@ import {
   premedicationDoseMap,
   weightBasisMap,
 } from "@lospor/core/option-library"
+import {
+  buildIntraopEndTiming,
+  isValidTimeZone,
+  resolvedTimeZone,
+} from "@/lib/intraop-time"
+import {
+  evaluateIntraopReadiness,
+  type ClinicalIssueCode,
+} from "@lospor/core/clinical-validation"
+
+const INTRAOP_ISSUE_LABELS: Partial<Record<ClinicalIssueCode, string>> = {
+  missing_start_time: "Anaesthesia start time",
+  missing_end_time: "Anaesthesia end time",
+  missing_technique: "Anaesthesia technique",
+  invalid_intraop_times: "Anaesthesia end time must be after the start time",
+  missing_airway_documentation: "Airway management",
+  missing_position: "Patient position",
+  missing_monitoring: "Monitoring",
+  missing_vascular_access: "Vascular access",
+  missing_vitals: "Intraoperative vitals (timetable)",
+  missing_medications: "Drugs / infusions / agents",
+  missing_fluids: "Fluid balance",
+  missing_complication_documentation: "Complications",
+}
 
 // ── Drug total helpers ────────────────────────────────────────────────────────
 function parseLAConc(name: string): number | null {
@@ -64,6 +96,9 @@ const schema = z.object({
   startTime:      z.string().optional(),
   endTime:        z.string().optional(),
   endTimeNextDay: z.boolean().default(false),
+  startedAt:      z.string().nullable().optional(),
+  endedAt:        z.string().nullable().optional(),
+  timezone:       z.string().nullable().optional(),
 
   positions: z.array(z.string()).catch([]).default([]),
 
@@ -296,27 +331,13 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     const techs = techniques
     if (!techs.length) return
 
-    const isGA       = techs.some((t: string) => ["GENERAL_INHALATION","GENERAL_TIVA","GENERAL_COMBINED"].includes(t))
-    const isTIVA     = techs.includes("GENERAL_TIVA")
-    const isNeuraxial = techs.some((t: string) => t.startsWith("SPINAL") || t.startsWith("EPIDURAL") || t === "CSE" || t === "DPE")
-    const isEmergency = preop?.emergencySurgery ?? false
     const setMissing = (field: keyof IntraopFormFields) => {
       if (!getValues(field)) setValue(field, true)
     }
-
-    if (isGA) {
-      setMissing("ecg")
-      setMissing("spO2Monitor")
-      setMissing("nbpMonitor")
-      setMissing("etco2Monitor")
-      setMissing("tempMonitor")
-      if (isTIVA) setMissing("bis")
-      if (isEmergency) setMissing("invasiveBP")
-    } else if (isNeuraxial) {
-      setMissing("ecg")
-      setMissing("spO2Monitor")
-      setMissing("nbpMonitor")
-      setMissing("etco2Monitor")
+    for (const field of requiredMonitoringFieldsForTechniques(techs, {
+      emergency: preop?.emergencySurgery ?? false,
+    })) {
+      setMissing(field as keyof IntraopFormFields)
     }
   }, [getValues, preop?.emergencySurgery, setValue, techniques])
 
@@ -342,7 +363,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const _wDltSize  = useWatch({ control, name: "dltSize" })
   const _wEbSize   = useWatch({ control, name: "endobronchialSize" })
   const allValuesKey = JSON.stringify(allValues)
-  const timetableKey = JSON.stringify(timetable)
   const airwayDevicesKey = JSON.stringify(_wAD)
   const ventilationModesKey = JSON.stringify(_wVM)
   const airwayToolsKey = JSON.stringify(_wAT)
@@ -351,13 +371,12 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return }
     if (!onAutoSave) return
-    const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable) ? timetable : EMPTY_TIMETABLE
-    const payload = { ...getValues(), timetableData: safeT }
+    const payload = { ...getValues() }
     const save = () => onAutoSave(payload)
     pendingSaveRef.current = save                    // always keep latest snapshot
     const timer = setTimeout(save, 1000)             // reduced from 2 s → 1 s
     return () => clearTimeout(timer)
-  }, [EMPTY_TIMETABLE, airwayDevicesKey, airwayToolsKey, allValuesKey, getValues, onAutoSave, positionsKey, timetable, timetableKey, ventilationModesKey])
+  }, [airwayDevicesKey, airwayToolsKey, allValuesKey, getValues, onAutoSave, positionsKey, ventilationModesKey])
 
   // Fire pending save immediately when user navigates away (component unmounts)
   useEffect(() => {
@@ -369,6 +388,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const [airwayNA,             setAirwayNA]             = useState(false)
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
+  const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)
   const [advancedMonOpen,      setAdvancedMonOpen]      = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("defaultMonitoring") === "advanced"
   )
@@ -378,25 +398,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const monDefaultsApplied      = useRef(false)
   const deviceWasCompleteOnOpen = useRef(false)
   const timelineSectionRef = useRef<HTMLDivElement>(null)
-
-  const isAirwayDeviceComplete = useCallback((device: string, vals: IntraopFormFields): boolean => {
-    switch (device) {
-      case "LMA":                return vals.lmaSize != null
-      case "ORAL_ETT":           return vals.oralTubeSize != null && vals.oralCuffed != null
-      case "NASAL_ETT":          return vals.nasalTubeSize != null && vals.nasalCuffed != null
-      case "DOUBLE_LUMEN_TUBE":  return !!(vals.dltType && vals.dltSide && vals.dltSize != null)
-      case "ENDOBRONCHIAL_TUBE": return vals.endobronchialSize != null
-      default: return false
-    }
-  }, [])
-
-  const AIRWAY_DEVICE_FIELDS: Record<string, string[]> = {
-    LMA: ["lmaSize"],
-    ORAL_ETT: ["oralTubeSize", "oralCuffed"],
-    NASAL_ETT: ["nasalTubeSize", "nasalCuffed"],
-    DOUBLE_LUMEN_TUBE: ["dltType", "dltSide", "dltSize"],
-    ENDOBRONCHIAL_TUBE: ["endobronchialSize"],
-  }
 
   function expandAirwayDevice(v: string) {
     const vals = getValues()
@@ -409,7 +410,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     // auto-collapse, but that flag was never reset, so after a re-edit the
     // panel could never collapse again and the device was impossible to edit.
     if (devs.includes(v)) {
-      for (const field of AIRWAY_DEVICE_FIELDS[v] ?? []) {
+      for (const field of AIRWAY_DEVICE_REQUIRED_FIELDS[v as AirwayDeviceWithProfile] ?? []) {
         setValue(field as Parameters<typeof setValue>[0], undefined)
       }
     }
@@ -426,14 +427,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     const vals = getValues()
     const devs: string[] = vals.airwayDevices ?? []
     const complete = isAirwayDeviceComplete(airwayExpandedDevice, vals)
-    const inArray = devs.includes(airwayExpandedDevice)
-    if (complete && !inArray) setValue("airwayDevices", [...devs, airwayExpandedDevice])
-    else if (!complete && inArray) setValue("airwayDevices", devs.filter(d => d !== airwayExpandedDevice))
+    const nextDevices = syncAirwayDeviceSelection(devs, airwayExpandedDevice, complete)
+    if (nextDevices !== devs) {
+      setValue("airwayDevices", nextDevices)
+    }
     if (complete && !deviceWasCompleteOnOpen.current) setAirwayExpandedDevice(null)
-  }, [_wDltSide, _wDltSize, _wDltType, _wEbSize, _wLmaSize, _wNasalCuffed, _wNasalTubeSize, _wOralCuffed, _wOralTubeSize, airwayExpandedDevice, getValues, isAirwayDeviceComplete, setValue])
+  }, [_wDltSide, _wDltSize, _wDltType, _wEbSize, _wLmaSize, _wNasalCuffed, _wNasalTubeSize, _wOralCuffed, _wOralTubeSize, airwayExpandedDevice, getValues, setValue])
 
 
   const watchedStartTime = useWatch({ control, name: "startTime" })
+  const watchedStartedAt = useWatch({ control, name: "startedAt" })
   const watchedEndTime = useWatch({ control, name: "endTime" })
   const watchedNbpMonitor = useWatch({ control, name: "nbpMonitor" })
   const watchedInvasiveBP = useWatch({ control, name: "invasiveBP" })
@@ -466,63 +469,38 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   function handleContinue() {
     const vals = getValues()
 
-    // ── Hard validation: date, startTime and endTime are mandatory ───────────
-    const errs: { startTime?: boolean; endTime?: boolean } = {}
-    if (!vals.startTime) errs.startTime = true
-    if (!vals.endTime)   errs.endTime   = true
-    if (Object.keys(errs).length > 0) {
-      setTimeErrors(errs)
-      setActiveTab("overview")
-      setTimeout(() => timelineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50)
+    const readiness = evaluateIntraopReadiness({
+      ...vals,
+      airwayDevices: presentsIntubated || airwayNA
+        ? ["DOCUMENTED_WITHOUT_NEW_DEVICE"]
+        : vals.airwayDevices,
+      timetableData: timetable,
+      keyEvents: eventLog,
+    } as Record<string, unknown>)
+    const blockerCodes = new Set(readiness.blockers.map(issue => issue.code))
+    const errs = {
+      startTime: blockerCodes.has("missing_start_time") || blockerCodes.has("invalid_intraop_times"),
+      endTime: blockerCodes.has("missing_end_time") || blockerCodes.has("invalid_intraop_times"),
+    }
+    setTimeErrors(errs)
+
+    if (readiness.blockers.length > 0) {
+      setCanContinueIncomplete(false)
+      setIncompleteItems(readiness.blockers.map(issue =>
+        INTRAOP_ISSUE_LABELS[issue.code] ?? issue.code,
+      ))
+      if (errs.startTime || errs.endTime) {
+        setActiveTab("overview")
+        setTimeout(() => timelineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50)
+      }
       return
     }
-    setTimeErrors({})
 
-    // ── Soft validation: warn if key sections are completely empty ────────────
-    const incomplete: string[] = []
-
-    if (!(vals.techniques ?? []).length)
-      incomplete.push("Anaesthesia technique")
-
-    if (!presentsIntubated && !airwayNA &&
-        !(vals.airwayDevices ?? []).length && !(vals.ventilationModes ?? []).length)
-      incomplete.push("Airway management")
-
-    if (!(vals.positions ?? []).length)
-      incomplete.push("Patient position")
-
-    const nonDefaultMonitoring = [
-      vals.invasiveBP, vals.ecg, vals.etco2Monitor, vals.tempMonitor,
-      vals.bglMonitor, vals.cvpMonitor, vals.paCatheter, vals.tee,
-      vals.bis, vals.entropyMonitor, vals.nirsMonitor, vals.evokedPotentials,
-      vals.tofMonitor, vals.bloodGasMonitor, vals.neuroMonitor,
-    ].some(Boolean)
-    if (!nonDefaultMonitoring)
-      incomplete.push("Monitoring (only defaults)")
-
-    if (!(vals.vascularAccesses ?? []).length)
-      incomplete.push("Vascular access")
-
-    const hasVitals = timetable.vitals.some(v => v && Object.values(v).some(x => x != null))
-    if (!hasVitals)
-      incomplete.push("Intraoperative vitals (timetable)")
-
-    const hasDrugs = (timetable.drugs ?? []).length > 0 ||
-                     (timetable.infusions ?? []).length > 0 ||
-                     (timetable.agents ?? []).length > 0
-    if (!hasDrugs)
-      incomplete.push("Drugs / infusions / agents")
-
-    const hasFluids = vals.crystalloidsMl || vals.colloidsMl || vals.bloodMl ||
-                      (timetable.fluids ?? []).length > 0
-    if (!hasFluids)
-      incomplete.push("Fluid balance")
-
-    if (!vals.complications)
-      incomplete.push("Complications")
-
-    if (incomplete.length > 0) {
-      setIncompleteItems(incomplete)
+    if (readiness.warnings.length > 0) {
+      setCanContinueIncomplete(true)
+      setIncompleteItems(readiness.warnings.map(issue =>
+        INTRAOP_ISSUE_LABELS[issue.code] ?? issue.code,
+      ))
       return
     }
 
@@ -539,8 +517,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
   function handleManualSave() {
     if (!onAutoSave) return
-    const safeT = (timetable && !Array.isArray(timetable) && "vitals" in timetable) ? timetable : EMPTY_TIMETABLE
-    onAutoSave({ ...getValues(), timetableData: safeT })
+    onAutoSave({ ...getValues() })
     setTimetableDirty(false)
     setManualSaved(true)
     setTimeout(() => setManualSaved(false), 2000)
@@ -548,7 +525,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
   function handleSubmitWithTimetable(formData: IntraopData) {
     const vitals = (timetable.vitals ?? [])
-      .map((v, i) => ({ ...v, time: addMinutes(startTime, i * 5) }))
+      .map((v, i) => ({ ...v, time: addMinutes(startTime, i * INTRAOP_COLUMN_MINUTES) }))
       .filter(v => Object.values(v).some(x => x != null && x !== v.time))
 
     const infusionEntries = (timetable.infusions ?? []).map(inf => ({
@@ -556,14 +533,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       dose:  String(inf.rate),
       unit:  inf.unit,
       route: "Infusion",
-      time:  addMinutes(startTime, inf.startCol * 5),
+      time:  addMinutes(startTime, inf.startCol * INTRAOP_COLUMN_MINUTES),
     }))
     const bolusDrugs = (timetable.drugs ?? []).map(d => ({
       name:  d.name,
       dose:  d.dose,
       unit:  d.unit,
       route: "IV",
-      time:  addMinutes(startTime, d.colIdx * 5),
+      time:  addMinutes(startTime, d.colIdx * INTRAOP_COLUMN_MINUTES),
     }))
 
     onSubmit({ ...formData, vitals, drugsAdministered: [...bolusDrugs, ...infusionEntries], timetableData: timetable })
@@ -660,7 +637,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       <div ref={timelineSectionRef} data-tour="intraop-timing">
       <TimelineSection
         t={t} control={control} watch={watch} setValue={setValue} getValues={getValues}
-        onAutoSave={onAutoSave} timetable={timetable} emptyTimetable={EMPTY_TIMETABLE}
+        onAutoSave={onAutoSave}
         timeErrors={timeErrors} setTimeErrors={setTimeErrors}
         monDefaultsAppliedRef={monDefaultsApplied}
         setAdvancedMonOpen={setAdvancedMonOpen} setAirwayExpandedDevice={setAirwayExpandedDevice}
@@ -713,6 +690,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopTimetable
           startTime={watchedStartTime || "08:00"}
+          startedAt={watchedStartedAt || undefined}
           endTime={watchedEndTime || undefined}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
@@ -725,9 +703,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           onLogEventDelete={onLogEventDelete}
           onEndCase={() => {
             const now = new Date()
-            const hh  = String(now.getHours()).padStart(2, "0")
-            const mm  = String(now.getMinutes()).padStart(2, "0")
-            setValue("endTime", `${hh}:${mm}`)
+            const savedZone = getValues("timezone")
+            const zone = isValidTimeZone(savedZone) ? savedZone : resolvedTimeZone()
+            const timing = zone ? buildIntraopEndTiming(now, zone) : null
+            const hh = String(now.getHours()).padStart(2, "0")
+            const mm = String(now.getMinutes()).padStart(2, "0")
+            setValue("endTime", timing?.endTime ?? `${hh}:${mm}`)
+            if (timing) {
+              setValue("endedAt", timing.endedAt)
+              setValue("timezone", timing.timezone)
+            }
             // Auto-advance end date if case crossed midnight
             const st = getValues("startTime") || "00:00"
             const [sh, sm] = st.split(":").map(Number)
@@ -736,6 +721,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           onResumeCase={() => {
             setValue("endTime", "")
             setValue("endTimeNextDay", false)
+            setValue("endedAt", null)
           }}
           onPostopContinued={items => onPostopContinued?.(items)}
           onComplicationAdded={labels => {
@@ -809,8 +795,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-4"
             onClick={e => e.stopPropagation()}>
             <div>
-              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Some sections look incomplete</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">The following sections have no data recorded:</p>
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                {canContinueIncomplete ? "Some sections look incomplete" : "Required information is missing"}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {canContinueIncomplete
+                  ? "The following sections have no data recorded:"
+                  : "Complete the following before continuing:"}
+              </p>
             </div>
             <ul className="space-y-1">
               {incompleteItems.map(item => (
@@ -820,18 +812,22 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-slate-400">You can still continue — these fields are optional.</p>
+            {canContinueIncomplete && (
+              <p className="text-xs text-slate-400">You can still continue — these fields are optional.</p>
+            )}
             <div className="flex gap-2 pt-1">
               <button type="button"
                 onClick={() => setIncompleteItems(null)}
                 className="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
                 Go back
               </button>
-              <button type="button"
-                onClick={() => { setIncompleteItems(null); doSubmit() }}
-                className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                Continue anyway
-              </button>
+              {canContinueIncomplete && (
+                <button type="button"
+                  onClick={() => { setIncompleteItems(null); doSubmit() }}
+                  className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                  Continue anyway
+                </button>
+              )}
             </div>
           </div>
         </div>,

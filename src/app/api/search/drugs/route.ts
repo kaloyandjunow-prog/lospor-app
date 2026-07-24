@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import fs from "fs"
 import path from "path"
+import { CLINICAL_SEARCH_MIN_LENGTH } from "@lospor/core/search"
 
 type Entry = { name: string; inn: string; form: string; strength: string; atc: string }
 
@@ -18,7 +19,7 @@ function loadData(): Entry[] {
 export async function GET(req: NextRequest) {
   if (!await getAuthUser(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const q = req.nextUrl.searchParams.get("q")?.trim().toLowerCase()
-  if (!q || q.length < 2) return NextResponse.json([])
+  if (!q || q.length < CLINICAL_SEARCH_MIN_LENGTH.medication) return NextResponse.json([])
 
   const dbRows = await prisma.drug.findMany({
     where: {

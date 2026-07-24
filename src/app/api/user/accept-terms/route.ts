@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { corsHeaders } from "@/lib/cors"
+import { CURRENT_TERMS_VERSION } from "@lospor/core/account"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
 
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({
     where: { id: user.id },
-    data:  { acceptedTermsAt: new Date(), termsVersion: "4.0" },
+    data:  { acceptedTermsAt: new Date(), termsVersion: CURRENT_TERMS_VERSION },
   })
 
   return NextResponse.json({ ok: true })

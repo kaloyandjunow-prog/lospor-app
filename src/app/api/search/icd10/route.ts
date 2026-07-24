@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { isIcd10CodeLikeQuery, mergeIcd10Results, type Icd10SearchRow } from "@/lib/icd10-search"
+import { CLINICAL_SEARCH_MIN_LENGTH } from "@lospor/core/search"
 
 export async function GET(req: NextRequest) {
   if (!await getAuthUser(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const q = req.nextUrl.searchParams.get("q")?.trim()
   const locale = req.nextUrl.searchParams.get("locale") ?? "en"
-  if (!q || q.length < 2) return NextResponse.json([])
+  if (!q || q.length < CLINICAL_SEARCH_MIN_LENGTH.icd10) return NextResponse.json([])
 
   const useBg = locale === "bg"
   const term = q.toLowerCase()

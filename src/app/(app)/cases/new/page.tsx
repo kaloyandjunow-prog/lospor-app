@@ -24,12 +24,15 @@ import { useCaseLock } from "@/hooks/useCaseLock"
 import { WatchingBanner } from "@/components/WatchingBanner"
 import {
   IDEMPOTENCY_HEADER,
+  readBlockedSaveIssue,
+  type BlockedSaveIssue,
 } from "@lospor/core/sync"
 import { onOutboxChange } from "@/lib/case-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
 import { randomId } from "@/lib/random-id"
+import { INTRAOP_RESUME_WINDOW_SECONDS } from "@lospor/core/intraop-engine"
 
-type SaveStatus = "idle" | "saving" | "saved" | "queued" | "error"
+type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
 
 export default function NewCasePage() {
   const router       = useRouter()
@@ -144,6 +147,35 @@ export default function NewCasePage() {
   const [submitting, setSubmitting]   = useState(false)
   const [saveStatus, setSaveStatus]   = useState<SaveStatus>("idle")
   const [autoSaveErrMsg, setAutoSaveErrMsg] = useState<string | null>(null)
+  const [blockedIssue, setBlockedIssue] = useState<BlockedSaveIssue | null>(null)
+
+  const blockedMessage = useCallback((issue: BlockedSaveIssue) => {
+    const field = (() => {
+      switch (issue.field) {
+        case "diagnosis":
+        case "diagnoses": return t("preop.diagnosis")
+        case "plannedProcedure":
+        case "procedures": return t("preop.procedure")
+        case "comorbidities": return t("preop.historySection")
+        case "teamNotes": return t("preop.teamNotes")
+        case "allergyDetails": return t("preop.allergies")
+        case "currentMedications": return t("preop.medicationsSection")
+        case "familyAnesthesiaDetails": return t("preop.familyAnesthesia")
+        case "difficultAirwayNotes": return t("preop.difficultAirwayDetails")
+        case "physicalExamReport": return t("preop.physicalExamReport")
+        case "notes": return t("preop.notesLabel")
+        default: return issue.field
+      }
+    })()
+    switch (issue.reason) {
+      case "likely_name": return t("case.piiLikelyName", { field })
+      case "egn": return t("case.piiEgn", { field })
+      case "long_number": return t("case.piiLongNumber", { field })
+      case "date": return t("case.piiDate", { field })
+      case "email": return t("case.piiEmail", { field })
+      default: return t("case.piiGeneric", { field })
+    }
+  }, [t])
 
   // Values the server refused, per section, shown on the field that carries
   // them. Sticky: a message that lives only in the header is missed by anyone
@@ -474,8 +506,8 @@ export default function NewCasePage() {
       // JSON-blob fields (positions, techniques, airwayDevices, etc.) are
       // unknown on CaseDetailIntraop - genuinely loosely shaped at the DB
       // level - but always arrays/scalars matching IntraopData's shape in
-      // practice, same boundary as the rest of this file's DB?>form mapping.
-      ...(formFields as Partial<IntraopData>),
+      // practice, at the same boundary as the rest of this file's DB-to-form mapping.
+      ...(formFields as unknown as Partial<IntraopData>),
       monthYear:      intraop.monthYear ?? undefined,
       startTime:      startFromInstant ?? isoToHHMM(intraop.startTime),
       endTime:        endFromInstant ?? (intraop.endTime ? isoToHHMM(intraop.endTime) : undefined),
@@ -494,9 +526,10 @@ export default function NewCasePage() {
       return { ...preop, bmi }
     }
     if (section === "intraop") {
+      const intraop = data as IntraopData
       return {
-        ...(data as IntraopData),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...intraop,
+        timezone: intraop.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
       }
     }
     return data as Record<string, unknown>
@@ -510,29 +543,72 @@ export default function NewCasePage() {
     try {
       const payload = sectionPayload(section, data)
       if (!caseIdRef.current) {
-        const res = await fetch("/api/cases", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
-          body: JSON.stringify({ preop: payload }),
-        })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.error ?? `Save failed (HTTP ${res.status})`)
+        const acceptedPayload = { ...payload }
+        let firstBlocked: BlockedSaveIssue | null = null
+        let createdBody: Record<string, unknown> | null = null
+        const maxAttempts = Object.keys(payload).length + 1
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          const res = await fetch("/api/cases", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", [IDEMPOTENCY_HEADER]: createDraftIdRef.current },
+            body: JSON.stringify({ preop: acceptedPayload }),
+          })
+          const body = await res.json().catch(() => ({})) as Record<string, unknown>
+          if (res.ok) {
+            createdBody = body
+            break
+          }
+          const issue = readBlockedSaveIssue(body)
+          if (!issue) throw new Error(
+            typeof body.error === "string" ? body.error : `Save failed (HTTP ${res.status})`,
+          )
+          firstBlocked ??= issue
+          const before = Object.keys(acceptedPayload).length
+          for (const key of issue.blockedKeys) delete acceptedPayload[key]
+          if (Object.keys(acceptedPayload).length === before) throw new Error(issue.message)
         }
-        const createdBody = await res.json()
-        const { id, caseCode: code, preopUpdatedAt, preopRevision } = createdBody
+        if (!createdBody || typeof createdBody.id !== "string") throw new Error(t("case.saveFailed"))
+        const {
+          id,
+          caseCode: code,
+          preopUpdatedAt,
+          preopRevision,
+        } = createdBody as {
+          id: string
+          caseCode?: string
+          preopUpdatedAt?: string
+          preopRevision?: number
+        }
         noteRejections("preop", createdBody)
         caseIdRef.current = id
         setCaseId(id)
         if (code) setCaseCode(code)
-        autosaveManager.hydrateSection(id, "preop", payload, preopRevision ?? preopUpdatedAt ?? null)
+        autosaveManager.hydrateSection(id, "preop", acceptedPayload, preopRevision ?? preopUpdatedAt ?? null)
         router.replace(`/cases/new?continue=${id}`, { scroll: false })
+        if (firstBlocked) {
+          const outcome = await autosaveManager.saveSection(id, "preop", payload, { fullPayload: payload })
+          const issue = outcome.blocked ?? firstBlocked
+          const message = blockedMessage(issue)
+          setBlockedIssue(issue)
+          setAutoSaveErrMsg(message)
+          if (showToast) toast.error(message)
+          onError?.(message)
+          return "blocked" as const
+        }
       } else {
         const existingCaseId = caseIdRef.current
         const outcome = await autosaveManager.saveSection(existingCaseId, section, payload, {
           fullPayload: payload,
         })
         if (outcome.response) noteRejections(section, outcome.response)
+        if (outcome.result === "blocked" && outcome.blocked) {
+          const message = blockedMessage(outcome.blocked)
+          setBlockedIssue(outcome.blocked)
+          setAutoSaveErrMsg(message)
+          if (showToast) toast.error(message)
+          onError?.(message)
+          return "blocked" as const
+        }
         if (outcome.result === "queued" || outcome.result === "failed") {
           if (showToast) toast.info(t("case.savedOffline"))
           return "queued" as const
@@ -544,6 +620,7 @@ export default function NewCasePage() {
         section === "preop"   ? t("case.preopSaved")   :
         section === "intraop" ? t("case.intraopSaved") : t("case.savedSuccess")
       )
+      setBlockedIssue(null)
       return true
     } catch (err: unknown) {
       console.error("saveSection error:", err)
@@ -552,7 +629,7 @@ export default function NewCasePage() {
       onError?.(errMsg)
       return false
     }
-  }, [t, router, noteRejections])
+  }, [t, router, noteRejections, blockedMessage])
 
   const saveSection = useCallback((
     section: "preop" | "intraop" | "postop",
@@ -575,6 +652,7 @@ export default function NewCasePage() {
     setSaveStatus("saving")
     let ok = true
     let queuedAny = false
+    let blockedAny = false
     for (;;) {
       const next = pendingAutosaveRef.current.entries().next()
       if (next.done) break
@@ -582,10 +660,11 @@ export default function NewCasePage() {
       pendingAutosaveRef.current.delete(nextSection)
       const saved = await saveSection(nextSection, nextData, { onError: msg => setAutoSaveErrMsg(msg) })
       if (saved === "queued") queuedAny = true
+      else if (saved === "blocked") blockedAny = true
       else ok = saved && ok
     }
-    if (ok) setAutoSaveErrMsg(null)
-    setSaveStatus(!ok ? "error" : queuedAny ? "queued" : "saved")
+    if (ok && !blockedAny) setAutoSaveErrMsg(null)
+    setSaveStatus(!ok ? "error" : blockedAny ? "blocked" : queuedAny ? "queued" : "saved")
     savingRef.current = false
     if (ok && !queuedAny) {
       // Fade back to idle after 2s (queued stays visible until it syncs)
@@ -639,7 +718,10 @@ export default function NewCasePage() {
     const openedAt = stored ? parseInt(stored, 10) : Date.now()
     if (!stored) localStorage.setItem(storageKey, String(openedAt))
 
-    const remaining = Math.max(0, 30 * 60 - Math.floor((Date.now() - openedAt) / 1000))
+    const remaining = Math.max(
+      0,
+      INTRAOP_RESUME_WINDOW_SECONDS - Math.floor((Date.now() - openedAt) / 1000),
+    )
     if (remaining === 0) { finaliseCase(); return }
 
     setCloseSecsLeft(remaining)
@@ -736,6 +818,20 @@ export default function NewCasePage() {
     }
   }
 
+  const visiblePreopRejections = new Map(rejections.preop ?? [])
+  if (blockedIssue) {
+    const field =
+      blockedIssue.field === "diagnosis" ? "diagnoses"
+      : blockedIssue.field === "plannedProcedure" ? "procedures"
+      : blockedIssue.field
+    const preopFields = new Set([
+      "diagnoses", "procedures", "comorbidities", "teamNotes",
+      "allergyDetails", "currentMedications", "familyAnesthesiaDetails",
+      "difficultAirwayNotes", "physicalExamReport", "preopNotes",
+    ])
+    if (preopFields.has(field)) visiblePreopRejections.set(field, blockedMessage(blockedIssue))
+  }
+
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
       {/* Undo finalization banner - shown for 5 minutes after finalizing */}
@@ -805,6 +901,7 @@ export default function NewCasePage() {
             {saveStatus === "saving" && <span className="text-slate-400 animate-pulse">{t("case.savingDraft")}</span>}
             {saveStatus === "saved"  && <span className="text-green-500">{t("case.draftSaved")}</span>}
             {saveStatus === "queued" && <span className="text-amber-500">{t("case.draftQueued")}</span>}
+            {saveStatus === "blocked" && <span className="text-red-500">{autoSaveErrMsg ?? t("case.draftBlocked")}</span>}
             {saveStatus === "error"  && <span className="text-red-400">{autoSaveErrMsg ?? t("case.autoSaveFailed")}</span>}
           </div>
         </div>
@@ -861,7 +958,7 @@ export default function NewCasePage() {
 
         {!loading && step === 0 && (
           <PreopForm
-            rejectedFields={rejections.preop}
+            rejectedFields={visiblePreopRejections}
             defaultValues={preopData ?? undefined}
             onSubmit={handlePreopSubmit}
             onNameChange={setPatientName}

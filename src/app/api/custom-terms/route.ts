@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { rateLimit } from "@/lib/rate-limit"
-import { checkPII } from "@/lib/pii-check"
+import { findPII } from "@/lib/pii-check"
 import { corsHeaders } from "@/lib/cors"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
@@ -55,9 +55,16 @@ export async function POST(req: NextRequest) {
 
   const { term, termType } = await req.json()
   if (!term?.trim() || !termType) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
-  const piiError = checkPII({ term: term.trim() })
+  const piiError = findPII({ term: term.trim() })
   if (piiError) {
-    return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+    return NextResponse.json({
+      error: `${piiError.message} Please remove identifying information before saving.`,
+      code: "PII_BLOCKED",
+      field: piiError.field,
+      reason: piiError.reason,
+      retryable: false,
+      blockedKeys: ["term"],
+    }, { status: 400 })
   }
 
   const institutionId = user.institutionId

@@ -15,6 +15,12 @@ import { ChevronLeft, Save } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
+import {
+  aldreteBand,
+  aldreteTotal as calculateAldreteTotal,
+  normalizeHandoverCodes,
+  type HandoverGroup as CoreHandoverGroup,
+} from "@lospor/core/postop"
 
 const schema = z.object({
   aldreteActivity:      z.coerce.number().min(0).max(2).optional(),
@@ -60,149 +66,9 @@ const SCORE_COLORS = [
 ]
 const UNSELECTED = "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
 
-export type HandoverGroup = { group: string; items: { code: string; label: string }[] }
+export type HandoverGroup = Omit<CoreHandoverGroup, "id">
 
-// Maps legacy codes (web-old or mobile-old) → canonical code
-export const HANDOVER_CODE_ALIASES: Record<string, string> = {
-  obs_q15: "obs_freq", obs_q30: "spo2_cont", obs_bp: "alert_bp", obs_temp: "temp_monitor",
-  o2_therapy: "o2_supp", pain_regular: "analgesia_protocol", pain_pca: "pca",
-  pain_threshold: "alert_pain", antiemetic: "antiemetic_prn", regular_meds: "resume_meds",
-  dvt_chemical: "dvt_lmwh", pending_labs: "bloods", pending_imaging: "cxr",
-  consult_request: "pain_team",
-}
-export function normaliseHandoverCodes(codes: string[]): string[] {
-  return codes.map(c => HANDOVER_CODE_ALIASES[c] ?? c)
-}
-
-export const HANDOVER_GROUPS_EN: HandoverGroup[] = [
-  { group: "Vital Signs & Monitoring", items: [
-    { code: "obs_freq",     label: "Observations q15 min × 1h, then q30 min × 1h" },
-    { code: "spo2_cont",    label: "Continuous SpO₂ monitoring" },
-    { code: "alert_bp",     label: "Blood pressure — target range communicated" },
-    { code: "temp_monitor", label: "Temperature monitoring / active warming" },
-    { code: "urine_output", label: "Urine output monitoring (IDC in situ)" },
-    { code: "glucose",      label: "Serum/peripheral glucose monitoring" },
-  ]},
-  { group: "Airway & Oxygen", items: [
-    { code: "o2_supp",        label: "Supplemental O₂ — rate and duration specified" },
-    { code: "npo",            label: "Fasting status / nil by mouth until fully awake" },
-    { code: "diet_advance",   label: "Advance diet when tolerating" },
-    { code: "alert_resp",     label: "Alert if SpO₂ < 92% or RR < 8 or > 25/min" },
-    { code: "airway_alert",   label: "Difficult airway — alert at bedside" },
-    { code: "airway_position",label: "Position: head up / lateral / as specified" },
-  ]},
-  { group: "Cardiovascular", items: [
-    { code: "piv",              label: "Peripheral IV in situ" },
-    { code: "cvk",              label: "Central venous catheter in situ" },
-    { code: "art_line",         label: "Arterial line in situ" },
-    { code: "alert_hr",         label: "Alert if HR < 50 or > 120 bpm" },
-    { code: "fluid_plan",       label: "IV fluid plan — type, rate, volume specified" },
-    { code: "fluid_balance",    label: "Fluid balance monitoring and documentation" },
-    { code: "antihypertensive", label: "Antihypertensive medications resumed / held" },
-    { code: "anticoagulation",  label: "Anticoagulation plan documented" },
-  ]},
-  { group: "Pain", items: [
-    { code: "analgesia_protocol", label: "Regular analgesic schedule prescribed" },
-    { code: "pca",                label: "PCA / epidural — pump settings checked" },
-    { code: "epidural_catheter",  label: "Epidural catheter — pain team to review" },
-    { code: "nerve_catheter",     label: "Peripheral nerve catheter in situ" },
-    { code: "pain_rescue",        label: "Rescue analgesia — drug, dose, frequency" },
-    { code: "alert_pain",         label: "Alert if NRS pain score > 4 at rest" },
-  ]},
-  { group: "PONV & GI", items: [
-    { code: "antiemetic_prn", label: "Antiemetics PRN / antiemetic regime prescribed" },
-    { code: "ponv_protocol",  label: "PONV prophylaxis" },
-    { code: "oral_intake",    label: "Resume oral intake when tolerating" },
-    { code: "ngt",            label: "NGT in situ — position confirmed / output documented" },
-  ]},
-  { group: "Medications & Prophylaxis", items: [
-    { code: "resume_meds",  label: "Regular medications resumed / held — list confirmed" },
-    { code: "dvt_lmwh",     label: "Chemical DVT prophylaxis — LMWH dose and timing" },
-    { code: "dvt_mechanical",label: "Mechanical DVT prophylaxis — compression stockings / IPC" },
-    { code: "mobilisation",  label: "Early mobilisation plan documented" },
-    { code: "stress_ulcer",  label: "Stress ulcer prophylaxis" },
-    { code: "antibiotics",   label: "Antibiotics per surgical plan / course continued" },
-    { code: "insulin",       label: "Insulin / diabetic management protocol active" },
-    { code: "steroids",      label: "Steroid supplementation if applicable" },
-  ]},
-  { group: "Investigations", items: [
-    { code: "bloods",   label: "Blood tests in ___ hours" },
-    { code: "ecg",      label: "12-lead ECG" },
-    { code: "cxr",      label: "Chest X-ray / pending imaging follow-up" },
-  ]},
-  { group: "Consultations & Follow-up", items: [
-    { code: "pain_team",  label: "Pain management team review" },
-    { code: "physio",     label: "Physiotherapy" },
-    { code: "dietitian",  label: "Dietitian / nutritional support" },
-    { code: "wound_care", label: "Wound / drain care instructions documented" },
-    { code: "follow_up",  label: "Follow-up appointment / plan communicated" },
-  ]},
-]
-
-export const HANDOVER_GROUPS_BG: HandoverGroup[] = [
-  { group: "Витални показатели и мониториране", items: [
-    { code: "obs_freq",     label: "Мониториране на 15 мин × 1ч, след това на 30 мин" },
-    { code: "spo2_cont",    label: "Непрекъснато мониториране на SpO₂" },
-    { code: "alert_bp",     label: "АН — целеви диапазон е съобщен" },
-    { code: "temp_monitor", label: "Контрол на температурата / активно затопляне" },
-    { code: "urine_output", label: "Мониториране на диурезата (уринарен катетър)" },
-    { code: "glucose",      label: "Мониториране на кръвна захар" },
-  ]},
-  { group: "Дихателни пътища и кислород", items: [
-    { code: "o2_supp",         label: "Кислородотерапия — скорост и продължителност са уточнени" },
-    { code: "npo",             label: "Режим на гладуване / хранене е уточнен" },
-    { code: "diet_advance",    label: "Захранване при поносимост" },
-    { code: "alert_resp",      label: "Сигнализирай при SpO₂ < 92% или ДЧ < 8 или > 25/мин" },
-    { code: "airway_alert",    label: "Труден дихателен път — сигнализирай при нужда" },
-    { code: "airway_position", label: "Позиция: повдигнат горен край / странично / по предписание" },
-  ]},
-  { group: "Сърдечно-съдова система", items: [
-    { code: "piv",              label: "Периферен венозен катетър (ПВК)" },
-    { code: "cvk",              label: "Централен венозен катетър (ЦВК)" },
-    { code: "art_line",         label: "Артериална линия" },
-    { code: "alert_hr",         label: "Сигнализирай при СЧ < 50 или > 120 уд/мин" },
-    { code: "fluid_plan",       label: "План за венозни течности — вид, скорост, обем е уточнен" },
-    { code: "fluid_balance",    label: "Мониториране и документиране на воден баланс" },
-    { code: "antihypertensive", label: "Антихипертензивни медикаменти — подновени / задържани" },
-    { code: "anticoagulation",  label: "План за антикоагулация е документиран" },
-  ]},
-  { group: "Обезболяване", items: [
-    { code: "analgesia_protocol", label: "Редовна аналгезия по протокол" },
-    { code: "pca",                label: "ПКА / епидурал — настройките на помпата са проверени" },
-    { code: "epidural_catheter",  label: "Епидурален катетър — за преглед от екип по болкова терапия" },
-    { code: "nerve_catheter",     label: "Периферен нервен катетър" },
-    { code: "pain_rescue",        label: "Резервна аналгезия — медикамент, доза, честота" },
-    { code: "alert_pain",         label: "Сигнализирай при NRS > 4 в покой" },
-  ]},
-  { group: "ПОНВ и стомашно-чревна система", items: [
-    { code: "antiemetic_prn", label: "Антиеметици при нужда / схема е предписана" },
-    { code: "ponv_protocol",  label: "Профилактика на ПОНВ" },
-    { code: "oral_intake",    label: "Захранване при поносимост" },
-    { code: "ngt",            label: "НГС — позицията е потвърдена / отделянето е документирано" },
-  ]},
-  { group: "Медикаменти и профилактика", items: [
-    { code: "resume_meds",   label: "Редовните медикаменти са подновени / задържани — списъкът е потвърден" },
-    { code: "dvt_lmwh",      label: "Медикаментозна ДВТ профилактика — НМХ доза и час" },
-    { code: "dvt_mechanical", label: "Механична ДВТ профилактика — чорапи / пневматична компресия" },
-    { code: "mobilisation",   label: "Ранна мобилизация е планирана" },
-    { code: "stress_ulcer",   label: "Профилактика на стрес-язва" },
-    { code: "antibiotics",    label: "Антибиотичен курс е продължен / завършен" },
-    { code: "insulin",        label: "Инсулин / диабетен протокол е активен" },
-    { code: "steroids",       label: "Кортикостероидна суплементация при необходимост" },
-  ]},
-  { group: "Изследвания", items: [
-    { code: "bloods",   label: "Кръвни изследвания след ___ часа" },
-    { code: "ecg",      label: "12-отвеждащ ЕКГ" },
-    { code: "cxr",      label: "Образни изследвания — проследяването е организирано" },
-  ]},
-  { group: "Консултации и проследяване", items: [
-    { code: "pain_team",  label: "Преглед от екип по болкова терапия" },
-    { code: "physio",     label: "Физиотерапия" },
-    { code: "dietitian",  label: "Диетолог / нутритивна подкрепа" },
-    { code: "wound_care", label: "Инструкции за грижа за раната / дренажа са документирани" },
-    { code: "follow_up",  label: "Контролен преглед / план е съобщен" },
-  ]},
-]
+export const normaliseHandoverCodes = normalizeHandoverCodes
 
 export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues, rejectedFields }: {
   onSubmit: (data: PostopData) => void
@@ -258,8 +124,17 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
   }, [allValuesKey, getValues, onAutoSave])
 
   const aldreteVals = watch(["aldreteActivity","aldreteRespiration","aldreteCirculation","aldreteConsciousness","aldreteSpO2"])
-  const aldreteTotal = aldreteVals.reduce<number>((sum, v) => sum + (v != null ? parseInt(String(v), 10) || 0 : 0), 0)
-  const aldreteColor = aldreteTotal >= 9 ? "default" : aldreteTotal >= 7 ? "secondary" : "destructive"
+  const aldreteTotal = calculateAldreteTotal({
+    aldreteActivity: aldreteVals[0],
+    aldreteRespiration: aldreteVals[1],
+    aldreteCirculation: aldreteVals[2],
+    aldreteConsciousness: aldreteVals[3],
+    aldreteSpO2: aldreteVals[4],
+  })
+  const aldreteStatus = aldreteBand(aldreteTotal)
+  const aldreteColor = aldreteStatus === "ready"
+    ? "default"
+    : aldreteStatus === "observe" ? "secondary" : "destructive"
   const disposition   = watch("disposition")
   const handoverItems = watch("handoverItems") ?? []
   const [recoveryBpUTO, recoveryHeartRateUTO, recoverySpo2UTO, recoveryTemperatureUTO] =
@@ -310,8 +185,8 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
           <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-[#2a2a2a]">
             <span className="font-semibold text-slate-700 dark:text-slate-200">{t("postop.aldreteTotal")}:</span>
             <Badge variant={aldreteColor} className="text-base px-3 py-1">{aldreteTotal} / 10</Badge>
-            {aldreteTotal >= 9 && <span className="text-sm text-green-600 dark:text-green-400">{t("postop.aldreteReady")}</span>}
-            {aldreteTotal < 9  && <span className="text-sm text-amber-600 dark:text-amber-400">{t("postop.aldreteMonitor")}</span>}
+            {aldreteStatus === "ready" && <span className="text-sm text-green-600 dark:text-green-400">{t("postop.aldreteReady")}</span>}
+            {aldreteStatus !== "ready" && <span className="text-sm text-amber-600 dark:text-amber-400">{t("postop.aldreteMonitor")}</span>}
           </div>
         </div>
       </SectionCard>

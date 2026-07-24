@@ -28,6 +28,13 @@ const NAME_RE = /(?<![^\s])[\p{Lu}Ѐ-ӿ][\p{Lu}\p{Ll}Ѐ-ӿ]+(?:-[\p{Lu}\p{Ll}Ѐ-
 // EGN: Bulgarian personal identifier — 10 digits with date + checksum structure.
 const EGN_RE    = /\b(\d{10})\b/g
 
+export type PiiReason = "egn" | "long_number" | "date" | "email" | "likely_name"
+export type PiiIssue = {
+  field: string
+  reason: PiiReason
+  message: string
+}
+
 function isValidEGN(s: string): boolean {
   if (s.length !== 10) return false
 
@@ -105,32 +112,48 @@ export function deepRedactPII<T>(value: T): T {
   return value
 }
 
-export function checkPII(
+export function findPII(
   fields: Record<string, string | null | undefined>,
   opts: { skipNameCheck?: Set<string> } = {},
-): string | null {
+): PiiIssue | null {
   for (const [field, value] of Object.entries(fields)) {
     if (!value || typeof value !== "string") continue
 
     // EGN check (structural — low false positive rate)
     const egnMatches = [...value.matchAll(EGN_RE)]
     if (egnMatches.some(m => isValidEGN(m[1]))) {
-      return `"${field}" appears to contain an EGN (Bulgarian personal ID number).`
+      return {
+        field,
+        reason: "egn",
+        message: `"${field}" appears to contain an EGN (Bulgarian personal ID number).`,
+      }
     }
 
     // Long digit sequences (medical record numbers, file numbers)
     if (DIGIT7_RE.test(value)) {
-      return `"${field}" appears to contain a long ID or reference number (7+ digits).`
+      return {
+        field,
+        reason: "long_number",
+        message: `"${field}" appears to contain a long ID or reference number (7+ digits).`,
+      }
     }
 
     // Date patterns
     if (DATE_RE.test(value)) {
-      return `"${field}" appears to contain a date in a common format (e.g. DD.MM.YYYY).`
+      return {
+        field,
+        reason: "date",
+        message: `"${field}" appears to contain a date in a common format (e.g. DD.MM.YYYY).`,
+      }
     }
 
     // Email addresses
     if (EMAIL_RE.test(value)) {
-      return `"${field}" appears to contain an email address.`
+      return {
+        field,
+        reason: "email",
+        message: `"${field}" appears to contain an email address.`,
+      }
     }
 
     // Two consecutive capitalised words — likely a person's name.
@@ -138,8 +161,19 @@ export function checkPII(
     // currentMedications) because drug names legitimately contain two
     // capitalised words (e.g. "Morphine Sulfate", "Sodium Chloride").
     if (!opts.skipNameCheck?.has(field) && NAME_RE.test(value)) {
-      return `"${field}" appears to contain a name (two capitalised words).`
+      return {
+        field,
+        reason: "likely_name",
+        message: `"${field}" appears to contain a name (two capitalised words).`,
+      }
     }
   }
   return null
+}
+
+export function checkPII(
+  fields: Record<string, string | null | undefined>,
+  opts: { skipNameCheck?: Set<string> } = {},
+): string | null {
+  return findPII(fields, opts)?.message ?? null
 }

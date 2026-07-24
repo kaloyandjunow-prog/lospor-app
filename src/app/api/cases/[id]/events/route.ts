@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
-import { checkEventPII } from "@/lib/clinical-pii"
+import { checkEventPII, piiErrorBody, type ClinicalPiiIssue } from "@/lib/clinical-pii"
 import { logAudit } from "@/lib/audit"
 import { addEvent, reconcileFullLog, rebuildProjection, reserveIntraopRevision, type LogEvent } from "@/lib/case-events"
 import { canAccessCase } from "@/lib/access-control"
@@ -32,7 +32,7 @@ const eventSchema = z.object({
 
 // Free-text fields a user can type — these get the same PII guard as the rest of
 // the clinical write paths. Vitals/numbers are not user prose, so they're skipped.
-function piiForEvent(ev: { name?: unknown; label?: unknown }): string | null {
+function piiForEvent(ev: { name?: unknown; label?: unknown }): ClinicalPiiIssue | null {
   return checkEventPII(ev)
 }
 
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const piiError = piiForEvent(event)
   if (piiError) {
-    return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+    return NextResponse.json(piiErrorBody(piiError), { status: 400 })
   }
 
   // Resolve Drug.id from ATC code when a drug event arrives without one
@@ -229,7 +229,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   for (const ev of log) {
     const piiError = piiForEvent(ev)
     if (piiError) {
-      return NextResponse.json({ error: `${piiError} Please remove identifying information before saving.` }, { status: 400 })
+      return NextResponse.json(piiErrorBody(piiError), { status: 400 })
     }
   }
 

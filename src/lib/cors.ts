@@ -1,18 +1,4 @@
-const DEFAULT_HEADERS = [
-  "Content-Type",
-  "Authorization",
-  "x-lospor-preop-updated-at",
-  "x-lospor-postop-updated-at",
-  "x-lospor-intraop-updated-at",
-  "x-lospor-preop-revision",
-  "x-lospor-postop-revision",
-  "x-lospor-intraop-revision",
-  "x-lospor-updated-at",
-  "x-lospor-force-update",
-  "x-lospor-source",
-  "x-idempotency-key",
-  "x-lospor-operation-id",
-].join(", ")
+import { CORS_REQUEST_HEADERS_VALUE } from "@lospor/core/sync"
 
 function allowlist(): string[] {
   const list = process.env.CORS_ALLOW_ORIGINS?.split(",").map(origin => origin.trim()).filter(Boolean) ?? []
@@ -40,7 +26,7 @@ export function allowedCorsOrigin(requestOrigin?: string | null): string {
 // Pass the incoming request (or null for a static fallback) so the allowed
 // origin can be reflected per request. `Vary: Origin` tells caches the
 // response differs by requesting origin.
-export function corsHeaders(req?: { headers: { get(name: string): string | null } } | null, methods = "GET, POST, PATCH, PUT, DELETE, OPTIONS", headers = DEFAULT_HEADERS) {
+export function corsHeaders(req?: { headers: { get(name: string): string | null } } | null, methods = "GET, POST, PATCH, PUT, DELETE, OPTIONS", headers = CORS_REQUEST_HEADERS_VALUE) {
   return {
     "Access-Control-Allow-Origin":  allowedCorsOrigin(req?.headers.get("origin")),
     "Access-Control-Allow-Methods": methods,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/mobile-auth"
 import fs from "fs"
 import path from "path"
+import { CLINICAL_SEARCH_MIN_LENGTH } from "@lospor/core/search"
 
 type PCSEntry = { code: string; description: string; group: string; domain: string }
 
@@ -32,7 +33,7 @@ const COMMON_GROUPS = new Set([
 export async function GET(req: NextRequest) {
   if (!await getAuthUser(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const q = req.nextUrl.searchParams.get("q")?.trim().toLowerCase()
-  if (!q || q.length < 3) return NextResponse.json([])
+  if (!q || q.length < CLINICAL_SEARCH_MIN_LENGTH.procedure) return NextResponse.json([])
 
   const data = loadData()
   const bestPerGroup = new Map<string, { entry: PCSEntry; score: number }>()
