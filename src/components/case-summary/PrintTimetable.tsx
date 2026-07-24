@@ -1,9 +1,16 @@
 "use client"
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import {
+  buildDrugLogEntries,
+  calculateDrugTotals,
+  naturalTimetableColumnCount,
+} from "@lospor/core/intraop-summary"
+import { calcInfusionTotals } from "@lospor/core/intraop-totals"
 import type {
-  LegacyKeyEvents, TimetableDrug, TimetableInfusion, VitalsEntry,
+  LegacyKeyEvents, TimetableInfusion, VitalsEntry,
   AgentSegment, TimetableFluid, GasSettingsSegment, ClinicalEvent, PositionSegment,
+  TimetableData,
 } from "@/types/timetable"
 
 function colToHHMM(col: number, startISO?: string | null) {
@@ -18,28 +25,12 @@ function colToHHMM(col: number, startISO?: string | null) {
 
 // ── Drug/fluid totals ─────────────────────────────────────────────────────────
 export function calcDrugTotals(timetable: LegacyKeyEvents) {
-  const drugs: TimetableDrug[] = Array.isArray(timetable?.drugs) ? timetable.drugs : []
-  const totals: Record<string, { total: number; unit: string }> = {}
-  drugs.forEach(d => {
-    const key = `${d.name ?? ""}__${d.unit ?? ""}`
-    if (!totals[key]) totals[key] = { total: 0, unit: d.unit ?? "" }
-    totals[key].total += parseFloat(String(d.dose)) || 0
-  })
-  return Object.entries(totals).map(([key, v]) => ({
-    name: key.split("__")[0],
-    total: Math.round(v.total * 100) / 100,
-    unit: v.unit,
-  }))
+  return calculateDrugTotals({ drugs: timetable.drugs ?? [] })
 }
 
 export function calcInfTotals(timetable: LegacyKeyEvents) {
   const infs: TimetableInfusion[] = Array.isArray(timetable?.infusions) ? timetable.infusions : []
-  return infs.map(inf => {
-    const cols = Math.max(0, (inf.endCol ?? 0) - (inf.startCol ?? 0))
-    const hrs  = (cols * 5) / 60
-    const total = Math.round((Number(inf.rate) || 0) * hrs * 10) / 10
-    return { name: inf.name ?? "", total, unit: inf.unit ?? "ml" }
-  })
+  return calcInfusionTotals(infs, null, null, {})
 }
 
 // ── Palettes — light "paper" (print + light theme) and dark (summary only;
@@ -110,17 +101,16 @@ export type DrugLogEntry = {
   colIdx: number
 }
 export function buildDrugLog(timetable: LegacyKeyEvents, startISO?: string | null): DrugLogEntry[] {
-  const drugs: TimetableDrug[] = Array.isArray(timetable?.drugs) ? timetable.drugs : []
-  return drugs
-    .slice()
-    .sort((a, b) => (a.colIdx ?? 0) - (b.colIdx ?? 0))
-    .map((d, i) => ({
+  return buildDrugLogEntries({
+    drugs: Array.isArray(timetable?.drugs) ? timetable.drugs : [],
+  }, startISO, "utc")
+    .map((entry, i) => ({
       n: i + 1,
-      time: colToHHMM(d.colIdx ?? 0, startISO),
-      name: String(d.name ?? ""),
-      dose: `${d.dose ?? ""} ${d.unit ?? ""}`.trim(),
-      color: drugColor(String(d.name ?? ""), i),
-      colIdx: d.colIdx ?? 0,
+      time: entry.time,
+      name: entry.name,
+      dose: `${entry.dose} ${entry.unit}`.trim(),
+      color: drugColor(entry.name, i),
+      colIdx: entry.column,
     }))
 }
 
@@ -148,25 +138,7 @@ const LBL  = 78
 export type TimetableView = { c0?: number; c1?: number; step?: number; caption?: string }
 
 export function naturalMaxCols(t: LegacyKeyEvents): number {
-  const vitals = Array.isArray(t?.vitals) ? t.vitals : []
-  const drugs = Array.isArray(t?.drugs) ? t.drugs : []
-  const agents = Array.isArray(t?.agents) ? t.agents : []
-  const gas = Array.isArray(t?.gasSettings) ? t.gasSettings : []
-  const infusions = Array.isArray(t?.infusions) ? t.infusions : []
-  const fluids = Array.isArray(t?.fluids) ? t.fluids : []
-  const events = Array.isArray(t?.clinicalEvents) ? t.clinicalEvents : []
-  const positions = Array.isArray(t?.positions) ? t.positions : []
-  return Math.max(
-    vitals.length,
-    drugs.length     > 0 ? Math.max(...drugs.map(d => d.colIdx ?? 0)) + 1 : 0,
-    agents.length    > 0 ? Math.max(...agents.map(a => a.endCol ?? a.startCol ?? 0)) + 1 : 0,
-    gas.length       > 0 ? Math.max(...gas.map(g => g.endCol ?? g.startCol ?? 0)) + 1 : 0,
-    infusions.length > 0 ? Math.max(...infusions.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
-    fluids.length    > 0 ? Math.max(...fluids.map(f => f.endCol ?? f.startCol ?? 0)) + 1 : 0,
-    events.length    > 0 ? Math.max(...events.map(e => e.colIdx ?? 0)) + 1 : 0,
-    positions.length > 0 ? Math.max(...positions.map(p => p.endCol ?? p.startCol ?? 0)) + 1 : 0,
-    12,
-  ) + 1
+  return naturalTimetableColumnCount(t as TimetableData, 12, 1)
 }
 
 // Build one chart panel as SVG markup in a fixed 1100-wide viewBox, styled to

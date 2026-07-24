@@ -1,26 +1,16 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import fallbackSnapshot from "@/data/option-library-fallback.json"
 import { CLINICAL_RANGES, type ClinicalRangeKey } from "@lospor/core"
+import {
+  rangeSpecFromOption,
+  type LibraryOption,
+  type RangeSpec,
+} from "@lospor/core/option-library"
+import { parseLibraryOptions } from "@lospor/core/option-contracts"
 
-export type LibraryOption = {
-  id: string
-  value: string
-  label: string
-  labelBg: string | null
-  group: string | null
-  parentId: string | null
-  color: string | null
-  description: string | null
-  drugId: string | null
-  atcCode: string | null
-  inn: string | null
-  // Per-category shape (DoseProfile for drugs/infusions/fluids/agents,
-  // categoryColor/isComplication for events, allowedUnits for numeric
-  // ranges, etc.) — genuinely varies by category, read defensively via
-  // optional chaining everywhere it's consumed.
-  metadata: Record<string, unknown> | null
-}
+export type { LibraryOption, RangeSpec }
 
 export type LibrarySource = "live" | "cached" | "bundled"
 type CategoryState = { data: LibraryOption[]; source: LibrarySource }
@@ -32,15 +22,22 @@ const retryTimers = new Map<string, ReturnType<typeof setInterval>>()
 const globalListeners = new Set<() => void>()
 
 const RETRY_INTERVAL_MS = 30_000
-const FALLBACK_SNAPSHOT_DATE: string = (fallbackSnapshot as { generatedAt?: string }).generatedAt ?? "unknown"
+const FALLBACK_SNAPSHOT_DATE: string =
+  (fallbackSnapshot as { generatedAt?: string }).generatedAt ?? "unknown"
 
 function storeKey(category: string) {
   return `lospor_option_library_${category}`
 }
 
+function bundledOptions(category: string): LibraryOption[] {
+  return parseLibraryOptions(
+    (fallbackSnapshot as unknown as Record<string, unknown>)[category],
+  )
+}
+
 function notify(category: string) {
-  listeners.get(category)?.forEach(cb => cb())
-  globalListeners.forEach(cb => cb())
+  listeners.get(category)?.forEach(callback => callback())
+  globalListeners.forEach(callback => callback())
 }
 
 function setState(category: string, next: CategoryState) {
@@ -49,141 +46,137 @@ function setState(category: string, next: CategoryState) {
 }
 
 function stopRetry(category: string) {
-  const t = retryTimers.get(category)
-  if (t) { clearInterval(t); retryTimers.delete(category) }
+  const timer = retryTimers.get(category)
+  if (timer) {
+    clearInterval(timer)
+    retryTimers.delete(category)
+  }
 }
 
 function scheduleRetry(category: string) {
   if (retryTimers.has(category)) return
-  const t = setInterval(() => { attemptLiveFetch(category) }, RETRY_INTERVAL_MS)
-  retryTimers.set(category, t)
+  const timer = setInterval(
+    () => { void attemptLiveFetch(category) },
+    RETRY_INTERVAL_MS,
+  )
+  retryTimers.set(category, timer)
 }
 
 function readLocalCache(category: string): LibraryOption[] | null {
   try {
     const raw = window.localStorage.getItem(storeKey(category))
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
+    if (!raw) return null
+    const options = parseLibraryOptions(JSON.parse(raw))
+    return options.length ? options : null
+  } catch {
+    return null
+  }
 }
 
 function writeLocalCache(category: string, data: LibraryOption[]) {
-  try { window.localStorage.setItem(storeKey(category), JSON.stringify(data)) } catch {}
+  try {
+    window.localStorage.setItem(storeKey(category), JSON.stringify(data))
+  } catch {
+    // Storage can be unavailable in private browsing.
+  }
 }
 
-// Tries the live API. On success, replaces whatever fallback was showing and
-// stops the background retry. On failure, leaves the current
-// cached/bundled data in place (it was already shown) and keeps retrying.
 async function attemptLiveFetch(category: string): Promise<void> {
-  if (inflight.has(category)) return inflight.get(category)!
-  const p = (async () => {
+  const currentRequest = inflight.get(category)
+  if (currentRequest) return currentRequest
+
+  const request = (async () => {
     try {
-      const res = await fetch(`/api/library/${category}`)
-      if (!res.ok) throw new Error(`library fetch failed: ${res.status}`)
-      const data: LibraryOption[] = await res.json()
-      // A 200 with an empty array is never legitimately correct for these
-      // categories — it means the table exists but hasn't been seeded yet,
-      // not "nothing to show." Treat it the same as a fetch failure rather
-      // than trusting it as live, so it can't silently blank out a picker
-      // with no banner and no retry.
-      if (data.length === 0) throw new Error("empty option library response")
+      const response = await fetch(`/api/library/${category}`)
+      if (!response.ok) {
+        throw new Error(`library fetch failed: ${response.status}`)
+      }
+      const data = parseLibraryOptions(await response.json())
+      if (data.length === 0) {
+        throw new Error("empty or invalid option library response")
+      }
       setState(category, { data, source: "live" })
       stopRetry(category)
       writeLocalCache(category, data)
     } catch {
-      // Still offline/unreachable — if we don't have anything showing yet,
-      // fall through to cached/bundled data so pickers aren't empty.
       if (!state.has(category)) {
         const cached = readLocalCache(category)
-        if (cached) {
-          setState(category, { data: cached, source: "cached" })
-        } else {
-          setState(category, { data: (fallbackSnapshot as unknown as Record<string, LibraryOption[]>)[category] ?? [], source: "bundled" })
-        }
+        setState(
+          category,
+          cached
+            ? { data: cached, source: "cached" }
+            : { data: bundledOptions(category), source: "bundled" },
+        )
       }
       scheduleRetry(category)
     } finally {
       inflight.delete(category)
     }
   })()
-  inflight.set(category, p)
-  return p
+
+  inflight.set(category, request)
+  return request
 }
 
-// Fetches a selectable option library (position, technique, vascular access,
-// airway management, monitoring, premedication/intraop drugs, infusions,
-// inhalational agents, fluids, clinical events) once per category and caches
-// it for the rest of the session, in localStorage for reuse across reloads,
-// and falls back to a snapshot bundled into the app build itself if the live
-// fetch fails and there's no prior cache either (first load + no
-// connectivity) — see scripts/generate-option-library-fallback.ts in the
-// repo root. While running on cached/bundled data, retries the live fetch
-// every 30s in the background and swaps in live data the moment it succeeds.
-export function useOptionLibrary(category: string): { options: LibraryOption[]; loading: boolean; source: LibrarySource | null } {
+export function useOptionLibrary(category: string): {
+  options: LibraryOption[]
+  loading: boolean
+  source: LibrarySource | null
+} {
   const [, forceRender] = useState(0)
   const [loading, setLoading] = useState(!state.has(category))
 
   useEffect(() => {
-    const cb = () => forceRender(n => n + 1)
+    const callback = () => forceRender(value => value + 1)
     if (!listeners.has(category)) listeners.set(category, new Set())
-    listeners.get(category)!.add(cb)
+    listeners.get(category)!.add(callback)
+
     if (!state.has(category)) {
-      // Async fetch-on-mount with a loading flag — the standard data-fetching
-      // pattern this rule flags, but a full rewrite onto useSyncExternalStore
-      // would mean reshaping the existing module-level cache/listener/retry
-      // system above (already a deliberate, working design — see the comment
-      // block above this hook), not a lint-pass-sized change.
+      // This hook bridges the existing module cache into React state.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true)
-      attemptLiveFetch(category).finally(() => setLoading(false))
+      void attemptLiveFetch(category).finally(() => setLoading(false))
     } else {
       setLoading(false)
     }
-    return () => { listeners.get(category)?.delete(cb) }
+    return () => {
+      listeners.get(category)?.delete(callback)
+    }
   }, [category])
 
   const latest = state.get(category)
-  return { options: latest?.data ?? [], loading, source: latest?.source ?? null }
+  return {
+    options: latest?.data ?? [],
+    loading,
+    source: latest?.source ?? null,
+  }
 }
 
-export type RangeSpec = { min: number; max: number; step: number; unit: string }
-
-// Numeric range pickers (age, height, weight, vitals, etc.) are seeded as a
-// single OptionLibrary row per category with the actual min/max/step/unit in
-// metadata — same fetch/cache/fallback machinery as the categorical lists.
 export function useRangeSpec(category: string): RangeSpec | undefined {
   const { options } = useOptionLibrary(category)
-  return options[0]?.metadata as RangeSpec | undefined
+  return rangeSpecFromOption(options[0])
 }
 
-/**
- * A numeric range that is always safe to hand to a picker.
- *
- * `useRangeSpec` returns undefined until the library loads, so every call site
- * used to carry its own `?? 0` fallback — and three of them disagreed with the
- * API. Height fell back to a minimum of 0 while the API requires 30, so a
- * clinician could pick 12 cm, and the save was refused.
- *
- * Falling back to the canonical range in @lospor/core instead removes the
- * chance to get it wrong: there is no literal for a call site to mistype, and
- * core's values are asserted against the API schema in
- * src/__tests__/range-schema-agreement.test.ts.
- */
 export function useRange(key: ClinicalRangeKey): RangeSpec {
   const spec = useRangeSpec(key)
   const canonical = CLINICAL_RANGES[key]
   return spec ?? { ...canonical, unit: canonical.unit }
 }
 
-// Used by the offline-library banner to know if anything is currently
-// showing non-live data, without needing to know which categories a given
-// screen uses.
-export function useAnyLibraryFallback(): { active: boolean; snapshotDate: string } {
+export function useAnyLibraryFallback(): {
+  active: boolean
+  snapshotDate: string
+} {
   const [, forceRender] = useState(0)
   useEffect(() => {
-    const cb = () => forceRender(n => n + 1)
-    globalListeners.add(cb)
-    return () => { globalListeners.delete(cb) }
+    const callback = () => forceRender(value => value + 1)
+    globalListeners.add(callback)
+    return () => {
+      globalListeners.delete(callback)
+    }
   }, [])
-  const active = [...state.values()].some(s => s.source !== "live")
-  return { active, snapshotDate: FALLBACK_SNAPSHOT_DATE }
+  return {
+    active: [...state.values()].some(entry => entry.source !== "live"),
+    snapshotDate: FALLBACK_SNAPSHOT_DATE,
+  }
 }

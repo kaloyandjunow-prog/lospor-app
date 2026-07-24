@@ -1,6 +1,11 @@
 // Shared data-mapping helpers for POST and PATCH case routes
 import { Prisma } from "@/generated/prisma/client"
 import { instantFromLocalTime, isValidTimeZone, durationMinutesBetween } from "@/lib/intraop-time"
+import {
+  canonicalizeIntraopPatch,
+  canonicalizePostopPatch,
+  canonicalizePreopPatch,
+} from "@lospor/core/case-payloads"
 
 // Copies full[k] into r[k] for each key present in the raw payload. A plain
 // `r[k] = full[k]` inside a loop over a key UNION can't statically prove the
@@ -47,7 +52,7 @@ function taggedListToStorage(value: TaggedDrugList): string | null {
 }
 
 export function mapPreop(rawPreop: Record<string, unknown>): Prisma.PreoperativeAssessmentUncheckedCreateWithoutCaseInput {
-  const preop = rawPreop as PreopRawInput
+  const preop = canonicalizePreopPatch(rawPreop) as PreopRawInput
   const upperLipBiteTest =
     preop.upperLipBiteTest ??
     (preop.ulbt === "I" ? "CLASS_I" : preop.ulbt === "II" ? "CLASS_II" : preop.ulbt === "III" ? "CLASS_III" : null)
@@ -307,7 +312,7 @@ function resolveIntraopInstants(intraop: Record<string, unknown>): {
 }
 
 export function mapIntraop(rawIntraop: Record<string, unknown>): Prisma.IntraoperativeRecordUncheckedCreateWithoutCaseInput {
-  const intraop = rawIntraop as IntraopRawInput
+  const intraop = canonicalizeIntraopPatch(rawIntraop) as IntraopRawInput
   // Use a stable reference date (2000-01-01) for startTime/endTime — only the HH:MM matters for the timetable.
   const REF_DATE = "2000-01-01"
   const isHHMM  = (s: unknown): s is string => typeof s === "string" && HHMMRE.test(s)
@@ -530,7 +535,7 @@ type PostopRawInput = Partial<Prisma.PostoperativeRecordUncheckedCreateWithoutCa
 }
 
 export function mapPostop(rawPostop: Record<string, unknown>): Prisma.PostoperativeRecordUncheckedCreateWithoutCaseInput {
-  const postop = rawPostop as PostopRawInput
+  const postop = canonicalizePostopPatch(rawPostop) as PostopRawInput
   const aldreteActivity = postop.aldreteActivity ?? postop.activityScore
   const aldreteRespiration = postop.aldreteRespiration ?? postop.respirationScore
   const aldreteCirculation = postop.aldreteCirculation ?? postop.circulationScore

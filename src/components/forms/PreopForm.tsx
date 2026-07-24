@@ -23,6 +23,7 @@ import { LabResults, type LabResult } from "@/components/LabResults"
 import GuardedTextarea from "@/components/GuardedTextarea"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
 import { schema, type PreopData } from "@/components/forms/preopSchema"
+import { metadataString } from "@lospor/core/option-contracts"
 
 export type { PreopData } from "@/components/forms/preopSchema"
 
@@ -492,14 +493,23 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <Label>{t("preop.bloodType")}</Label>
           <div className="grid grid-cols-4 gap-2">
             {bloodGroupOptions.map(opt => {
-              const meta = opt.metadata as { bloodType: "A" | "B" | "AB" | "O"; rhFactor: "POSITIVE" | "NEGATIVE" } | undefined
-              const selected = bloodType === meta?.bloodType && rhFactor === meta?.rhFactor
+              const bloodTypeValue = metadataString(opt.metadata, "bloodType")
+              const rhFactorValue = metadataString(opt.metadata, "rhFactor")
+              const optionBloodType = bloodTypeValue === "A" || bloodTypeValue === "B"
+                || bloodTypeValue === "AB" || bloodTypeValue === "O"
+                ? bloodTypeValue
+                : undefined
+              const optionRhFactor = rhFactorValue === "POSITIVE" || rhFactorValue === "NEGATIVE"
+                ? rhFactorValue
+                : undefined
+              if (!optionBloodType || !optionRhFactor) return null
+              const selected = bloodType === optionBloodType && rhFactor === optionRhFactor
               return (
                 <button key={opt.value} type="button"
                   onClick={() => {
                     if (selected) { setValue("bloodType", undefined); setValue("rhFactor", undefined); return }
-                    setValue("bloodType", meta?.bloodType)
-                    setValue("rhFactor", meta?.rhFactor)
+                    setValue("bloodType", optionBloodType)
+                    setValue("rhFactor", optionRhFactor)
                   }}
                   className={`rounded-xl border-2 py-2 font-bold text-sm transition-all ${
                     selected

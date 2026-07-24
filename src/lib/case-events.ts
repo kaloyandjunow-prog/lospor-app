@@ -1,9 +1,10 @@
 import { Prisma } from "@/generated/prisma/client"
 import { calculateFluidTotals, fluidTotalsPatch } from "@lospor/core/intraop-totals"
+import { projectIntraopEvents, reverseProjectIntraop } from "@lospor/core/intraop-engine"
+import { parseLogEvents, type LegacyKeyEvents as CoreLegacyKeyEvents } from "@lospor/core/intraop-types"
 import type {
-  LogEvent, VitalsEntry, TimetableDrug, TimetableFluid, AgentSegment,
-  TimetableInfusion, ClinicalEvent, GasSettingsSegment, LegacyKeyEvents,
-  PositionSegment, PhaseSegment,
+  LogEvent,
+  LegacyKeyEvents,
 } from "@/types/timetable"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,143 +36,15 @@ function gasFractions(carrierGas: string | null | undefined, fio2: number | null
 }
 
 // ─── Projection (moved verbatim from the events route) ───────────────────────
-const MAX_COLS = 2016
-function colFor(ev: LogEvent, start: Date) {
-  const t = ev.ts ? new Date(ev.ts).getTime() : Date.now()
-  return Math.min(Math.max(0, Math.floor((t - start.getTime()) / (5 * 60_000))), MAX_COLS)
-}
-
 export function projectTimetable(log: LogEvent[], start: Date) {
-  const vitals: VitalsEntry[] = []
-  const drugs: TimetableDrug[] = []
-  const infusions: TimetableInfusion[] = []
-  const fluids: TimetableFluid[] = []
-  const agents: AgentSegment[] = []
-  const clinicalEvents: ClinicalEvent[] = []
-  const activeInf: Record<string, { startCol: number; ev: LogEvent; initialRate?: string; rateChanges: { col: number; rate?: string; unit?: string; concentration?: string }[] }> = {}
-  const activeFluid: Record<string, { startCol: number; ev: LogEvent }> = {}
-  let activeAgent: { name: string; color: string; startCol: number; percent?: number } | null = null
-  const gasSettings: GasSettingsSegment[] = []
-  let activeGas: { startCol: number; fgf: number; carrierGas: string | null; fio2: number; fiAir: number; fiN2O: number; settingsChanges: { col: number; fgf: number; carrierGas: string | null; fio2: number; fiAir: number; fiN2O: number }[] } | null = null
-  const positions: PositionSegment[] = []
-  let activePosition: { position: string; startCol: number } | null = null
-  const phases: PhaseSegment[] = []
-  let activePhase: { phase: string; startCol: number } | null = null
-  let maxCol = 0
-
-  const chrono = [...log].sort((a, b) =>
-    new Date(a.ts ?? 0).getTime() - new Date(b.ts ?? 0).getTime()
-  )
-
-  for (const ev of chrono) {
-    const col = colFor(ev, start)
-    maxCol = Math.max(maxCol, col)
-    if (ev.type === "vital") {
-      while (vitals.length <= col) vitals.push({})
-      vitals[col] = {
-        systolic: ev.systolic,
-        diastolic: ev.diastolic,
-        heartRate: ev.heartRate,
-        spO2: ev.spO2,
-        etco2: ev.etco2,
-        temp: ev.temp,
-        bgl: ev.bgl,
-      }
-    } else if (ev.type === "drug") {
-      // Coded identity (drugId/atcCode/inn) survives into the projection now —
-      // previously only the raw CaseEvent row kept it (via metadataJson),
-      // while the chart/cache/export path saw just a free-text name.
-      drugs.push({ colIdx: col, name: ev.name ?? "", dose: ev.dose ?? "", unit: ev.unit ?? "", drugId: ev.drugId, atcCode: ev.atcCode, inn: ev.inn, route: ev.drugRoute })
-    } else if (ev.type === "infusion_start" && ev.infId) {
-      // Track the initial rate and each subsequent rate change as segments so the
-      // bar/pill can show the correct rate at any column (matches the mobile
-      // local projection). Without this the chart only ever sees one rate.
-      activeInf[ev.infId] = { startCol: col, ev, initialRate: ev.rate, rateChanges: [] }
-    } else if (ev.type === "infusion_rate" && ev.infId && activeInf[ev.infId]) {
-      const entry = activeInf[ev.infId]
-      entry.rateChanges.push({ col, rate: ev.rate, unit: ev.unit ?? entry.ev.unit, concentration: ev.concentration })
-      entry.ev = { ...entry.ev, rate: ev.rate }
-    } else if (ev.type === "infusion_stop" && ev.infId) {
-      const entry = activeInf[ev.infId]
-      if (entry) {
-        // Base rate is the INITIAL rate (so cells before the first change show it);
-        // rateChanges carry the later segments.
-        infusions.push({ id: ev.infId, name: entry.ev.name ?? "", rate: Number(entry.initialRate ?? 0), unit: entry.ev.unit ?? "", color: entry.ev.color ?? "#8b5cf6", startCol: entry.startCol, endCol: col, concentration: entry.ev.concentration, route: entry.ev.drugRoute, drugId: entry.ev.drugId, atcCode: entry.ev.atcCode, inn: entry.ev.inn, rateChanges: entry.rateChanges.length ? entry.rateChanges.map(rc => ({ col: rc.col, rate: Number(rc.rate ?? 0), unit: rc.unit ?? "", concentration: rc.concentration })) : undefined })
-        delete activeInf[ev.infId]
-      }
-    } else if (ev.type === "fluid_start" && ev.fluidId) {
-      activeFluid[ev.fluidId] = { startCol: col, ev }
-    } else if (ev.type === "fluid_end" && ev.fluidId) {
-      const entry = activeFluid[ev.fluidId]
-      if (entry) {
-        fluids.push({ id: ev.fluidId, name: entry.ev.name ?? "", category: entry.ev.category ?? "", volume: entry.ev.volume ?? "", color: entry.ev.color ?? "#06b6d4", startCol: entry.startCol, endCol: col })
-        delete activeFluid[ev.fluidId]
-      }
-    } else if (ev.type === "agent_start" && ev.name) {
-      if (activeAgent && activeAgent.name !== ev.name) {
-        agents.push({ name: activeAgent.name, color: activeAgent.color, startCol: activeAgent.startCol, endCol: col, percent: activeAgent.percent })
-      }
-      activeAgent = { name: ev.name, color: ev.color ?? "#a855f7", startCol: col, percent: ev.value != null ? Number(ev.value) : undefined }
-    } else if (ev.type === "agent_stop" && activeAgent) {
-      agents.push({ name: activeAgent.name, color: activeAgent.color, startCol: activeAgent.startCol, endCol: col, percent: activeAgent.percent })
-      activeAgent = null
-    } else if (ev.type === "gas_start") {
-      if (activeGas) gasSettings.push({ id: `gas-${activeGas.startCol}`, startCol: activeGas.startCol, endCol: col, fgf: activeGas.fgf, carrierGas: activeGas.carrierGas, fio2: activeGas.fio2, fiAir: activeGas.fiAir, fiN2O: activeGas.fiN2O, settingsChanges: activeGas.settingsChanges.length ? activeGas.settingsChanges : undefined })
-      const fractions = gasFractions(ev.carrierGas, ev.fio2)
-      activeGas = { startCol: col, fgf: ev.fgf ?? 0, carrierGas: ev.carrierGas ?? null, fio2: fractions.fio2, fiAir: fractions.fiAir, fiN2O: fractions.fiN2O, settingsChanges: [] }
-    } else if (ev.type === "gas_change" && activeGas) {
-      const carrierGas = ev.carrierGas ?? activeGas.carrierGas
-      const fractions = gasFractions(carrierGas, ev.fio2 ?? activeGas.fio2)
-      activeGas.settingsChanges.push({ col, fgf: ev.fgf ?? activeGas.fgf, carrierGas, fio2: fractions.fio2, fiAir: fractions.fiAir, fiN2O: fractions.fiN2O })
-    } else if (ev.type === "gas_stop" && activeGas) {
-      gasSettings.push({ id: `gas-${activeGas.startCol}`, startCol: activeGas.startCol, endCol: col, fgf: activeGas.fgf, carrierGas: activeGas.carrierGas, fio2: activeGas.fio2, fiAir: activeGas.fiAir, fiN2O: activeGas.fiN2O, settingsChanges: activeGas.settingsChanges.length ? activeGas.settingsChanges : undefined })
-      activeGas = null
-    } else if ((ev.type === "clinical_event" || ev.type === "event") && ev.label) {
-      clinicalEvents.push({ colIdx: col, label: ev.label, color: ev.color ?? "#64748b" })
-    } else if (ev.type === "position_change" && ev.name) {
-      // Same state-machine as agents: each change closes the previous segment
-      // and opens a new one; repeated same-position changes are collapsed.
-      if (activePosition && activePosition.position !== ev.name) {
-        positions.push({ position: activePosition.position, startCol: activePosition.startCol, endCol: col })
-        activePosition = { position: ev.name, startCol: col }
-      } else if (!activePosition) {
-        activePosition = { position: ev.name, startCol: col }
-      }
-    } else if (ev.type === "phase_change" && ev.name) {
-      if (activePhase && activePhase.phase !== ev.name) {
-        phases.push({ phase: activePhase.phase, startCol: activePhase.startCol, endCol: col })
-        activePhase = { phase: ev.name, startCol: col }
-      } else if (!activePhase) {
-        activePhase = { phase: ev.name, startCol: col }
-      }
-    }
-  }
-
-  const openEnd = maxCol + 1
-  for (const [id, { startCol, ev, initialRate, rateChanges }] of Object.entries(activeInf)) {
-    infusions.push({ id, name: ev.name ?? "", rate: Number(initialRate ?? 0), unit: ev.unit ?? "", color: ev.color ?? "#8b5cf6", startCol, endCol: openEnd, concentration: ev.concentration, route: ev.drugRoute, drugId: ev.drugId, atcCode: ev.atcCode, inn: ev.inn, rateChanges: rateChanges.length ? rateChanges.map(rc => ({ col: rc.col, rate: Number(rc.rate ?? 0), unit: rc.unit ?? "", concentration: rc.concentration })) : undefined })
-  }
-  for (const [id, { startCol, ev }] of Object.entries(activeFluid)) {
-    fluids.push({ id, name: ev.name ?? "", category: ev.category ?? "", volume: ev.volume ?? "", color: ev.color ?? "#06b6d4", startCol, endCol: openEnd })
-  }
-  if (activeAgent) {
-    agents.push({ name: activeAgent.name, color: activeAgent.color, startCol: activeAgent.startCol, endCol: openEnd, percent: activeAgent.percent })
-  }
-  if (activeGas) {
-    gasSettings.push({ id: `gas-${activeGas.startCol}`, startCol: activeGas.startCol, endCol: openEnd, fgf: activeGas.fgf, carrierGas: activeGas.carrierGas, fio2: activeGas.fio2, fiAir: activeGas.fiAir, fiN2O: activeGas.fiN2O, settingsChanges: activeGas.settingsChanges.length ? activeGas.settingsChanges : undefined })
-  }
-  if (activePosition) {
-    positions.push({ position: activePosition.position, startCol: activePosition.startCol, endCol: openEnd })
-  }
-  if (activePhase) {
-    phases.push({ phase: activePhase.phase, startCol: activePhase.startCol, endCol: openEnd })
-  }
-
-  return { vitals, drugs, infusions, fluids, agents, gasSettings, clinicalEvents, positions, phases }
+  const parsed = parseLogEvents(log.map((event, index) => ({
+    ...event,
+    id: event.id ?? `legacy-${index}`,
+  })))
+  return projectIntraopEvents(parsed, { start })
 }
 
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 /**
  * What the chart origin can be derived from.
  *
@@ -363,48 +236,7 @@ function buildRow(
 // remain chronologically meaningful for audit/sorting once mixed in with
 // real-timestamped events.
 export function reverseProject(keyEvents: LegacyKeyEvents, baseMs: number): LogEvent[] {
-  const tsFor = (col: number) => new Date(baseMs + (col ?? 0) * 5 * 60_000).toISOString()
-  const out: LogEvent[] = []
-  let i = 0
-  const mk = (o: Partial<LogEvent>): LogEvent => ({ id: `seed-${i++}`, ...o })
-
-  const vitals = Array.isArray(keyEvents.vitals) ? keyEvents.vitals : []
-  vitals.forEach((v, col) => {
-    if (v && Object.values(v).some(x => x != null)) out.push(mk({ type: "vital", ts: tsFor(col), ...v }))
-  })
-  for (const d of (Array.isArray(keyEvents.drugs) ? keyEvents.drugs : [])) {
-    out.push(mk({ type: "drug", ts: tsFor(d.colIdx ?? 0), name: d.name, dose: d.dose, unit: d.unit, drugId: d.drugId, atcCode: d.atcCode, inn: d.inn, drugRoute: d.route }))
-  }
-  for (const c of (Array.isArray(keyEvents.clinicalEvents) ? keyEvents.clinicalEvents : [])) {
-    out.push(mk({ type: "clinical_event", ts: tsFor(c.colIdx ?? 0), label: c.label, color: c.color }))
-  }
-  for (const inf of (Array.isArray(keyEvents.infusions) ? keyEvents.infusions : [])) {
-    const infId = inf.id ?? `inf-${i}`
-    out.push(mk({ type: "infusion_start", ts: tsFor(inf.startCol ?? 0), infId, name: inf.name, unit: inf.unit, rate: String(inf.rate ?? ""), color: inf.color, concentration: inf.concentration, drugRoute: inf.route, drugId: inf.drugId, atcCode: inf.atcCode, inn: inf.inn }))
-    for (const change of inf.rateChanges ?? []) {
-      out.push(mk({ type: "infusion_rate", ts: tsFor(change.col ?? inf.startCol ?? 0), infId, rate: String(change.rate ?? ""), unit: change.unit, concentration: change.concentration }))
-    }
-    if (inf.stopped) out.push(mk({ type: "infusion_stop", ts: tsFor(inf.endCol ?? inf.startCol ?? 0), infId }))
-  }
-  for (const f of (Array.isArray(keyEvents.fluids) ? keyEvents.fluids : [])) {
-    const fluidId = f.id ?? `fl-${i}`
-    out.push(mk({ type: "fluid_start", ts: tsFor(f.startCol ?? 0), fluidId, name: f.name, category: f.category, volume: f.volume, color: f.color }))
-    if (f.stopped) out.push(mk({ type: "fluid_end", ts: tsFor(f.endCol ?? f.startCol ?? 0), fluidId }))
-  }
-  for (const a of (Array.isArray(keyEvents.agents) ? keyEvents.agents : [])) {
-    out.push(mk({ type: "agent_start", ts: tsFor(a.startCol ?? 0), name: a.name, color: a.color, value: a.percent != null ? String(a.percent) : undefined }))
-    if (a.stopped) out.push(mk({ type: "agent_stop", ts: tsFor(a.endCol ?? a.startCol ?? 0), name: a.name }))
-  }
-  for (const gas of (Array.isArray(keyEvents.gasSettings) ? keyEvents.gasSettings : [])) {
-    const startFractions = gasFractions(gas.carrierGas, gas.fio2)
-    out.push(mk({ type: "gas_start", ts: tsFor(gas.startCol ?? 0), fgf: gas.fgf, carrierGas: gas.carrierGas, fio2: startFractions.fio2, fiAir: startFractions.fiAir, fiN2O: startFractions.fiN2O }))
-    for (const change of gas.settingsChanges ?? []) {
-      const changeFractions = gasFractions(change.carrierGas, change.fio2)
-      out.push(mk({ type: "gas_change", ts: tsFor(change.col ?? gas.startCol ?? 0), fgf: change.fgf, carrierGas: change.carrierGas, fio2: changeFractions.fio2, fiAir: changeFractions.fiAir, fiN2O: changeFractions.fiN2O }))
-    }
-    if (gas.stopped) out.push(mk({ type: "gas_stop", ts: tsFor(gas.endCol ?? gas.startCol ?? 0) }))
-  }
-  return out
+  return reverseProjectIntraop(keyEvents as CoreLegacyKeyEvents, baseMs)
 }
 
 // If a case has no CaseEvent rows yet (its intraop data predates the
@@ -572,7 +404,11 @@ export async function rebuildProjection(
   // orderBy, so without the tie-breaks equal-ts events (e.g. two writers of
   // the same vitals column) would land in DB return order and the projected
   // value could flip between rebuilds.
-  const log = sortLogDeterministic([...byLogical.values()]).map(x => x.ev)
+  const log = sortLogDeterministic([...byLogical.values()]).map(entry => ({
+    ...entry.ev,
+    id: entry.ev.id ?? entry.logicalId,
+    sequence: entry.version,
+  }))
 
   // Column 0 is the entered start time, not the first thing that got charted.
   // Using the earliest event meant the stored projection disagreed with what the

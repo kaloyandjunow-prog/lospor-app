@@ -70,11 +70,12 @@ describe("/api/user preferences", () => {
     expect(response.status).toBe(200)
     expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
       data: {
-        preferences: {
+        preferences: expect.objectContaining({
           theme: "dark",
           intraopFavouriteInfusions: ["Propofol"],
           intraopFavouriteDrugs: ["Propofol", "Fentanyl"],
-        },
+          clinicalPreferencesVersion: 1,
+        }),
       },
     }))
   })

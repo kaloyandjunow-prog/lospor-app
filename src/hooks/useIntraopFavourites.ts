@@ -1,5 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useOptionLibrary } from "@/hooks/useOptionLibrary"
+import { resolveOptionPreferenceLabels } from "@lospor/core/option-contracts"
 
 type Preferences = {
   intraopFavouriteDrugs?: string[]
@@ -14,8 +16,10 @@ type Preferences = {
  * `use-intraop-favourites.ts` — same source, same shape, deliberately.
  */
 export function useIntraopFavourites() {
-  const [favouriteDrugs, setFavouriteDrugs] = useState<string[]>([])
-  const [favouriteInfusions, setFavouriteInfusions] = useState<string[]>([])
+  const [drugPreferences, setDrugPreferences] = useState<string[]>([])
+  const [infusionPreferences, setInfusionPreferences] = useState<string[]>([])
+  const { options: drugs } = useOptionLibrary("INTRAOP_DRUG")
+  const { options: infusions } = useOptionLibrary("INTRAOP_INFUSION")
 
   useEffect(() => {
     let cancelled = false
@@ -23,8 +27,10 @@ export function useIntraopFavourites() {
       .then(res => (res.ok ? res.json() : null))
       .then((data: { preferences?: Preferences } | null) => {
         if (cancelled || !data) return
-        setFavouriteDrugs(data.preferences?.intraopFavouriteDrugs ?? [])
-        setFavouriteInfusions(data.preferences?.intraopFavouriteInfusions ?? [])
+        setDrugPreferences(data.preferences?.intraopFavouriteDrugs ?? [])
+        setInfusionPreferences(
+          data.preferences?.intraopFavouriteInfusions ?? [],
+        )
       })
       .catch(() => {
         // Favourites are a convenience — the full library is still reachable.
@@ -32,5 +38,21 @@ export function useIntraopFavourites() {
     return () => { cancelled = true }
   }, [])
 
+  const favouriteDrugs = useMemo(
+    () => resolveOptionPreferenceLabels(
+      "INTRAOP_DRUG",
+      drugs,
+      drugPreferences,
+    ),
+    [drugPreferences, drugs],
+  )
+  const favouriteInfusions = useMemo(
+    () => resolveOptionPreferenceLabels(
+      "INTRAOP_INFUSION",
+      infusions,
+      infusionPreferences,
+    ),
+    [infusionPreferences, infusions],
+  )
   return { favouriteDrugs, favouriteInfusions }
 }

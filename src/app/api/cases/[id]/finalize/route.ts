@@ -6,8 +6,22 @@ import { writeSnapshotAsync } from "@/lib/case-audit"
 import { syncCaseRelational } from "@/lib/relational-sync"
 import { canAccessCase } from "@/lib/access-control"
 import { corsHeaders } from "@/lib/cors"
+import {
+  evaluateCaseFinalization,
+  type ClinicalIssueCode,
+} from "@lospor/core/clinical-validation"
 
 const CORS = (req: NextRequest) => corsHeaders(req)
+
+const FINALIZATION_ERRORS: Partial<Record<ClinicalIssueCode, string>> = {
+  missing_preop: "Cannot finalise: preoperative assessment is missing",
+  missing_intraop: "Cannot finalise: intraoperative record has not been started",
+  missing_technique: "Cannot finalise: at least one anaesthesia technique must be recorded",
+  invalid_intraop_times: "Cannot finalise: intraop end time must be after start time",
+  missing_postop: "Cannot finalise: postoperative record is missing",
+  missing_aldrete: "Cannot finalise: at least one Aldrete subscore must be recorded",
+  missing_disposition: "Cannot finalise: patient disposition (Ward/PACU/ICU) must be recorded",
+}
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: CORS(req) })
@@ -52,34 +66,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!canAccessCase(user, c)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   if (c.status === "COMPLETE") return NextResponse.json({ error: "Case is already finalised" }, { status: 409 })
 
-  // Clinical validation gates
-  if (!c.preop) {
-    return NextResponse.json({ error: "Cannot finalise: preoperative assessment is missing", reason: "missing_preop" }, { status: 422 })
-  }
-  if (!c.intraop || !c.intraop.startTime) {
-    return NextResponse.json({ error: "Cannot finalise: intraoperative record has not been started", reason: "missing_intraop" }, { status: 422 })
-  }
-  const techniques = Array.isArray(c.intraop.techniques) ? c.intraop.techniques : []
-  if (techniques.length === 0) {
-    return NextResponse.json({ error: "Cannot finalise: at least one anaesthesia technique must be recorded", reason: "missing_technique" }, { status: 422 })
-  }
-  if (c.intraop.endTime && c.intraop.startTime >= c.intraop.endTime) {
-    return NextResponse.json({ error: "Cannot finalise: intraop end time must be after start time", reason: "invalid_intraop_times" }, { status: 422 })
-  }
-  if (!c.postop) {
-    return NextResponse.json({ error: "Cannot finalise: postoperative record is missing", reason: "missing_postop" }, { status: 422 })
-  }
-  const hasAldrete =
-    c.postop.aldreteActivity      != null ||
-    c.postop.aldreteRespiration   != null ||
-    c.postop.aldreteCirculation   != null ||
-    c.postop.aldreteConsciousness != null ||
-    c.postop.aldreteSpO2          != null
-  if (!hasAldrete) {
-    return NextResponse.json({ error: "Cannot finalise: at least one Aldrete subscore must be recorded", reason: "missing_aldrete" }, { status: 422 })
-  }
-  if (!c.postop.disposition) {
-    return NextResponse.json({ error: "Cannot finalise: patient disposition (Ward/PACU/ICU) must be recorded", reason: "missing_disposition" }, { status: 422 })
+  const readiness = evaluateCaseFinalization({
+    preop: c.preop,
+    intraop: c.intraop,
+    postop: c.postop,
+  })
+  if (!readiness.valid) {
+    const blocker = readiness.issues[0]
+    return NextResponse.json({
+      error: FINALIZATION_ERRORS[blocker.code] ?? "Cannot finalise: required clinical documentation is incomplete",
+      reason: blocker.code,
+    }, { status: 422 })
   }
 
   // Reconcile the relational mirror before locking the case, so the snapshot

@@ -1,4 +1,12 @@
 import { z } from "zod"
+import {
+  CLINICAL_NUMBER_RULES,
+  validateIntraopPatch,
+  validatePostopPatch,
+  validatePreopPatch,
+  type ClinicalSection,
+  type ClinicalValidationResult,
+} from "@lospor/core/clinical-validation"
 
 // Three distinct inputs that must stay distinct — collapsing any pair of them
 // has already cost stored clinical data once:
@@ -25,14 +33,31 @@ const intPreprocess = (v: unknown): unknown => {
   return typeof n === "number" ? Math.round(n) : n
 }
 
-const coerceNum = z.preprocess(numPreprocess, z.number().nullable().optional())
-const coerceInt = z.preprocess(intPreprocess, z.number().int().nullable().optional())
 
 // Range-bounded variants — used for fields where physically impossible values should be rejected
-const cNum = (min: number, max: number) =>
-  z.preprocess(numPreprocess, z.number().min(min).max(max).nullable().optional())
-const cInt = (min: number, max: number) =>
-  z.preprocess(intPreprocess, z.number().int().min(min).max(max).nullable().optional())
+const numberRule = (section: ClinicalSection, field: string) => {
+  const rule = CLINICAL_NUMBER_RULES[section][field]
+  if (!rule) throw new Error(`Missing Core number rule for ${section}.${field}`)
+  return rule
+}
+const cNum = (section: ClinicalSection, field: string) => {
+  const { min, max } = numberRule(section, field)
+  return z.preprocess(numPreprocess, z.number().min(min).max(max).nullable().optional())
+}
+const cInt = (section: ClinicalSection, field: string) => {
+  const { min, max } = numberRule(section, field)
+  return z.preprocess(intPreprocess, z.number().int().min(min).max(max).nullable().optional())
+}
+
+function addCoreIssues(result: ClinicalValidationResult, ctx: z.RefinementCtx): void {
+  for (const issue of result.issues) {
+    ctx.addIssue({
+      code: "custom",
+      path: issue.path,
+      message: issue.code,
+    })
+  }
+}
 
 // Item 26: Canonical format for diagnoses/procedures — { label, code?, sub?, system? }
 const labelledItem = z.object({
@@ -43,11 +68,11 @@ const labelledItem = z.object({
 }).passthrough()
 
 export const preopSchema = z.object({
-  ageYears:  cInt(0, 149),
+  ageYears:  cInt("preop", "ageYears"),
   sex:       z.enum(["MALE", "FEMALE", "OTHER", "UNKNOWN"]).optional(),
-  heightCm:  cNum(30, 280),
-  weightKg:  cNum(0.1, 700),
-  bmi:       coerceNum,
+  heightCm:  cNum("preop", "heightCm"),
+  weightKg:  cNum("preop", "weightKg"),
+  bmi:       cNum("preop", "bmi"),
   bloodType: z.enum(["A", "B", "AB", "O"]).nullable().optional(),
   rhFactor:  z.enum(["POSITIVE", "NEGATIVE"]).nullable().optional(),
 
@@ -74,13 +99,13 @@ export const preopSchema = z.object({
   smoking:                  z.boolean().optional(),
   substanceAbuse:           z.boolean().optional(),
 
-  bpSystolic:      cInt(40, 300),
-  bpDiastolic:     cInt(20, 200),
-  heartRate:       cInt(10, 350),
+  bpSystolic:      cInt("preop", "bpSystolic"),
+  bpDiastolic:     cInt("preop", "bpDiastolic"),
+  heartRate:       cInt("preop", "heartRate"),
   heartArrhythmia: z.boolean().optional(),
-  spO2:            cNum(0, 100),
-  temperature:     cNum(25, 45),
-  respiratoryRate: cInt(0, 100),
+  spO2:            cNum("preop", "spO2"),
+  temperature:     cNum("preop", "temperature"),
+  respiratoryRate: cInt("preop", "respiratoryRate"),
   bpUnobtainable:          z.boolean().optional(),
   heartRateUnobtainable:   z.boolean().optional(),
   spO2Unobtainable:        z.boolean().optional(),
@@ -88,8 +113,8 @@ export const preopSchema = z.object({
   respiratoryRateUnobtainable: z.boolean().optional(),
 
   mallampati:             z.enum(["I", "II", "III", "IV"]).nullable().optional(),
-  mouthOpeningCm:         coerceNum,
-  thyromental:            coerceNum,
+  mouthOpeningCm:         cNum("preop", "mouthOpeningCm"),
+  thyromental:            cNum("preop", "thyromental"),
   neckMobility:           z.enum(["FULL", "LIMITED", "FIXED"]).nullable().optional(),
   upperLipBiteTest:       z.enum(["CLASS_I", "CLASS_II", "CLASS_III"]).nullable().optional(),
   retrognathia:           z.boolean().optional(),
@@ -103,10 +128,10 @@ export const preopSchema = z.object({
   asaScore:        z.enum(["I", "II", "III", "IV", "V", "VI"]).nullable().optional(),
   elective:         z.boolean().optional(),
   emergencySurgery: z.boolean().optional(),
-  rcriScore:       coerceInt,
-  gutaScore:       coerceNum,
-  apfelScore:      coerceInt,
-  stopBangScore:   coerceInt,
+  rcriScore:       cInt("preop", "rcriScore"),
+  gutaScore:       cNum("preop", "gutaScore"),
+  apfelScore:      cInt("preop", "apfelScore"),
+  stopBangScore:   cInt("preop", "stopBangScore"),
 
   // Item 27: Strict lab result shape matching the lab scan extractor output
   labResults: z.array(z.object({
@@ -115,11 +140,11 @@ export const preopSchema = z.object({
     unit:  z.string().optional(),
     flag:  z.string().optional(),
   })).optional(),
-}).passthrough()
+}).passthrough().superRefine((data, ctx) => addCoreIssues(validatePreopPatch(data), ctx))
 
 export const intraopSchema = z.object({
   monthYear:       z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
-  durationMinutes: z.number().int().min(0).max(1440).optional(),
+  durationMinutes: cInt("intraop", "durationMinutes"),
   startTime: z.string().optional(),
   endTime:   z.string().nullable().optional(),
 
@@ -127,9 +152,9 @@ export const intraopSchema = z.object({
   techniques: z.array(z.unknown()).optional(),
 
   airwayDevice:   z.enum(["FACE_MASK", "LMA", "ORAL_ETT", "NASAL_ETT", "SURGICAL_AIRWAY"]).nullable().optional(),
-  tubeSize:       z.number().min(2).max(12).nullable().optional(),
+  tubeSize:       cNum("intraop", "tubeSize"),
   cuffed:         z.boolean().nullable().optional(),
-  peepCmH2O:      z.number().min(0).max(40).nullable().optional(),
+  peepCmH2O:      cNum("intraop", "peepCmH2O"),
   ippv:           z.boolean().optional(),
   jetVentilation: z.boolean().optional(),
   fob:            z.boolean().optional(),
@@ -138,15 +163,15 @@ export const intraopSchema = z.object({
   cormackLehane:    z.enum(["I", "IIa", "IIb", "III", "IV"]).nullable().optional(),
   airwayDevices:    z.array(z.unknown()).optional(),
   ventilationModes: z.array(z.unknown()).optional(),
-  lmaSize:          z.number().min(1).max(5).nullable().optional(),
-  oralTubeSize:     z.number().min(2).max(10).nullable().optional(),
+  lmaSize:          cNum("intraop", "lmaSize"),
+  oralTubeSize:     cNum("intraop", "oralTubeSize"),
   oralCuffed:       z.boolean().nullable().optional(),
-  nasalTubeSize:    z.number().min(2).max(10).nullable().optional(),
+  nasalTubeSize:    cNum("intraop", "nasalTubeSize"),
   nasalCuffed:      z.boolean().nullable().optional(),
   dltType:          z.string().max(50).nullable().optional(),
   dltSide:          z.string().max(20).nullable().optional(),
-  dltSize:          z.number().min(20).max(50).nullable().optional(),
-  endobronchialSize: z.number().min(2).max(10).nullable().optional(),
+  dltSize:          cNum("intraop", "dltSize"),
+  endobronchialSize: cNum("intraop", "endobronchialSize"),
 
   volatileAgent:   z.enum(["SEVOFLURANE", "DESFLURANE", "ISOFLURANE"]).nullable().optional(),
 
@@ -167,35 +192,32 @@ export const intraopSchema = z.object({
   premedicationMorning: z.string().max(500).nullable().optional(),
   drugsAdministered:    z.array(z.unknown()).optional(),
 
-  crystalloidsMl:    z.number().int().min(0).max(50000).nullable().optional(),
-  colloidsMl:        z.number().int().min(0).max(20000).nullable().optional(),
-  bloodMl:           z.number().int().min(0).max(20000).nullable().optional(),
+  crystalloidsMl:    cInt("intraop", "crystalloidsMl"),
+  colloidsMl:        cInt("intraop", "colloidsMl"),
+  bloodMl:           cInt("intraop", "bloodMl"),
   bloodProductsNote: z.string().max(1000).nullable().optional(),
-  urineMl:           z.number().int().min(0).max(20000).nullable().optional(),
+  urineMl:           cInt("intraop", "urineMl"),
 
   timeSeriesData: z.array(z.unknown()).optional(),
   keyEvents:      z.array(z.unknown()).optional(),
   complications:  z.string().max(2000).nullable().optional(),
-}).passthrough()
-
-// Item 25: Aldrete subscores are always 0, 1, or 2; reject out-of-range values
-const aldreteSubscore = z.preprocess(intPreprocess, z.number().int().min(0).max(2).nullable().optional())
+}).passthrough().superRefine((data, ctx) => addCoreIssues(validateIntraopPatch(data), ctx))
 
 export const postopSchema = z.object({
-  aldreteActivity:      aldreteSubscore,
-  aldreteRespiration:   aldreteSubscore,
-  aldreteCirculation:   aldreteSubscore,
-  aldreteConsciousness: aldreteSubscore,
-  aldreteSpO2:          aldreteSubscore,
-  aldreteTotal:         cInt(0, 10),
+  aldreteActivity:      cInt("postop", "aldreteActivity"),
+  aldreteRespiration:   cInt("postop", "aldreteRespiration"),
+  aldreteCirculation:   cInt("postop", "aldreteCirculation"),
+  aldreteConsciousness: cInt("postop", "aldreteConsciousness"),
+  aldreteSpO2:          cInt("postop", "aldreteSpO2"),
+  aldreteTotal:         cInt("postop", "aldreteTotal"),
 
-  recoveryBpSystolic:  cInt(40, 300),
-  recoveryBpDiastolic: cInt(20, 200),
-  recoveryHeartRate:   cInt(10, 350),
-  recoverySpO2:        cNum(0, 100),
-  painScoreNRS:        cInt(0, 10),
+  recoveryBpSystolic:  cInt("postop", "recoveryBpSystolic"),
+  recoveryBpDiastolic: cInt("postop", "recoveryBpDiastolic"),
+  recoveryHeartRate:   cInt("postop", "recoveryHeartRate"),
+  recoverySpO2:        cNum("postop", "recoverySpO2"),
+  painScoreNRS:        cInt("postop", "painScoreNRS"),
   ponv:               z.boolean().optional(),
-  temperatureCelsius: cNum(25, 45),
+  temperatureCelsius: cNum("postop", "temperatureCelsius"),
   recoveryBpUnobtainable:          z.boolean().optional(),
   recoveryHeartRateUnobtainable:   z.boolean().optional(),
   recoverySpO2Unobtainable:        z.boolean().optional(),
@@ -205,4 +227,4 @@ export const postopSchema = z.object({
   disposition:      z.enum(["WARD", "PACU", "ICU"]).nullable().optional(),
   dispositionNotes: z.string().max(1000).nullable().optional(),
   handoverItems:    z.array(z.unknown()).optional(),
-}).passthrough()
+}).passthrough().superRefine((data, ctx) => addCoreIssues(validatePostopPatch(data), ctx))

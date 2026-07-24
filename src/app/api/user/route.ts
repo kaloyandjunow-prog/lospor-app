@@ -4,6 +4,10 @@ import { getAuthUser } from "@/lib/mobile-auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { Prisma } from "@/generated/prisma/client"
+import {
+  applyClinicalPreferencesPatch,
+  normalizeClinicalPreferences,
+} from "@lospor/core/clinical-preferences"
 
 const CORS = (req: NextRequest) => corsHeaders(req, "GET, PATCH, OPTIONS")
 
@@ -23,20 +27,45 @@ export async function GET(req: NextRequest) {
     },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS(req) })
-  return NextResponse.json(record, { headers: CORS(req) })
+  return NextResponse.json({
+    ...record,
+    clinicalPreferences: normalizeClinicalPreferences(record.preferences),
+  }, { headers: CORS(req) })
 }
+
+const unitsPatchSchema = z.object({
+  height: z.enum(["cm", "in"]).optional(),
+  weight: z.enum(["kg", "lb"]).optional(),
+  temperature: z.enum(["C", "F"]).optional(),
+  etco2: z.enum(["mmHg", "kPa"]).optional(),
+}).strict()
+
+const autoFillPatchSchema = z.object({
+  enabled: z.boolean().optional(),
+  includeBloodPressure: z.boolean().optional(),
+  backfillOnReopen: z.boolean().optional(),
+}).strict()
+
+const preferencesPatchSchema = z.object({
+  clinicalPreferencesVersion: z.number().int().optional(),
+  units: unitsPatchSchema.optional(),
+  defaultMonitoring: z.enum(["standard", "advanced"]).optional(),
+  autoFillVitals: z.union([z.boolean(), autoFillPatchSchema]).optional(),
+  intraopFavouriteDrugs: z.array(z.string()).optional(),
+  intraopFavouriteInfusions: z.array(z.string()).optional(),
+  heightUnit: z.enum(["cm", "in"]).optional(),
+  weightUnit: z.enum(["kg", "lb"]).optional(),
+  temperatureUnit: z.enum(["C", "F"]).optional(),
+  etco2Unit: z.enum(["mmHg", "kPa"]).optional(),
+  autoFillBP: z.boolean().optional(),
+  autoFillBackground: z.boolean().optional(),
+  autoFillBg: z.boolean().optional(),
+}).passthrough()
 
 const patchSchema = z.object({
   institutionId: z.union([z.string().cuid(), z.literal(""), z.null()]).optional(),
-  preferences: z.object({
-    intraopFavouriteDrugs: z.array(z.string().min(1)).max(8).optional(),
-    intraopFavouriteInfusions: z.array(z.string().min(1)).max(8).optional(),
-  }).optional(),
+  preferences: preferencesPatchSchema.optional(),
 })
-
-function uniqueList(values: string[] | undefined) {
-  return values ? Array.from(new Set(values.map(v => v.trim()).filter(Boolean))).slice(0, 8) : undefined
-}
 
 function asPreferenceObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -54,15 +83,12 @@ export async function PATCH(req: NextRequest) {
       select: { preferences: true },
     }) : null
     const currentPreferences = asPreferenceObject(existing?.preferences)
-    const nextPreferences = body.preferences ? {
-      ...currentPreferences,
-      ...(body.preferences.intraopFavouriteDrugs !== undefined
-        ? { intraopFavouriteDrugs: uniqueList(body.preferences.intraopFavouriteDrugs) }
-        : {}),
-      ...(body.preferences.intraopFavouriteInfusions !== undefined
-        ? { intraopFavouriteInfusions: uniqueList(body.preferences.intraopFavouriteInfusions) }
-        : {}),
-    } : undefined
+    const nextPreferences = body.preferences
+      ? {
+          ...currentPreferences,
+          ...applyClinicalPreferencesPatch(currentPreferences, body.preferences),
+        }
+      : undefined
 
     const updated = await prisma.user.update({
       where: { id: userId },

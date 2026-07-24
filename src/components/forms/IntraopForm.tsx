@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
-import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
+import { calcInfusionTotal } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { calcIBW, calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
@@ -27,6 +27,10 @@ import { DrugsFluidTotalsSection } from "@/components/forms/sections/DrugsFluidT
 import { TimelineSection } from "@/components/forms/sections/TimelineSection"
 import { AirwaySection } from "@/components/forms/sections/AirwaySection"
 import { TechniqueSection } from "@/components/forms/sections/TechniqueSection"
+import {
+  premedicationDoseMap,
+  weightBasisMap,
+} from "@lospor/core/option-library"
 
 // ── Drug total helpers ────────────────────────────────────────────────────────
 function parseLAConc(name: string): number | null {
@@ -188,11 +192,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const { options: airwayOptions } = useOptionLibrary("AIRWAY_MANAGEMENT")
   const { options: premedOptions } = useOptionLibrary("PREMED_DRUG")
   const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
-  const infusionWeightBasis = useMemo(() => {
-    const m: WeightBasisMap = {}
-    for (const o of infusionLibOpts) m[o.label] = (o.metadata as { weightBasis?: "IBW" | "TBW" | "none" } | null)?.weightBasis ?? "IBW"
-    return m
-  }, [infusionLibOpts])
+  const infusionWeightBasis = useMemo(
+    () => weightBasisMap(infusionLibOpts),
+    [infusionLibOpts],
+  )
   const airwayDeviceOptions = useMemo(() => airwayOptions.filter(o => o.group === "Device"), [airwayOptions])
   const airwayToolOptions = useMemo(() => airwayOptions.filter(o => o.group === "Instrument"), [airwayOptions])
   const premedCategories = useMemo<PremedCat[]>(() => {
@@ -204,11 +207,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     }
     return Array.from(byGroup, ([cat, drugs]) => ({ cat, drugs }))
   }, [premedOptions])
-  const premedDoses = useMemo<Record<string, PremDoseCfg>>(() => {
-    const out: Record<string, PremDoseCfg> = {}
-    for (const o of premedOptions) if (o.metadata) out[o.label] = o.metadata as unknown as PremDoseCfg
-    return out
-  }, [premedOptions])
+  const premedDoses = useMemo<Record<string, PremDoseCfg>>(
+    () => premedicationDoseMap(premedOptions),
+    [premedOptions],
+  )
 
   const EMPTY_TIMETABLE = useMemo<TimetableData>(() => ({ vitals: [], drugs: [], fluids: [], agents: [], infusions: [], gasSettings: [], clinicalEvents: [] }), [])
   const safeTimetable = (defaultTimetable && !Array.isArray(defaultTimetable) && "vitals" in defaultTimetable)

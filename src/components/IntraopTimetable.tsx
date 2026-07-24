@@ -12,9 +12,7 @@ import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { elapsedSecsSinceStart, resolveStartAnchor } from "@/lib/intraop-clock"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
-import type { DoseProfileInput } from "@/data/option-library/dose-profile"
 import { POSITIONS } from "@/data/option-library/position"
-import type { WeightBasisMap } from "@/lib/infusion-calc"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData,
   LogEvent as IntraopLogEvent,
@@ -44,6 +42,19 @@ import {
   type PlannedAutoFilledVitalEvent,
 } from "@lospor/core/intraop-vitals"
 import type { LogEvent as CoreLogEvent } from "@lospor/core/intraop-types"
+import {
+  baseProfilesMap,
+  concentrationsMap,
+  doseCalcMap,
+  groupClinicalEvents,
+  optionStyleMap,
+  quickNumberMap,
+  routeProfilesMap,
+  routesMap,
+  strictRangeMap,
+  weightBasisMap,
+} from "@lospor/core/option-library"
+import { metadataString } from "@lospor/core/option-contracts"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COL_W     = 74
@@ -62,7 +73,6 @@ const ROW_COLS  = 12  // columns per row = 60 min per row (1 hour)
 // and WeightBasisMap live in src/lib/infusion-calc.ts since IntraopForm.tsx
 // and EndCaseModal.tsx (a separate component file) both need them too, and
 // a cross-file caller can't reach this component's closures.
-type ClinicalEventDef = { label: string; color: string }
 const DEFAULT_INF = { units:["mg/hr","mcg/kg/min","ml/hr"], min:0, max:100, step:1, color:"#64748b" }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -200,57 +210,37 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
 
   const { QUICK_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES, BOLUS_ROUTE_PROFILES } = useMemo(() => {
     const byGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string }[] }>()
-    const bolusDoses: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number; hint: string; byRoute?: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }> }> = {}
-    const bolusConfigs: Record<string, { min: number; max: number; step: number }> = {}
-    const laConcentrations: Record<string, string[]> = {}
-    const drugRoutes: Record<string, string[]> = {}
-    const quickDoses: Record<string, number[]> = {}
-    // Per-route dose surface for drugs whose unit/range/concentration mode
-    // varies by route (e.g. Lidocaine: IV mg dose vs PD/IT/perineural %+mL).
-    const routeProfiles: Record<string, Record<string, { mode?: string; min: number; max: number; step: number; unit: string; quickValues?: number[]; concentrationOptions?: string[] }>> = {}
     for (const o of drugLibOpts) {
       const cat = o.group ?? "Other"
-      const m = (o.metadata ?? {}) as DoseProfileInput
       if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", drugs: [] })
-      byGroup.get(cat)!.drugs.push({ name: o.label, unit: m.unit ?? "mg" })
-      // Merge per-route doseCalc from doseCalcByRoute and routeModes[route].doseCalc.
-      const byRoute: Record<string, { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }> = { ...(m.doseCalcByRoute ?? {}) }
-      if (m.routeModes) for (const [r, prof] of Object.entries(m.routeModes)) if (prof?.doseCalc) byRoute[r] = prof.doseCalc as { perKg?: number; flat?: number; basis?: "IBW" | "TBW"; roundTo?: number; cap?: number }
-      const hasByRoute = Object.keys(byRoute).length > 0
-      if (m.hint || m.doseCalc || hasByRoute) {
-        bolusDoses[o.label] = {
-          hint: m.hint ?? "", perKg: m.doseCalc?.perKg, flat: m.doseCalc?.flat, basis: m.doseCalc?.basis,
-          roundTo: m.doseCalc?.roundTo, cap: m.doseCalc?.cap, byRoute: hasByRoute ? byRoute : undefined,
-        }
-      }
-      if (m.min != null && m.max != null && m.step != null) bolusConfigs[o.label] = { min: m.min, max: m.max, step: m.step }
-      if (m.concentrationOptions?.length) laConcentrations[o.label] = m.concentrationOptions
-      drugRoutes[o.label] = m.routes ?? ["IV"]
-      if (m.quickValues?.length) quickDoses[o.label] = m.quickValues
-      if (m.routeModes) {
-        routeProfiles[o.label] = {}
-        for (const [r, prof] of Object.entries(m.routeModes)) {
-          if (prof?.min == null || prof?.max == null || !prof?.unit) continue
-          routeProfiles[o.label][r] = { mode: prof.mode, min: prof.min, max: prof.max, step: prof.step ?? 1, unit: prof.unit, quickValues: prof.quickValues, concentrationOptions: prof.concentrationOptions }
-        }
-      }
+      byGroup.get(cat)!.drugs.push({
+        name: o.label,
+        unit: metadataString(o.metadata, "unit") ?? "mg",
+      })
     }
-    return { QUICK_DRUGS: [...byGroup.values()], BOLUS_DOSES: bolusDoses, BOLUS_CONFIGS: bolusConfigs, LA_CONCENTRATIONS: laConcentrations, DRUG_ROUTES: drugRoutes, QUICK_DOSES: quickDoses, BOLUS_ROUTE_PROFILES: routeProfiles }
+    return {
+      QUICK_DRUGS: [...byGroup.values()],
+      BOLUS_DOSES: doseCalcMap(drugLibOpts),
+      BOLUS_CONFIGS: strictRangeMap(drugLibOpts),
+      LA_CONCENTRATIONS: concentrationsMap(drugLibOpts),
+      DRUG_ROUTES: routesMap(drugLibOpts),
+      QUICK_DOSES: quickNumberMap(drugLibOpts),
+      BOLUS_ROUTE_PROFILES: routeProfilesMap(drugLibOpts),
+    }
   }, [drugLibOpts])
 
   const { QUICK_FLUIDS, FLUID_QUICK_VOLUMES, FLUID_ROUTES } = useMemo(() => {
     const byGroup = new Map<string, { cat: string; color: string; fluids: { name: string }[] }>()
-    const quickVolumes: Record<string, number[]> = {}
-    const routes: Record<string, string[]> = {}
     for (const o of fluidLibOpts) {
       const cat = o.group ?? "Other"
-      const m = o.metadata as DoseProfileInput | null
       if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", fluids: [] })
       byGroup.get(cat)!.fluids.push({ name: o.label })
-      if (m?.quickValues?.length) quickVolumes[o.label] = m.quickValues
-      routes[o.label] = m?.routes ?? ["IV"]
     }
-    return { QUICK_FLUIDS: [...byGroup.values()], FLUID_QUICK_VOLUMES: quickVolumes, FLUID_ROUTES: routes }
+    return {
+      QUICK_FLUIDS: [...byGroup.values()],
+      FLUID_QUICK_VOLUMES: quickNumberMap(fluidLibOpts),
+      FLUID_ROUTES: routesMap(fluidLibOpts),
+    }
   }, [fluidLibOpts])
 
   const getFluidColor = useCallback((name: string) => fluidColor(name, QUICK_FLUIDS), [QUICK_FLUIDS])
@@ -258,53 +248,38 @@ export function IntraopTimetable({ startTime, endTime, caseStarted = false, moni
   const fluidRows = useMemo(() => computeFluidRows(data.fluids ?? [], QUICK_FLUIDS), [data.fluids, QUICK_FLUIDS])
 
   const CLINICAL_EVENT_CATS = useMemo(() => {
-    const byGroup = new Map<string, { cat: string; color: string; isComplication?: boolean; events: ClinicalEventDef[] }>()
-    for (const o of eventLibOpts) {
-      const cat = o.group ?? "Other"
-      const m = o.metadata as { categoryColor?: string; isComplication?: boolean } | null
-      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: m?.categoryColor ?? "#64748b", isComplication: !!m?.isComplication, events: [] })
-      byGroup.get(cat)!.events.push({ label: o.label, color: o.color ?? "#64748b" })
-    }
-    return [...byGroup.values()]
+    return groupClinicalEvents(eventLibOpts)
   }, [eventLibOpts])
 
   const { INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES, INFUSION_ROUTE_PROFILES } = useMemo(() => {
     const configs: Record<string, { units: string[]; min: number; max: number; step: number; color: string; suggestedRate?: number }> = {}
-    const weightBasis: WeightBasisMap = {}
-    const routes: Record<string, string[]> = {}
-    const quickRates: Record<string, number[]> = {}
-    // Per-route rate surface for infusions whose unit/range/concentration vary
-    // by route (e.g. Lidocaine IV mg/kg/hr vs PD/IT/perineural %+mL/hr).
-    const routeProfiles: Record<string, Record<string, { mode?: string; min: number; max: number; step: number; unit: string; quickValues?: number[]; concentrationOptions?: string[]; suggestedRate?: number; suggestedConcentration?: string }>> = {}
+    const profiles = baseProfilesMap(infusionLibOpts)
     for (const o of infusionLibOpts) {
-      const m = (o.metadata ?? {}) as DoseProfileInput
-      const unit = m.unit ?? "mg/hr"
-      configs[o.label] = { units: [unit], min: m.min ?? 0, max: m.max ?? 100, step: m.step ?? 1, color: o.color ?? "#64748b", suggestedRate: m.suggestedRate }
-      weightBasis[o.label] = m.weightBasis ?? "IBW"
-      routes[o.label] = m.routes ?? ["IV"]
-      if (m.quickValues?.length) quickRates[o.label] = m.quickValues
-      if (m.routeModes) {
-        routeProfiles[o.label] = {}
-        for (const [r, prof] of Object.entries(m.routeModes)) {
-          if (prof?.min == null || prof?.max == null || !prof?.unit) continue
-          routeProfiles[o.label][r] = { mode: prof.mode, min: prof.min, max: prof.max, step: prof.step ?? 1, unit: prof.unit, quickValues: prof.quickValues, concentrationOptions: prof.concentrationOptions, suggestedRate: prof.suggestedRate, suggestedConcentration: prof.suggestedConcentration }
-        }
+      const profile = profiles[o.label]
+      configs[o.label] = {
+        units: [profile?.unit ?? "mg/hr"],
+        min: profile?.min ?? 0,
+        max: profile?.max ?? 100,
+        step: profile?.step ?? 1,
+        color: o.color ?? "#64748b",
+        suggestedRate: profile?.suggestedRate,
       }
     }
-    return { INFUSION_CONFIGS: configs, INFUSION_WEIGHT_BASIS: weightBasis, INFUSION_ROUTES: routes, QUICK_RATES: quickRates, INFUSION_ROUTE_PROFILES: routeProfiles }
+    return {
+      INFUSION_CONFIGS: configs,
+      INFUSION_WEIGHT_BASIS: weightBasisMap(infusionLibOpts),
+      INFUSION_ROUTES: routesMap(infusionLibOpts),
+      QUICK_RATES: quickNumberMap(infusionLibOpts),
+      INFUSION_ROUTE_PROFILES: routeProfilesMap(infusionLibOpts),
+    }
   }, [infusionLibOpts])
 
   const { INH_AGENTS, AGENT_STYLE, AGENT_QUICK_PERCENTS } = useMemo(() => {
-    const agents: string[] = []
-    const style: Record<string, { bar: string; text: string; grip: string }> = {}
-    const quickPercents: Record<string, number[]> = {}
-    for (const o of agentLibOpts) {
-      agents.push(o.label)
-      const m = o.metadata as (DoseProfileInput & { bar: string; text: string; grip: string }) | null
-      if (m) style[o.label] = { bar: m.bar, text: m.text, grip: m.grip }
-      if (m?.quickValues?.length) quickPercents[o.label] = m.quickValues
+    return {
+      INH_AGENTS: agentLibOpts.map(option => option.label),
+      AGENT_STYLE: optionStyleMap(agentLibOpts),
+      AGENT_QUICK_PERCENTS: quickNumberMap(agentLibOpts),
     }
-    return { INH_AGENTS: agents, AGENT_STYLE: style, AGENT_QUICK_PERCENTS: quickPercents }
   }, [agentLibOpts])
 
   // Thin wrapper over the shared pure dosing logic (src/lib/dose-calc.ts).

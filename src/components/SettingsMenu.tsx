@@ -8,6 +8,14 @@ import { caseOutbox } from "@/lib/case-outbox"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
 import { normalizeAutoFillVitalsPreferences } from "@lospor/core/intraop-vitals"
+import {
+  patchWebClinicalPreferences,
+  syncWebClinicalPreferences,
+} from "@/lib/clinical-preferences-web"
+import {
+  canonicalizeOptionPreferences,
+  resolveOptionPreferenceLabels,
+} from "@lospor/core/option-contracts"
 
 type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
@@ -102,6 +110,22 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [favDrugs, setFavDrugs]         = useState<string[]>([])
   const [favInfusions, setFavInfusions] = useState<string[]>([])
   const [favSaving, setFavSaving]       = useState(false)
+  const selectedFavDrugs = useMemo(
+    () => resolveOptionPreferenceLabels(
+      "INTRAOP_DRUG",
+      drugLibOpts,
+      favDrugs,
+    ),
+    [drugLibOpts, favDrugs],
+  )
+  const selectedFavInfusions = useMemo(
+    () => resolveOptionPreferenceLabels(
+      "INTRAOP_INFUSION",
+      infusionLibOpts,
+      favInfusions,
+    ),
+    [infusionLibOpts, favInfusions],
+  )
 
   async function saveFavourites(
     key: "intraopFavouriteDrugs" | "intraopFavouriteInfusions",
@@ -109,15 +133,17 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     apply: (v: string[]) => void,
   ) {
     const previous = key === "intraopFavouriteDrugs" ? favDrugs : favInfusions
+    next = key === "intraopFavouriteDrugs"
+      ? canonicalizeOptionPreferences("INTRAOP_DRUG", drugLibOpts, next)
+      : canonicalizeOptionPreferences(
+          "INTRAOP_INFUSION",
+          infusionLibOpts,
+          next,
+        )
     apply(next)                     // optimistic — the list is small and local
     setFavSaving(true)
     try {
-      const res = await fetch("/api/user", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferences: { [key]: next } }),
-      })
-      if (!res.ok) throw new Error(String(res.status))
+      await patchWebClinicalPreferences({ [key]: next })
     } catch {
       apply(previous)               // put it back rather than lie about saving
     } finally {
@@ -179,6 +205,19 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
     const eu = localStorage.getItem("etco2Unit")
     if (eu === "mmHg" || eu === "kPa") setEtco2UnitState(eu)
 
+    void syncWebClinicalPreferences().then(preferences => {
+      setDefMon(preferences.defaultMonitoring)
+      setAutoFill(preferences.autoFillVitals.enabled)
+      setAutoFillBP(preferences.autoFillVitals.includeBloodPressure)
+      setAutoFillBg(preferences.autoFillVitals.backfillOnReopen)
+      setHeightUnitState(preferences.units.height)
+      setWeightUnitState(preferences.units.weight)
+      setTemperatureUnitState(preferences.units.temperature)
+      setEtco2UnitState(preferences.units.etco2)
+      setFavDrugs(preferences.intraopFavouriteDrugs)
+      setFavInfusions(preferences.intraopFavouriteInfusions)
+    }).catch(() => {})
+
     // Fetch role request status for non-admin users
     if (role === "MEMBER" || role === "CLINICIAN" || role === "RESEARCHER" || role === "HEAD_OF_DEPT") {
       fetch("/api/role-request").then(r => r.json()).then(setRoleReq).catch(() => setRoleReq(null))
@@ -209,24 +248,49 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   function applyLayout(mode: "tabs" | "scroll") { setLayoutMode(mode); setSetting("layoutMode", mode) }
   function applyPreopLayout(mode: "tabs" | "scroll") { setPreopLayout(mode); setSetting("preopLayout", mode) }
   function applyTtLayout(mode: "expand" | "scroll") { setTtLayout(mode); setSetting("timetableLayout", mode) }
-  function applyDefMon(mode: "standard" | "advanced") { setDefMon(mode); setSetting("defaultMonitoring", mode) }
+  function applyDefMon(mode: "standard" | "advanced") {
+    setDefMon(mode)
+    void patchWebClinicalPreferences({ defaultMonitoring: mode })
+  }
   function applyVitalsExp(val: boolean) { setVitalsExp(val); setSetting("vitalsExpanded", val ? "true" : "false") }
   function applyAutoFill(val: boolean) {
     setAutoFill(val)
-    setSetting("autoFillVitals", val ? "on" : "off")
     if (!val) {
       setAutoFillBP(false)
       setAutoFillBg(false)
-      setSetting("autoFillBP", "off")
-      setSetting("autoFillBackground", "off")
     }
+    void patchWebClinicalPreferences({
+      autoFillVitals: {
+        enabled: val,
+        includeBloodPressure: val ? autoFillBP : false,
+        backfillOnReopen: val ? autoFillBg : false,
+      },
+    })
   }
-  function applyAutoFillBP(val: boolean) { setAutoFillBP(val); setSetting("autoFillBP", val ? "on" : "off") }
-  function applyAutoFillBg(val: boolean) { setAutoFillBg(val); setSetting("autoFillBackground", val ? "on" : "off") }
-  function applyHeightUnit(u: "cm" | "in") { setHeightUnitState(u); setSetting("heightUnit", u) }
-  function applyWeightUnit(u: "kg" | "lb") { setWeightUnitState(u); setSetting("weightUnit", u) }
-  function applyTemperatureUnit(u: "C" | "F") { setTemperatureUnitState(u); setSetting("temperatureUnit", u) }
-  function applyEtco2Unit(u: "mmHg" | "kPa") { setEtco2UnitState(u); setSetting("etco2Unit", u) }
+  function applyAutoFillBP(val: boolean) {
+    setAutoFillBP(val)
+    void patchWebClinicalPreferences({ autoFillVitals: { includeBloodPressure: val } })
+  }
+  function applyAutoFillBg(val: boolean) {
+    setAutoFillBg(val)
+    void patchWebClinicalPreferences({ autoFillVitals: { backfillOnReopen: val } })
+  }
+  function applyHeightUnit(u: "cm" | "in") {
+    setHeightUnitState(u)
+    void patchWebClinicalPreferences({ units: { height: u } })
+  }
+  function applyWeightUnit(u: "kg" | "lb") {
+    setWeightUnitState(u)
+    void patchWebClinicalPreferences({ units: { weight: u } })
+  }
+  function applyTemperatureUnit(u: "C" | "F") {
+    setTemperatureUnitState(u)
+    void patchWebClinicalPreferences({ units: { temperature: u } })
+  }
+  function applyEtco2Unit(u: "mmHg" | "kPa") {
+    setEtco2UnitState(u)
+    void patchWebClinicalPreferences({ units: { etco2: u } })
+  }
 
   async function switchLocale(l: string) {
     setLocale(l)
@@ -270,21 +334,6 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   }, [modalOpen, category])
 
   // Load the saved favourites when the automation tab is actually opened —
-  // no point fetching preferences for someone who never looks at them.
-  useEffect(() => {
-    if (!modalOpen || category !== "automation") return
-    let cancelled = false
-    fetch("/api/user", { cache: "no-store" })
-      .then(res => (res.ok ? res.json() : null))
-      .then((data: { preferences?: { intraopFavouriteDrugs?: string[]; intraopFavouriteInfusions?: string[] } } | null) => {
-        if (cancelled || !data) return
-        setFavDrugs(data.preferences?.intraopFavouriteDrugs ?? [])
-        setFavInfusions(data.preferences?.intraopFavouriteInfusions ?? [])
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [modalOpen, category])
-
   return (
     <>
       <div className="relative" ref={menuRef}>
@@ -515,7 +564,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       <FavouritesEditor
                         title={t("settings.favouriteDrugs")}
                         options={favDrugOptions}
-                        selected={favDrugs}
+                        selected={selectedFavDrugs}
                         onSave={next => saveFavourites("intraopFavouriteDrugs", next, setFavDrugs)}
                         saving={favSaving}
                         searchPlaceholder={t("settings.favouritesSearch")}
@@ -524,7 +573,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       <FavouritesEditor
                         title={t("settings.favouriteInfusions")}
                         options={favInfusionOptions}
-                        selected={favInfusions}
+                        selected={selectedFavInfusions}
                         onSave={next => saveFavourites("intraopFavouriteInfusions", next, setFavInfusions)}
                         saving={favSaving}
                         searchPlaceholder={t("settings.favouritesSearch")}
