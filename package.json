@@ -39,7 +39,7 @@
     "@base-ui/react": "^1.4.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.2",
-    "@lospor/core": "github:kaloyandjunow-prog/lospor-core#v5.6.1",
+    "@lospor/core": "github:kaloyandjunow-prog/lospor-core#v6.0.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@sentry/nextjs": "^10.57.0",
