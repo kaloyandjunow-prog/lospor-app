@@ -3,64 +3,71 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(),
-  resolveAccount: vi.fn(),
+  cookies: vi.fn(),
 }))
 
-vi.mock("@/lib/auth", () => ({
-  auth: mocks.auth,
-}))
-
-vi.mock("@/lib/password-epoch", () => ({
-  resolveAccount: mocks.resolveAccount,
+vi.mock("next/headers", () => ({
+  cookies: mocks.cookies,
 }))
 
 import { getLiveSession } from "./live-session"
 
-function session() {
-  return {
-    user: {
-      id: "user-1",
-      role: "ADMIN",
-      institutionId: "old-inst",
-      institutionName: "Old Hospital",
-      iat: 1_780_000_000,
-    },
-  }
+const session = {
+  user: {
+    id: "user-1",
+    email: "user@example.test",
+    name: "Test User",
+    role: "MEMBER",
+    institutionId: null,
+    institutionName: null,
+    firstName: "Test",
+    lastName: "User",
+    title: "Dr",
+    jti: "session-1",
+    acceptedTermsAt: null,
+    lastLoginAt: null,
+  },
 }
 
 describe("getLiveSession", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("revalidates cookie sessions and replaces stale role/institution claims", async () => {
-    mocks.auth.mockResolvedValue(session())
-    mocks.resolveAccount.mockResolvedValue({
-      role: "MEMBER",
-      institutionId: null,
-      institutionName: null,
+    vi.restoreAllMocks()
+    mocks.cookies.mockResolvedValue({
+      getAll: () => [{ name: "lospor_session", value: "signed-token" }],
     })
-
-    const live = await getLiveSession()
-
-    expect(mocks.resolveAccount).toHaveBeenCalledWith("user-1", 1_780_000_000)
-    expect(live?.user.role).toBe("MEMBER")
-    expect(live?.user.institutionId).toBeNull()
-    expect(live?.user.institutionName).toBe("")
   })
 
-  it("rejects sessions refused by the live account gate", async () => {
-    mocks.auth.mockResolvedValue(session())
-    mocks.resolveAccount.mockResolvedValue(null)
+  it("loads the authoritative session from the API", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(session), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+
+    await expect(getLiveSession()).resolves.toEqual(session)
+    expect(request).toHaveBeenCalledWith(
+      "http://127.0.0.1:3002/v1/auth/session",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: expect.any(Headers),
+      }),
+    )
+    const headers = request.mock.calls[0][1]?.headers as Headers
+    expect(headers.get("cookie")).toBe("lospor_session=signed-token")
+  })
+
+  it("returns null when the API rejects the session", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
+    )
 
     await expect(getLiveSession()).resolves.toBeNull()
   })
 
-  it("rejects empty cookie sessions without a database lookup", async () => {
-    mocks.auth.mockResolvedValue({ user: { id: "" } })
+  it("returns null when the API is unavailable", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"))
 
     await expect(getLiveSession()).resolves.toBeNull()
-    expect(mocks.resolveAccount).not.toHaveBeenCalled()
   })
 })

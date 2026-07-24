@@ -1,87 +1,70 @@
-# LOSPOR — Large Open Source Perioperative Register
+# LOSPOR Web
 
 [![Licence: AGPL-3.0](https://img.shields.io/badge/Licence-AGPL--3.0-blue.svg)](LICENSE)
 [![Live app](https://img.shields.io/badge/Live-app.lospor.org-green)](https://app.lospor.org)
 [![Docs](https://img.shields.io/badge/Docs-docs.lospor.org-blue)](https://docs.lospor.org)
-[![Changelog](https://img.shields.io/badge/Changelog-CHANGELOG.md-orange)](CHANGELOG.md)
 
 Copyright (C) 2026 Kaloyan Dzhunov. Licensed under AGPL-3.0.
 
-LOSPOR is a free, open-source **personal anaesthetic case log** for learning, portfolio, and reflection. Built with Next.js 16, Prisma, Supabase, and NextAuth. Available in English and Bulgarian.
+This repository contains the LOSPOR Next.js browser interface. LOSPOR is a
+free, open-source personal anaesthetic case log for learning, portfolio, and
+reflection. It is available in English and Bulgarian.
 
-## What LOSPOR is and isn't
+Database access, authentication, email, AI, PDF generation, audit, OMOP, and
+HTTP behavior live in the separate `lospor-api` repository. Framework-free
+clinical rules and synchronization contracts live in `@lospor/core`.
 
-**Is:** A personal log for anaesthesiologists to record de-identified perioperative cases, track learning, and generate a printable case summary.
+## What LOSPOR is
 
-**Is not:** A clinical record system, a patient management tool, or a certified medical device.
+LOSPOR records de-identified perioperative cases, provides preoperative,
+intraoperative, and postoperative workflows, and generates printable case
+summaries. It is not a patient management system or certified medical device,
+and it does not replace clinical judgment.
 
-Patient identity is never stored. Each case uses an internal case code only. The printable protocol has blank fields for patient identity — filled in by hand after printing. LOSPOR avoids direct patient identifiers, but clinical registry data should be treated as de-identified/pseudonymised rather than absolutely anonymised.
+## Local development
 
-## Medical Disclaimer
-
-LOSPOR is intended for perioperative documentation, research, and workflow support purposes only. It is not intended to replace clinical judgment, provide autonomous clinical decision-making, or serve as a certified medical device unless explicitly stated otherwise.
-
-## Features
-
-- Preoperative assessment — demographics, ICD-10 diagnosis/comorbidity coding, airway evaluation, risk scores (ASA/RCRI/Apfel/STOP-BANG), vitals, labs with LOINC/numeric mirrors and AI image scan
-- Intraoperative timetable — live vital signs graph, drug boluses, infusions, volatile agents, IV fluids on a shared timeline
-- Postoperative recovery — Aldrete score, disposition, handover instructions
-- 30-minute review window — after submitting postop the case stays open for 30 minutes; navigate back to any step to correct data; timer persists across page reloads
-- Printable protocol — auto-generated two-page A4 landscape summary; patient identity left blank for hand-writing, never stored
-- Case handover — transfer cases between colleagues; HOD can assign instantly within their institution
-- AI pre-operative advisor — opt-in per case; configured Mistral provider, structured fields only, no free-text forwarded
-- GDPR rights — data export (Article 15) and account deletion (Article 17) from Settings → Privacy & Data
-- Server-side PII detection — EGN, ID sequences, date patterns, email addresses, and name patterns blocked at the API level
-- Privacy & Terms pages — accessible without login; sub-processors, legal basis, retention, user rights
-- Guided tour & example case — interactive walkthrough for new users
-- EN/BG bilingual interface
-
-## Live demo
-
-[app.lospor.org](https://app.lospor.org) — register a free account and try the example case walkthrough.
-
-## Self-hosting
-
-Full guide: [docs.lospor.org/self-hosting](https://docs.lospor.org/self-hosting)
-
-Quick start:
+Start `lospor-api` first on port 3002. Then:
 
 ```bash
-git clone https://github.com/kaloyandjunow-prog/lospor-app.git
-cd lospor-app
-npm install
-cp .env.example .env   # fill in your values
-npx prisma migrate deploy
-npx tsx prisma/seed.ts
+npm ci
+cp .env.example .env.local
 npm run dev
 ```
 
-## Environment variables
+The web interface listens on `http://localhost:3000`.
 
-See [.env.example](.env.example) for all required variables.
+```env
+LOSPOR_API_INTERNAL_URL="http://localhost:3002"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| DATABASE_URL | Yes | Supabase pooler connection string (port 6543) |
-| DIRECT_URL | Yes | Supabase direct connection string (port 5432) |
-| NEXTAUTH_SECRET | Yes | Random secret: `openssl rand -base64 32` |
-| NEXTAUTH_URL | Yes | Full public URL of your deployment |
-| MISTRAL_API_KEY | Optional | AI advisor and lab scan — Mistral La Plateforme, free tier available |
-| MISTRAL_API_BASE | Optional | Override Mistral API endpoint; regional overrides fall back to `https://api.mistral.ai/v1` if inference is not allowed |
-| MISTRAL_MODEL | Optional | Override model for AI advisor (default: `open-mistral-7b`) |
-| CORS_ALLOW_ORIGIN | Required in production | Explicit browser/PWA origin allowlist |
-| BREVO_API_KEY | Required in production | Brevo (EU) transactional email — verification + password reset. If missing, emails are skipped and new users cannot verify |
-| AUTH_EMAIL_FROM | Optional | Verified Brevo sender address (default: `no-reply@lospor.org`) |
-| AUTH_EMAIL_FROM_NAME | Optional | Sender display name (default: `LOSPOR`) |
-| NEXT_PUBLIC_APP_URL | Optional | Base URL used in emailed links (falls back to NEXTAUTH_URL) |
-| AUTH_EMAIL_TEST_LINKS | Never in production | Non-production only: exposes verification/reset links in API responses for automated tests |
-| OPTION_LIBRARY_SNAPSHOT_SECRET | Optional | Protects the internal option-library snapshot endpoint |
-| MOBILE_PWA_URL | Optional | Mobile browsers are redirected to this PWA origin |
+The temporary `/api/*` compatibility address forwards V6 client requests to
+API `/v1/*`. No API route implementation or Prisma code belongs in this repo.
+
+## Checks
+
+```bash
+npm run verify:boundaries
+npm run test
+npx tsc --noEmit --pretty false
+npm run lint
+npm run build
+```
+
+## Deployment
+
+Deploy this repository as the web project, normally at `app.lospor.org`.
+Deploy `lospor-api` separately, normally at `api.lospor.org`. Web must not
+receive database credentials or the API signing secret.
+
+See the [self-hosting guide](https://docs.lospor.org/self-hosting) for database,
+API, migration, seed, cron, and deployment instructions.
 
 ## Tech stack
 
-Next.js 16 · Prisma · Supabase · NextAuth v5 · Tailwind CSS · next-intl · Mistral AI · Vercel Analytics
+Next.js 16, React 19, Tailwind CSS, next-intl, LOSPOR Core, and Vercel
+Analytics.
 
 ## Licence
 
-AGPL-3.0 — see [LICENSE](LICENSE). Self-hosted modifications must be open-sourced.
+AGPL-3.0-or-later. See [LICENSE](LICENSE).

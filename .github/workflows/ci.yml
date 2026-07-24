@@ -8,12 +8,6 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    # Dummy values so Prisma's env("…") resolves during generate/validate.
-    # No step connects to a database — typecheck, lint, unit tests, schema
-    # validation, and the fallback-freshness check are all offline.
-    env:
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
-      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,9 +15,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
-      - run: npx prisma validate
       - run: npx tsc --noEmit --pretty false
-      - run: npm run check:shared-core
+      - run: npm run verify:boundaries
       - run: npm run lint
       - run: npm test
+      - run: npm run build

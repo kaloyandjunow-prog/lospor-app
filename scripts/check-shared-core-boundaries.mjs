@@ -50,6 +50,14 @@ const rules = [
     description: "hardcoded five-minute timetable column arithmetic",
     pattern: /\b(?:col|colIdx|startCol|endCol)\s*\*\s*5\b|\bINTERVAL\s*=\s*5\b/,
   },
+  {
+    description: "database implementation belongs in lospor-api",
+    pattern: /(?:@prisma\/client|@\/generated\/prisma|@\/lib\/prisma)/,
+  },
+  {
+    description: "authentication implementation belongs in lospor-api",
+    pattern: /(?:from\s+["']next-auth|@auth\/prisma-adapter)/,
+  },
 ]
 
 async function filesUnder(directory) {
@@ -68,8 +76,13 @@ const violations = []
 for (const sourceRoot of sourceRoots) {
   const files = await filesUnder(join(root, sourceRoot))
   for (const file of files) {
+    const relativePath = relative(root, file).replaceAll("\\", "/")
+    if (relativePath.startsWith("src/app/api/")) {
+      violations.push(`${relativePath}: API implementation belongs in lospor-api`)
+      continue
+    }
     if (basename(file) === "option-library-fallback.json") {
-      violations.push(`${relative(root, file)}: copied fallback catalog`)
+      violations.push(`${relativePath}: copied fallback catalog`)
       continue
     }
     const source = await readFile(file, "utf8")
@@ -77,7 +90,7 @@ for (const sourceRoot of sourceRoots) {
       const match = rule.pattern.exec(source)
       if (!match) continue
       const line = source.slice(0, match.index).split(/\r?\n/).length
-      violations.push(`${relative(root, file)}:${line}: ${rule.description}`)
+      violations.push(`${relativePath}:${line}: ${rule.description}`)
     }
   }
 }

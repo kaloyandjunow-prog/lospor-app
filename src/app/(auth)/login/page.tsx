@@ -1,7 +1,6 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
@@ -56,9 +55,13 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setLoading(true)
-    const result = await signIn("credentials", { email: data.email, password: data.password, redirect: false })
+    const result = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
     setLoading(false)
-    if (result?.error) {
+    if (!result.ok) {
       toast.error(t("auth.invalidCredentials"))
       return
     }

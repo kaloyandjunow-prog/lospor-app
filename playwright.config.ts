@@ -6,7 +6,7 @@ import path from "path"
 // server (`npm run e2e`). Single worker keeps an older dev machine usable.
 //
 // Projects:
-//   setup   – logs in once, saves the session (needs `npm run e2e:seed` first)
+//   setup   - logs in once, saves the API-owned session (needs `npm run e2e:seed` first)
 //   desktop – unauthenticated smoke (login/register/redirect), Desktop Chrome
 //   pwa     – same smoke at a Pixel-5 (PWA) viewport
 //   authed  – authenticated flows (*.authed.spec.ts), reuse the saved session
@@ -38,22 +38,29 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], storageState: authFile },
     },
   ],
-  webServer: skipWebServer ? undefined : {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-    // .env pins NEXTAUTH_URL to a LAN IP (for device testing); override it for
-    // the test server so cookie/CSRF auth works against localhost. Next's env
-    // loader won't clobber vars already set in the process env.
-    env: {
-      NEXTAUTH_URL: "http://localhost:3000",
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
-      AUTH_TRUST_HOST: "true",
-      AUTH_EMAIL_TEST_LINKS: "true",
-      BREVO_API_KEY: "",
-      MOBILE_PWA_URL: "",
-      E2E_DISABLE_MOBILE_REDIRECT: "true",
+  webServer: skipWebServer ? undefined : [
+    {
+      command: "npm --prefix ../lospor-api run dev",
+      url: "http://localhost:3002/health/live",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      env: {
+        LOSPOR_WEB_URL: "http://localhost:3000",
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+        AUTH_EMAIL_TEST_LINKS: "true",
+        BREVO_API_KEY: "",
+      },
     },
-  },
+    {
+      command: "npm run dev",
+      url: "http://localhost:3000",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      env: {
+        LOSPOR_API_INTERNAL_URL: "http://localhost:3002",
+        MOBILE_PWA_URL: "",
+        E2E_DISABLE_MOBILE_REDIRECT: "true",
+      },
+    },
+  ],
 })

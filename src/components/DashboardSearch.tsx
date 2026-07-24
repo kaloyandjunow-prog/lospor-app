@@ -14,7 +14,7 @@ type CaseRow = {
   createdAt: Date
   userId: string
   preop?: { diagnosis?: string | null; plannedProcedure?: string | null; ageYears?: number | null; sex?: string | null; asaScore?: string | null } | null
-  intraop?: { monthYear?: string | null; endTime?: Date | null; startTime?: Date | null } | null
+  intraop?: { monthYear?: string | null; endTime?: string | null; startTime?: string | null } | null
   postop?: { disposition?: string | null } | null
   transfers: { id: string }[]
 }
