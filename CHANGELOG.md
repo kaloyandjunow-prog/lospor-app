@@ -1,5 +1,12 @@
 # Changelog - LOSPOR Web App
 
+## [7.0.1] - 2026-07-25
+
+- Settings now downloads the complete personal-data ZIP archive through a
+  checked request and displays an error if archive generation fails.
+- Export wording no longer describes the download as a capped JSON file.
+- Coordinated API contract and release-gate verification for v7.0.1.
+
 ## [7.0.0] - 2026-07-25
 
 ### Changed

@@ -100,6 +100,8 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [autoFillBP, setAutoFillBP] = useState(false)
   const [autoFillBg, setAutoFillBg] = useState(false)
   const [locale, setLocale]         = useState(currentLocale ?? "en")
+  const [exporting, setExporting]   = useState(false)
+  const [exportError, setExportError] = useState("")
 
   // Intraop favourites. Server-side (not localStorage like the toggles above)
   // because the whole point is that they follow the clinician onto the phone.
@@ -312,6 +314,32 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
       console.error("Role request error:", e)
     } finally {
       setReqLoading(false)
+    }
+  }
+
+  async function downloadPersonalExport() {
+    setExporting(true)
+    setExportError("")
+    try {
+      const response = await fetch("/api/user/export", { cache: "no-store" })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { error?: string }
+        throw new Error(body.error || t("settings.exportDataError"))
+      }
+      const disposition = response.headers.get("content-disposition") ?? ""
+      const filename = disposition.match(/filename="?([^"]+)"?/i)?.[1] ?? "lospor-export.zip"
+      const url = URL.createObjectURL(await response.blob())
+      const link = document.createElement("a")
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : t("settings.exportDataError"))
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -657,10 +685,12 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         {t("settings.exportDataDesc")}
                       </p>
                       <button type="button"
-                        onClick={() => { window.location.href = "/api/user/export" }}
-                        className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                        {t("settings.downloadData")}
+                        onClick={downloadPersonalExport}
+                        disabled={exporting}
+                        className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-60">
+                        {exporting ? t("settings.exportingData") : t("settings.downloadData")}
                       </button>
+                      {exportError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{exportError}</p>}
                     </div>
 
                     <div className="space-y-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
