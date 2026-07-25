@@ -1,9 +1,3 @@
 {
-  "buildCommand": "prisma migrate deploy && npm run build",
-  "crons": [
-    {
-      "path": "/api/internal/purge-deleted",
-      "schedule": "0 3 * * *"
-    }
-  ]
+  "buildCommand": "npm run build"
 }

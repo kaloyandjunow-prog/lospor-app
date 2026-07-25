@@ -6,16 +6,15 @@
 // If the tray is non-empty the user is warned that signing out discards the
 // queued saves; on confirm both trays are cleared before the server action
 // (which revokes the session jti) runs.
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { LogOut } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
 import { eventOutbox, eventOutboxCount } from "@/lib/event-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
 
-export function SignOutButton({ signOutAction }: { signOutAction: () => Promise<void> }) {
+export function SignOutButton() {
   const t = useTranslations()
-  const formRef = useRef<HTMLFormElement>(null)
   const [checking, setChecking] = useState(false)
 
   async function onClick(e: React.MouseEvent) {
@@ -38,14 +37,15 @@ export function SignOutButton({ signOutAction }: { signOutAction: () => Promise<
         eventOutbox.clearAll().catch(() => {}),
         autosaveManager.eventMutations.clearAll().catch(() => {}),
       ])
-      formRef.current?.requestSubmit()
+      await fetch("/api/auth/session", { method: "DELETE" }).catch(() => null)
+      window.location.assign("/login")
     } finally {
       setChecking(false)
     }
   }
 
   return (
-    <form ref={formRef} action={signOutAction}>
+    <form>
       <button type="submit" onClick={onClick} title={t("nav.signOut")}
         className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
         <LogOut className="h-4 w-4" />

@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { LayoutDashboard, FilePlus, Shield } from "lucide-react"
-import { handleSignOut } from "@/app/actions"
 import { SignOutButton } from "@/components/SignOutButton"
 import { getTranslations, getLocale } from "next-intl/server"
 import { SettingsMenu } from "@/components/SettingsMenu"
@@ -12,15 +11,12 @@ import { TourButton } from "@/components/TourButton"
 import { OnboardingGate } from "@/components/OnboardingGate"
 import { OfflineLibraryBanner } from "@/components/OfflineLibraryBanner"
 import { OutboxBadge } from "@/components/OutboxBadge"
-import { prisma } from "@/lib/prisma"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getLiveSession()
   if (!session?.user?.id) redirect("/login")
 
-  const userId = session.user?.id
-  const user = userId ? await prisma.user.findUnique({ where: { id: userId }, select: { acceptedTermsAt: true } }) : null
-  const needsOnboarding = !user?.acceptedTermsAt
+  const needsOnboarding = !session.user.acceptedTermsAt
 
   const t      = await getTranslations()
   const locale = await getLocale()
@@ -64,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span data-tour="settings-menu">
               <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />
             </span>
-            <SignOutButton signOutAction={handleSignOut} />
+            <SignOutButton />
           </div>
         </div>
       </header>

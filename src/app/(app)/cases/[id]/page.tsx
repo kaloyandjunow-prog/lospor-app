@@ -1,5 +1,4 @@
-import { getLiveSession } from "@/lib/live-session"
-import { prisma } from "@/lib/prisma"
+import { apiServerFetch, getLiveSession } from "@/lib/live-session"
 import { LiveCaseUpdater } from "@/components/LiveCaseUpdater"
 import { notFound, redirect } from "next/navigation"
 import { CaseSummary } from "@/components/CaseSummary"
@@ -27,24 +26,22 @@ export default async function CasePage({
   // print-token flow) — this page is the live summary and needs a session.
   const session = await getLiveSession()
   if (!session?.user?.id) redirect(`/login?callbackUrl=/cases/${id}`)
-  const me  = session.user
-  const userId = me.id
-  const role   = me.role
-  const institutionId: string | null = me.institutionId ?? null
-
-  // ADMIN: any case. HOD: cases within their institution. MEMBER: own cases only.
-  const where = role === "ADMIN"
-    ? { id }
-    : role === "HEAD_OF_DEPT" && institutionId
-      ? { id, user: { institutionId } }
-      : { id, userId }
-
-  const record = await prisma.case.findFirst({
-    where,
-    include: { preop: true, intraop: true, postop: true, user: { include: { institution: true } } },
-  })
-
-  if (!record) notFound()
+  const response = await apiServerFetch(`/v1/cases/${encodeURIComponent(id)}`)
+  if (response.status === 404 || response.status === 403) notFound()
+  if (!response.ok) throw new Error(`Unable to load case (${response.status})`)
+  const record = await response.json() as {
+    createdAt: string
+    caseCode: string | null
+    notes: string | null
+    preop: {
+      plannedProcedure: string | null
+      diagnosis: string | null
+      ageYears: number | null
+      sex: string | null
+    } | null
+    intraop: { monthYear: string | null } | null
+    user: { institution: { name: string } | null }
+  }
 
   const p = record.preop
   const i = record.intraop
@@ -65,7 +62,7 @@ export default async function CasePage({
               {p?.diagnosis} · {p?.ageYears}y {p?.sex === "MALE" ? "M" : p?.sex === "FEMALE" ? "F" : ""} ·{" "}
               {i?.monthYear
                 ? (() => { const [y, m] = i.monthYear!.split("-"); const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m,10)-1]} ${y}` })()
-                : format(record.createdAt, "dd MMM yyyy")}{" "}
+                : format(new Date(record.createdAt), "dd MMM yyyy")}{" "}
               {record.user.institution ? `· ${record.user.institution.name}` : ""}
             </p>
           </div>

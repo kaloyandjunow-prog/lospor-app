@@ -1,5 +1,4 @@
-import { getLiveSession } from "@/lib/live-session"
-import { prisma } from "@/lib/prisma"
+import { apiServerJson, getLiveSession } from "@/lib/live-session"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,53 +8,41 @@ import { DashboardSearch } from "@/components/DashboardSearch"
 import { getTranslations } from "next-intl/server"
 import type React from "react"
 
-type CaseRow = Awaited<ReturnType<typeof fetchCases>>[number]
+type CaseRow = {
+  id: string
+  userId: string
+  status: string
+  caseCode: string | null
+  createdAt: Date
+  preop: {
+    diagnosis: string | null
+    plannedProcedure: string | null
+    ageYears: number | null
+    sex: string | null
+    asaScore: string | null
+  } | null
+  intraop: {
+    monthYear: string | null
+    durationMinutes: number | null
+    endTime: string | null
+  } | null
+  postop: {
+    disposition: string | null
+    aldreteTotal: number | null
+  } | null
+  user: { name: string }
+  transfers: Array<{ id: string }>
+}
 type DashboardScope = "all" | "today" | "month" | "active" | "drafts" | "awaiting-postop" | "complete" | "handovers" | "icu"
 
-const CASE_INCLUDE = {
-  preop:     { select: { diagnosis: true, plannedProcedure: true, ageYears: true, sex: true, asaScore: true } },
-  intraop:   { select: { monthYear: true, durationMinutes: true, endTime: true } },
-  postop:    { select: { disposition: true, aldreteTotal: true } },
-  user:      { select: { name: true } },
-  transfers: { where: { status: "PENDING" as const }, select: { id: true }, take: 1 },
-} as const
-
-function baseWhere(userId: string, role: string, institutionId?: string | null) {
-  if (role === "ADMIN") return {}
-  // A HOD sees only their OWN institution's cases — never the whole database.
-  // (A HOD with no institution falls back to owner-only, matching the API routes.)
-  if (role === "HEAD_OF_DEPT" && institutionId) return { user: { institutionId } }
-  return { userId }
-}
-
-// Full fetch (max 200) — used to derive stat counts for all scope chips
-async function fetchCases(userId: string, role: string, institutionId?: string | null) {
-  return prisma.case.findMany({
-    where: baseWhere(userId, role, institutionId),
-    include: CASE_INCLUDE,
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
-}
-
-// Scoped fetch — pushes non-"all" filters into the DB query so only relevant
-// rows are loaded when a specific scope tab is selected.
-async function fetchScopedCases(userId: string, role: string, institutionId: string | null | undefined, scope: string, now: Date) {
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const scopeWhere: Record<string, unknown> =
-    scope === "drafts"          ? { status: "DRAFT" }
-    : scope === "active"        ? { status: { not: "COMPLETE" } }
-    : scope === "complete"      ? { status: "COMPLETE" }
-    : scope === "today"         ? { createdAt: { gte: startOfToday } }
-    : scope === "month"         ? { createdAt: { gte: startOfMonth } }
-    : {}
-  return prisma.case.findMany({
-    where: { ...baseWhere(userId, role, institutionId), ...scopeWhere },
-    include: CASE_INCLUDE,
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+async function fetchCases(): Promise<CaseRow[]> {
+  const payload = await apiServerJson<{
+    cases: Array<Omit<CaseRow, "createdAt"> & { createdAt: string }>
+  }>("/v1/cases?take=200")
+  return payload.cases.map(item => ({
+    ...item,
+    createdAt: new Date(item.createdAt),
+  }))
 }
 
 function isToday(date: Date, now: Date) {
@@ -113,16 +100,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     ? requestedScope
     : "all"
 
-  const role          = session.user.role ?? "MEMBER"
-  const userId        = session.user.id
-  const institutionId = session.user.institutionId ?? null
-  const now           = new Date()
+  const now = new Date()
 
-  // Fetch full list for stat counts + scoped list for display in parallel
-  const [cases, scopedCases] = await Promise.all([
-    fetchCases(userId, role, institutionId),
-    scope !== "all" ? fetchScopedCases(userId, role, institutionId, scope, now) : Promise.resolve(null),
-  ])
+  const cases = await fetchCases()
 
   const totalCases = cases.length
   const todayCases = cases.filter((c: CaseRow) => isToday(c.createdAt, now))
@@ -136,7 +116,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   // Use DB-scoped result for status/date scopes; fall back to JS filter for
   // the remaining scopes (awaiting-postop, handovers, icu) that require
   // joined-field predicates not easily expressed as a simple WHERE clause.
-  const filteredCases = scopedCases ?? cases.filter((c: CaseRow) => {
+  const filteredCases = cases.filter((c: CaseRow) => {
     if (scope === "all") return true
     if (scope === "today") return isToday(c.createdAt, now)
     if (scope === "month") return isThisMonthCase(c, now)
@@ -245,7 +225,11 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
               </Link>
             </div>
           ) : (
-            <DashboardSearch cases={filteredCases} userId={userId} role={role} />
+            <DashboardSearch
+              cases={filteredCases}
+              userId={session.user.id}
+              role={session.user.role}
+            />
           )}
         </CardContent>
       </Card>
