@@ -1,6 +1,23 @@
 # Changelog - LOSPOR Web App
 
-## [6.0.0] - Unreleased
+## [7.0.0] - 2026-07-25
+
+### Changed
+
+- Web is now an API-backed browser client. Database access, Prisma,
+  authentication services, email, AI, PDF generation, audit persistence,
+  OMOP, migrations, and maintenance jobs live in `lospor-api`.
+- The temporary `/api/*` compatibility address forwards to the dedicated
+  versioned API without duplicating backend behavior.
+- Production uses `https://api.lospor.org`; the web deployment no longer needs
+  database or API signing secrets.
+
+### Release
+
+- Deploy and verify API V7 before deploying this web release.
+- No new V7 database migration is required.
+
+## [6.0.0] - 2026-07-24
 
 ### Changed
 

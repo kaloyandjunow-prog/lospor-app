@@ -35,7 +35,7 @@ export async function apiServerFetch(path: string, init: RequestInit = {}) {
   const cookieHeader = requestCookieHeader(cookieStore)
   if (cookieHeader) headers.set("cookie", cookieHeader)
   headers.set("x-lospor-client", "web")
-  headers.set("x-lospor-client-version", "7.0.0-dev.0")
+  headers.set("x-lospor-client-version", "7.0.0")
 
   return fetch(`${API_INTERNAL_URL}${path}`, {
     ...init,
