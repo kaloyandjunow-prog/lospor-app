@@ -46,8 +46,11 @@ describe("getLiveSession", () => {
     )
 
     await expect(getLiveSession()).resolves.toEqual(session)
+    const apiOrigin = (
+      process.env.LOSPOR_API_INTERNAL_URL ?? "http://127.0.0.1:3002"
+    ).replace(/\/$/, "")
     expect(request).toHaveBeenCalledWith(
-      "http://127.0.0.1:3002/v1/auth/session",
+      `${apiOrigin}/v1/auth/session`,
       expect.objectContaining({
         cache: "no-store",
         headers: expect.any(Headers),
