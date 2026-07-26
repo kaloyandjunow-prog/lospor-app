@@ -8,7 +8,7 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
 import { calcInfusionTotal } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
@@ -205,6 +205,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const { register, handleSubmit, control, watch, setValue, getValues, formState } = useForm<IntraopFormFields>({
     // zodResolver's inferred generic doesn't exactly match z.infer<typeof
     // schema> for a schema this size (lots of .optional()/.default() fields)
@@ -222,7 +223,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
   const { options: positionOptions } = useOptionLibrary("POSITION")
   const { options: techniqueLibOpts } = useOptionLibrary("TECHNIQUE")
-  const techniqueTree = useMemo(() => buildTechniqueTree(techniqueLibOpts), [techniqueLibOpts])
+  const techniqueTree = useMemo(() => buildTechniqueTree(techniqueLibOpts, locale), [locale, techniqueLibOpts])
   const { options: monitoringOptions } = useOptionLibrary("MONITORING")
   const { options: airwayOptions } = useOptionLibrary("AIRWAY_MANAGEMENT")
   const { options: premedOptions } = useOptionLibrary("PREMED_DRUG")

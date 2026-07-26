@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useLocale } from "next-intl"
 import Link from "next/link"
 import { Search, X, FileText, Printer } from "lucide-react"
 import { DeleteDraftButton } from "@/components/DeleteDraftButton"
 import { HandoverButton } from "@/components/HandoverButton"
 import { format } from "date-fns"
+import { displayClinicalCode } from "@/lib/clinical-display"
 
 type CaseRow = {
   id: string
@@ -25,10 +27,10 @@ function asaBadge(asa: string | null) {
   return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${map[asa] ?? ""}`}>ASA {asa}</span>
 }
 
-function dispositionBadge(d: string | null) {
+function dispositionBadge(d: string | null, locale: string) {
   if (!d) return null
   const map: Record<string, string> = { WARD: "bg-green-100 text-green-800", PACU: "bg-amber-100 text-amber-800", ICU: "bg-red-100 text-red-800" }
-  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[d] ?? ""}`}>{d}</span>
+  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[d] ?? ""}`}>{displayClinicalCode("option:DISPOSITION", d, locale)}</span>
 }
 
 type StatusKey = "finished" | "awaitingPostop" | "inTheatre" | "awaitingAllocation" | "inConsultation" | "draft"
@@ -42,9 +44,9 @@ function computeStatus(c: CaseRow): { key: StatusKey; cls: string } {
   return { key: "draft", cls: "bg-slate-100 text-slate-500 dark:bg-slate-700/50 dark:text-slate-400" }
 }
 
-const STATUS_LABELS: Record<StatusKey, string> = {
-  finished: "Finished", awaitingPostop: "Awaiting postop", inTheatre: "In theatre",
-  awaitingAllocation: "Awaiting allocation", inConsultation: "In consultation", draft: "Draft",
+const STATUS_CODES: Record<StatusKey, string> = {
+  finished: "COMPLETE", awaitingPostop: "AWAITING_POSTOP", inTheatre: "IN_PROGRESS",
+  awaitingAllocation: "AWAITING_ALLOCATION", inConsultation: "IN_CONSULTATION", draft: "DRAFT",
 }
 
 export function DashboardSearch({
@@ -56,6 +58,7 @@ export function DashboardSearch({
   userId: string
   role: string
 }) {
+  const locale = useLocale()
   const [query, setQuery] = useState("")
 
   const filtered = query.trim()
@@ -103,7 +106,7 @@ export function DashboardSearch({
                       {c.preop?.plannedProcedure || "Untitled"}
                     </p>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
-                      {STATUS_LABELS[key]}
+                      {displayClinicalCode("caseStatus", STATUS_CODES[key], locale)}
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 truncate mt-0.5">
@@ -112,7 +115,7 @@ export function DashboardSearch({
                 </div>
                 <div className="flex items-center gap-2 ml-4 shrink-0">
                   {asaBadge(c.preop?.asaScore ?? null)}
-                  {dispositionBadge(c.postop?.disposition ?? null)}
+                  {dispositionBadge(c.postop?.disposition ?? null, locale)}
                   {c.caseCode && (
                     <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
                       {c.caseCode}

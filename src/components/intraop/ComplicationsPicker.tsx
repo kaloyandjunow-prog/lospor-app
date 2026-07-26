@@ -4,12 +4,13 @@ import { createPortal } from "react-dom"
 import { useTranslations, useLocale } from "next-intl"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { COMPLICATION_CATEGORIES, ALL_COMPLICATIONS } from "@lospor/core/complications"
+import { displayClinicalCode } from "@/lib/clinical-display"
 
 export { ALL_COMPLICATIONS }
 
 export function ComplicationsPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
   const t = useTranslations()
-  const bg = useLocale() === "bg"
+  const locale = useLocale()
   const [open, setOpen]           = useState(false)
   const [phase, setPhase]         = useState<"categories" | "items" | "search">("categories")
   const [activeCat, setActiveCat] = useState<string | null>(null)
@@ -55,11 +56,12 @@ export function ComplicationsPicker({ value, onChange }: { value?: string; onCha
     }
   }, [open])
 
-  const catTitle = (cat: { title: string; titleBg: string }) => (bg ? cat.titleBg : cat.title)
+  const catTitle = (cat: { id: string; title: string; titleBg: string }) => displayClinicalCode("complication", cat.id, locale, { label: cat.title, labelBg: cat.titleBg })
   const catInfo = COMPLICATION_CATEGORIES.find(c => c.id === activeCat)
+  const itemLabel = (item: string) => displayClinicalCode("complication", item, locale, { label: item })
   const q = search.toLowerCase()
   const searchResults = q
-    ? COMPLICATION_CATEGORIES.map(c => ({ ...c, items: c.items.filter(i => i.toLowerCase().includes(q)) })).filter(c => c.items.length > 0)
+    ? COMPLICATION_CATEGORIES.map(c => ({ ...c, items: c.items.filter(i => `${i} ${itemLabel(i)}`.toLowerCase().includes(q)) })).filter(c => c.items.length > 0)
     : []
 
   function ItemRow({ item }: { item: string }) {
@@ -70,7 +72,7 @@ export function ComplicationsPicker({ value, onChange }: { value?: string; onCha
         <span className={`flex-none w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${isSel ? "bg-red-500 border-red-500" : "border-slate-300 dark:border-[#555]"}`}>
           {isSel && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
         </span>
-        <span className={isSel ? "text-red-700 dark:text-red-300 font-medium" : "text-slate-700 dark:text-slate-200"}>{item}</span>
+        <span className={isSel ? "text-red-700 dark:text-red-300 font-medium" : "text-slate-700 dark:text-slate-200"}>{itemLabel(item)}</span>
       </button>
     )
   }
@@ -161,7 +163,7 @@ export function ComplicationsPicker({ value, onChange }: { value?: string; onCha
         <div className="flex flex-wrap gap-1.5">
           {selected.map(item => (
             <span key={item} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
-              {item}
+              {itemLabel(item)}
               <button type="button" onClick={() => toggle(item)} className="text-red-400 hover:text-red-600 transition-colors">
                 <X className="h-2.5 w-2.5" />
               </button>

@@ -21,13 +21,17 @@ export type BrowseCategory = {
  * The scenario groups themselves live in @lospor/core so neither app can drift.
  */
 export function ScenarioPicker({
-  scenarios, favourites, browse, onPick, labels,
+  scenarios, favourites, browse, onPick, labels, displayItem = name => name,
+  displayCategory = category => category, displayScenario = group => group.label,
 }: {
   scenarios: ScenarioGroup[]
   favourites: string[]
   browse: BrowseCategory[]
   /** unit is whatever the library knows; the dose panel resolves the rest. */
   onPick: (name: string, unit?: string) => void
+  displayItem?: (name: string) => string
+  displayCategory?: (category: string) => string
+  displayScenario?: (group: ScenarioGroup) => string
   labels: {
     favourites: string
     browseAll: string
@@ -57,14 +61,14 @@ export function ScenarioPicker({
     <button key={key} type="button" onClick={() => onPick(name, unit)}
       className="text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity"
       style={{ borderColor: `${color}55`, backgroundColor: `${color}1a`, color }}>
-      {name}
+      {displayItem(name)}
     </button>
   )
 
   // Every item in the library, flattened — used by the home search box.
   const allItems = browse.flatMap(c => c.items.map(i => ({ ...i, color: c.color, cat: c.cat })))
   const homeMatches = query.trim()
-    ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
+    ? allItems.filter(i => `${i.name} ${displayItem(i.name)}`.toLowerCase().includes(query.toLowerCase()))
     : []
 
   if (mode === "home") {
@@ -84,7 +88,7 @@ export function ScenarioPicker({
               {homeMatches.map(i => (
                 <button key={`${i.cat}:${i.name}`} type="button" onClick={() => onPick(i.name, i.unit)}
                   className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${i.color}`}>
-                  {i.name}
+                  {displayItem(i.name)}
                 </button>
               ))}
             </div>
@@ -107,9 +111,9 @@ export function ScenarioPicker({
               onClick={() => { setGroup(g); setMode("scenario") }}
               className="text-left px-2 py-1.5 rounded-lg border hover:opacity-80 transition-opacity"
               style={{ borderColor: `${g.color}55`, backgroundColor: `${g.color}14` }}>
-              <span className="block text-[11px] font-bold" style={{ color: g.color }}>{g.label}</span>
+              <span className="block text-[11px] font-bold" style={{ color: g.color }}>{displayScenario(g)}</span>
               <span className="block text-[9px] text-slate-500 dark:text-slate-400 truncate">
-                {g.items.slice(0, 2).map(i => i.label).join(", ")}
+                {g.items.slice(0, 2).map(i => displayItem(i.canonical)).join(", ")}
               </span>
             </button>
           ))}
@@ -144,7 +148,7 @@ export function ScenarioPicker({
     return (
       <div className="p-2 space-y-2 max-h-72 overflow-y-auto">
         {back}
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: group.color }}>{displayScenario(group)}</p>
         <div className="flex flex-wrap gap-1">
           {group.items.map(i => itemButton(i.canonical, unitFor(i.canonical), group.color, i.canonical))}
         </div>
@@ -154,7 +158,7 @@ export function ScenarioPicker({
 
   // browse — the full library, searchable, as it was before
   const filtered = query.trim()
-    ? browse.map(c => ({ ...c, items: c.items.filter(i => i.name.toLowerCase().includes(query.toLowerCase())) }))
+    ? browse.map(c => ({ ...c, items: c.items.filter(i => `${i.name} ${displayItem(i.name)}`.toLowerCase().includes(query.toLowerCase())) }))
         .filter(c => c.items.length > 0)
     : browse
 
@@ -170,12 +174,12 @@ export function ScenarioPicker({
       <div className="p-2 space-y-2">
         {filtered.map(c => (
           <div key={c.cat}>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{c.cat}</p>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{displayCategory(c.cat)}</p>
             <div className="flex flex-wrap gap-1">
               {c.items.map(i => (
                 <button key={i.name} type="button" onClick={() => onPick(i.name, i.unit)}
                   className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${c.color}`}>
-                  {i.name}
+                  {displayItem(i.name)}
                 </button>
               ))}
             </div>

@@ -2,8 +2,10 @@
 
 import { useMemo } from "react"
 import { useState } from "react"
+import { useLocale } from "next-intl"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
+import { displayOption } from "@/lib/clinical-display"
 import {
   buildOptionTree,
   findLabeledValuePath,
@@ -21,12 +23,12 @@ import {
 // takes the tree as an explicit parameter rather than reading module state).
 export interface TechniqueNode { v: string; label: string; children?: TechniqueNode[] }
 
-export function buildTree(rows: LibraryOption[]): TechniqueNode[] {
+export function buildTree(rows: LibraryOption[], locale: string = "en"): TechniqueNode[] {
   const mapNodes = (
     nodes: ReturnType<typeof buildOptionTree<LibraryOption>>,
   ): TechniqueNode[] => nodes.map(node => ({
     v: node.value,
-    label: node.label,
+    label: displayOption("TECHNIQUE", node.option, locale),
     children: node.children?.length ? mapNodes(node.children) : undefined,
   }))
   return mapNodes(buildOptionTree(rows))
@@ -127,8 +129,9 @@ export function TechniqueTree({ value = [], onChange }: {
   value?: string[]
   onChange: (v: string[]) => void
 }) {
+  const locale = useLocale()
   const { options: techniqueOpts } = useOptionLibrary("TECHNIQUE")
-  const tree = useMemo(() => buildTree(techniqueOpts), [techniqueOpts])
+  const tree = useMemo(() => buildTree(techniqueOpts, locale), [locale, techniqueOpts])
 
   const [adding, setAdding] = useState(false)
 

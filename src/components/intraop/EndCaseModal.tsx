@@ -1,8 +1,10 @@
 "use client"
 import { useState } from "react"
+import { useLocale } from "next-intl"
 import { createPortal } from "react-dom"
 import type { AgentSegment, TimetableInfusion, TimetableFluid, GasSettingsSegment } from "@/components/IntraopTimetable"
 import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
+import { displayClinicalCode } from "@/lib/clinical-display"
 
 type EndCaseDecision = "discontinue" | "continue" | null
 
@@ -24,6 +26,7 @@ export interface EndCaseModalProps {
 }
 
 export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weightBasis, onDismiss, onConfirm }: EndCaseModalProps) {
+  const locale = useLocale()
   const [decisions, setDecisions] = useState<Record<string, EndCaseDecision>>({})
   const [fluidAmounts, setFluidAmounts] = useState<Record<string, string>>({})
   const [fluidFullBag, setFluidFullBag] = useState<Record<string, boolean | null>>({})
@@ -90,7 +93,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
           return (
             <div key={a.startCol} className="flex items-center justify-between gap-2 py-3 border-b border-slate-100 dark:border-[#2e2e2e]">
               <div>
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">{a.name}</span>
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">{displayClinicalCode("option:INHALATIONAL_AGENT", a.name, locale, { label: a.name })}</span>
                 <span className="ml-2 text-[10px] text-slate-400">inhalational</span>
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -115,7 +118,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
             <div key={inf.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-sm font-semibold" style={{ color: inf.color }}>{inf.name}</span>
+                  <span className="text-sm font-semibold" style={{ color: inf.color }}>{displayClinicalCode("option:INTRAOP_INFUSION", inf.name, locale, { label: inf.name })}</span>
                   <span className="ml-2 text-[10px] text-slate-400">{inf.rate} {inf.unit}</span>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
@@ -145,8 +148,8 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
             <div key={f.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-sm font-semibold" style={{ color: f.color }}>{f.name}</span>
-                  <span className="ml-2 text-[10px] text-slate-400">{f.category ?? "fluid"}</span>
+                  <span className="text-sm font-semibold" style={{ color: f.color }}>{displayClinicalCode("option:INTRAOP_FLUID", f.name, locale, { label: f.name })}</span>
+                  <span className="ml-2 text-[10px] text-slate-400">{displayClinicalCode("optionGroup", f.category ?? "Other", locale, { label: f.category ?? "Other" })}</span>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button type="button" onClick={() => setDecision(key, "discontinue")}

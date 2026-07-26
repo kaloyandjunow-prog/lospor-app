@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { UserCheck, Loader2, Check, ChevronDown } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
+import { displayClinicalCode } from "@/lib/clinical-display"
 
 interface Colleague { id: string; name: string; title: string; role: string }
 
@@ -18,6 +19,7 @@ interface Props {
 
 export function HandoverButton({ caseId, sessionRole, hasPendingTransfer, onTransferred }: Props) {
   const t = useTranslations()
+  const locale = useLocale()
 
   const [open,        setOpen]        = useState(false)
   const [colleagues,  setColleagues]  = useState<Colleague[]>([])
@@ -150,7 +152,7 @@ export function HandoverButton({ caseId, sessionRole, hasPendingTransfer, onTran
                   {c.title && <span className="text-slate-400 dark:text-slate-500 ml-1 text-xs">{c.title}</span>}
                   {c.role !== "MEMBER" && (
                     <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-                      {c.role === "HEAD_OF_DEPT" ? t("transfer.hod") : "Admin"}
+                      {displayClinicalCode("userRole", c.role, locale)}
                     </span>
                   )}
                 </button>

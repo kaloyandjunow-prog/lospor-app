@@ -1,5 +1,15 @@
 # Changelog - LOSPOR Web App
 
+## [7.1.0] - 2026-07-27
+
+- Clinical screens, summaries, print views, search surfaces, and intraoperative
+  tools now resolve stable codes through the canonical Core English/Bulgarian
+  display registry.
+- Raw enum and database labels no longer leak into clinician-facing web views;
+  persisted values and API identities remain unchanged.
+- The product navigation links to the standalone LOSPOR Database research
+  interface.
+
 ## [7.0.1] - 2026-07-25
 
 - Settings now downloads the complete personal-data ZIP archive through a

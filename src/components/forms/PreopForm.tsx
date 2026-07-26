@@ -22,6 +22,7 @@ import { AIAdvisor } from "@/components/AIAdvisor"
 import { LabResults, type LabResult } from "@/components/LabResults"
 import GuardedTextarea from "@/components/GuardedTextarea"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
+import { displayOption, resolveDisplayOption } from "@/lib/clinical-display"
 import { schema, type PreopData } from "@/components/forms/preopSchema"
 import { metadataString } from "@lospor/core/option-contracts"
 
@@ -128,7 +129,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 }) {
   const t      = useTranslations()
   const locale = useLocale()
-  const lbl = (opt: { label: string; labelBg: string | null }) => (locale === "bg" && opt.labelBg) ? opt.labelBg : opt.label
+
 
   const { options: bloodGroupOptions }   = useOptionLibrary("BLOOD_GROUP")
   const { options: neckMobilityOptions } = useOptionLibrary("NECK_MOBILITY")
@@ -515,7 +516,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                     selected
                       ? "bg-blue-500 border-blue-500 text-white dark:bg-slate-600 dark:border-slate-300 dark:text-white scale-105"
                       : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"
-                  }`}>{lbl(opt)}</button>
+                  }`}>{displayOption("BLOOD_GROUP", opt, locale)}</button>
               )
             })}
           </div>
@@ -957,7 +958,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                     onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
                     className={`rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
                     <div className="text-xl font-bold">{opt.value}</div>
-                    <div className="text-[10px] mt-1 leading-tight">{opt.description}</div>
+                    <div className="text-[10px] mt-1 leading-tight">{resolveDisplayOption("MALLAMPATI", opt, locale).description}</div>
                   </button>
                 ))}
               </div>
@@ -983,7 +984,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <button key={opt.value} type="button"
                     onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
                     className={`flex-1 rounded-xl border-2 py-2.5 font-semibold text-sm transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    {lbl(opt)}
+                    {displayOption("NECK_MOBILITY", opt, locale)}
                   </button>
                 ))}
               </div>
@@ -997,8 +998,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <button key={opt.value} type="button"
                     onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
                     className={`flex-1 rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                    <div className="font-bold">{lbl(opt)}</div>
-                    <div className="text-[10px] mt-0.5 leading-tight">{opt.description}</div>
+                    <div className="font-bold">{displayOption("UPPER_LIP_BITE", opt, locale)}</div>
+                    <div className="text-[10px] mt-0.5 leading-tight">{resolveDisplayOption("UPPER_LIP_BITE", opt, locale).description}</div>
                   </button>
                 ))}
               </div>
@@ -1013,7 +1014,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                     onClick={() => field.onChange(field.value === opt.value ? undefined : opt.value)}
                     className={`flex-1 rounded-xl border-2 p-2 text-center transition-all ${field.value === opt.value ? opt.color+" scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
                     <div className="text-lg font-bold">{opt.value}</div>
-                    <div className="text-[9px] mt-0.5 leading-tight">{opt.description}</div>
+                    <div className="text-[9px] mt-0.5 leading-tight">{resolveDisplayOption("CORMACK_LEHANE", opt, locale).description}</div>
                   </button>
                 ))}
               </div>

@@ -15,6 +15,7 @@ import { ChevronLeft, Save } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
+import { displayOption } from "@/lib/clinical-display"
 import {
   aldreteBand,
   aldreteTotal as calculateAldreteTotal,
@@ -82,14 +83,17 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 }) {
   const t      = useTranslations()
   const locale = useLocale()
-  const lbl = (opt: { label: string; labelBg: string | null }) => (locale === "bg" && opt.labelBg) ? opt.labelBg : opt.label
+
   const { options: dispositionOptions } = useOptionLibrary("DISPOSITION")
   const { options: handoverOptions }    = useOptionLibrary("HANDOVER_ITEM")
   const HANDOVER_GROUPS: HandoverGroup[] = handoverOptions
     .filter(o => !o.parentId)
     .map(group => ({
-      group: lbl(group),
-      items: handoverOptions.filter(o => o.parentId === group.id).map(item => ({ code: item.value, label: lbl(item) })),
+      group: displayOption("HANDOVER_ITEM", group, locale),
+      items: handoverOptions.filter(o => o.parentId === group.id).map(item => ({
+        code: item.value,
+        label: displayOption("HANDOVER_ITEM", item, locale),
+      })),
     }))
   const recoveryBpSystolicRange  = useRange("BP_SYSTOLIC_RANGE")
   const recoveryBpDiastolicRange = useRange("BP_DIASTOLIC_RANGE")
@@ -336,7 +340,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
                       ? opt.color + " scale-105 shadow-sm"
                       : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
                   }`}>
-                  {lbl(opt)}
+                  {displayOption("DISPOSITION", opt, locale)}
                 </button>
               ))}
             </div>

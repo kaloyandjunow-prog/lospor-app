@@ -2,12 +2,13 @@
 
 /* eslint-disable react-hooks/refs */
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
+import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
 import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
@@ -28,7 +29,6 @@ import {
   INTRAOP_RESUME_WINDOW_SECONDS,
 } from "@lospor/core/intraop-engine"
 import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
-import { formatGasMixLabel, formatGasSettingsLabel } from "@/lib/intraop-gas-display"
 import { useDrugHandlers } from "@/hooks/useDrugHandlers"
 import { useVitalsHandlers } from "@/hooks/useVitalsHandlers"
 import { useClinicalEventHandlers } from "@/hooks/useClinicalEventHandlers"
@@ -205,6 +205,7 @@ type TtFP = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = false, monitoring, ibw, tbw, showAgentRow = false, data, onChange, onEndCase, onResumeCase, onPostopContinued, onInfusionTotals, onComplicationAdded, onLogEvent, onLogEventDelete }: Props) {
   const t = useTranslations()
+  const locale = useLocale()
   const trustedStartMs = useMemo(() => {
     if (!startedAt) return null
     const ms = Date.parse(startedAt)
@@ -218,6 +219,49 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
   const { options: eventLibOpts } = useOptionLibrary("INTRAOP_EVENT")
   const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
   const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
+
+  const displayDrugName = useCallback(
+    (name: string) => displayNamedOption("INTRAOP_DRUG", drugLibOpts, name, locale),
+    [drugLibOpts, locale],
+  )
+  const displayFluidName = useCallback(
+    (name: string) => displayNamedOption("INTRAOP_FLUID", fluidLibOpts, name, locale),
+    [fluidLibOpts, locale],
+  )
+  const displayInfusionName = useCallback(
+    (name: string) => displayNamedOption("INTRAOP_INFUSION", infusionLibOpts, name, locale),
+    [infusionLibOpts, locale],
+  )
+  const displayAgentName = useCallback(
+    (name: string) => displayNamedOption("INHALATIONAL_AGENT", agentLibOpts, name, locale),
+    [agentLibOpts, locale],
+  )
+  const displayEventName = useCallback(
+    (event: { code: string; label: string; labelBg: string | null }) => displayClinicalCode(
+      "option:INTRAOP_EVENT",
+      event.code,
+      locale,
+      { label: event.label, labelBg: event.labelBg },
+    ),
+    [locale],
+  )
+  const displayGroupName = useCallback(
+    (group: string) => displayClinicalCode("optionGroup", group, locale),
+    [locale],
+  )
+  const displayFluidLaneLabel = useCallback((label: string) => {
+    const match = label.match(/^(.*) (\d+)$/)
+    return match ? `${displayGroupName(match[1])} ${match[2]}` : displayGroupName(label)
+  }, [displayGroupName])
+  const displayScenarioName = useCallback(
+    (group: { key: string; label: string }) => displayClinicalCode(
+      "scenarioGroup",
+      group.key,
+      locale,
+      { label: group.label },
+    ),
+    [locale],
+  )
 
   const { QUICK_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES, BOLUS_ROUTE_PROFILES } = useMemo(() => {
     const byGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string }[] }>()
@@ -1305,7 +1349,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                       {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none">choose</span>}
                       {seg && style2 && (() => {
                         const isAgentSel = sel?.type === "agent" && sel.startCol === seg.startCol
-                        const label = (isStart || isRowCont) ? [seg.name, seg.n2o != null ? `+ N2O ${seg.n2o}%` : null].filter(Boolean).join(" ") : null
+                        const label = (isStart || isRowCont) ? [displayAgentName(seg.name), seg.n2o != null ? `+ N2O ${seg.n2o}%` : null].filter(Boolean).join(" ") : null
                         return (
                           <>
                             <div
@@ -1407,11 +1451,11 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                     )}
                     {showSettingsLabel && settings && (
                       <span
-                        title={formatGasSettingsLabel(settings)}
+                        title={displayGasSettings(settings, locale)}
                         className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-[9px] font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
                       >
                         <span>FGF {settings.fgf} L/min</span>
-                        <span className="text-[8px]">{formatGasMixLabel(settings)}</span>
+                        <span className="text-[8px]">{displayGasMix(settings, locale)}</span>
                       </span>
                     )}
                     {isEnd && seg && !seg.stopped && (
@@ -1461,11 +1505,11 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                       )}
                       <div className="flex flex-col items-start gap-0.5 w-full">
                         {evs.slice(0, 5).map(ev => (
-                          <div key={ev.label} title={ev.label}
+                          <div key={ev.label} title={displayNamedOption("INTRAOP_EVENT", eventLibOpts, ev.label, locale)}
                             onClick={e => { e.stopPropagation(); removeClinicalEvent(ci, ev.label) }}
                             className="flex items-center rounded-full px-1 py-px cursor-pointer hover:opacity-60 transition-opacity select-none w-full min-w-0"
                             style={{ backgroundColor: ev.color + "20", color: ev.color, border: `1px solid ${ev.color}40` }}>
-                            <span className="text-[8px] font-bold truncate leading-tight">{ev.label}</span>
+                            <span className="text-[8px] font-bold truncate leading-tight">{displayNamedOption("INTRAOP_EVENT", eventLibOpts, ev.label, locale)}</span>
                           </div>
                         ))}
                         {evs.length > 5 && (
@@ -1494,13 +1538,13 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                     const gi = data.drugs.findIndex(g => g === d)
                     return (
                       <div key={gi} draggable
-                        title={`${d.name}${d.dose ? " — " + d.dose + " " + d.unit : ""}`}
+                        title={`${displayDrugName(d.name)}${d.dose ? " — " + d.dose + " " + d.unit : ""}`}
                         onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("item-type","move-drug"); e.dataTransfer.setData("item-idx", String(gi)); e.dataTransfer.effectAllowed="move" }}
                         onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
                         onDoubleClick={e => { e.stopPropagation(); setDoseEditDrug({ idx: gi, dose: d.dose, unit: d.unit, rect: e.currentTarget.getBoundingClientRect() }) }}
                         className={`flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${sel?.type === "drug" && sel.idx === gi ? "bg-violet-400 dark:bg-violet-600 ring-2 ring-violet-500 dark:ring-violet-400" : "bg-violet-100 dark:bg-violet-900/40 hover:bg-violet-200 dark:hover:bg-violet-800/40"}`}>
                         <span className="text-[10px] font-semibold text-violet-800 dark:text-violet-300 leading-tight truncate flex-1">
-                          {d.name}{d.dose && <><br /><span className="font-normal font-mono text-[9px] opacity-90">{d.dose} {d.unit}</span></>}
+                          {displayDrugName(d.name)}{d.dose && <><br /><span className="font-normal font-mono text-[9px] opacity-90">{d.dose} {d.unit}</span></>}
                         </span>
                         <button type="button" tabIndex={-1} onClick={e => { e.stopPropagation(); removeDrug(gi) }}
                           className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity text-violet-400 hover:text-violet-700 shrink-0 mt-0.5">
@@ -1641,7 +1685,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                               return (
                                 <span className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold whitespace-nowrap pointer-events-none select-none text-center block"
                                   style={{ color, left: 0, width: (visEnd - visStart + 1) * colW }}>
-                                  {seg.name}
+                                  {displayInfusionName(seg.name)}
                                 </span>
                               )
                             })()}
@@ -1744,7 +1788,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
             return (
               <div key={label} className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
                 <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="flex flex-col items-end justify-center pr-2 py-2 gap-0 select-none shrink-0">
-                  <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{label}</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{displayFluidLaneLabel(label)}</span>
                   <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">fluid</span>
                 </div>
                 {rowCols.map(ci => {
@@ -1780,7 +1824,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                             return (
                               <span className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-[10px] font-bold whitespace-nowrap flex items-center justify-center"
                                 style={{ color, left: 0, width: visW }}>
-                                {seg.name}{seg.volume ? ` * ${seg.volume} ml` : ""}
+                                {displayFluidName(seg.name)}{seg.volume ? ` * ${seg.volume} ml` : ""}
                               </span>
                             )
                           })()}
@@ -1982,7 +2026,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
         const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8))
         const top  = showAbove ? r.top - 4 : r.bottom + 4
         const filtered = fpSearch.trim()
-          ? QUICK_FLUIDS.map(c => ({ ...c, fluids: c.fluids.filter(f => f.name.toLowerCase().includes(fpSearch.toLowerCase())) })).filter(c => c.fluids.length > 0)
+          ? QUICK_FLUIDS.map(c => ({ ...c, fluids: c.fluids.filter(f => `${f.name} ${displayFluidName(f.name)}`.toLowerCase().includes(fpSearch.toLowerCase())) })).filter(c => c.fluids.length > 0)
           : QUICK_FLUIDS
         return (
           <>
@@ -2000,7 +2044,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
               <div className="max-h-56 overflow-y-auto p-2 space-y-2">
                 {filtered.map(cat => (
                   <div key={cat.cat}>
-                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{cat.cat}</p>
+                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{displayGroupName(cat.cat)}</p>
                     <div className="flex flex-wrap gap-1">
                       {cat.fluids.map(fluid => (
                         <button key={fluid.name} type="button"
@@ -2023,7 +2067,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                             })
                           }}
                           className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
-                          {fluid.name}
+                          {displayFluidName(fluid.name)}
                         </button>
                       ))}
                     </div>
@@ -2049,9 +2093,15 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
         const top  = showAbove ? r.top - 4 : r.bottom + 4
         const q = evSearch.toLowerCase().trim()
         const filtered = q
-          ? CLINICAL_EVENT_CATS.map(c => ({ ...c, events: c.events.filter(e => e.label.toLowerCase().includes(q)) })).filter(c => c.events.length > 0)
+          ? CLINICAL_EVENT_CATS.map(c => ({ ...c, events: c.events.filter(event => `${event.label} ${displayEventName(event)}`.toLowerCase().includes(q)) })).filter(c => c.events.length > 0)
           : CLINICAL_EVENT_CATS
-        const positionOpts = q ? POSITIONS.filter(p => p.label.toLowerCase().includes(q)) : POSITIONS
+        const localizedPositions = POSITIONS.map(position => ({
+          ...position,
+          displayLabel: displayClinicalCode("option:POSITION", position.v, locale, { label: position.label }),
+        }))
+        const positionOpts = q
+          ? localizedPositions.filter(position => `${position.label} ${position.displayLabel}`.toLowerCase().includes(q))
+          : localizedPositions
         return (
           <>
             <div className="fixed inset-0 z-[9990]" onClick={() => setEventPicker(null)} />
@@ -2081,7 +2131,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                             emitLogEvent({ type: "position_change", name: pos.label })
                           }}
                           className="text-xs font-medium px-2 py-0.5 rounded-full border border-slate-300 dark:border-[#4a4a4a] bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 cursor-pointer transition-all hover:opacity-80">
-                          {pos.label}
+                          {pos.displayLabel}
                         </button>
                       ))}
                     </div>
@@ -2091,7 +2141,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                   const colEvLabels = new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker!.ci).map(e => e.label))
                   return (
                     <div key={cat.cat}>
-                      <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: cat.color }}>{cat.cat}</p>
+                      <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: cat.color }}>{displayGroupName(cat.cat)}</p>
                       <div className="flex flex-wrap gap-1">
                         {cat.events.map(ev => {
                           const already = colEvLabels.has(ev.label)
@@ -2109,7 +2159,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                                 borderColor: ev.color + "88",
                                 color: already ? "white" : ev.color,
                               }}>
-                              {already && <span className="mr-0.5">✓</span>}{ev.label}
+                              {already && <span className="mr-0.5">✓</span>}{displayEventName(ev)}
                             </button>
                           )
                         })}
@@ -2146,6 +2196,9 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                 scenarios={BOLUS_SCENARIOS}
                 favourites={favouriteDrugs}
                 browse={allCats.map(c => ({ cat: c.cat, color: c.color, items: c.drugs }))}
+                displayItem={displayDrugName}
+                displayScenario={displayScenarioName}
+                displayCategory={displayGroupName}
                 onPick={(name, unit) => {
                   const { ci, rect } = drugPicker!
                   setDrugPicker(null)
@@ -2191,6 +2244,9 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                   color: "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300",
                   items: names.map(name => ({ name, unit: INFUSION_CONFIGS[name]?.units[0] })),
                 }]}
+                displayItem={displayInfusionName}
+                displayScenario={displayScenarioName}
+                displayCategory={displayGroupName}
                 onPick={(name, unit) => {
                   const { ci, rect } = infPicker!
                   setInfPicker(null)
@@ -2341,7 +2397,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
               onClick={e => e.stopPropagation()}>
 
               {!pickerSeg && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.startAgentHere")}</p>}
-              {pickerSeg  && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Edit: {pickerSeg.name}</p>}
+              {pickerSeg  && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Edit: {displayAgentName(pickerSeg.name)}</p>}
 
               {!pickerSeg && (
                 <div className="space-y-0.5">
@@ -2356,7 +2412,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                         setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)
                       }}
                       className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-[#333] ${AGENT_STYLE[agent]?.text ?? ""}`}>
-                      {agent}
+                      {displayAgentName(agent)}
                     </button>
                   ))}
                 </div>
@@ -2455,7 +2511,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
                       onClick={() => { setPickerCarrierGas(opt.v); if (opt.v == null) setPickerFio2(100) }}
                       className={`flex-1 text-[10px] font-semibold px-1.5 py-1 rounded-lg border transition-colors ${
                         pickerCarrierGas === opt.v ? "bg-indigo-500 border-indigo-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"
-                      }`}>{opt.label}</button>
+                      }`}>{displayClinicalCode("carrierGas", opt.v ?? "o2", locale, { label: opt.label })}</button>
                   ))}
                 </div>
               </div>
@@ -2503,7 +2559,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{fp.name}</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{fp.mode === "bolus" ? displayDrugName(fp.name) : fp.mode === "infusion" ? displayInfusionName(fp.name) : displayFluidName(fp.name)}</span>
                 <button type="button" onClick={() => setFp(null)} className="text-slate-300 hover:text-red-400 shrink-0 transition-colors"><X className="h-3.5 w-3.5" /></button>
               </div>
               <p className="text-[9px] text-slate-400 dark:text-slate-500">
@@ -2644,7 +2700,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
           style={{ top: Math.min(infMenu.rect.bottom + 4, window.innerHeight - 120), left: Math.min(infMenu.rect.left, window.innerWidth - 180) }}
           onClick={e => e.stopPropagation()}>
           <p className="text-[9px] font-bold uppercase tracking-wider px-3 pt-2.5 pb-1 flex items-center gap-1.5" style={{ color: infMenu.color }}>
-            {infMenu.name}
+            {displayInfusionName(infMenu.name)}
             {infMenu.stopped && <span className="text-[8px] font-normal text-slate-400 normal-case tracking-normal">discontinued</span>}
           </p>
           {infMenu.stopped ? (
@@ -2695,7 +2751,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
         <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
           onClick={e => e.stopPropagation()}>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{rateDialog.name}{rateDialog.concentration ? ` ${rateDialog.concentration}` : ""} — Change rate</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{displayInfusionName(rateDialog.name)}{rateDialog.concentration ? ` ${rateDialog.concentration}` : ""} — Change rate</p>
             {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.setNewRatePrompt")}</p>}
             {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.pickRateChangeTime")}</p>}
             {(() => {
@@ -2912,7 +2968,7 @@ export function IntraopTimetable({ startTime, startedAt, endTime, caseStarted = 
           style={{ top: rect.bottom + 6, left: Math.min(rect.right - 200, window.innerWidth - 210), width: 200 }}
           onClick={e => e.stopPropagation()}>
           <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-2">
-            {fluid.name}{fluid.volume ? ` — ${fluid.volume} mL bag` : ""}
+            {displayFluidName(fluid.name)}{fluid.volume ? ` — ${fluid.volume} mL bag` : ""}
           </p>
           <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-100 mb-2">{t("intraop.timetable.wasFullBagInfused")}</p>
           <div className="flex gap-2 mb-2">

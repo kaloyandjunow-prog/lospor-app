@@ -1,7 +1,9 @@
 "use client"
 import { Controller, type Control, type UseFormWatch } from "react-hook-form"
+import { useLocale } from "next-intl"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import type { LibraryOption } from "@/hooks/useOptionLibrary"
+import { resolveDisplayOption } from "@/lib/clinical-display"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 
 export function PositionSection({ t, control, watch, positionOptions }: {
@@ -10,9 +12,19 @@ export function PositionSection({ t, control, watch, positionOptions }: {
   watch: UseFormWatch<IntraopFormFields>
   positionOptions: LibraryOption[]
 }) {
+  const locale = useLocale()
+  const display = (option: LibraryOption) => resolveDisplayOption("POSITION", option, locale)
   return (
     <SectionCard title={t("intraop.positionSection")} collapsible
-      badge={(() => { const sel: string[] = watch("positions") ?? []; return sel.length ? sel.map(v => positionOptions.find(p => p.value === v)?.label ?? v).join(", ") : undefined })()}>
+      badge={(() => {
+        const selected: string[] = watch("positions") ?? []
+        return selected.length
+          ? selected.map(value => {
+              const option = positionOptions.find(candidate => candidate.value === value)
+              return option ? display(option).label : value
+            }).join(", ")
+          : undefined
+      })()}>
       <Controller name="positions" control={control} render={({ field }) => {
         const selected: string[] = field.value ?? []
         function toggle(v: string) {
@@ -30,8 +42,8 @@ export function PositionSection({ t, control, watch, positionOptions }: {
                     on ? opt.color + " scale-105 shadow-sm"
                        : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-[#888] hover:border-slate-300 dark:hover:border-[#555]"
                   }`}>
-                  <div className="text-xs font-bold leading-tight">{opt.label}</div>
-                  <div className="text-[9px] mt-1 leading-tight opacity-75">{opt.description}</div>
+                  <div className="text-xs font-bold leading-tight">{display(opt).label}</div>
+                  <div className="text-[9px] mt-1 leading-tight opacity-75">{display(opt).description}</div>
                 </button>
               )
             })}

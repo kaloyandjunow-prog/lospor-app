@@ -1,12 +1,13 @@
 "use client"
 import { useState } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Controller } from "react-hook-form"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { RangeSelect } from "@/components/forms/shared/RangeSelect"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { LibraryOption } from "@/hooks/useOptionLibrary"
+import { displayClinicalCode, displayOption } from "@/lib/clinical-display"
 import type { Control, UseFormWatch, UseFormSetValue, UseFormRegister, Path } from "react-hook-form"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 import { VENT_ASSISTED, VENT_CONTROLLED } from "@lospor/core/ventilation"
@@ -49,6 +50,7 @@ export function AirwaySection({
   expandAirwayDevice: (v: string) => void
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const [ventExpanded, setVentExpanded] = useState<"assisted" | "controlled" | null>(null)
 
   if (presentsIntubated) return null
@@ -85,7 +87,9 @@ export function AirwaySection({
       <div className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.instrumentsLabel")}</p>
         <div className="flex flex-wrap gap-2">
-          {airwayToolOptions.map(({ value: v, label }) => {
+          {airwayToolOptions.map(option => {
+            const v = option.value
+            const label = displayOption("AIRWAY_MANAGEMENT", option, locale)
             const tools: string[] = watch("airwayTools") ?? []
             const on = tools.includes(v)
             return (
@@ -194,17 +198,24 @@ export function AirwaySection({
         const dltSize  = watch("dltSize")
         const ebSize   = watch("endobronchialSize")
 
+        const deviceName = (code: string) => {
+          const option = airwayDeviceOptions.find(candidate => candidate.value === code)
+          return option
+            ? displayOption("AIRWAY_MANAGEMENT", option, locale)
+            : displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale)
+        }
+
         // Summary labels for devices with sub-options when collapsed (confirmed)
         const deviceSummary: Record<string, string | null> = {
-          LMA:               lmaSize != null ? `LMA ${lmaSize}` : null,
-          ORAL_ETT:          oralTubeSize != null && oralCuffed != null ? `Oral ETT ${oralTubeSize} ${oralCuffed ? "Cuffed" : "Uncuffed"}` : null,
-          NASAL_ETT:         nasalTubeSize != null && nasalCuffed != null ? `Nasal ETT ${nasalTubeSize} ${nasalCuffed ? "Cuffed" : "Uncuffed"}` : null,
-          DOUBLE_LUMEN_TUBE: (dltType || dltSide || dltSize != null) ? `DLT${dltType ? " " + dltType : ""}${dltSide ? " " + dltSide : ""}${dltSize != null ? " " + dltSize + "Fr" : ""}` : null,
-          ENDOBRONCHIAL_TUBE:ebSize != null ? `Endobronchial ${ebSize}mm` : null,
+          LMA:               lmaSize != null ? `${deviceName("LMA")} ${lmaSize}` : null,
+          ORAL_ETT:          oralTubeSize != null && oralCuffed != null ? `${deviceName("ORAL_ETT")} ${oralTubeSize} ${displayClinicalCode("clinicalAttribute", oralCuffed ? "cuffed" : "uncuffed", locale)}` : null,
+          NASAL_ETT:         nasalTubeSize != null && nasalCuffed != null ? `${deviceName("NASAL_ETT")} ${nasalTubeSize} ${displayClinicalCode("clinicalAttribute", nasalCuffed ? "cuffed" : "uncuffed", locale)}` : null,
+          DOUBLE_LUMEN_TUBE: (dltType || dltSide || dltSize != null) ? `${deviceName("DOUBLE_LUMEN_TUBE")}${dltType ? " " + dltType : ""}${dltSide ? " " + displayClinicalCode("clinicalAttribute", dltSide.toLowerCase(), locale) : ""}${dltSize != null ? " " + dltSize + "Fr" : ""}` : null,
+          ENDOBRONCHIAL_TUBE:ebSize != null ? `${deviceName("ENDOBRONCHIAL_TUBE")} ${ebSize}mm` : null,
         }
         const HAS_SUBOPTIONS: readonly string[] = AIRWAY_DEVICES_WITH_SUBOPTIONS
 
-        const DEVICES: { v: string; label: string }[] = airwayDeviceOptions.map(o => ({ v: o.value, label: o.label }))
+        const DEVICES: { v: string; label: string }[] = airwayDeviceOptions.map(option => ({ v: option.value, label: displayOption("AIRWAY_MANAGEMENT", option, locale) }))
 
         function handleSimpleDeviceClick(v: string) {
           const isOn = devs.includes(v)
@@ -292,7 +303,7 @@ export function AirwaySection({
                             oralCuffed === opt.v
                               ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                               : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-400"
-                          }`}>{opt.label}</button>
+                          }`}>{displayClinicalCode("clinicalAttribute", opt.v ? "cuffed" : "uncuffed", locale)}</button>
                       ))}
                     </div>
                   </div>
@@ -318,7 +329,7 @@ export function AirwaySection({
                             nasalCuffed === opt.v
                               ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                               : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-400"
-                          }`}>{opt.label}</button>
+                          }`}>{displayClinicalCode("clinicalAttribute", opt.v ? "cuffed" : "uncuffed", locale)}</button>
                       ))}
                     </div>
                   </div>
@@ -356,7 +367,7 @@ export function AirwaySection({
                             dltSide === s
                               ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                               : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-400"
-                          }`}>{s}</button>
+                          }`}>{displayClinicalCode("clinicalAttribute", s.toLowerCase(), locale, { label: s })}</button>
                       ))}
                     </div>
                   </div>
@@ -478,7 +489,7 @@ export function AirwaySection({
                   className={`px-2.5 py-1 rounded-lg border-2 text-xs font-semibold transition-all ${
                     on ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                        : "border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-[#555]"
-                  }`}>{label}</button>
+                  }`}>{displayClinicalCode("ventilationMode", v, locale, { label })}</button>
               )
             })}
           </div>
@@ -496,7 +507,7 @@ export function AirwaySection({
                   className={`px-2.5 py-1 rounded-lg border-2 text-xs font-semibold transition-all ${
                     on ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                        : "border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-[#555]"
-                  }`}>{label}</button>
+                  }`}>{displayClinicalCode("ventilationMode", v, locale, { label })}</button>
               )
             })}
           </div>

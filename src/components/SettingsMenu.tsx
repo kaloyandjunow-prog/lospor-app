@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
+import { displayClinicalCode } from "@/lib/clinical-display"
 import { normalizeAutoFillVitalsPreferences } from "@lospor/core/intraop-vitals"
 import {
   patchWebClinicalPreferences,
@@ -592,6 +593,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       <FavouritesEditor
                         title={t("settings.favouriteDrugs")}
                         options={favDrugOptions}
+                        displayOption={name => displayClinicalCode("option:INTRAOP_DRUG", name, locale, { label: name })}
                         selected={selectedFavDrugs}
                         onSave={next => saveFavourites("intraopFavouriteDrugs", next, setFavDrugs)}
                         saving={favSaving}
@@ -601,6 +603,7 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                       <FavouritesEditor
                         title={t("settings.favouriteInfusions")}
                         options={favInfusionOptions}
+                        displayOption={name => displayClinicalCode("option:INTRAOP_INFUSION", name, locale, { label: name })}
                         selected={selectedFavInfusions}
                         onSave={next => saveFavourites("intraopFavouriteInfusions", next, setFavInfusions)}
                         saving={favSaving}

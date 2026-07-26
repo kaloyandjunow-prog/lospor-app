@@ -1,8 +1,10 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { useLocale } from "next-intl"
 import { Camera, ChevronDown, ChevronUp, Loader2, Plus, ScanLine, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { displayClinicalCode } from "@/lib/clinical-display"
 import {
   formatLabReferenceRange,
   getLabByName,
@@ -58,6 +60,7 @@ export function LabResults({
   value?: LabResult[]
   onChange: (v: LabResult[]) => void
 }) {
+  const locale = useLocale()
   const [search, setSearch] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
   const [aiPreview, setAiPreview] = useState<LabResult[] | null>(null)
@@ -194,7 +197,7 @@ export function LabResults({
                         />
                       </td>
                       <td className="py-1.5 font-medium text-slate-700 dark:text-slate-300">
-                        {row.test} {alreadyAdded && <span className="text-[10px] text-slate-400">(already added)</span>}
+                        {displayClinicalCode("labTest", row.test, locale, { label: row.test })} {alreadyAdded && <span className="text-[10px] text-slate-400">(already added)</span>}
                       </td>
                       <td className="py-1.5 px-2 text-slate-600 dark:text-slate-400">{row.value}</td>
                       <td className="py-1.5 pr-3 text-slate-400">{row.unit}</td>
@@ -243,7 +246,7 @@ export function LabResults({
                 return (
                   <tr key={idx} className="group align-middle">
                     <td className="px-3 py-2">
-                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{row.test}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{displayClinicalCode("labTest", row.test, locale, { label: row.test })}</span>
                     </td>
                     <td className="px-3 py-2">
                       <Input
@@ -312,8 +315,8 @@ export function LabResults({
                             : "hover:bg-slate-50 dark:hover:bg-[#1a1a1a]"
                         }`}
                       >
-                        <span className="block text-xs font-semibold text-slate-700 dark:text-slate-300">{test.name}</span>
-                        <span className="block text-[11px] text-slate-400">{category.label} - {test.unit || "unitless"}</span>
+                        <span className="block text-xs font-semibold text-slate-700 dark:text-slate-300">{displayClinicalCode("labTest", test.name, locale, { label: test.name })}</span>
+                        <span className="block text-[11px] text-slate-400">{displayClinicalCode("labCategory", category.id, locale, { label: category.label })} - {test.unit || "unitless"}</span>
                       </button>
                     )
                   })}
@@ -324,7 +327,7 @@ export function LabResults({
             ) : LAB_CATEGORIES.map(category => (
               <div key={category.id} className="flex items-start gap-2 flex-wrap">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-24 shrink-0 pt-1">
-                  {category.label}
+                  {displayClinicalCode("labCategory", category.id, locale, { label: category.label })}
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {category.tests.map(test => {
@@ -342,7 +345,7 @@ export function LabResults({
                         }`}
                       >
                         <Plus className="inline h-3 w-3 mr-1" />
-                        {test.name}
+                        {displayClinicalCode("labTest", test.name, locale, { label: test.name })}
                       </button>
                     )
                   })}

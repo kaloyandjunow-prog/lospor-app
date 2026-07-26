@@ -7,6 +7,7 @@ import {
   naturalTimetableColumnCount,
 } from "@lospor/core/intraop-summary"
 import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
+import { clinicalDisplayLabel, formatClinicalGasMixLabel, resolveClinicalDisplay, type ClinicalLocale } from "@lospor/core/display"
 import { calcInfusionTotals } from "@lospor/core/intraop-totals"
 import type {
   LegacyKeyEvents, TimetableInfusion, VitalsEntry,
@@ -113,12 +114,19 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-function gasText(g: GasSettingsSegment): string {
-  const carrier = g.carrierGas ? (g.carrierGas.toLowerCase() === "n2o" ? "N₂O" : "Air") : null
-  const parts: string[] = [carrier ? `O₂/${carrier}` : "O₂"]
+function eventDisplayLabel(label: string, locale: ClinicalLocale): string {
+  const option = resolveClinicalDisplay("option:INTRAOP_EVENT", label, locale)
+  return option.known
+    ? option.label
+    : clinicalDisplayLabel("complication", label, locale, { label })
+}
+
+function gasText(g: GasSettingsSegment, locale: ClinicalLocale): string {
+
+  const parts: string[] = [formatClinicalGasMixLabel(g, locale)]
   const fgfs = [g.fgf, ...(g.settingsChanges ?? []).map(c => c.fgf)].filter(v => v != null) as number[]
   parts.push(fgfs.length > 1 ? `FGF ${g.fgf}→${fgfs[fgfs.length - 1]} L/min` : `FGF ${g.fgf} L/min`)
-  if (g.fio2 != null) parts.push(`FiO₂ ${g.fio2}%`)
+
   return parts.join(" · ")
 }
 
@@ -147,6 +155,7 @@ function buildSVG(
   view: TimetableView = {},
   P: Palette = PAL_LIGHT,
   S: ChartStr = CHART_STR.en,
+  locale: ClinicalLocale = "en",
 ): string {
   const vitals: VitalsEntry[]          = Array.isArray(t?.vitals)      ? t.vitals      : []
   const agentsAll: AgentSegment[]      = Array.isArray(t?.agents)      ? t.agents      : []
@@ -247,7 +256,7 @@ function buildSVG(
   const lastLabelEnd = [-Infinity, -Infinity]
   events.forEach(e => {
     const x = xC(e.colIdx ?? 0)
-    const label = esc(String(e.label ?? ""))
+    const label = esc(eventDisplayLabel(String(e.label ?? ""), locale))
     const w = String(e.label ?? "").length * 5.2
     const nearRight = x + w > VB_W - 6
     const x0 = nearRight ? x - w - 3 : x + 3
@@ -362,12 +371,12 @@ function buildSVG(
     s += `<line x1="0" y1="${y + laneH}" x2="${VB_W}" y2="${y + laneH}" stroke="${P.gridMin}" stroke-width="0.4"/>`
   }
   agents.forEach(a => laneBar(S.agent, a.startCol ?? 0, a.endCol ?? a.startCol ?? 0, "#0d9488",
-    `${a.name ?? ""}${a.percent != null ? ` ${a.percent} vol%` : ""}`.trim()))
+    `${clinicalDisplayLabel("option:INHALATIONAL_AGENT", a.name, locale, { label: a.name })}${a.percent != null ? ` ${a.percent} vol%` : ""}`.trim()))
   infusions.forEach(f => laneBar(S.infusion, f.startCol ?? 0, f.endCol ?? f.startCol ?? 0, "#2563eb",
-    `${f.name ?? ""} ${f.rate ?? ""} ${f.unit ?? ""}`.trim()))
-  gas.forEach(g => laneBar(S.gas, g.startCol ?? 0, g.endCol ?? g.startCol ?? 0, "#0284c7", gasText(g)))
+    `${clinicalDisplayLabel("option:INTRAOP_INFUSION", f.name, locale, { label: f.name })} ${f.rate ?? ""} ${f.unit ?? ""}`.trim()))
+  gas.forEach(g => laneBar(S.gas, g.startCol ?? 0, g.endCol ?? g.startCol ?? 0, "#0284c7", gasText(g, locale)))
   fluids.forEach(f => laneBar(S.fluids, f.startCol ?? 0, f.endCol ?? f.startCol ?? 0, "#0ea5e9",
-    `${f.name ?? ""}${f.volume ? ` ${f.volume} mL` : ""}`.trim()))
+    `${clinicalDisplayLabel("option:INTRAOP_FLUID", f.name, locale, { label: f.name })}${f.volume ? ` ${f.volume} mL` : ""}`.trim()))
   // Position lane — all segments share ONE row (they are sequential by nature).
   if (positions.length) {
     const y = laneY0 + r * laneH; r++
@@ -376,7 +385,8 @@ function buildSVG(
     positions.forEach(p => {
       const x1 = xL(p.startCol), w = Math.max((p.endCol - p.startCol + 1) * cW, cW)
       s += `<rect x="${x1}" y="${y + (laneH - barH) / 2}" width="${w}" height="${barH}" rx="${Math.min(4, barH / 2)}" fill="${P.pos}"/>`
-      const txt = esc(String(p.position ?? ""))
+      const position = String(p.position ?? "")
+      const txt = esc(clinicalDisplayLabel("option:POSITION", position, locale, { label: position }))
       const fits = txt.length * (laneFs * 0.56) + 14 < w
       if (fits) s += `<text x="${x1 + 7}" y="${y + laneH / 2 + laneFs / 2 - 1}" font-size="${laneFs}" font-weight="700" fill="#ffffff">${txt}</text>`
     })
@@ -447,6 +457,7 @@ export function PrintTimetable({ timetable, startISO, view, locale, themeAware }
       timetable, startISO, vbH, view,
       dark ? PAL_DARK : PAL_LIGHT,
       locale === "bg" ? CHART_STR.bg : CHART_STR.en,
+      locale === "bg" ? "bg" : "en",
     )
   }, [timetable, startISO, vbH, hasData, view, dark, locale])
 

@@ -13,7 +13,7 @@ export const MAX_FAVOURITES = 8
  * on both.
  */
 export function FavouritesEditor({
-  title, options, selected, onSave, saving, searchPlaceholder, emptyLabel,
+  title, options, selected, onSave, saving, searchPlaceholder, emptyLabel, displayOption = name => name,
 }: {
   title: string
   /** Canonical names from the library. */
@@ -23,6 +23,7 @@ export function FavouritesEditor({
   saving?: boolean
   searchPlaceholder: string
   emptyLabel: string
+  displayOption?: (name: string) => string
 }) {
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useState<string[]>(selected)
@@ -37,7 +38,7 @@ export function FavouritesEditor({
   }
 
   const filtered = query.trim()
-    ? options.filter(o => o.toLowerCase().includes(query.trim().toLowerCase()))
+    ? options.filter(o => `${o} ${displayOption(o)}`.toLowerCase().includes(query.trim().toLowerCase()))
     : options
 
   const dirty = draft.length !== selected.length || draft.some(d => !selected.includes(d))
@@ -80,7 +81,7 @@ export function FavouritesEditor({
                     ? "border-slate-200 dark:border-[#3a3a3a] text-slate-300 dark:text-[#555] cursor-not-allowed"
                     : "border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:border-sky-400 hover:text-sky-600"
               }`}>
-              {name}
+              {displayOption(name)}
             </button>
           )
         })}

@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { ChevronRight, Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useOptionLibrary, type LibraryOption } from "@/hooks/useOptionLibrary"
+import { displayClinicalCode, displayOption } from "@/lib/clinical-display"
 import {
   VASCULAR_PREEXISTING_QUICK_OPTIONS,
   buildOptionTree,
@@ -21,17 +22,18 @@ export type VascularAccess = {
   preexisting?: boolean
 }
 
-interface Node { v: string; label: string; children?: Node[] }
+interface Node { v: string; label: string; canonicalLabel: string; children?: Node[] }
 
 // Populated in place from the OptionLibrary VASCULAR_ACCESS category (see
 // buildTree below, called from VascularAccessTree) instead of a hardcoded
 // literal — same pattern as TechniqueTree.tsx.
-function buildTree(rows: LibraryOption[]): Node[] {
+function buildTree(rows: LibraryOption[], locale: string): Node[] {
   const mapNodes = (
     nodes: ReturnType<typeof buildOptionTree<LibraryOption>>,
   ): Node[] => nodes.map(node => ({
     v: node.value,
-    label: node.label,
+    label: displayOption("VASCULAR_ACCESS", node.option, locale),
+    canonicalLabel: node.option.label,
     children: node.children?.length ? mapNodes(node.children) : undefined,
   }))
   return mapNodes(buildOptionTree(rows))
@@ -39,28 +41,39 @@ function buildTree(rows: LibraryOption[]): Node[] {
 
 const defaultUnit = vascularAccessDefaultUnit
 
-function shortLabel(a: VascularAccess): string {
+function shortLabel(a: VascularAccess, siteLabel: string): string {
   const detail = [
     a.size && a.sizeUnit ? `${a.size}${a.sizeUnit}` : "",
     a.depthCm ? `${a.depthCm} cm depth` : "",
     a.lumens ? `${a.lumens} lumen` : "",
   ].filter(Boolean).join(" · ")
-  return detail ? `${a.siteLabel}  (${detail})` : a.siteLabel
+  return detail ? `${siteLabel}  (${detail})` : siteLabel
 }
 
-function breadcrumb(path: Node[]): string {
-  return path.map(n => n.label).join(" › ")
+function breadcrumb(path: Node[], canonical = false): string {
+  return path.map(node => canonical ? node.canonicalLabel : node.label).join(" › ")
+}
+
+function findNodePath(value: string, nodes: Node[], path: Node[] = []): Node[] | null {
+  for (const node of nodes) {
+    const nextPath = [...path, node]
+    if (node.v === value) return nextPath
+    const childPath = node.children ? findNodePath(value, node.children, nextPath) : null
+    if (childPath) return childPath
+  }
+  return null
 }
 
 // ── Tree picker ───────────────────────────────────────────────────────────────
-function TreePicker({ onLeaf, tree }: { onLeaf: (v: string, label: string, crumb: string) => void; tree: Node[] }) {
+function TreePicker({ onLeaf, tree }: { onLeaf: (v: string, displayCrumb: string, canonicalCrumb: string) => void; tree: Node[] }) {
   const t = useTranslations()
   const [path, setPath] = useState<Node[]>([])
   const nodes = path.length === 0 ? tree : path[path.length - 1].children ?? []
 
   function pick(node: Node) {
     if (node.children?.length) { setPath(p => [...p, node]); return }
-    onLeaf(node.v, node.label, breadcrumb([...path, node]))
+    const selectedPath = [...path, node]
+    onLeaf(node.v, breadcrumb(selectedPath), breadcrumb(selectedPath, true))
   }
 
   return (
@@ -197,12 +210,6 @@ function DetailForm({
   )
 }
 
-const PREEXISTING_QUICK = VASCULAR_PREEXISTING_QUICK_OPTIONS.map(option => ({
-  v: option.value,
-  label: option.label,
-  crumb: option.crumb,
-}))
-
 // ── Main component ────────────────────────────────────────────────────────────
 export function VascularAccessTree({
   value = [],
@@ -212,20 +219,30 @@ export function VascularAccessTree({
   onChange: (v: VascularAccess[]) => void
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const { options: vascularOpts } = useOptionLibrary("VASCULAR_ACCESS")
-  const tree = useMemo(() => buildTree(vascularOpts), [vascularOpts])
+  const tree = useMemo(() => buildTree(vascularOpts, locale), [locale, vascularOpts])
+  const preexistingQuick = useMemo(() => VASCULAR_PREEXISTING_QUICK_OPTIONS.map(option => {
+    const path = findNodePath(option.value, tree)
+    return {
+      v: option.value,
+      label: displayClinicalCode("option:VASCULAR_ACCESS", option.value, locale),
+      displayCrumb: path ? breadcrumb(path) : displayClinicalCode("option:VASCULAR_ACCESS", option.value, locale),
+      canonicalCrumb: option.crumb,
+    }
+  }), [locale, tree])
 
   const [adding, setAdding]           = useState(false)
-  const [pending, setPending]         = useState<{ v: string; label: string; crumb: string } | null>(null)
+  const [pending, setPending]         = useState<{ v: string; displayCrumb: string; canonicalCrumb: string } | null>(null)
   const [preexisting, setPreexisting] = useState(false)
 
-  function handleLeaf(v: string, label: string, crumb: string) {
-    setPending({ v, label, crumb })
+  function handleLeaf(v: string, displayCrumb: string, canonicalCrumb: string) {
+    setPending({ v, displayCrumb, canonicalCrumb })
   }
 
   function handleConfirm(detail: Omit<VascularAccess, "site" | "siteLabel">) {
     if (!pending) return
-    onChange([...value, { site: pending.v, siteLabel: pending.crumb, ...detail }])
+    onChange([...value, { site: pending.v, siteLabel: pending.canonicalCrumb, ...detail }])
     setPending(null)
     setAdding(false)
   }
@@ -246,7 +263,13 @@ export function VascularAccessTree({
                 : "bg-blue-600 text-white"
             }`}>
             {a.preexisting && <span className="text-[9px] font-bold opacity-80 uppercase tracking-wide">pre</span>}
-            <span className="leading-tight">{shortLabel(a)}</span>
+            <span className="leading-tight">{shortLabel(
+              a,
+              (() => {
+                const path = findNodePath(a.site, tree)
+                return path ? breadcrumb(path) : displayClinicalCode("option:VASCULAR_ACCESS", a.site, locale, { label: a.siteLabel })
+              })(),
+            )}</span>
             <button type="button" onClick={() => remove(idx)} className={`transition-colors ${a.preexisting ? "text-amber-200 hover:text-white" : "text-blue-200 hover:text-white"}`}>
               <X className="h-3 w-3" />
             </button>
@@ -283,7 +306,7 @@ export function VascularAccessTree({
           {pending ? (
             <DetailForm
               site={pending.v}
-              crumb={pending.crumb}
+              crumb={pending.displayCrumb}
               onConfirm={handleConfirm}
               onCancel={() => setPending(null)}
             />
@@ -299,10 +322,10 @@ export function VascularAccessTree({
           {pending ? (
             <DetailForm
               site={pending.v}
-              crumb={pending.crumb}
+              crumb={pending.displayCrumb}
               onConfirm={detail => {
                 if (!pending) return
-                onChange([...value, { site: pending.v, siteLabel: pending.crumb, ...detail, preexisting: true }])
+                onChange([...value, { site: pending.v, siteLabel: pending.canonicalCrumb, ...detail, preexisting: true }])
                 setPending(null)
                 setPreexisting(false)
               }}
@@ -312,7 +335,7 @@ export function VascularAccessTree({
             <>
               <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">{t("intraop.vascular.selectPreexisting")}</p>
               <div className="flex flex-wrap gap-2">
-                {PREEXISTING_QUICK.map(q => (
+                {preexistingQuick.map(q => (
                   <button key={q.v} type="button" onClick={() => setPending(q)}
                     className="px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                     {q.label}

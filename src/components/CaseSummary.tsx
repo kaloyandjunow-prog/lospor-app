@@ -7,7 +7,8 @@ import { useLocale } from "next-intl"
 import { useRouter } from "next/navigation"
 import { aldreteBand, handoverGroups } from "@lospor/core/postop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
-import { CASE_STATUS_LABELS, type CaseStatus } from "@lospor/core/case-status"
+import type { CaseStatus } from "@lospor/core/case-status"
+import { displayClinicalCode, displayOptionEntry } from "@/lib/clinical-display"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
@@ -16,161 +17,20 @@ import { planPanels, type PanelPlan } from "@lospor/core/print"
 import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
-const TECHNIQUE_LABELS: Record<string, { en: string; bg: string }> = {
-  // General
-  GENERAL_INHALATION:      { en: "General Inhalation",              bg: "Обща инхалационна"                        },
-  GENERAL_TIVA:            { en: "General IV (TIVA)",               bg: "Обща венозна (ТИВА)"                      },
-  GENERAL_COMBINED:        { en: "General Combined",                bg: "Обща комбинирана"                         },
-  GENERAL_BALANCED:        { en: "General Combined",                bg: "Обща комбинирана"                         }, // legacy alias
-  // Neuraxial — generic
-  SPINAL:                  { en: "Spinal",                          bg: "Спинална"                                 },
-  SPINAL_SINGLE:           { en: "Spinal (single-shot)",            bg: "Спинална (единична доза)"                 },
-  SPINAL_CONTINUOUS:       { en: "Spinal (continuous)",             bg: "Спинална (непрекъсната)"                  },
-  // Spinal single-shot location variants
-  SPINAL_SINGLE_LUMBAR:         { en: "Spinal — Lumbar",            bg: "Спинална — лумбална"                      },
-  SPINAL_SINGLE_LOW_THORACIC:   { en: "Spinal — Low thoracic",      bg: "Спинална — ниска гръдна"                  },
-  SPINAL_SINGLE_MID_THORACIC:   { en: "Spinal — Mid thoracic",      bg: "Спинална — средна гръдна"                 },
-  SPINAL_SINGLE_HIGH_THORACIC:  { en: "Spinal — High thoracic",     bg: "Спинална — висока гръдна"                 },
-  // Spinal continuous variants
-  SPINAL_CONT_LUMBAR:           { en: "Spinal cont. — Lumbar",      bg: "Спинална непрекъсната — лумбална"         },
-  SPINAL_CONT_LOW_THORACIC:     { en: "Spinal cont. — Low thor.",   bg: "Спинална непрекъсната — ниска гръдна"     },
-  SPINAL_CONT_MID_THORACIC:     { en: "Spinal cont. — Mid thor.",   bg: "Спинална непрекъсната — средна гръдна"    },
-  SPINAL_CONT_HIGH_THORACIC:    { en: "Spinal cont. — High thor.",  bg: "Спинална непрекъсната — висока гръдна"    },
-  // Epidural
-  EPIDURAL:                { en: "Epidural",                        bg: "Епидурална"                               },
-  EPIDURAL_CAUDAL:         { en: "Epidural — Caudal",              bg: "Епидурална — каудална"                    },
-  EPIDURAL_LUMBAR:         { en: "Epidural — Lumbar",              bg: "Епидурална — лумбална"                    },
-  EPIDURAL_LOW_THORACIC:   { en: "Epidural — Low thoracic",        bg: "Епидурална — ниска гръдна"                },
-  EPIDURAL_MID_THORACIC:   { en: "Epidural — Mid thoracic",        bg: "Епидурална — средна гръдна"               },
-  EPIDURAL_HIGH_THORACIC:  { en: "Epidural — High thoracic",       bg: "Епидурална — висока гръдна"               },
-  // CSE / DPE
-  COMBINED_SPINAL_EPIDURAL:{ en: "Combined Spinal-Epidural (CSE)", bg: "Комбинирана спинало-епидурална (КСЕ)"      },
-  CSE:                     { en: "CSE",                            bg: "КСЕ"                                      }, // legacy alias
-  CSE_LUMBAR:              { en: "CSE — Lumbar",                   bg: "КСЕ — лумбална"                           },
-  CSE_LOW_THORACIC:        { en: "CSE — Low thoracic",             bg: "КСЕ — ниска гръдна"                       },
-  CSE_MID_THORACIC:        { en: "CSE — Mid thoracic",             bg: "КСЕ — средна гръдна"                      },
-  CSE_HIGH_THORACIC:       { en: "CSE — High thoracic",            bg: "КСЕ — висока гръдна"                      },
-  DPE:                     { en: "Dural Puncture Epidural (DPE)",  bg: "Дурална пункция + епидурал (ДПЕ)"         },
-  // Peripheral blocks — upper
-  PERIPHERAL_NERVE_BLOCK:  { en: "Peripheral Nerve Block",         bg: "Периферен нервен блок"                    },
-  BLOCK_UPPER:             { en: "Upper extremity block",          bg: "Блок — горен крайник"                     },
-  BLOCK_INTERSCALENE:      { en: "Interscalene block",             bg: "Интерскаленен блок"                       },
-  BLOCK_SUPRACLAVICULAR:   { en: "Supraclavicular block",          bg: "Супраклавикуларен блок"                   },
-  BLOCK_INFRACLAVICULAR:   { en: "Infraclavicular block",          bg: "Инфраклавикуларен блок"                   },
-  BLOCK_AXILLARY:          { en: "Axillary block",                 bg: "Аксиларен блок"                           },
-  BLOCK_WRIST:             { en: "Wrist block",                    bg: "Блок на китката"                          },
-  BLOCK_DIGITAL:           { en: "Digital block",                  bg: "Дигитален блок"                           },
-  BLOCK_BIER:              { en: "Bier block (IVRA)",              bg: "Биерова блокада (ИВРА)"                   },
-  BLOCK_ELBOW:             { en: "Elbow block",                    bg: "Блок на лакътя"                           },
-  // Peripheral blocks — lower
-  BLOCK_LOWER:             { en: "Lower extremity block",          bg: "Блок — долен крайник"                     },
-  BLOCK_FEMORAL:           { en: "Femoral nerve block",            bg: "Феморален блок"                           },
-  BLOCK_ADDUCTOR:          { en: "Adductor canal block",           bg: "Адукторен канален блок"                   },
-  BLOCK_SCIATIC:           { en: "Sciatic nerve block",            bg: "Седалищен блок"                           },
-  BLOCK_POPLITEAL:         { en: "Popliteal sciatic block",        bg: "Поплитеален блок"                         },
-  BLOCK_ANKLE:             { en: "Ankle block",                    bg: "Блок на глезена"                          },
-  BLOCK_OBTURATOR:         { en: "Obturator nerve block",          bg: "Обтураторен блок"                         },
-  BLOCK_LAT_FEMORAL:       { en: "Lat. femoral cutaneous block",   bg: "Страничен феморален кожен блок"           },
-  BLOCK_LUMBAR_PLEXUS:     { en: "Lumbar plexus (psoas) block",    bg: "Лумбален плексус (псоас) блок"            },
-  BLOCK_IPACK:             { en: "IPACK block",                    bg: "ИПАК блок"                                },
-  BLOCK_GENICULAR:         { en: "Genicular nerve block",          bg: "Геникуларен блок"                         },
-  BLOCK_FOOT:              { en: "Foot block",                     bg: "Блок на стъпалото"                        },
-  // Peripheral blocks — trunk
-  BLOCK_TRUNK:             { en: "Trunk / abdominal wall block",   bg: "Блок на корема / туловище"                },
-  BLOCK_TAP:               { en: "TAP block",                      bg: "ТАП блок"                                 },
-  BLOCK_RECTUS:            { en: "Rectus sheath block",            bg: "Блок на ректусовата обвивка"              },
-  BLOCK_PARAVERTEBRAL:     { en: "Paravertebral block",            bg: "Паравертебрален блок"                     },
-  BLOCK_ESP:               { en: "Erector spinae block (ESP)",     bg: "Блок на изправителя на гръбнака (ЕСП)"    },
-  BLOCK_SERRATUS:          { en: "Serratus anterior block",        bg: "Блок на предния зъбец"                    },
-  BLOCK_PECS1:             { en: "PECS I block",                   bg: "ПЕКС I блок"                              },
-  BLOCK_PECS2:             { en: "PECS II block",                  bg: "ПЕКС II блок"                             },
-  BLOCK_QL:                { en: "Quadratus lumborum block (QL)",  bg: "Квадратен лумбален блок (КЛ)"             },
-  BLOCK_ILIOINGUINAL:      { en: "Ilioinguinal / iliohypogastric", bg: "Илиоингвинален / илиохипогастрален блок"   },
-  BLOCK_INTERCOSTAL:       { en: "Intercostal block",              bg: "Интеркостален блок"                       },
-  // Head & neck
-  BLOCK_HEAD_NECK:               { en: "Head & neck block",        bg: "Блок — глава и шия"                       },
-  BLOCK_SUPERFICIAL_CERVICAL:    { en: "Superficial cervical plexus", bg: "Повърхностен шиен плексус"             },
-  BLOCK_DEEP_CERVICAL:           { en: "Deep cervical plexus",     bg: "Дълбок шиен плексус"                      },
-  BLOCK_SCALP:                   { en: "Scalp block",              bg: "Блок на скалпа"                           },
-  BLOCK_TRIGEMINAL:              { en: "Trigeminal nerve block",   bg: "Тригеминален блок"                        },
-  // Ophthalmic
-  BLOCK_OPHTHALMIC:        { en: "Ophthalmic block",               bg: "Офталмологичен блок"                      },
-  BLOCK_PERIBULBAR:        { en: "Peribulbar block",               bg: "Перибулбарен блок"                        },
-  BLOCK_RETROBULBAR:       { en: "Retrobulbar block",              bg: "Ретробулбарен блок"                       },
-  BLOCK_SUB_TENONS:        { en: "Sub-Tenon's block",              bg: "Суб-Тенонов блок"                         },
-  BLOCK_TOPICAL_EYE:       { en: "Topical (eye)",                  bg: "Топикална (окото)"                        },
-  // Sedation
-  LOCAL:                   { en: "Local Anaesthesia",              bg: "Местна анестезия"                         },
-  SEDATION:                { en: "Sedation",                       bg: "Седация"                                  },
-  SEDATION_CONSCIOUS:      { en: "Conscious sedation",             bg: "Съзнателна седация"                       },
-  SEDATION_DEEP:           { en: "Deep sedation",                  bg: "Дълбока седация"                          },
-  SEDATION_MAC:            { en: "MAC",                            bg: "МАК"                                      },
-  OTHER:                   { en: "Other technique",                bg: "Друга техника"                            },
-}
-
-const TOOL_LABELS: Record<string, { en: string; bg: string }> = {
-  VIDEO_LARY:   { en: "Video laryngoscopy",        bg: "Видеоларингоскопия"                },
-  DIRECT_LARY:  { en: "Direct laryngoscopy",       bg: "Директна ларингоскопия"            },
-  FOB:          { en: "Fibreoptic bronchoscopy",   bg: "Фиброоптична бронхоскопия"         },
-  BOUGIE:       { en: "Bougie",                    bg: "Буже"                              },
-  STYLET:       { en: "Intubation stylet",         bg: "Стилет за интубация"               },
-  AWAKE:        { en: "Awake intubation",          bg: "Интубация при буден пациент"       },
-  RETROGRADE:   { en: "Retrograde intubation",     bg: "Ретроградна интубация"             },
-  SUPRAGLOTTIC: { en: "Supraglottic as conduit",   bg: "Супраглотичен дихателен канал"     },
-}
-
-const POSITION_LABELS: Record<string, { en: string; bg: string }> = {
-  SUPINE:                  { en: "Supine",                bg: "Супинация"                   },
-  PRONE:                   { en: "Prone",                 bg: "Пронация"                    },
-  LEFT_LATERAL:            { en: "Left lateral",          bg: "Ляво странично"              },
-  RIGHT_LATERAL:           { en: "Right lateral",         bg: "Дясно странично"             },
-  GYNECOLOGICAL:           { en: "Gynecological",         bg: "Гинекологично"               },
-  TRENDELENBURG:           { en: "Trendelenburg",         bg: "Тренделенбург"               },
-  REVERSE_TRENDELENBURG:   { en: "Rev. Trendelenburg",    bg: "Обратен Тренделенбург"       },
-  FOWLER:                  { en: "Fowler's",              bg: "Полуседнало (Фаулър)"        },
-  BEACH_CHAIR:             { en: "Beach chair",           bg: "Beach chair"                 },
-  LLOYD_DAVIES:            { en: "Lloyd Davies",          bg: "Lloyd Davies"                },
-  LATERAL_DECUBITUS_LEFT:  { en: "Lateral decub. L",      bg: "Ляв латерален декубитус"     },
-  LATERAL_DECUBITUS_RIGHT: { en: "Lateral decub. R",      bg: "Десен латерален декубитус"   },
-  SITTING:                 { en: "Sitting",               bg: "Седнало"                     },
-  JACKKNIFE:               { en: "Jackknife",             bg: "Jackknife"                   },
-  KNEE_CHEST:              { en: "Knee-chest",            bg: "Коляно-гръдно"               },
-}
-
-function tLabel(map: Record<string, { en: string; bg: string }>, key: string, locale: string): string {
-  const entry = map[key]
-  if (!entry) return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
-  return locale === "bg" ? entry.bg : entry.en
-}
-
-// ── Monitoring field map ─────────────────────────────────────────────────────
-const DEVICE_DISPLAY: Record<string, { en: string; bg: string; prefix_en?: string; prefix_bg?: string }> = {
-  ORAL_ETT:          { en: "Oral ETT",         bg: "Орален ЕТТ"              },
-  NASAL_ETT:         { en: "Nasal ETT",        bg: "Назален ЕТТ"             },
-  LMA:               { en: "LMA",              bg: "ЛМА"                     },
-  FACE_MASK:         { en: "Face Mask",        bg: "Лицева маска"             },
-  OPA:               { en: "Oral airway (OPA)",bg: "Орофарингеален въздуховод (ОПА)" },
-  NPA:               { en: "Nasal airway (NPA)",bg: "Назофарингеален въздуховод (НПА)" },
-  DOUBLE_LUMEN_TUBE: { en: "DLT",             bg: "ДЛТ"                     },
-  ENDOBRONCHIAL_TUBE:{ en: "Endobronchial",   bg: "Ендобронхиална тръба"    },
-  SURGICAL_AIRWAY:   { en: "Surgical Airway", bg: "Хирургичен дихателен път" },
-}
-
 function deviceLabel(i: CaseDetailIntraop | null | undefined, locale: string): string {
-  const isBg = locale === "bg"
-  const devs: string[] = Array.isArray(i?.airwayDevices) ? i.airwayDevices : []
-  const cuffedStr = (cuffed: boolean | null | undefined) => cuffed != null
-    ? (cuffed ? (isBg ? " с маншет" : " cuffed") : (isBg ? " без маншет" : " uncuffed"))
-    : ""
-  return devs.map((d: string) => {
-    if (d === "ORAL_ETT")
-      return `${DEVICE_DISPLAY.ORAL_ETT[isBg ? "bg" : "en"]}${i?.oralTubeSize ? " " + i.oralTubeSize + "mm" : ""}${cuffedStr(i?.oralCuffed)}`
-    if (d === "NASAL_ETT")
-      return `${DEVICE_DISPLAY.NASAL_ETT[isBg ? "bg" : "en"]}${i?.nasalTubeSize ? " " + i.nasalTubeSize + "mm" : ""}${cuffedStr(i?.nasalCuffed)}`
-    if (d === "LMA")                return `${DEVICE_DISPLAY.LMA[isBg ? "bg" : "en"]}${i?.lmaSize ? " " + i.lmaSize : ""}`
-    if (d === "DOUBLE_LUMEN_TUBE")  return `${DEVICE_DISPLAY.DOUBLE_LUMEN_TUBE[isBg ? "bg" : "en"]}${i?.dltType ? " " + i.dltType : ""}${i?.dltSide ? " " + i.dltSide : ""}${i?.dltSize ? " " + i.dltSize + "Fr" : ""}`
-    if (d === "ENDOBRONCHIAL_TUBE") return `${DEVICE_DISPLAY.ENDOBRONCHIAL_TUBE[isBg ? "bg" : "en"]}${i?.endobronchialSize ? " " + i.endobronchialSize + "mm" : ""}`
-    return (DEVICE_DISPLAY[d]?.[isBg ? "bg" : "en"]) ?? d.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+  const devices: string[] = Array.isArray(i?.airwayDevices) ? i.airwayDevices : []
+  const cuffedSuffix = (cuffed: boolean | null | undefined) => cuffed == null
+    ? ""
+    : ` ${displayClinicalCode("clinicalAttribute", cuffed ? "cuffed" : "uncuffed", locale)}`
+
+  return devices.map(device => {
+    const label = displayClinicalCode("option:AIRWAY_MANAGEMENT", device, locale)
+    if (device === "ORAL_ETT") return `${label}${i?.oralTubeSize ? " " + i.oralTubeSize + "mm" : ""}${cuffedSuffix(i?.oralCuffed)}`
+    if (device === "NASAL_ETT") return `${label}${i?.nasalTubeSize ? " " + i.nasalTubeSize + "mm" : ""}${cuffedSuffix(i?.nasalCuffed)}`
+    if (device === "LMA") return `${label}${i?.lmaSize ? " " + i.lmaSize : ""}`
+    if (device === "DOUBLE_LUMEN_TUBE") return `${label}${i?.dltType ? " " + i.dltType : ""}${i?.dltSide ? " " + displayClinicalCode("clinicalAttribute", i.dltSide.toLowerCase(), locale, { label: i.dltSide }) : ""}${i?.dltSize ? " " + i.dltSize + "Fr" : ""}`
+    if (device === "ENDOBRONCHIAL_TUBE") return `${label}${i?.endobronchialSize ? " " + i.endobronchialSize + "mm" : ""}`
+    return label
   }).join(" + ") || "—"
 }
 
@@ -282,7 +142,7 @@ const LABELS = {
     technique: "Техника", airway: "Дихателен път", tools: "Инструменти", ventilation: "Вентилация",
     agent: "Агент", position: "Положение",
     cryst: "Крист.", colloid: "Колоид", blood: "Кръв", urine: "Диуреза",
-    riskScores: "Скали за оценка на риска", preVitals: "Предоп. витални показатели", comorbidities: "Придружаващи заболявания",
+    riskScores: "Скали за оценка на риска", preVitals: "Предоп. жизнени показатели", comorbidities: "Придружаващи заболявания",
     medications: "Медикаменти", allergies: "Алергии", lab: "Лабораторни изследвания",
     mouthOpening: "Разстояние между резците", thyromental: "Тиромандибулярно разст.", neckMobility: "Подвижност на шията",
     clGrade: "C-L степен", bp: "АН", hr: "СЧ", temp: "Темп.", rr: "ДЧ",
@@ -437,7 +297,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   // Column → wall-clock label (same UTC convention as the timetable itself)
   const colHHMM = (col: number) => sharedColToHHMM(col, i?.startTime)
 
-  const activeMonitors = MON.filter(m => i?.[m.f]).map(m => m.l)
+  const activeMonitors = MON.filter(m => i?.[m.f]).map(m => displayClinicalCode("option:MONITORING", m.f, locale))
   const dateStr = (() => {
     if (!i?.monthYear) return ""
     const [y, m] = i.monthYear.split("-")
@@ -551,7 +411,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           // Labels come from @lospor/core/case-status (shared canonical text
           // with lospor-mobile); only the Tailwind styling and which 4 of
           // the 7 statuses this badge shows stay local to this component.
-          const statusLabel = (key: CaseStatus) => CASE_STATUS_LABELS[key][locale === "bg" ? "bg" : "en"]
+          const statusLabel = (key: CaseStatus) => displayClinicalCode("caseStatus", key, locale)
           const statusConfig: Record<string, { label: string; cls: string }> = {
             COMPLETE:        { label: statusLabel("COMPLETE"),        cls: "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400" },
             AWAITING_REVIEW: { label: statusLabel("AWAITING_REVIEW"), cls: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400" },
@@ -691,17 +551,17 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           {/* Key-facts chip row */}
           {(() => {
             const kf: string[] = []
-            if (techniques.length) kf.push(techniques.map((t: string) => tLabel(TECHNIQUE_LABELS, t, locale)).join(" + "))
+            if (techniques.length) kf.push(techniques.map((technique: string) => displayClinicalCode("option:TECHNIQUE", technique, locale)).join(" + "))
             const airway = deviceLabel(i, locale); if (airway && airway !== "—") kf.push(airway)
-            if (airwayTools.length) kf.push(airwayTools.map((t: string) => tLabel(TOOL_LABELS, t, locale)).join(", "))
+            if (airwayTools.length) kf.push(airwayTools.map((tool: string) => displayClinicalCode("option:AIRWAY_MANAGEMENT", tool, locale)).join(", "))
             const vent: string[] = []
-            if (ventModes.length) vent.push(ventModes.join(", "))
+            if (ventModes.length) vent.push(ventModes.map(mode => displayClinicalCode("ventilationMode", mode, locale)).join(", "))
             if (i?.peepCmH2O != null) vent.push(`PEEP ${i.peepCmH2O}`)
             if (vent.length) kf.push(vent.join(" · "))
-            if (i?.volatileAgent) kf.push(i.volatileAgent)
-            if (positions.length) kf.push(positions.map((s: string) => tLabel(POSITION_LABELS, s, locale)).join(" → "))
+            if (i?.volatileAgent) kf.push(displayClinicalCode("option:INHALATIONAL_AGENT", i.volatileAgent, locale, { label: i.volatileAgent }))
+            if (positions.length) kf.push(positions.map((position: string) => displayClinicalCode("option:POSITION", position, locale)).join(" → "))
             if (duration()) kf.push(duration() as string)
-            const access = vascular.map(a => `${a.siteLabel?.split(" › ").pop() ?? a.site ?? ""} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).filter(Boolean).join(" · ")
+            const access = vascular.map(a => `${displayClinicalCode("option:VASCULAR_ACCESS", a.site, locale, { label: a.siteLabel })} ${a.size ?? ""}${a.sizeUnit ?? ""}`.trim()).filter(Boolean).join(" · ")
             const pill = "text-[8.8px] text-slate-700 border border-slate-300 rounded-full px-2.5 py-[2px] whitespace-nowrap"
             return (
               <div className="flex flex-wrap gap-1.5 items-center">
@@ -736,7 +596,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             {(sheet0Panels.length > 1 || sheet0Panels[0].intervalMin > 5) && (
               <p className="text-[7.5px] text-slate-400 px-1.5 pb-0.5 shrink-0">
                 {locale === "bg"
-                  ? `Виталните в таблицата са през ${sheet0Panels[0].intervalMin} мин · графиката, лекарствата и събитията са в точно записаното време`
+                  ? `Жизнените показатели в таблицата са през ${sheet0Panels[0].intervalMin} мин · графиката, лекарствата и събитията са в точно записаното време`
                   : `Vitals table sampled q${sheet0Panels[0].intervalMin}min · graph, drugs and events at exact recorded times`}
               </p>
             )}
@@ -771,7 +631,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                     <span className="inline-flex items-center justify-center w-[11px] h-[11px] rounded-full border text-[6.8px] font-bold shrink-0"
                       style={{ color: d.color, borderColor: d.color }}>{d.n}</span>
                     <span className="font-bold text-slate-500 text-[8px]" style={{ fontFamily: "Consolas, monospace" }}>{d.time}</span>
-                    <span className="text-slate-700 truncate flex-1">{d.name}</span>
+                    <span className="text-slate-700 truncate flex-1">{displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })}</span>
                     <span className="font-bold text-slate-900 whitespace-nowrap" style={{ fontFamily: "Consolas, monospace" }}>{d.dose}</span>
                   </div>
                 ))}
@@ -779,7 +639,10 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               {(drugTotals.length > 0 || infTotals.length > 0) && (
                 <p className="text-[7px] text-slate-500 border-t border-slate-100 dark:border-[#252525] mt-1 pt-0.5 leading-[9.5px]">
                   <span className="font-bold">{L.totalsLbl}:</span>{" "}
-                  {[...drugTotals, ...infTotals].map(d => `${d.name} ${d.total} ${d.unit}`).join(" · ")}
+                  {[
+                    ...drugTotals.map(d => `${displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })} ${d.total} ${d.unit}`),
+                    ...infTotals.map(d => `${displayClinicalCode("option:INTRAOP_INFUSION", d.name, locale, { label: d.name })} ${d.total} ${d.unit}`),
+                  ].join(" · ")}
                 </p>
               )}
             </div>
@@ -790,7 +653,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                 : <p className="text-[9.5px] text-slate-400">—</p>}
               {(i?.premedicationEvening || i?.premedicationMorning) && (
                 <p className="text-[8px] text-slate-500 mt-1">
-                  {L.premed}: {[i?.premedicationEvening && `${L.evening} ${i.premedicationEvening}`, i?.premedicationMorning && `${L.morning} ${i.premedicationMorning}`].filter(Boolean).join(" · ")}
+                  {L.premed}: {[i?.premedicationEvening && `${L.evening} ${displayOptionEntry("PREMED_DRUG", i.premedicationEvening, locale)}`, i?.premedicationMorning && `${L.morning} ${displayOptionEntry("PREMED_DRUG", i.premedicationMorning, locale)}`].filter(Boolean).join(" · ")}
                 </p>
               )}
             </div>
@@ -822,13 +685,13 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                 <span className="text-[9.5px] font-bold tracking-[0.14em] text-blue-900 dark:text-blue-300">{L.record} · {contWord}</span>
                 <span className="text-[9px] text-slate-500 truncate">
                   {[patientLine, p?.asaScore ? `ASA ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null,
-                    techniques.length ? techniques.map((t: string) => tLabel(TECHNIQUE_LABELS, t, locale)).join(" + ") : null,
+                    techniques.length ? techniques.map((technique: string) => displayClinicalCode("option:TECHNIQUE", technique, locale)).join(" + ") : null,
                     locale === "bg" ? "самоличността — на лист 1" : "identity fields on Sheet 1"].filter(Boolean).join(" · ")}
                 </span>
               </div>
               <div className="text-right text-[9px] text-slate-500 shrink-0">
                 <span className="font-bold text-slate-800">{colHHMM(sheetPanels[0].startCol)} – {colHHMM(sheetPanels[sheetPanels.length - 1].endCol + 1)}</span>
-                {" · "}{locale === "bg" ? "витални" : "vitals"} q{sheetPanels[0].intervalMin}min · {data.caseCode ? `Case ${data.caseCode} · ` : ""}{locale === "bg" ? `Стр. ${k + 2} от ${pageTotal}` : `Page ${k + 2} of ${pageTotal}`}
+                {" · "}{locale === "bg" ? "жизнени показатели" : "vitals"} q{sheetPanels[0].intervalMin}min · {data.caseCode ? `Case ${data.caseCode} · ` : ""}{locale === "bg" ? `Стр. ${k + 2} от ${pageTotal}` : `Page ${k + 2} of ${pageTotal}`}
               </div>
             </div>
 
@@ -904,12 +767,12 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             {/* Airway + anthropometry */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.airwayAssessment.toUpperCase()}</p>
-              <F label="Mallampati"      value={p?.mallampati} />
+              <F label="Mallampati"      value={p?.mallampati ? displayClinicalCode("option:MALLAMPATI", p.mallampati, locale) : null} />
               <F label={L.mouthOpening}  value={p?.mouthOpeningCm ? `${p.mouthOpeningCm} cm` : null} />
               <F label={L.thyromental}   value={p?.thyromental ? `${p.thyromental} cm` : null} />
-              <F label={L.neckMobility}  value={p?.neckMobility} />
-              <F label="ULBT"            value={p?.upperLipBiteTest} />
-              <F label={L.clGrade}       value={p?.cormackLehane} />
+              <F label={L.neckMobility}  value={p?.neckMobility ? displayClinicalCode("option:NECK_MOBILITY", p.neckMobility, locale) : null} />
+              <F label="ULBT"            value={p?.upperLipBiteTest ? displayClinicalCode("option:UPPER_LIP_BITE", p.upperLipBiteTest, locale) : null} />
+              <F label={L.clGrade}       value={p?.cormackLehane ? displayClinicalCode("option:CORMACK_LEHANE", p.cormackLehane, locale) : null} />
               {p?.difficultAirwayHistory
                 ? <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
                 : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">No difficult-airway history</p>}
@@ -999,7 +862,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   o.disposition === "WARD" ? "bg-green-100 text-green-800 border-green-300" :
                   o.disposition === "PACU" ? "bg-amber-100 text-amber-800 border-amber-300" :
                   "bg-red-100 text-red-800 border-red-300"
-                }`}>{o.disposition}</span>
+                }`}>{displayClinicalCode("option:DISPOSITION", o.disposition, locale)}</span>
               )}
               {o?.dispositionNotes && <p className="text-[9.5px] text-slate-700 leading-snug">{o.dispositionNotes}</p>}
             </div>
