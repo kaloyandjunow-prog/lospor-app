@@ -1,5 +1,13 @@
 # Changelog - LOSPOR Web App
 
+## [7.2.0] - 2026-07-27
+
+- Coordinated research-governance contract release. The clinical web workflow
+  and persisted case data are unchanged.
+- The standalone Database now receives aggregate and case-level data through
+  separate permission-scoped API contracts and immutable export jobs.
+- No production deployment is included in this local release preparation.
+
 ## [7.1.0] - 2026-07-27
 
 - Clinical screens, summaries, print views, search surfaces, and intraoperative
