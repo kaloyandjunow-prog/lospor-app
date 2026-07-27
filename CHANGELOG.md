@@ -1,5 +1,11 @@
 # Changelog - LOSPOR Web App
 
+## [7.2.1] - 2026-07-27
+
+- Updated Next.js, PostCSS, Sharp, shadcn tooling, and transitive dependencies to patched releases.
+- Cleared the web dependency audit and moved CI to Node.js 24 actions.
+- Clinical behavior and persisted data contracts are unchanged.
+
 ## [7.2.0] - 2026-07-27
 
 - Coordinated research-governance contract release. The clinical web workflow
