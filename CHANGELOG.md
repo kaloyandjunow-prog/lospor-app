@@ -1,5 +1,12 @@
 # Changelog - LOSPOR Web App
 
+## [7.3.0] - 2026-07-28
+
+- Identifies web sessions as v7.3.0 for the serialized clinical-write and
+  revision-manifest API release.
+- No clinical workflow or visible web behavior changed in this compatibility
+  release.
+
 ## [7.2.1] - 2026-07-27
 
 - Updated Next.js, PostCSS, Sharp, shadcn tooling, and transitive dependencies to patched releases.
