@@ -10,9 +10,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useLocale, useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
-import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
+import { calcInfusionTotal } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
-import { calcABW } from "@/lib/scores"
+import { calcIBW, calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
 import {
   AIRWAY_DEVICE_REQUIRED_FIELDS,
@@ -23,7 +23,6 @@ import {
 } from "@lospor/core/intraop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
-import { useClinicalRules } from "@/hooks/useClinicalRules"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import type { PremDoseCfg, PremedCat } from "@/components/intraop/PremedicationPicker"
@@ -49,8 +48,6 @@ import {
   evaluateIntraopReadiness,
   type ClinicalIssueCode,
 } from "@lospor/core/clinical-validation"
-import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
-import { fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 
 const INTRAOP_ISSUE_LABELS: Partial<Record<ClinicalIssueCode, string>> = {
   missing_start_time: "Anaesthesia start time",
@@ -171,11 +168,8 @@ export type IntraopData = IntraopFormFields & { timetableData?: TimetableData }
 // and are fetched via useOptionLibrary inside IntraopForm below.
 
 type PreopSummary = {
-  clinicalMode?: "ADULT" | "PEDIATRIC"
   asaScore?: string | null
   ageYears?: number | null
-  ageValue?: number | null
-  ageUnit?: "DAYS" | "MONTHS" | "YEARS" | null
   heightCm?: number | null; weightKg?: number | null; sex?: string | null
   bmi?: number | null
   bpSystolic?: number | null; bpDiastolic?: number | null
@@ -234,13 +228,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const { options: airwayOptions } = useOptionLibrary("AIRWAY_MANAGEMENT")
   const { options: premedOptions } = useOptionLibrary("PREMED_DRUG")
   const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
-  const infusionWeightBasis = useMemo<WeightBasisMap>(
-    () => Object.fromEntries(
-      Object.entries(weightBasisMap(infusionLibOpts)).map(([name, basis]) => [
-        name,
-        basis === "IBW" || basis === "TBW" ? basis : "none",
-      ]),
-    ),
+  const infusionWeightBasis = useMemo(
+    () => weightBasisMap(infusionLibOpts),
     [infusionLibOpts],
   )
   const airwayDeviceOptions = useMemo(() => airwayOptions.filter(o => o.group === "Device"), [airwayOptions])
@@ -277,22 +266,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }
 
   // Compute IBW/TBW from preop for weight-adjusted infusion totals
-  const clinicalMode = preop?.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT"
-  const isPediatric = clinicalMode === "PEDIATRIC"
-  const {
-    snapshot: clinicalRulesSnapshot,
-    loading: clinicalRulesLoading,
-    error: clinicalRulesError,
-  } = useClinicalRules(clinicalMode)
-  const ibwResolution = resolveIdealBodyWeight({
-    clinicalMode,
-    heightCm: preop?.heightCm,
-    sex: preop?.sex,
-    age: isPediatric && preop?.ageValue != null && preop.ageUnit
-      ? { value: preop.ageValue, unit: preop.ageUnit }
-      : null,
-  })
-  const calcIbw = ibwResolution.available ? ibwResolution.kilograms : null
+  const calcIbw = preop?.heightCm && preop?.sex ? calcIBW(preop.heightCm, preop.sex as "MALE" | "FEMALE" | "OTHER") : null
   const calcTbw = preop?.weightKg ?? null
 
   const liveDrugTotals = useMemo(() => {
@@ -334,33 +308,20 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     return { bolusList, infusionList, weightNote }
   }, [calcIbw, calcTbw, infusionWeightBasis, timetable.drugs, timetable.infusions])
 
-  // Auto-calculate fluid totals from the one canonical delivered-volume path.
-  // Running rate entries advance against the real clock; bag entries retain
-  // their selected size until a full/partial actual amount is confirmed.
+  // Auto-calculate fluid totals from timetable whenever fluids change
   useEffect(() => {
-    function updateFluidTotals() {
-      const asOf = new Date()
-      let crystalloids = 0, colloids = 0, blood = 0
-      for (const fluid of timetable.fluids ?? []) {
-        const volume = fluidDeliveredVolumeMl(fluid, asOf)
-        if (!volume) continue
-        const category = fluid.category ?? ""
-        if (category === "Crystalloids") crystalloids += volume
-        else if (category === "Colloids") colloids += volume
-        else if (category === "Blood products") blood += volume
-      }
-      setValue("crystalloidsMl", crystalloids || undefined)
-      setValue("colloidsMl",     colloids     || undefined)
-      setValue("bloodMl",        blood        || undefined)
+    let crystalloids = 0, colloids = 0, blood = 0
+    for (const f of timetable.fluids ?? []) {
+      const vol = parseFloat(f.volume) || 0
+      if (!vol) continue
+      const cat = f.category ?? ""
+      if (cat === "Crystalloids") crystalloids += vol
+      else if (cat === "Colloids") colloids += vol
+      else if (cat === "Blood products") blood += vol
     }
-
-    updateFluidTotals()
-    const hasRunningRate = (timetable.fluids ?? []).some(
-      fluid => fluid.fluidEntryMode === "RATE" && !fluid.stopped,
-    )
-    if (!hasRunningRate) return
-    const timer = window.setInterval(updateFluidTotals, 30_000)
-    return () => window.clearInterval(timer)
+    setValue("crystalloidsMl", crystalloids || undefined)
+    setValue("colloidsMl",     colloids     || undefined)
+    setValue("bloodMl",        blood        || undefined)
   }, [setValue, timetable.fluids])
 
   // Smart monitoring defaults — fire once when technique first selected
@@ -613,9 +574,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">{t("intraop.emergencyBadge")}</span>
             )}
             {preop.bmi != null && <span className="text-slate-600 dark:text-slate-300">BMI {preop.bmi}</span>}
-            {calcIbw != null && (() => {
-              const ibw = Math.round(calcIbw * 10) / 10
-              const abw = !isPediatric && preop.weightKg ? calcABW(ibw, preop.weightKg) : null
+            {preop.heightCm && preop.weightKg && preop.sex && (() => {
+              const sex = preop.sex === "MALE" || preop.sex === "FEMALE" ? preop.sex : "OTHER"
+              const ibw = calcIBW(preop.heightCm!, sex)
+              const abw = calcABW(ibw, preop.weightKg!)
               return <>
                 <span className="text-slate-600 dark:text-slate-300">IBW {ibw} kg</span>
                 {abw != null && <span className="text-slate-600 dark:text-slate-300">ABW {abw} kg</span>}
@@ -656,12 +618,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           )}
         </div>
       )}
+
       {/* Equipment suggestions */}
-      {preop && isPediatric ? (
+      {preop && (preop.weightKg || preop.heightCm || preop.ageYears) && (
         <EquipmentSuggestions
-          clinicalMode="PEDIATRIC"
-          ageValue={preop.ageValue}
-          ageUnit={preop.ageUnit}
           ageYears={preop.ageYears}
           weightKg={preop.weightKg}
           heightCm={preop.heightCm}
@@ -672,20 +632,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           mouthOpeningCm={preop.mouthOpeningCm}
           cormackLehane={preop.cormackLehane}
         />
-      ) : preop && (preop.weightKg || preop.heightCm || preop.ageYears) ? (
-        <EquipmentSuggestions
-          clinicalMode="ADULT"
-          ageYears={preop.ageYears}
-          weightKg={preop.weightKg}
-          heightCm={preop.heightCm}
-          sex={preop.sex}
-          bmi={preop.bmi}
-          mallampati={preop.mallampati}
-          neckMobility={preop.neckMobility}
-          mouthOpeningCm={preop.mouthOpeningCm}
-          cormackLehane={preop.cormackLehane}
-        />
-      ) : null}
+      )}
 
       {/* Timeline */}
       <div ref={timelineSectionRef} data-tour="intraop-timing">
@@ -743,29 +690,13 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       <div data-tour="intraop-timetable">
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopTimetable
-          clinicalMode={preop?.clinicalMode ?? "ADULT"}
-          pediatricAgeValue={preop?.ageValue ?? preop?.ageYears ?? null}
-          pediatricAgeUnit={preop?.ageUnit ?? (preop?.ageYears != null ? "YEARS" : null)}
-          patientHeightCm={preop?.heightCm ?? null}
-          patientSex={preop?.sex ?? null}
-          pediatricDrugProfiles={clinicalRulesSnapshot?.pediatricDrugProfiles ?? []}
-          pediatricFluidProfiles={clinicalRulesSnapshot?.pediatricFluidProfiles ?? []}
-          pediatricInfusionProfiles={clinicalRulesSnapshot?.pediatricInfusionProfiles ?? []}
-          adultDoseProfiles={clinicalRulesSnapshot?.adultDoseProfiles ?? []}
-          pediatricRulesSource={clinicalRulesSnapshot?.source ?? null}
-          pediatricRulesCachedAt={clinicalRulesSnapshot?.cachedAt ?? null}
-          pediatricRulesLoading={clinicalRulesLoading}
-          pediatricRulesError={clinicalRulesError}
-          clinicalPresetId={clinicalRulesSnapshot?.preset?.id ?? null}
-          clinicalPresetVersion={clinicalRulesSnapshot?.preset?.version ?? null}
-          clinicalPresetScope={clinicalRulesSnapshot?.preset?.scope ?? null}
           startTime={watchedStartTime || "08:00"}
           startedAt={watchedStartedAt || undefined}
           endTime={watchedEndTime || undefined}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
           showAgentRow={showGases}
-          ibw={calcIbw}
+          ibw={preop?.heightCm && preop?.sex ? calcIBW(preop.heightCm, preop.sex as "MALE" | "FEMALE" | "OTHER") : null}
           tbw={preop?.weightKg ?? null}
           data={timetable}
           onChange={newData => { setTimetable(newData); setTimetableDirty(true) }}

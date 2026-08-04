@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { LOSPOR_WEB_CLIENT_VERSION } from "@/lib/client-version"
 
 const MOBILE_PWA_URL = process.env.MOBILE_PWA_URL
 const SESSION_COOKIE = "lospor_session"
@@ -50,14 +49,7 @@ function mobileRedirect(req: NextRequest): NextResponse | null {
 }
 
 export default function proxy(req: NextRequest) {
-  if (req.nextUrl.pathname.startsWith("/api/")) {
-    const requestHeaders = new Headers(req.headers)
-    requestHeaders.set("x-lospor-client", "web")
-    requestHeaders.set("x-lospor-client-version", LOSPOR_WEB_CLIENT_VERSION)
-    return NextResponse.next({
-      request: { headers: requestHeaders },
-    })
-  }
+  if (req.nextUrl.pathname.startsWith("/api/")) return NextResponse.next()
   if (
     /^\/cases\/[^/]+\/print$/.test(req.nextUrl.pathname) &&
     req.nextUrl.searchParams.has("print_token")

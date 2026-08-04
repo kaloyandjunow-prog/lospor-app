@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { calcBMI, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
+import { calcBMI, calcIBW, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
 import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd-categories"
 import { suggestRcriIschemicHeart, suggestRcriCHF, suggestRcriCVD, suggestRcriInsulinDM, suggestRcriCreatinine, suggestStopBangBP } from "@/lib/risk-derivation"
 import { ChevronRight, Lightbulb, X } from "lucide-react"
@@ -24,13 +24,6 @@ import GuardedTextarea from "@/components/GuardedTextarea"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
 import { displayOption, resolveDisplayOption } from "@/lib/clinical-display"
 import { schema, type PreopData } from "@/components/forms/preopSchema"
-import {
-  ClinicalModeAgeFields,
-  PediatricRiskAndCalculators,
-  PediatricVitalReferenceNote,
-} from "@/components/forms/PediatricPreopSections"
-import { validateClinicalModeAge } from "@lospor/core/pediatric"
-import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { metadataString } from "@lospor/core/option-contracts"
 
 export type { PreopData } from "@/components/forms/preopSchema"
@@ -109,7 +102,6 @@ function randInt(min: number, max: number) { return Math.floor(Math.random() * (
 // autosave near-instantly; boolean toggles are detected by value type instead.
 const DISCRETE_PREOP_FIELDS = new Set<string>([
   "sex", "asaScore", "mallampati", "cormackLehane", "neckMobility", "bloodType", "rhFactor",
-  "clinicalMode", "ageUnit",
 ])
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -144,6 +136,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   const { options: mallampatiOptions }   = useOptionLibrary("MALLAMPATI")
   const { options: upperLipBiteOptions } = useOptionLibrary("UPPER_LIP_BITE")
   const { options: cormackLehaneOptions }= useOptionLibrary("CORMACK_LEHANE")
+  const ageRange         = useRange("AGE_RANGE")
   const heightRange      = useRange("HEIGHT_RANGE")
   const weightRange      = useRange("WEIGHT_RANGE")
   const bpSystolicRange  = useRange("BP_SYSTOLIC_RANGE")
@@ -160,26 +153,21 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     // exactly match zodResolver's inferred generic).
     resolver: zodResolver(schema) as Resolver<PreopData>,
     defaultValues: {
-      clinicalMode: "ADULT",
       bpSystolic:  randInt(120, 130),
       bpDiastolic: randInt(70, 85),
       heartRate:   randInt(60, 90),
       spO2:        randInt(95, 99),
       temperature: parseFloat((36 + Math.random()).toFixed(1)),
       comorbidities: [], diagnoses: [], procedures: [], currentMedications: [], allergyDetails: [],
-      pediatricFasting: [],
       ...Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([, v]) => v !== undefined && v !== null)),
     },
   })
 
   // ── Batched watch subscriptions (5 groups instead of 19 individual) ──────────
   const [height, weight, sex, ageYearsVal, smoking, highRiskSurgery, emergencySurgery,
-         allergies, familyAnesthesiaProblems, difficultAirwayHistory, comorbidities, bloodType, rhFactor,
-         clinicalMode, ageValue, ageUnit] =
+         allergies, familyAnesthesiaProblems, difficultAirwayHistory, comorbidities, bloodType, rhFactor] =
     watch(["heightCm", "weightKg", "sex", "ageYears", "smoking", "highRiskSurgery", "emergencySurgery",
-           "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities", "bloodType", "rhFactor",
-           "clinicalMode", "ageValue", "ageUnit"])
-  const isPediatric = clinicalMode === "PEDIATRIC"
+           "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities", "bloodType", "rhFactor"])
   const [currentMedications, labResults] = watch(["currentMedications", "labResults"])
 
   const [rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine] =
@@ -203,19 +191,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   // ── Memoised score + BMI calculations ────────────────────────────────────────
   const bmi  = useMemo(() => height && weight ? calcBMI(Number(height), Number(weight)) : null,
     [height, weight])
-  // Resolve IBW from the same versioned method used by equipment and drug
-  // calculations: Devine for adults and McLaren/CDC for pediatric patients.
-  const ibwResolution = useMemo(() => resolveIdealBodyWeight({
-    clinicalMode: isPediatric ? "PEDIATRIC" : "ADULT",
-    heightCm: height == null ? null : Number(height),
-    sex,
-    age: isPediatric && ageValue != null && ageUnit
-      ? { value: Number(ageValue), unit: ageUnit }
-      : null,
-  }), [ageUnit, ageValue, height, isPediatric, sex])
-  const ibw = ibwResolution.available ? ibwResolution.roundedKg : null
-  const abw = useMemo(() => !isPediatric && ibw != null && weight ? calcABW(ibw, Number(weight)) : null, [ibw, isPediatric, weight])
-  const asaSuggestion = useMemo(() => suggestASAFromTags(comorbidities ?? [], isPediatric ? null : bmi), [comorbidities, bmi, isPediatric])
+  // Ideal body weight is sex-specific (Devine); with sex unrecorded there is no
+  // defensible value, so show nothing rather than silently assuming male.
+  const ibw  = useMemo(() => height && sex && sex !== "UNKNOWN" ? calcIBW(Number(height), sex) : null, [height, sex])
+  const abw  = useMemo(() => ibw && weight ? calcABW(ibw, Number(weight)) : null, [ibw, weight])
+  const asaSuggestion = useMemo(() => suggestASAFromTags(comorbidities ?? [], bmi), [comorbidities, bmi])
 
   // Suggestions only — never silently auto-checked, same rule as ASA above.
   const rcriSuggested = useMemo(() => ({
@@ -285,8 +265,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     if (!onAutoSave) return
     // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values, { name }) => {
-      const { sex, ageYears, ageValue: preciseAge, diagnoses } = values
-      const hasData = sex || ageYears != null || preciseAge != null || (diagnoses?.length ?? 0) > 0
+      const { sex, ageYears, diagnoses } = values
+      const hasData = sex || ageYears != null || (diagnoses?.length ?? 0) > 0
       if (!hasData) return
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
       // Discrete taps (pills/toggles/checkboxes) feel instant: the change is
@@ -342,21 +322,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
   function validate(data: PreopData): string[] {
     const errs: string[] = []
-    if (data.clinicalMode === "PEDIATRIC") {
-      if (data.ageValue == null || !data.ageUnit) {
-        errs.push("ageValue")
-      } else if (!validateClinicalModeAge("PEDIATRIC", {
-        value: data.ageValue,
-        unit: data.ageUnit,
-      }).valid) {
-        errs.push("ageValue")
-      }
-    } else if (data.ageYears == null || !validateClinicalModeAge("ADULT", {
-      value: data.ageYears,
-      unit: "YEARS",
-    }).valid) {
-      errs.push("ageYears")
-    }
+    if (data.ageYears == null)      errs.push("ageYears")
     // UNKNOWN is a truthy string, so `!data.sex` would let it through. It means
     // "nobody recorded this yet" and must block submission exactly like a blank.
     if (!data.sex || data.sex === "UNKNOWN") errs.push("sex")
@@ -383,7 +349,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   function hasTabError(tab: string): boolean {
     if (fieldErrors.size === 0) return false
     switch (tab) {
-      case "patient": return fieldErrors.has("ageYears") || fieldErrors.has("ageValue") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")
+      case "patient": return fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")
       case "case":    return fieldErrors.has("diagnoses") || fieldErrors.has("procedures")
       case "exam":    return fieldErrors.has("bp") || fieldErrors.has("heartRate") || fieldErrors.has("respiratoryRate") || fieldErrors.has("airway")
       case "risk":    return fieldErrors.has("asaScore")
@@ -399,7 +365,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       if (layoutMode === "tabs") {
         const firstErr = errs[0]
         const tab: "patient" | "case" | "exam" | "risk" =
-          firstErr === "ageYears"  || firstErr === "ageValue" || firstErr === "sex" ? "patient" :
+          firstErr === "ageYears"  || firstErr === "sex"        ? "patient" :
           firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
           firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
           "risk"
@@ -410,7 +376,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         if (firstErr) {
           const sectionKey =
             firstErr === "patientName" || firstErr === "patientId" ? "patient" :
-            firstErr === "ageYears"   || firstErr === "ageValue" || firstErr === "sex" ? "demographics" :
+            firstErr === "ageYears"   || firstErr === "sex"        ? "demographics" :
             firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
             firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
             firstErr === "airway" ? "airway" : "asa"
@@ -420,16 +386,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       return
     }
     setFieldErrors(new Set())
-    onSubmit(isPediatric
-      ? {
-          ...data,
-          aiOptIn: false,
-          rcriScore: undefined,
-          apfelScore: undefined,
-          stopBangScore: undefined,
-        }
-      : { ...data, rcriScore, apfelScore, stopBangScore },
-    )
+    onSubmit({ ...data, rcriScore, apfelScore, stopBangScore })
   }
 
   return (
@@ -457,24 +414,28 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       <div className={layoutMode === "tabs" && activeTab !== "patient" ? "hidden" : ""}>
       {/* Demographics */}
       <div ref={el => { refMap.current.demographics = el }} data-tour="preop-demographics">
-      <SectionCard title={t("preop.demographicsSection")} error={fieldErrors.has("ageYears") || fieldErrors.has("ageValue") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")}>
-        <div className="space-y-4">
-          <ClinicalModeAgeFields control={control} setValue={setValue} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <SectionCard title={t("preop.demographicsSection")} error={fieldErrors.has("ageYears") || fieldErrors.has("sex") || fieldErrors.has("heightCm") || fieldErrors.has("weightKg")}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.age")} <span className="text-red-500">*</span></Label>
+            <Controller name="ageYears" control={control} render={({ field }) => (
+              <div className={fe("ageYears")}><NumberStepper value={field.value} onChange={field.onChange} min={ageRange.min} max={ageRange.max} step={ageRange.step} unit="yrs" showSlider /></div>
+            )} />
+            <RejectionNote msg={rejectionOf("ageYears")} />
+          </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.height")} <span className="text-red-500">*</span></Label>
             <Controller name="heightCm" control={control} render={({ field }) => (
-              <div className={fe("heightCm")}><ConvertedStepper measurement="height" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={isPediatric ? 20 : heightRange.min} canonicalMax={heightRange.max} canonicalStep={isPediatric ? 0.1 : heightRange.step} showSlider /></div>
+              <div className={fe("heightCm")}><ConvertedStepper measurement="height" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={heightRange.min} canonicalMax={heightRange.max} canonicalStep={heightRange.step} showSlider /></div>
             )} />
             <RejectionNote msg={rejectionOf("heightCm")} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.weight")} <span className="text-red-500">*</span></Label>
             <Controller name="weightKg" control={control} render={({ field }) => (
-              <div className={fe("weightKg")}><ConvertedStepper measurement="weight" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={isPediatric ? 0.1 : weightRange.min} canonicalMax={weightRange.max} canonicalStep={isPediatric ? 0.1 : weightRange.step} showSlider /></div>
+              <div className={fe("weightKg")}><ConvertedStepper measurement="weight" canonicalValue={field.value} onCanonicalChange={field.onChange} canonicalMin={weightRange.min} canonicalMax={weightRange.max} canonicalStep={weightRange.step} showSlider /></div>
             )} />
             <RejectionNote msg={rejectionOf("weightKg")} />
-          </div>
           </div>
         </div>
 
@@ -483,10 +444,10 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             {bmi && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-400 font-medium">{t("preop.bmi")}</span>
-                <Badge variant={isPediatric ? "outline" : bmi >= 40 ? "destructive" : bmi >= 30 ? "secondary" : "default"}>{bmi} kg/m²</Badge>
+                <Badge variant={bmi >= 40 ? "destructive" : bmi >= 30 ? "secondary" : "default"}>{bmi} kg/m²</Badge>
               </div>
             )}
-            {ibw != null && (
+            {ibw && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-400 font-medium">{t("preop.ibw")}</span>
                 <Badge variant="outline">{ibw} kg</Badge>
@@ -498,11 +459,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                 <Badge variant="outline" className="border-amber-300 text-amber-700">{abw} kg</Badge>
               </div>
             )}
-            {ibw != null && (
-              <span className="text-xs text-slate-400">
-                {isPediatric ? "McLaren · CDC 2000" : t("preop.devineFormula")}
-              </span>
-            )}
+            {ibw && <span className="text-xs text-slate-400">{t("preop.devineFormula")}</span>}
           </div>
         )}
 
@@ -799,7 +756,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             <Label htmlFor="substanceAbuse" className="font-normal cursor-pointer">{t("preop.substanceAbuse")}</Label>
           </div>
 
-          {!isPediatric && (<>
           <Separator />
 
           {/* RCRI */}
@@ -880,7 +836,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               )
             })}
           </div>
-          </>)}
         </div>
       </SectionCard>
       </div>
@@ -891,7 +846,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       <div ref={el => { refMap.current.vitals = el }}>
       <SectionCard title={t("preop.vitalsSection")} error={fieldErrors.has("bp") || fieldErrors.has("heartRate") || fieldErrors.has("respiratoryRate")}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <PediatricVitalReferenceNote control={control} />
 
           {/* BP */}
           <div className="space-y-2 sm:col-span-2">
@@ -909,14 +863,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.systolic")}</p>
                     <Controller name="bpSystolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={isPediatric ? 20 : bpSystolicRange.min} max={bpSystolicRange.max} step={bpSystolicRange.step} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpSystolicRange.min} max={bpSystolicRange.max} step={bpSystolicRange.step} showSlider />
                     )} />
                   </div>
                   <span className="text-2xl font-light text-slate-300 mt-4">/</span>
                   <div className="flex-1">
                     <p className="text-xs text-slate-400 text-center mb-1">{t("preop.diastolic")}</p>
                     <Controller name="bpDiastolic" control={control} render={({ field }) => (
-                      <NumberStepper value={field.value} onChange={field.onChange} min={isPediatric ? 10 : bpDiastolicRange.min} max={bpDiastolicRange.max} step={bpDiastolicRange.step} showSlider />
+                      <NumberStepper value={field.value} onChange={field.onChange} min={bpDiastolicRange.min} max={bpDiastolicRange.max} step={bpDiastolicRange.step} showSlider />
                     )} />
                   </div>
                 </div>
@@ -926,10 +880,10 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           </div>
 
           {([
-            { id: "heartRate",      label: t("preop.heartRate"),      min: isPediatric ? 10 : heartRateRange.min,       max: heartRateRange.max,    step: heartRateRange.step,    unit: "bpm",  required: true,  slider: true, measurement: undefined as "temperature" | undefined },
-            { id: "spO2",           label: t("preop.spO2"),           min: isPediatric ? 20 : spo2Range.min,            max: spo2Range.max,         step: spo2Range.step,         unit: "%",    required: false, slider: true, measurement: undefined as "temperature" | undefined },
-            { id: "temperature",    label: t("preop.temperature"),    min: isPediatric ? 25 : temperatureRange.min,     max: temperatureRange.max,  step: temperatureRange.step, unit: "°C",   required: false, slider: true, measurement: "temperature" as "temperature" | undefined },
-            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: isPediatric ? 1 : respiratoryRange.min,       max: respiratoryRange.max,  step: respiratoryRange.step, unit: "/min", required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "heartRate",      label: t("preop.heartRate"),      min: heartRateRange.min,   max: heartRateRange.max,   step: heartRateRange.step,   unit: "bpm",  required: true,  slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "spO2",           label: t("preop.spO2"),           min: spo2Range.min,        max: spo2Range.max,        step: spo2Range.step,        unit: "%",    required: false, slider: true, measurement: undefined as "temperature" | undefined },
+            { id: "temperature",    label: t("preop.temperature"),    min: temperatureRange.min, max: temperatureRange.max,  step: temperatureRange.step, unit: "°C",   required: false, slider: true, measurement: "temperature" as "temperature" | undefined },
+            { id: "respiratoryRate",label: t("preop.respiratoryRate"),min: respiratoryRange.min, max: respiratoryRange.max,  step: respiratoryRange.step,  unit: "/min", required: true,  slider: true, measurement: undefined as "temperature" | undefined },
           ] as const).map(v => (
             <div key={v.id} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -1171,11 +1125,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         </div>
 
         {/* Calculated risk scores */}
-        {isPediatric ? (
-          <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
-            <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} />
-          </div>
-        ) : (
         <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">{t("preop.calculatedRiskScores")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1211,7 +1160,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             </div>
           </div>
         </div>
-        )}
 
         {/* Notes */}
         <div className="space-y-1 pt-2">
@@ -1223,7 +1171,6 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       </div>
 
       {/* AI advisor opt-in */}
-      {!isPediatric && (<>
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] px-4 py-3">
         <Controller name="aiOptIn" control={control} render={({ field }) => (
           <input type="checkbox" id="aiOptIn" checked={!!field.value} onChange={e => field.onChange(e.target.checked)}
@@ -1240,14 +1187,13 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       </div>
 
       {watch("aiOptIn") && <AIAdvisor getFormData={getValues} caseId={caseId} onSaveBeforeAI={onAutoSave ? flushSave : undefined} />}
-      </>)}
       </div>
 
       {fieldErrors.size > 0 && (
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           <p className="font-semibold mb-1">{t("preop.completeRequiredFields")}</p>
           <ul className="list-disc list-inside space-y-0.5 text-xs">
-            {(fieldErrors.has("ageYears") || fieldErrors.has("ageValue")) && <li>{t("preop.fieldAge")}</li>}
+            {fieldErrors.has("ageYears")    && <li>{t("preop.fieldAge")}</li>}
             {fieldErrors.has("sex")         && <li>{t("preop.sex")}</li>}
             {fieldErrors.has("heightCm")    && <li>{t("preop.fieldHeight")}</li>}
             {fieldErrors.has("weightKg")    && <li>{t("preop.fieldWeight")}</li>}

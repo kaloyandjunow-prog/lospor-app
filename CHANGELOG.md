@@ -1,36 +1,5 @@
 # Changelog - LOSPOR Web App
 
-## [8.0.0] - 2026-08-04
-
-First stable release. Adds pediatric clinical mode and the clinical ruleset
-editor.
-
-Requires `@lospor/core` v8.0.0 and LOSPOR API v8.0.0.
-
-### Added
-
-- Pediatric preop sections and pediatric-aware intraop dosing.
-- Clinical ruleset editor with a visual profile preview: you see the widget the
-  clinician will actually get, and click a pill, slider or field to edit it,
-  rather than filling in a form that describes it.
-- Published rulesets now offer an editable copy instead of appearing locked.
-- Pediatric rule rows are grouped by drug, so a profile reads as one thing.
-
-### Fixed
-
-- The now-marker is measured from the floored grid origin. A case started at
-  22:37 belongs to the 22:35 column, so measuring from 22:37 drew the marker on
-  the 22:35 gridline and left it up to 4:59 early for the whole case.
-- Ruleset-hidden fluids are hidden from the picker but kept in the lookup maps,
-  so a fluid recorded earlier in the case still resolves its volumes and routes.
-
-### Changed
-
-- The intraop clock and vitals autofill are extracted from `IntraopTimetable`,
-  with tests covering overnight wrap and the rule that autofill never overwrites
-  a recorded observation.
-- An encoding guard test fails the build on cp1251 mojibake reaching the UI.
-
 ## [7.3.0] - 2026-07-28
 
 - Identifies web sessions as v7.3.0 for the serialized clinical-write and

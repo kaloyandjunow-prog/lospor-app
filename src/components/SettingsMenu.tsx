@@ -616,21 +616,6 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
 
                 {category === "access" && (
                   <div className="py-4 space-y-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false)
-                        router.push("/clinical-rules")
-                      }}
-                      className="w-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-left hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/20 dark:hover:bg-blue-950/35"
-                    >
-                      <span className="block text-sm font-semibold text-blue-800 dark:text-blue-200">
-                        {t("settings.clinicalRules")}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-blue-700/80 dark:text-blue-300/80">
-                        {t("settings.clinicalRulesDesc")}
-                      </span>
-                    </button>
                     <div>
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t("settings.hodAccess")}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
