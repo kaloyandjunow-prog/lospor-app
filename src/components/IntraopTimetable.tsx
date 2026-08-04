@@ -414,7 +414,10 @@ export function IntraopTimetable({
   } = useMemo(() => {
     const byGroup = new Map<string, { cat: string; color: string; fluids: { name: string }[] }>()
     const profiles = baseProfilesMap(fluidLibOpts)
-    for (const o of fluidLibOpts) {
+    // As with drugs above: only the picker hides ruleset-hidden fluids, while
+    // the maps below stay complete so a fluid already recorded on the case
+    // keeps its volumes, routes and concentrations.
+    for (const o of visibleClinicalOptions(fluidLibOpts)) {
       const cat = o.group ?? "Other"
       if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", fluids: [] })
       byGroup.get(cat)!.fluids.push({ name: o.label })
