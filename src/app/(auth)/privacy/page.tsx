@@ -88,14 +88,14 @@ export default async function PrivacyPage() {
                 <section>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">1. Who we are</h3>
                   <p>LOSPOR is an independent tool operated by Kaloyan Dzhunov (contact: <a href="mailto:kaloyandjunow@gmail.com" className="text-blue-600 hover:underline">kaloyandjunow@gmail.com</a>).</p>
-                  <p>Each user is the sole data controller for the clinical records they enter. Kaloyan Dzhunov operates the infrastructure that stores that data. By using LOSPOR, you acknowledge that you are responsible for ensuring your use complies with applicable data protection law.</p>
+                  <p>Controller and processor roles depend on the actual purposes and means of each processing activity, and are not settled by this page. In most deployments the treating institution or the clinician is the controller for the clinical records entered, while the operator provides and maintains the infrastructure; where the operator determines purposes of its own, joint controllership may arise. Institutions deploying LOSPOR should complete their own role mapping, legal basis assessment under Articles 6 and 9, and where required a data protection impact assessment.</p>
                 </section>
 
                 <section>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1">2. What we process</h3>
                   <ul className="list-disc pl-4 space-y-1">
                     <li><strong>Account data:</strong> name, email address, title, institution, registration date, last login time, role, and terms acceptance records.</li>
-                    <li><strong>Case data:</strong> structured perioperative fields, normalized research rows, append-only intraoperative events, timestamps, institution linkage, and audit metadata. No patient names, national ID numbers, dates of birth, or hospital record numbers are intended to be stored.</li>
+                    <li><strong>Case data:</strong> structured perioperative fields, normalized research rows, append-only intraoperative events, timestamps, institution linkage, and audit metadata. Direct identifiers — patient names, national ID numbers, dates of birth and hospital record numbers — are not collected. Case data is therefore <strong>pseudonymised, not anonymous</strong>: age, sex, institution, precise timestamps, rare clinical combinations and free-text entries can in principle single out an individual, particularly in a small department. Pseudonymised data that can still be linked to a person remains personal data under the GDPR.</li>
                     <li><strong>Audit log:</strong> records of case creation, update, deletion, AI use, export, and account events.</li>
                     <li><strong>Session tokens:</strong> short-lived web session cookies and mobile bearer tokens. Bearer tokens are revoked on logout.</li>
                     <li><strong>PWA local data:</strong> browser localStorage may hold the bearer token, offline drafts, queued saves, and queued intraoperative events until logout or successful sync.</li>

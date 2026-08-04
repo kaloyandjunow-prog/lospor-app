@@ -74,9 +74,16 @@ export default function proxy(req: NextRequest) {
     login.searchParams.set("callbackUrl", req.nextUrl.pathname)
     return NextResponse.redirect(login)
   }
-  if (hasSession && ["/login", "/register"].includes(req.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
-  }
+  // Deliberately not redirecting away from /login just because a cookie exists.
+  //
+  // Cookie presence is not proof of a valid session. With an expired or revoked
+  // cookie this sent the user to /dashboard, the protected page validated the
+  // session properly and sent them back to /login, and round it went — escapable
+  // only by clearing browser data, which at 2am reads as "the app is broken".
+  //
+  // Letting /login render lets it clear or replace the stale cookie, which is
+  // the only place that can happen. A genuinely signed-in user visiting /login
+  // sees the login page; that is a far smaller cost than a redirect loop.
   return NextResponse.next()
 }
 
