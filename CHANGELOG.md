@@ -1,5 +1,31 @@
 # Changelog - LOSPOR Web App
 
+## [8.2.0] - 2026-08-05
+
+Stops the forms inventing clinical data, and closes a login loop.
+
+Requires `@lospor/core` v8.2.0 and LOSPOR API v8.2.0.
+
+### Fixed
+
+- Preop and postop forms no longer pre-fill observations that were never taken.
+  Vitals and demographics were seeded with generated values, so a form opened
+  and saved recorded numbers nobody measured, indistinguishable from real ones.
+  Autosave no longer writes a record on first mount, so opening a case and
+  closing it again leaves nothing behind.
+- Imported lab rows are shown as the report printed them, and rows whose unit
+  was not recognised are no longer pre-ticked for acceptance.
+- A stale session cookie no longer traps sign-in in a redirect loop.
+
+### Changed
+
+- The clinical rule editor no longer offers the retired `PEDIATRIC_DRUG_DOSE`
+  format, which it also selected by default for every new rule. New rules start
+  as a drug profile; an existing rule of the old kind still opens for editing.
+- Data-handling wording describes cases as pseudonymised rather than anonymous,
+  which is what they are: no name or identifier is stored, but a case remains
+  linked to its author and institution.
+
 ## [8.0.0] - 2026-08-04
 
 First stable release. Adds pediatric clinical mode and the clinical ruleset

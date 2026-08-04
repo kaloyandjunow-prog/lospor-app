@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "8.0.0",
+  "version": "8.2.0",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
