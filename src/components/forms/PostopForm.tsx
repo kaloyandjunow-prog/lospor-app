@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm, Controller, type Resolver } from "react-hook-form"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslations, useLocale } from "next-intl"
@@ -51,7 +51,6 @@ const schema = z.object({
 
 export type PostopData = z.infer<typeof schema>
 
-function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -116,14 +115,10 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
     defaultValues: {
       ponv: false,
       handoverItems: [],
-      // Adult random defaults must never be offered as pediatric observations.
-      ...(isPediatric ? {} : {
-        recoveryBpSystolic:  randInt(120, 130),
-        recoveryBpDiastolic: randInt(70, 85),
-        recoveryHeartRate:   randInt(60, 90),
-        recoverySpO2:        randInt(95, 99),
-        temperatureCelsius:  parseFloat((36 + Math.random()).toFixed(1)),
-      }),
+      // Recovery observations start unset. They used to be pre-filled with
+      // random values in normal adult ranges, and this form autosaved on mount,
+      // so simply opening it recorded a blood pressure, pulse, saturation and
+      // temperature that nobody had taken.
       ...Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([, v]) => v !== undefined && v !== null)),
       ...(defaultValues?.handoverItems ? { handoverItems: normaliseHandoverCodes(defaultValues.handoverItems) } : {}),
     },
@@ -132,8 +127,13 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
   // eslint-disable-next-line react-hooks/incompatible-library
   const allValues = watch()
   const allValuesKey = JSON.stringify(allValues)
+  // Skip the first run: this effect fires on mount, so without the guard simply
+  // opening the form scheduled a save of whatever the defaults happened to be.
+  // Autosave should record what the clinician entered, never the act of looking.
+  const postopMountedRef = useRef(false)
   useEffect(() => {
     if (!onAutoSave) return
+    if (!postopMountedRef.current) { postopMountedRef.current = true; return }
     const timer = setTimeout(() => onAutoSave(getValues()), 1500)
     return () => clearTimeout(timer)
   }, [allValuesKey, getValues, onAutoSave])

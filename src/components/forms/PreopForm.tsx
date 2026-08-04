@@ -103,7 +103,6 @@ function SectionCard({ title, children, action, error }: { title: string; childr
   )
 }
 
-function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
 // Non-boolean fields whose input is a single tap (pill/select grids) — these
 // autosave near-instantly; boolean toggles are detected by value type instead.
@@ -161,11 +160,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     resolver: zodResolver(schema) as Resolver<PreopData>,
     defaultValues: {
       clinicalMode: "ADULT",
-      bpSystolic:  randInt(120, 130),
-      bpDiastolic: randInt(70, 85),
-      heartRate:   randInt(60, 90),
-      spO2:        randInt(95, 99),
-      temperature: parseFloat((36 + Math.random()).toFixed(1)),
+      // Vital signs start unset. They used to be pre-filled with random values
+      // inside normal adult ranges, which meant that entering an age was enough
+      // to save a blood pressure, pulse, saturation and temperature that nobody
+      // had measured -- indistinguishable, in the stored record, from readings
+      // that were. An unrecorded observation must stay unrecorded.
       comorbidities: [], diagnoses: [], procedures: [], currentMedications: [], allergyDetails: [],
       pediatricFasting: [],
       ...Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([, v]) => v !== undefined && v !== null)),
