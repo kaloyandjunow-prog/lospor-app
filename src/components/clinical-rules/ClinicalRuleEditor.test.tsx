@@ -79,7 +79,7 @@ const plasmaLyteProfile = {
 }
 
 describe("ClinicalRuleEditor", () => {
-  it("offers drug, fluid and infusion rules but never exposes equipment rules", () => {
+  it("offers profile, policy, fluid and infusion rules but neither equipment nor the retired dose kind", () => {
     render(
       <ClinicalRuleEditor
         drugOptions={[]}
@@ -89,7 +89,10 @@ describe("ClinicalRuleEditor", () => {
       />,
     )
 
-    expect(screen.getByRole("button", { name: "drug" })).toBeTruthy()
+    // PEDIATRIC_DRUG_DOSE was a second way to state a paediatric dose, outside
+    // the reach of the authoring scope guard. The server rejects it now, so
+    // offering it here would only produce an error on save.
+    expect(screen.queryByRole("button", { name: "drug" })).toBeNull()
     expect(screen.getByRole("button", { name: "drugProfile" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "drugPolicy" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "fluidProfile" })).toBeTruthy()

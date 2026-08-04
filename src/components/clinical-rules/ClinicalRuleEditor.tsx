@@ -248,7 +248,11 @@ export function ClinicalRuleEditor({
     ? "PEDIATRIC_DRUG_PROFILE"
     : initialDrugPolicy
       ? "PEDIATRIC_DRUG_POLICY"
-      : "PEDIATRIC_DRUG_DOSE"
+      : initialDrug
+        ? "PEDIATRIC_DRUG_DOSE"
+        // A new rule starts as a drug profile: the dose kind is retired for
+        // authoring, so defaulting to it would fail on save.
+        : "PEDIATRIC_DRUG_PROFILE"
   const initialAgeBand = initialDrug ?? initialDrugProfile ?? initialFluidProfile ?? initialInfusionProfile
 
   const [kind, setKind] = useState<EditablePediatricKind>(initialKind)
@@ -518,7 +522,10 @@ export function ClinicalRuleEditor({
       {!initial ? (
         <div className="flex flex-wrap rounded-md border border-slate-300 p-1 dark:border-[#3a3a3a]">
           {([
-            ["PEDIATRIC_DRUG_DOSE", copy.drug],
+            // PEDIATRIC_DRUG_DOSE is retired for authoring — see
+            // RETIRED_AUTHORING_RULE_KINDS in core. The server rejects it, so
+            // offering it here would only produce an error. An existing rule of
+            // that kind still opens for editing below.
             ["PEDIATRIC_DRUG_PROFILE", copy.drugProfile],
             ["PEDIATRIC_DRUG_POLICY", copy.drugPolicy],
             ["PEDIATRIC_FLUID_PROFILE", copy.fluidProfile],
