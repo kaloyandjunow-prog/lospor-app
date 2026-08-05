@@ -91,6 +91,9 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [instQuery, setInstQuery]           = useState("")
   const [instSaving, setInstSaving]         = useState(false)
   const [currentInstName, setCurrentInstName] = useState(institutionName ?? "")
+  // A move is a request now, not an edit, so the menu reports its outcome
+  // instead of silently relabelling the institution.
+  const [instRequest, setInstRequest] = useState<{ state: "none" | "pending" | "error"; name: string }>({ state: "none", name: "" })
   const [dark, setDark]             = useState(false)
   const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("scroll")
   const [preopLayout, setPreopLayout] = useState<"tabs" | "scroll">("scroll")
@@ -380,7 +383,13 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
             {(userName || currentInstName) && (
               <div className="px-4 py-3 border-b border-slate-100 dark:border-[#2a2a2a] space-y-1">
                 {userName && <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{userName}</p>}
-                {!instEdit ? (
+                {instRequest.state === "pending" ? (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    {t("settings.institutionRequestPending", { institution: instRequest.name })}
+                  </p>
+                ) : instRequest.state === "error" ? (
+                  <p className="text-[11px] text-red-500">{t("settings.institutionRequestFailed")}</p>
+                ) : !instEdit ? (
                   <div className="flex items-center justify-between gap-1">
                     <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || t("settings.noInstitution")}</p>
                     <button type="button" onClick={async () => {
@@ -404,8 +413,20 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                         <button key={inst.id} type="button" disabled={instSaving}
                           onClick={async () => {
                             setInstSaving(true)
-                            await fetch("/api/user", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ institutionId: inst.id }) })
-                            setCurrentInstName(`${inst.name} — ${inst.city}`)
+                            // This used to PATCH /api/user with institutionId and
+                            // then update the label as though it had worked. That
+                            // endpoint does not accept the field — institutional
+                            // membership is what lets a head of department see
+                            // your cases, so moving needs their agreement. The
+                            // control now files a request and says so.
+                            const res = await fetch("/api/user/institution-request", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ institutionId: inst.id }),
+                            })
+                            setInstRequest(res.ok
+                              ? { state: "pending", name: `${inst.name} — ${inst.city}` }
+                              : { state: "error", name: "" })
                             setInstEdit(false)
                             setInstQuery("")
                             setInstSaving(false)

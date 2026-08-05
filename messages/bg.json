@@ -304,6 +304,8 @@
   },
   "settings": {
     "title": "Настройки",
+    "institutionRequestPending": "Заявено: {institution} — чака одобрение",
+    "institutionRequestFailed": "Заявката не бе изпратена. Опитайте отново.",
     "noInstitution": "Няма лечебно заведение",
     "edit": "Редактирай",
     "cancel": "Отказ",
@@ -387,6 +389,9 @@
     "registered": "Регистриран",
     "reject": "Откажи",
     "approve": "Одобри",
+    "institutionRequests": "Заявки за присъединяване към отделение",
+    "noInstitutionRequests": "Няма чакащи заявки",
+    "wantsToJoin": "Иска да се присъедини към",
     "hodRequests": "Заявки за Началник отделение",
     "noPendingRequests": "Няма чакащи заявки",
     "requested": "Заявено",

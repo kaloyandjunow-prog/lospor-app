@@ -304,6 +304,8 @@
   },
   "settings": {
     "title": "Settings",
+    "institutionRequestPending": "Requested: {institution} — waiting for approval",
+    "institutionRequestFailed": "Could not send the request. Try again.",
     "noInstitution": "No institution",
     "edit": "Edit",
     "cancel": "Cancel",
@@ -387,6 +389,9 @@
     "registered": "Registered",
     "reject": "Reject",
     "approve": "Approve",
+    "institutionRequests": "Requests to join a department",
+    "noInstitutionRequests": "No pending requests",
+    "wantsToJoin": "Asks to join",
     "hodRequests": "Head of Department requests",
     "noPendingRequests": "No pending requests",
     "requested": "Requested",
