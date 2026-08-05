@@ -146,8 +146,13 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
     aldreteConsciousness: aldreteVals[3],
     aldreteSpO2: aldreteVals[4],
   })
-  const aldreteStatus = aldreteBand(aldreteTotal)
-  const aldreteColor = aldreteStatus === "ready"
+  // Null until every component is assessed; a partial score has no total, and
+  // colouring it "destructive" would read as a sick patient rather than an
+  // unfinished form.
+  const aldreteStatus = aldreteTotal == null ? null : aldreteBand(aldreteTotal)
+  const aldreteColor = aldreteStatus === null
+    ? "outline"
+    : aldreteStatus === "ready"
     ? "default"
     : aldreteStatus === "observe" ? "secondary" : "destructive"
   const disposition   = watch("disposition")
