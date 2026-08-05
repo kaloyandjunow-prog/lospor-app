@@ -3,6 +3,7 @@ import path from "path"
 import {
   E2E_EMAIL, E2E_PASSWORD,
   E2E_HOD_A_EMAIL, E2E_MEMBER_A_EMAIL, E2E_HOD_B_EMAIL, E2E_MEMBER_B_EMAIL,
+  E2E_RESEARCH_EMAIL,
 } from "./credentials"
 import { storageStateFor } from "./roles"
 
@@ -25,14 +26,17 @@ async function signIn(page: Page, email: string, file: string) {
   await page.context().storageState({ path: file })
 }
 
-// Kept at its original path so the existing `authed` project is unaffected.
+// E2E_EMAIL is the administrator. One sign-in, saved twice: once at the
+// historical path so the existing `authed` project is unaffected, and once
+// under the name the role-aware specs use.
+//
+// Deliberately not two sign-ins. Sign-in is rate limited per email (10 in 15
+// minutes), so logging the same account in twice per run halved how often the
+// suite could be run before it started failing at the login page — which looks
+// exactly like a broken login rather than a self-inflicted lockout.
 setup("authenticate", async ({ page }) => {
   await signIn(page, E2E_EMAIL, authFile)
-})
-
-// E2E_EMAIL is the administrator; the same session, under the name specs use.
-setup("authenticate admin", async ({ page }) => {
-  await signIn(page, E2E_EMAIL, storageStateFor("admin"))
+  await page.context().storageState({ path: storageStateFor("admin") })
 })
 
 setup("authenticate hod-a", async ({ page }) => {
@@ -49,4 +53,8 @@ setup("authenticate hod-b", async ({ page }) => {
 
 setup("authenticate member-b", async ({ page }) => {
   await signIn(page, E2E_MEMBER_B_EMAIL, storageStateFor("member-b"))
+})
+
+setup("authenticate research", async ({ page }) => {
+  await signIn(page, E2E_RESEARCH_EMAIL, storageStateFor("research"))
 })

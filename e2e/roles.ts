@@ -11,7 +11,7 @@ import type { Browser, BrowserContext } from "@playwright/test"
 //
 // auth.setup.ts writes these files; `npm run e2e:seed` creates the accounts.
 
-export type Role = "admin" | "hod-a" | "member-a" | "hod-b" | "member-b"
+export type Role = "admin" | "hod-a" | "member-a" | "hod-b" | "member-b" | "research"
 
 export const storageStateFor = (role: Role) =>
   path.join(__dirname, ".auth", `${role}.json`)

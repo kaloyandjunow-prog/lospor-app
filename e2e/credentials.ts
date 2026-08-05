@@ -13,5 +13,9 @@ export const E2E_MEMBER_A_EMAIL = process.env.E2E_MEMBER_A_EMAIL ?? "member-a-e2
 export const E2E_HOD_B_EMAIL    = process.env.E2E_HOD_B_EMAIL    ?? "hod-b-e2e@lospor.test"
 export const E2E_MEMBER_B_EMAIL = process.env.E2E_MEMBER_B_EMAIL ?? "member-b-e2e@lospor.test"
 
+// Aggregate research access: a grant over institution A that permits counting
+// but not reading individual cases. Kept in step with lospor-api/e2e/credentials.ts.
+export const E2E_RESEARCH_EMAIL = process.env.E2E_RESEARCH_EMAIL ?? "research-e2e@lospor.test"
+
 export const E2E_INSTITUTION_A = "e2e-institution"
 export const E2E_INSTITUTION_B = "e2e-institution-b"
