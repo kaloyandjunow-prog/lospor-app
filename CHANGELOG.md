@@ -1,5 +1,29 @@
 # Changelog - LOSPOR Web App
 
+## [8.3.1] - 2026-08-05
+
+Requires `@lospor/core` v8.3.0 and LOSPOR API v8.3.1.
+
+### Fixed
+
+- **The institution dropdown pushed the registration form off the screen on a
+  phone.** The panel carried a minimum width of 90% of the viewport, meant to
+  give long hospital names room on a desktop. On a phone that is wider than the
+  card the field sits in, so the panel — anchored to the left edge — spilled
+  past the card and off the screen. The page gained horizontal scroll and the
+  form appeared with its labels sliced off down the left side. It now widens
+  only from the `sm` breakpoint up, where there is room to.
+- Long hospital names now ellipse instead of forcing every row wider than the
+  panel. `truncate` cannot shrink a flex item below its own text without
+  `min-w-0`, and Bulgarian hospital names are long enough to hit that.
+- **Registration and password reset no longer claim an email was sent when it
+  was not.** The API has always reported `emailSent`; both screens ignored it
+  and said "check your email" regardless, sending the clinician to look in a
+  folder that would never contain anything. An address that does not exist
+  still reports success — that is the anti-enumeration behaviour and it is
+  unchanged, because the API only reports a failure when it genuinely tried to
+  send and could not.
+
 ## [8.3.0] - 2026-08-05
 
 Requires `@lospor/core` v8.3.0 and LOSPOR API v8.3.0.
