@@ -1,5 +1,43 @@
 # Changelog - LOSPOR Web App
 
+## [8.3.0] - 2026-08-05
+
+Requires `@lospor/core` v8.3.0 and LOSPOR API v8.3.0.
+
+### Added
+
+- **Ask to join a department, and a queue for whoever decides.** The settings
+  menu files a request instead of relabelling itself; the admin page gains the
+  queue, shown to administrators and to the head of the department being joined.
+- **Leave institution**, in the settings menu. Confirms first, then reports
+  where you landed rather than a pending request — leaving needs nobody's
+  approval. Hidden if you are already in "Без институция".
+
+### Fixed
+
+- **The recovery form showed a bare " / 10" with "keep monitoring" beside it
+  when nothing had been scored**, which reads as an assessment that was never
+  made. It now shows "—" and no verdict until all five components are recorded.
+- **Registration said the institution was optional while the server required
+  it**, so an empty box produced a generic "Invalid request" with nothing
+  pointing at the field. It is now required, names "Без институция" as the
+  answer when none of the hospitals fit, and falls back to it outside Bulgaria
+  when the "Друго" row is missing.
+- The admin page no longer sends a head of department away. It used to bounce
+  anyone whose user list returned 403, which locked them out of the one queue
+  that was theirs to act on.
+
+### Testing
+
+- The end-to-end suite goes from 5 tests to 48, across a cast of five identities
+  in two institutions — because every rule this release adds is a rule about
+  *who*, and the assertion that matters is always that somebody else is refused.
+  New specs cover the institution flow, case visibility across a move,
+  finalisation gates, the Aldrete defaults, admin-page scope, paediatric mode,
+  the ruleset authoring scope guard, offline sync, print and PDF, and research
+  access.
+- The suite now runs on every pull request, not only in the release gate.
+
 ## [8.2.1] - 2026-08-05
 
 Requires `@lospor/core` v8.2.1 and LOSPOR API v8.2.1.
