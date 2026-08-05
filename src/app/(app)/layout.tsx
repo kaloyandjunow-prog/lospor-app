@@ -65,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <OutboxBadge />
             <TourButton />
             <span data-tour="settings-menu">
-              <SettingsMenu userName={session.user?.name} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />
+              <SettingsMenu userName={session.user?.name} institutionId={session.user?.institutionId} institutionName={session.user?.institutionName} currentLocale={locale} role={session.user.role} lastLoginAt={session.user.lastLoginAt} />
             </span>
             <SignOutButton />
           </div>

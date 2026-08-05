@@ -18,6 +18,7 @@ import { Sun, Moon, Check, Search, ChevronDown, X } from "lucide-react"
 import { BrandBackdrop, LosporBrand } from "@/components/LosporBrand"
 import {
   ACCOUNT_COUNTRIES,
+  NO_INSTITUTION_ID,
   passwordPolicyIssues,
 } from "@lospor/core/account"
 import { passwordSchema } from "@/lib/password-policy"
@@ -32,7 +33,11 @@ const schema = z.object({
   email:           z.string().email(),
   password:        passwordSchema,
   confirmPassword: z.string(),
-  institutionId:   z.string().optional(),
+  // Required since 8.3. The API refuses a registration without one, and an
+  // optional field here meant the form failed with a generic "Invalid request"
+  // instead of pointing at the empty box. Anyone none of the listed hospitals
+  // fits picks "Без институция", which is a real institution row.
+  institutionId:   z.string().min(1),
   acceptedTerms:   z.boolean().refine(v => v === true, "You must accept the terms"),
 }).refine(d => d.password === d.confirmPassword, { message: "mismatch", path: ["confirmPassword"] })
 
@@ -191,7 +196,12 @@ export default function RegisterPage() {
     setInstId("")
     setValue("institutionId", "")
     if (c && c !== "Bulgaria") {
+      // Outside Bulgaria there is no list to pick from, so the account is filed
+      // under "Друго" — or, if that row is missing, under "Без институция",
+      // which always exists. Leaving it empty is no longer an option: the API
+      // requires an institution, and the form used to silently submit "".
       const other = institutions.find(i => i.name === "Друго" || i.name === "Other / Private")
+        ?? institutions.find(i => i.id === NO_INSTITUTION_ID)
       if (other) { setInstId(other.id); setValue("institutionId", other.id) }
     }
   }
@@ -280,10 +290,10 @@ export default function RegisterPage() {
                 </Select>
               </div>
 
-              {/* Institution — optional, shown after country is selected */}
+              {/* Institution — required, shown after country is selected */}
               {country && (
                 <div className="space-y-1">
-                  <Label>{t("auth.institution")} <span className="text-slate-400 text-xs font-normal">(optional)</span></Label>
+                  <Label>{t("auth.institution")} <span className="text-red-500">*</span></Label>
                   {isBulgaria ? (
                     <InstitutionPicker
                       institutions={bgInstitutions}
@@ -292,9 +302,10 @@ export default function RegisterPage() {
                       placeholder={t("auth.selectInstitution")} />
                   ) : (
                     <div className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-slate-50 dark:bg-[#1a1a1a] px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
-                      {t("common.other") ?? "Other"}
+                      {institutions.find(i => i.id === instId)?.name ?? t("common.other") ?? "Other"}
                     </div>
                   )}
+                  {errors.institutionId && <p className="text-xs text-red-500">{t("auth.institutionRequired")}</p>}
                 </div>
               )}
 

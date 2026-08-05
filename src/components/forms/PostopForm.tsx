@@ -209,9 +209,14 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 
           <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-[#2a2a2a]">
             <span className="font-semibold text-slate-700 dark:text-slate-200">{t("postop.aldreteTotal")}:</span>
-            <Badge variant={aldreteColor} className="text-base px-3 py-1">{aldreteTotal} / 10</Badge>
+            {/* An unscored patient has no total, and no verdict either. This
+                rendered a bare " / 10" with "keep monitoring" beside it, which
+                reads as an assessment that was never made. */}
+            <Badge variant={aldreteColor} className="text-base px-3 py-1" data-testid="aldrete-total">
+              {aldreteTotal ?? "—"} / 10
+            </Badge>
             {aldreteStatus === "ready" && <span className="text-sm text-green-600 dark:text-green-400">{t("postop.aldreteReady")}</span>}
-            {aldreteStatus !== "ready" && <span className="text-sm text-amber-600 dark:text-amber-400">{t("postop.aldreteMonitor")}</span>}
+            {aldreteStatus !== null && aldreteStatus !== "ready" && <span className="text-sm text-amber-600 dark:text-amber-400">{t("postop.aldreteMonitor")}</span>}
           </div>
         </div>
       </SectionCard>

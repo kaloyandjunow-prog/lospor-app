@@ -9,6 +9,7 @@ import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { normalizeAutoFillVitalsPreferences } from "@lospor/core/intraop-vitals"
+import { NO_INSTITUTION_ID } from "@lospor/core/account"
 import {
   patchWebClinicalPreferences,
   syncWebClinicalPreferences,
@@ -75,8 +76,9 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
 type RoleReq = { id: string; status: string; requestedAt: string; resolvedAt: string | null } | null
 
-export function SettingsMenu({ userName, institutionName, currentLocale, role, lastLoginAt }: {
+export function SettingsMenu({ userName, institutionId, institutionName, currentLocale, role, lastLoginAt }: {
   userName?: string | null
+  institutionId?: string | null
   institutionName?: string | null
   currentLocale?: string
   role?: string
@@ -92,8 +94,12 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
   const [instSaving, setInstSaving]         = useState(false)
   const [currentInstName, setCurrentInstName] = useState(institutionName ?? "")
   // A move is a request now, not an edit, so the menu reports its outcome
-  // instead of silently relabelling the institution.
-  const [instRequest, setInstRequest] = useState<{ state: "none" | "pending" | "error"; name: string }>({ state: "none", name: "" })
+  // instead of silently relabelling the institution. Leaving is the exception:
+  // it applies at once, so it reports where you landed, not what you asked for.
+  const [instRequest, setInstRequest] = useState<{ state: "none" | "pending" | "error" | "left"; name: string }>({ state: "none", name: "" })
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  // Somebody already in "Без институция" has nothing to leave.
+  const canLeave = Boolean(institutionId) && institutionId !== NO_INSTITUTION_ID
   const [dark, setDark]             = useState(false)
   const [layoutMode, setLayoutMode] = useState<"tabs" | "scroll">("scroll")
   const [preopLayout, setPreopLayout] = useState<"tabs" | "scroll">("scroll")
@@ -387,18 +393,63 @@ export function SettingsMenu({ userName, institutionName, currentLocale, role, l
                   <p className="text-[11px] text-amber-600 dark:text-amber-400">
                     {t("settings.institutionRequestPending", { institution: instRequest.name })}
                   </p>
+                ) : instRequest.state === "left" ? (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t("settings.institutionLeft", { institution: instRequest.name })}
+                  </p>
                 ) : instRequest.state === "error" ? (
                   <p className="text-[11px] text-red-500">{t("settings.institutionRequestFailed")}</p>
                 ) : !instEdit ? (
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || t("settings.noInstitution")}</p>
-                    <button type="button" onClick={async () => {
-                      if (!instList.length) {
-                        const data = await fetch("/api/institutions").then(r => r.json())
-                        setInstList(data)
-                      }
-                      setInstEdit(true)
-                    }} className="text-[10px] text-blue-500 hover:underline shrink-0">{t("settings.edit")}</button>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{currentInstName || t("settings.noInstitution")}</p>
+                      <button type="button" onClick={async () => {
+                        if (!instList.length) {
+                          const data = await fetch("/api/institutions").then(r => r.json())
+                          setInstList(data)
+                        }
+                        setInstEdit(true)
+                      }} className="text-[10px] text-blue-500 hover:underline shrink-0">{t("settings.edit")}</button>
+                    </div>
+                    {/* Leaving is not the same as joining: it grants nobody
+                        anything, so it needs nobody's approval and applies at
+                        once. Confirmed first because it is still a change to
+                        who can see your future cases. Cases already recorded
+                        keep the institution they were recorded at. */}
+                    {canLeave && (confirmLeave ? (
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                          {t("settings.leaveInstitutionConfirm")}
+                        </p>
+                        <button type="button" disabled={instSaving} onClick={async () => {
+                          setInstSaving(true)
+                          const res = await fetch("/api/user/institution-request", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ institutionId: NO_INSTITUTION_ID }),
+                          })
+                          if (res.ok) {
+                            const body = await res.json().catch(() => null)
+                            const name = body?.requestedInstitution?.name ?? t("settings.noInstitution")
+                            setCurrentInstName(name)
+                            setInstRequest({ state: "left", name })
+                          } else {
+                            setInstRequest({ state: "error", name: "" })
+                          }
+                          setConfirmLeave(false)
+                          setInstSaving(false)
+                        }} className="text-[10px] font-semibold text-red-500 hover:underline shrink-0">
+                          {t("settings.leaveInstitution")}
+                        </button>
+                        <button type="button" onClick={() => setConfirmLeave(false)}
+                          className="text-[10px] text-slate-400 hover:text-slate-600 shrink-0">{t("settings.cancel")}</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmLeave(true)}
+                        className="text-[10px] text-slate-400 hover:text-red-500 hover:underline">
+                        {t("settings.leaveInstitution")}
+                      </button>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-1">
