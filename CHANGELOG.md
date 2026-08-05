@@ -1,5 +1,17 @@
 # Changelog - LOSPOR Web App
 
+## [8.2.1] - 2026-08-05
+
+Requires `@lospor/core` v8.2.1 and LOSPOR API v8.2.1.
+
+### Fixed
+
+- Weight, height and temperature steppers show a value to the precision it is
+  entered in. Any range with a sub-unit step previously rendered through
+  `Math.round`, so a 0.5 kg ladder read "5 5 6 6 7 7". See `@lospor/core`
+  v8.2.1; the fix reaches every `ConvertedStepper` in the preop, postop and
+  intraop forms.
+
 ## [8.2.0] - 2026-08-05
 
 Stops the forms inventing clinical data, and closes a login loop.
