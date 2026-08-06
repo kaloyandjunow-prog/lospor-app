@@ -1,5 +1,16 @@
 # Changelog - LOSPOR Web App
 
+## [8.5.0] - 2026-08-07
+
+### Fixed
+
+- **Live case updates could stop for the rest of a session.** `LiveCaseUpdater`
+  polls through `createSingleFlightPoller`, which re-armed only inside the
+  in-flight poll's `.finally()`. One request that never settled left the poller
+  permanently asleep, so a case being edited elsewhere silently stopped
+  refreshing. Fixed by repinning to core v8.5.0, which puts polls under a
+  watchdog.
+
 ## [8.4.0] - 2026-08-06
 
 ### Changed
