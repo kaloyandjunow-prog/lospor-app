@@ -1,5 +1,26 @@
 # Changelog - LOSPOR Web App
 
+## [8.3.2] - 2026-08-06
+
+### Fixed
+
+- **Premedication for a child was dosed as an adult.** The picker took only a
+  drug list and a dose table, with no clinical mode, weight or age, so a
+  paediatric case was offered the adult library unchanged — a gram of
+  paracetamol for a 12 kg two-year-old. It now rebuilds every entry from the
+  child's own weight and age through the shared resolver in `@lospor/core`, so
+  this and the mobile sheet cannot disagree about a dose.
+- Drugs that should not be given to a child are shown disabled with the reason
+  rather than at an adult dose — codeine, aspirin under 16, tramadol under 12.
+  Drugs with no paediatric rule are dropped rather than shown at their adult
+  amount, and a child with no recorded weight gets a prompt for one instead of
+  a number.
+- A calculated dose shows the arithmetic behind it — `15 mg/kg × 14 kg`, plus
+  the cap when it bit — so it can be checked at a glance.
+- Changing the route recalculates the dose. Oral midazolam is 0.5 mg/kg and
+  intravenous is 0.05; the previous number used to stay on screen across the
+  change, a tenfold error waiting to be confirmed.
+
 ## [8.3.1] - 2026-08-05
 
 Requires `@lospor/core` v8.3.0 and LOSPOR API v8.3.1.

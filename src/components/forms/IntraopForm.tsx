@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm, useWatch, type Resolver } from "react-hook-form"
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -37,9 +37,16 @@ import { TimelineSection } from "@/components/forms/sections/TimelineSection"
 import { AirwaySection } from "@/components/forms/sections/AirwaySection"
 import { TechniqueSection } from "@/components/forms/sections/TechniqueSection"
 import {
+  mapPremedicationCategories,
   premedicationDoseMap,
   weightBasisMap,
 } from "@lospor/core/option-library"
+import {
+  buildPediatricPremedLibrary,
+  pediatricPremedDoseForRoute,
+  type PediatricPremedAnnotation,
+  type PediatricPremedPatient,
+} from "@lospor/core/pediatric-premedication-library"
 import {
   buildIntraopEndTiming,
   isValidTimeZone,
@@ -245,7 +252,39 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   )
   const airwayDeviceOptions = useMemo(() => airwayOptions.filter(o => o.group === "Device"), [airwayOptions])
   const airwayToolOptions = useMemo(() => airwayOptions.filter(o => o.group === "Instrument"), [airwayOptions])
+  // Premedication for a child is rebuilt from the child's weight and age, drug
+  // by drug. Without this the picker offered a 12 kg two-year-old the adult
+  // library unchanged — a gram of paracetamol — because PremDoseCfg carries a
+  // fixed amount with no weight term. The rebuild lives in @lospor/core so this
+  // and the mobile sheet cannot drift apart on a dose.
+  // Declared here rather than beside the IBW block below, because the premedication
+  // rebuild needs them and `const` does not hoist.
+  const clinicalMode = preop?.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT"
+  const isPediatric = clinicalMode === "PEDIATRIC"
+
+  const premedPatient = useMemo<PediatricPremedPatient>(() => ({
+    weightKg: preop?.weightKg ?? null,
+    heightCm: preop?.heightCm ?? null,
+    sex: preop?.sex ?? null,
+    age: isPediatric && preop?.ageValue != null && preop.ageUnit
+      ? { value: preop.ageValue, unit: preop.ageUnit }
+      : null,
+  }), [isPediatric, preop])
+
+  const premedPediatric = useMemo(
+    () => isPediatric
+      ? buildPediatricPremedLibrary(mapPremedicationCategories(premedOptions), premedPatient)
+      : null,
+    [isPediatric, premedOptions, premedPatient],
+  )
+
   const premedCategories = useMemo<PremedCat[]>(() => {
+    if (premedPediatric) {
+      return premedPediatric.map(category => ({
+        cat: category.category,
+        drugs: category.drugs.map(drug => drug.name),
+      }))
+    }
     const byGroup = new Map<string, string[]>()
     for (const o of premedOptions) {
       const group = o.group ?? "Other"
@@ -253,11 +292,38 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       byGroup.get(group)!.push(o.label)
     }
     return Array.from(byGroup, ([cat, drugs]) => ({ cat, drugs }))
-  }, [premedOptions])
-  const premedDoses = useMemo<Record<string, PremDoseCfg>>(
-    () => premedicationDoseMap(premedOptions),
-    [premedOptions],
-  )
+  }, [premedOptions, premedPediatric])
+
+  const premedDoses = useMemo<Record<string, PremDoseCfg>>(() => {
+    if (!premedPediatric) return premedicationDoseMap(premedOptions)
+    const map: Record<string, PremDoseCfg> = {}
+    for (const category of premedPediatric) {
+      for (const { name, pediatric: _annotation, ...cfg } of category.drugs) map[name] = cfg
+    }
+    return map
+  }, [premedOptions, premedPediatric])
+
+  /** Provenance and withheld reasons, keyed by drug, empty outside paediatric mode. */
+  const premedAnnotations = useMemo<Record<string, PediatricPremedAnnotation>>(() => {
+    if (!premedPediatric) return {}
+    const map: Record<string, PediatricPremedAnnotation> = {}
+    for (const category of premedPediatric) {
+      for (const drug of category.drugs) {
+        if (drug.pediatric) map[drug.name] = drug.pediatric
+      }
+    }
+    return map
+  }, [premedPediatric])
+
+  // Oral midazolam is 0.5 mg/kg and intravenous is 0.05; leaving the previous
+  // number in place across a route change is a tenfold error waiting to happen.
+  const premedDoseForRoute = useCallback((drugName: string, route: string): number | null => {
+    if (!premedPediatric) return null
+    const cfg = premedDoses[drugName]
+    if (!cfg) return null
+    const next = pediatricPremedDoseForRoute({ name: drugName, ...cfg }, route, premedPatient)
+    return next.status === "calculated" ? next.dose : null
+  }, [premedDoses, premedPatient, premedPediatric])
 
   const EMPTY_TIMETABLE = useMemo<TimetableData>(() => ({ vitals: [], drugs: [], fluids: [], agents: [], infusions: [], gasSettings: [], clinicalEvents: [] }), [])
   const safeTimetable = (defaultTimetable && !Array.isArray(defaultTimetable) && "vitals" in defaultTimetable)
@@ -276,9 +342,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     onDeleteEvent?.(evId)
   }
 
-  // Compute IBW/TBW from preop for weight-adjusted infusion totals
-  const clinicalMode = preop?.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT"
-  const isPediatric = clinicalMode === "PEDIATRIC"
   const {
     snapshot: clinicalRulesSnapshot,
     loading: clinicalRulesLoading,
@@ -733,7 +796,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       <VascularAccessSection control={control} watch={watch} />
 
       {/* Premedication */}
-      <PremedicationSection t={t} control={control} watch={watch} premedCategories={premedCategories} premedDoses={premedDoses} />
+      <PremedicationSection t={t} control={control} watch={watch} premedCategories={premedCategories} premedDoses={premedDoses}
+        premedAnnotations={premedAnnotations} premedDoseForRoute={premedDoseForRoute} />
       </div>{/* /intraop-technique */}
 
         </>)
