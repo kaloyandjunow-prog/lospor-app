@@ -1,5 +1,19 @@
 # Changelog - LOSPOR Web App
 
+## [8.4.0] - 2026-08-06
+
+### Changed
+
+- Version aligned with the 8.4.0 release train. No behavioural change: the web
+  app always has the search endpoints available.
+
+### Added
+
+- A lint rule forbidding `@lospor/core/vocabulary` here. It is ~2.6 MB of ICD-10
+  and procedure data bundled for the mobile app, which has no network to fall
+  back on; importing it on the web would ship the whole table to every browser
+  for no benefit.
+
 ## [8.3.2] - 2026-08-06
 
 ### Fixed
