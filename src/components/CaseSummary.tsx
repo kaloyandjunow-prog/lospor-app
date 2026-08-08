@@ -14,6 +14,21 @@ import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { PrintTimetable, calcDrugTotals, calcInfTotals, naturalMaxCols, buildDrugLog } from "@/components/case-summary/PrintTimetable"
 import { planPanels, type PanelPlan } from "@lospor/core/print"
+
+/**
+ * BMI to one decimal, for display only.
+ *
+ * The stored value is deliberately full precision — this is a research database,
+ * and averaging precisely-stored BMIs beats averaging pre-rounded ones
+ * (`lospor-api` `_mappers.ts`, pinned to four decimal places by
+ * `pediatric-mappers.test.ts`). So the rounding has to happen here.
+ *
+ * Without it the anaesthesia record printed "BMI 26.1224489795918" — 80 kg at
+ * 175 cm — on a sheet that goes in the patient's notes.
+ */
+function formatBmi(bmi: number): string {
+  return String(Math.round(bmi * 10) / 10)
+}
 import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 
@@ -549,7 +564,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               {p?.sex && <span>{locale === "bg" ? (p.sex === "MALE" ? "Мъж" : p.sex === "FEMALE" ? "Жена" : "") : (p.sex === "MALE" ? "Male" : p.sex === "FEMALE" ? "Female" : "")}</span>}
               {p?.bloodType && <span>{p.bloodType} Rh{p.rhFactor === "POSITIVE" ? "+" : p.rhFactor === "NEGATIVE" ? "−" : ""}</span>}
               {p?.heightCm && p?.weightKg && <span>{p.heightCm} cm / {p.weightKg} kg</span>}
-              {p?.bmi != null && <span>BMI {p.bmi}</span>}
+              {p?.bmi != null && <span>BMI {formatBmi(p.bmi)}</span>}
               {ibwResolution.available && <span>IBW {ibwResolution.roundedKg} kg</span>}
             </div>
           </div>
@@ -787,7 +802,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                 : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">No difficult-airway history</p>}
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.anthropometry.toUpperCase()}</p>
               <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
-              <F label="BMI"           value={p?.bmi ? `${p.bmi} kg/m²` : null} />
+              <F label="BMI"           value={p?.bmi ? `${formatBmi(p.bmi)} kg/m²` : null} />
             </div>
             {/* History & comorbidities + meds + allergies */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
