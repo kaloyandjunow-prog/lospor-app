@@ -1,7 +1,7 @@
 {
   "src/components/IntraopTimetable.tsx": 4168,
   "src/components/forms/PreopForm.tsx": 1272,
-  "src/app/(app)/clinical-rules/page.tsx": 1228,
+  "src/app/(app)/clinical-rules/page.tsx": 1181,
   "src/app/(app)/cases/new/page.tsx": 1111,
   "src/components/forms/IntraopForm.tsx": 973,
   "src/components/CaseSummary.tsx": 932,
