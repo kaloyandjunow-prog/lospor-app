@@ -9,6 +9,16 @@ import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
+import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
+import {
+  selId,
+  selIdx,
+  type FConflictAnchor,
+  type FluidConflict,
+  type PendingFluidEntry,
+  type TtFP,
+  type TtSel,
+} from "@/components/intraop/timetable-types"
 import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
@@ -68,7 +78,7 @@ import {
   drugSelectorAtomicState,
   resolveAdultDrugSelectorSurface,
 } from "@/lib/drug-selector-surface"
-import type { DoseProfile, LocalAnaestheticFormulation } from "@lospor/core/catalog"
+import type { DoseProfile } from "@lospor/core/catalog"
 import {
   applicablePediatricDrugProfiles,
   applicablePediatricInfusionProfiles,
@@ -92,7 +102,6 @@ import {
 import { calculateMostellerBsa } from "@lospor/core/pediatric-calculators"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
-import type { FluidEntryMode } from "@lospor/core/intraop-fluids"
 import {
   currentFluidRate,
   fluidClinicalRuleAudit,
@@ -131,8 +140,28 @@ export type {
 } from "@/types/timetable"
 export type { LogEvent as IntraopLogEvent } from "@/types/timetable"
 
-interface Props { startTime: string; startedAt?: string; endTime?: string; caseStarted?: boolean; monitoring?: Record<string, boolean>; ibw?: number | null; tbw?: number | null; showAgentRow?: boolean; data: TimetableData; onChange: (d: TimetableData) => void; onEndCase?: () => void; onResumeCase?: () => void; onPostopContinued?: (items: string[]) => void; onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void; onComplicationAdded?: (labels: string[]) => void; onLogEvent?: (event: IntraopLogEvent) => void; onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void }
+// One declaration, not two. These were separate interfaces of the same name —
+// legal, since TypeScript merges them, but the split was organic growth rather
+// than meaning, and it read as an accidental duplicate.
 interface Props {
+  startTime: string
+  startedAt?: string
+  endTime?: string
+  caseStarted?: boolean
+  monitoring?: Record<string, boolean>
+  ibw?: number | null
+  tbw?: number | null
+  showAgentRow?: boolean
+  data: TimetableData
+  onChange: (d: TimetableData) => void
+  onEndCase?: () => void
+  onResumeCase?: () => void
+  onPostopContinued?: (items: string[]) => void
+  onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void
+  onComplicationAdded?: (labels: string[]) => void
+  onLogEvent?: (event: IntraopLogEvent) => void
+  onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void
+
   clinicalMode?: "ADULT" | "PEDIATRIC"
   pediatricAgeValue?: number | null
   pediatricAgeUnit?: PediatricAgeUnit | null
@@ -151,83 +180,10 @@ interface Props {
   clinicalPresetScope?: "PLATFORM" | "INSTITUTION" | "USER" | null
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 // Pure HH:MM time math lives in src/lib/timetable-time.ts (imported above).
-
-type FConflictAnchor = { top: number; bottom: number; left: number; right: number; width: number }
-type PendingFluidEntry = {
-  name: string
-  category: string
-  color: string
-  fluidEntryMode: FluidEntryMode
-  volume: string
-  bagVolumeMl?: number
-  rate?: number
-  unit?: "mL/h"
-  concentration?: string
-  clinicalRuleKey?: string
-  clinicalRuleVersion?: string
-  clinicalRuleSourceIds?: string[]
-  clinicalPresetId?: string
-  clinicalPresetVersion?: number
-  clinicalPresetScope?: "PLATFORM" | "INSTITUTION" | "USER"
-}
-type FluidConflict =
-  | { phase: "choose";   pending: PendingFluidEntry; newCol: number; existingId: string; existingName: string; anchor: FConflictAnchor }
-  | { phase: "finished"; pending: PendingFluidEntry; newCol: number; existingId: string; anchor: FConflictAnchor }
-  | { phase: "volume";   pending: PendingFluidEntry; newCol: number; existingId: string; volInput: string; anchor: FConflictAnchor }
-
-// ── Module-level types ────────────────────────────────────────────────────────
-type TtSel = { type: "drug"; idx: number } | { type: "infusion"; id: string } | { type: "fluid"; id: string } | { type: "agent"; startCol: number }
-type TtFPMode = "bolus" | "infusion" | "fluid"
-
-// TtSel's `id`/`startCol`/`idx` fields each only exist on 2 of its 4 members
-// — these narrow without a cast for spots that key off "is this an
-// id-bearing selection" rather than one specific exact type.
-function selId(s: TtSel): string | undefined { return s.type === "infusion" || s.type === "fluid" ? s.id : undefined }
-function selIdx(s: TtSel): number | undefined { return s.type === "drug" ? s.idx : undefined }
-
-type TtFP = {
-  col: number; name: string; unit: string; mode: TtFPMode; dose: string; doseHint: string;
-  rate: number; rateUnit: string; rateUnits: string[];
-  rateMin: number; rateMax: number; rateStep: number;
-  color: string; fluidScale?: "S" | "L";
-  fluidEntryMode?: FluidEntryMode
-  fluidEntryModes?: FluidEntryMode[]
-  fluidRate?: string
-  fluidRateHint?: string
-  fluidRateMin?: number
-  fluidRateMax?: number
-  fluidRateStep?: number
-  fluidBagMin?: number
-  fluidBagMax?: number
-  fluidBagStep?: number
-  fluidConcentrations?: string[]
-  fluidProfileConflict?: boolean
-  concentration?: string   // local anaesthetic solution % (e.g. "0.25%")
-  concentrationUnitHint?: string
-  customConc?: string      // user-typed custom % before appending "%"
-  quickDoses?: number[]    // bolus quick-dose presets
-  quickRates?: number[]    // infusion quick-rate presets
-  routes?: string[]        // available routes of administration for this drug
-  route?: string           // selected route
-  formulation?: LocalAnaestheticFormulation
-  formulationOptions?: LocalAnaestheticFormulation[]
-  concentrationOptions?: string[]
-  manualEntryOnly?: boolean
-  advisory?: string
-  calculationBasis?: "FLAT" | "TBW" | "IBW" | "BSA_M2"
-  calculationWeightKg?: number
-  calculationMethod?: string
-  calculationUnavailableReason?: DrugSelectionSurface["calculationUnavailableReason"]
-  clinicalRuleKey?: string
-  clinicalRuleVersion?: string
-  clinicalRuleSourceIds?: string[]
-  clinicalPresetId?: string
-  clinicalPresetVersion?: number
-  clinicalPresetScope?: "PLATFORM" | "INSTITUTION" | "USER"
-  anchor: { top: number; bottom: number; left: number; right: number; width: number };
-}
+// The chart’s own shapes live in ./intraop/timetable-types, so anything lifted
+// out of this file can be given a real type instead of widening to unknown.
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function IntraopTimetable({
@@ -331,48 +287,24 @@ export function IntraopTimetable({
     [adultDoseProfiles, baseFluidLibOpts],
   )
 
-  const displayDrugName = useCallback(
-    (name: string) => displayNamedOption("INTRAOP_DRUG", drugLibOpts, name, locale),
-    [drugLibOpts, locale],
-  )
-  const displayFluidName = useCallback(
-    (name: string) => displayNamedOption("INTRAOP_FLUID", fluidLibOpts, name, locale),
-    [fluidLibOpts, locale],
-  )
-  const displayInfusionName = useCallback(
-    (name: string) => displayNamedOption("INTRAOP_INFUSION", infusionLibOpts, name, locale),
-    [infusionLibOpts, locale],
-  )
-  const displayAgentName = useCallback(
-    (name: string) => displayNamedOption("INHALATIONAL_AGENT", agentLibOpts, name, locale),
-    [agentLibOpts, locale],
-  )
-  const displayEventName = useCallback(
-    (event: { code: string; label: string; labelBg: string | null }) => displayClinicalCode(
-      "option:INTRAOP_EVENT",
-      event.code,
-      locale,
-      { label: event.label, labelBg: event.labelBg },
-    ),
-    [locale],
-  )
-  const displayGroupName = useCallback(
-    (group: string) => displayClinicalCode("optionGroup", group, locale),
-    [locale],
-  )
-  const displayFluidLaneLabel = useCallback((label: string) => {
-    const match = label.match(/^(.*) (\d+)$/)
-    return match ? `${displayGroupName(match[1])} ${match[2]}` : displayGroupName(label)
-  }, [displayGroupName])
-  const displayScenarioName = useCallback(
-    (group: { key: string; label: string }) => displayClinicalCode(
-      "scenarioGroup",
-      group.key,
-      locale,
-      { label: group.label },
-    ),
-    [locale],
-  )
+  // Naming lives in useIntraopDisplay so anything split out of this component
+  // can be handed the same words rather than rebuilding them.
+  const {
+    displayDrugName,
+    displayFluidName,
+    displayInfusionName,
+    displayAgentName,
+    displayEventName,
+    displayGroupName,
+    displayFluidLaneLabel,
+    displayScenarioName,
+  } = useIntraopDisplay({
+    locale,
+    drugOptions: drugLibOpts,
+    fluidOptions: fluidLibOpts,
+    infusionOptions: infusionLibOpts,
+    agentOptions: agentLibOpts,
+  })
 
   // INFUSION_CONFIGS must keep every infusion so recorded ones still resolve;
   // this set is what the picker offers.
