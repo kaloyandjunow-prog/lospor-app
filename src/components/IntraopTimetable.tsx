@@ -10,6 +10,7 @@ import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
+import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import {
   barContinues,
   barEntersRow,
@@ -1726,6 +1727,71 @@ export function IntraopTimetable({
     })
   }
 
+  // ── Fluid conflict resolution ────────────────────────────────────────────────
+  // The popover in ./intraop/FluidConflictPopover only renders and reports which
+  // button was pressed; every change to the chart happens here, where the data
+  // lives.
+
+  function fluidConflictRunInParallel() {
+    if (!fluidConflict) return
+    addFluidDirect(fluidConflict.pending, fluidConflict.newCol)
+    setFluidConflict(null)
+  }
+
+  function fluidConflictStopExisting() {
+    const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict?.existingId)
+    // A rate line's delivered volume can be computed, so offer it rather than
+    // asking a question the chart can already answer.
+    if (existing?.fluidEntryMode === "RATE") {
+      const endTs = fluidActionTimestamp(fluidConflict!.newCol)
+      setFluidConflict(fc => fc ? {
+        ...fc,
+        phase: "volume",
+        volInput: String(fluidDeliveredVolumeMl(existing, endTs)),
+      } as FluidConflict : null)
+      return
+    }
+    setFluidConflict(fc => fc ? { ...fc, phase: "finished" } as FluidConflict : null)
+  }
+
+  function finishExistingFluidAndStart(actualVolumeMl: number) {
+    if (!fluidConflict) return
+    const d = dataRef.current
+    const existing = (d.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
+    if (!existing) return
+    const endTs = fluidActionTimestamp(fluidConflict.newCol)
+    const endCol = Math.max(existing.startCol, fluidConflict.newCol - 1)
+    const nextFluid = createFluidEntry(fluidConflict.pending, fluidConflict.newCol)
+    onChangeRef.current({
+      ...d,
+      fluids: [
+        ...(d.fluids ?? []).map(fluid => fluid.id === existing.id
+          ? finalizedFluid(fluid, actualVolumeMl, endTs, endCol)
+          : fluid),
+        nextFluid,
+      ],
+    })
+    emitFluidEnd(existing, actualVolumeMl, endTs)
+    emitFluidStart(nextFluid)
+    setFluidConflict(null)
+  }
+
+  function fluidConflictFinishedAnswer(fullyInfused: boolean) {
+    if (!fluidConflict) return
+    if (fullyInfused) {
+      const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
+      const fullVolume = Number(existing?.bagVolumeMl ?? existing?.volume) || 0
+      finishExistingFluidAndStart(fullVolume)
+      return
+    }
+    setFluidConflict(fc => fc ? { ...fc, phase: "volume", volInput: "" } as FluidConflict : null)
+  }
+
+  function fluidConflictConfirmVolume() {
+    if (!fluidConflict || fluidConflict.phase !== "volume") return
+    finishExistingFluidAndStart(Number(fluidConflict.volInput) || 0)
+  }
+
   function stopFluid(id: string, administeredVolumeMl: number) {
     const d = dataRef.current
     const fluid = (d.fluids ?? []).find(item => item.id === id)
@@ -3014,141 +3080,22 @@ export function IntraopTimetable({
     ,
       document.body
     )}
-    {/* ── Fluid conflict portal ──────────────────────────────────────────────── */}
-    {fluidConflict && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 230
-        const a = fluidConflict.anchor
-        const spaceBelow = window.innerHeight - a.bottom
-        const showAbove  = spaceBelow < 240
-        const left = Math.max(8, Math.min(a.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? a.top - 4 : a.bottom + 4
-        const conflictExisting = (data.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
-
-        function doParallel() {
-          addFluidDirect(fluidConflict!.pending, fluidConflict!.newCol)
-          setFluidConflict(null)
-        }
-        function doStop() {
-          const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict?.existingId)
-          if (existing?.fluidEntryMode === "RATE") {
-            const endTs = fluidActionTimestamp(fluidConflict!.newCol)
-            setFluidConflict(fc => fc ? {
-              ...fc,
-              phase: "volume",
-              volInput: String(fluidDeliveredVolumeMl(existing, endTs)),
-            } as FluidConflict : null)
-            return
-          }
-          setFluidConflict(fc => fc ? { ...fc, phase: "finished" } as FluidConflict : null)
-        }
-        function finishExistingAndStart(actualVolumeMl: number) {
-          if (!fluidConflict) return
-          const d = dataRef.current
-          const existing = (d.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
-          if (!existing) return
-          const endTs = fluidActionTimestamp(fluidConflict.newCol)
-          const endCol = Math.max(existing.startCol, fluidConflict.newCol - 1)
-          const nextFluid = createFluidEntry(fluidConflict.pending, fluidConflict.newCol)
-          onChangeRef.current({
-            ...d,
-            fluids: [
-              ...(d.fluids ?? []).map(fluid => fluid.id === existing.id
-                ? finalizedFluid(fluid, actualVolumeMl, endTs, endCol)
-                : fluid),
-              nextFluid,
-            ],
-          })
-          emitFluidEnd(existing, actualVolumeMl, endTs)
-          emitFluidStart(nextFluid)
-          setFluidConflict(null)
-        }
-        function doFinished(finished: boolean) {
-          if (!fluidConflict) return
-          if (finished) {
-            const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
-            const fullVolume = Number(existing?.bagVolumeMl ?? existing?.volume) || 0
-            finishExistingAndStart(fullVolume)
-          } else {
-            setFluidConflict(fc => fc ? { ...fc, phase: "volume", volInput: "" } as FluidConflict : null)
-          }
-        }
-        function doConfirmVolume() {
-          if (!fluidConflict || fluidConflict.phase !== "volume") return
-          finishExistingAndStart(Number(fluidConflict.volInput) || 0)
-        }
-
-        return (
-          <>
-            <div className="fixed inset-0 z-[9994]" onClick={() => setFluidConflict(null)} />
-            <div
-              style={{ position: "fixed", left, top, width: POP_W, zIndex: 9995, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
-              onClick={e => e.stopPropagation()}>
-
-              {fluidConflict.phase === "choose" && (
-                <>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{fluidConflict.pending.category} conflict</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
-                    <span className="font-semibold" style={{ color: fluidConflict.pending.color }}>{fluidConflict.existingName}</span> is already running.
-                  </p>
-                  <div className="space-y-1">
-                    <button type="button" onClick={doStop}
-                      className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">
-                      Stop {fluidConflict.existingName}
-                    </button>
-                    <button type="button" onClick={doParallel}
-                      className="w-full text-xs font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-1.5">
-                      Run in parallel
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {fluidConflict.phase === "finished" && (
-                <>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{t("intraop.timetable.wasItFinished")}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Did the full volume of {fluidConflict.pending.category.toLowerCase()} get infused?</p>
-                  <div className="space-y-1">
-                    <button type="button" onClick={() => doFinished(true)}
-                      className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">
-                      Yes, fully infused
-                    </button>
-                    <button type="button" onClick={() => doFinished(false)}
-                      className="w-full text-xs font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-1.5">
-                      No, stopped early
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {fluidConflict.phase === "volume" && (
-                <>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
-                    {conflictExisting?.fluidEntryMode === "RATE"
-                      ? "Calculated delivered volume · edit if needed"
-                      : t("intraop.timetable.howMuchInfused")}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <input autoFocus type="number" min={0} placeholder="0"
-                      value={fluidConflict.volInput}
-                      onChange={e => setFluidConflict(fc => fc && fc.phase === "volume" ? { ...fc, volInput: e.target.value } : fc)}
-                      onKeyDown={e => { if (e.key === "Enter") doConfirmVolume() }}
-                      className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                    />
-                    <span className="text-xs font-semibold text-slate-400">ml</span>
-                  </div>
-                  <button type="button" onClick={doConfirmVolume}
-                    className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5">
-                    Confirm
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        )
-      })(),
-      document.body
+    {/* ── Fluid conflict popover ─────────────────────────────────────────────── */}
+    {fluidConflict && (
+      <FluidConflictPopover
+        conflict={fluidConflict}
+        existingEntryMode={(data.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)?.fluidEntryMode}
+        labels={{
+          wasItFinished: t("intraop.timetable.wasItFinished"),
+          howMuchInfused: t("intraop.timetable.howMuchInfused"),
+        }}
+        onDismiss={() => setFluidConflict(null)}
+        onRunInParallel={fluidConflictRunInParallel}
+        onStopExisting={fluidConflictStopExisting}
+        onFinishedAnswer={fluidConflictFinishedAnswer}
+        onVolumeInput={value => setFluidConflict(fc => fc && fc.phase === "volume" ? { ...fc, volInput: value } : fc)}
+        onConfirmVolume={fluidConflictConfirmVolume}
+      />
     )}
     {/* ── Agent picker portal ────────────────────────────────────────────────── */}
     {agentPicker !== null && agentPickerRect && typeof document !== "undefined" && createPortal(
