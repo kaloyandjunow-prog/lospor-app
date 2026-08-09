@@ -13,6 +13,16 @@ import path from "path"
 const authFile = path.join(__dirname, "e2e", ".auth", "user.json")
 const skipWebServer = process.env.E2E_SKIP_WEBSERVER === "true"
 
+// The suite runs against a disposable local PostgreSQL, not the shared dev
+// project. See e2e/docker-compose.e2e.yaml: the seeder is not transactional and
+// has a path that cannot repair itself on a rerun, which against a shared
+// database made every run something to be careful about. Here the recovery for
+// anything is `npm run e2e:db:reset`.
+//
+// Set E2E_DATABASE_URL to point somewhere else deliberately.
+const e2eDatabaseUrl = process.env.E2E_DATABASE_URL
+  ?? "postgresql://lospor:lospor-e2e@127.0.0.1:55433/lospor_e2e"
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -69,6 +79,8 @@ export default defineConfig({
         NEXT_PUBLIC_APP_URL: "http://localhost:3000",
         AUTH_EMAIL_TEST_LINKS: "true",
         BREVO_API_KEY: "",
+        DATABASE_URL: e2eDatabaseUrl,
+        DIRECT_URL: e2eDatabaseUrl,
       },
     },
     {

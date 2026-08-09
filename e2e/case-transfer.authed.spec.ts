@@ -29,13 +29,61 @@ async function userIdOf(context: { request: { get: (u: string) => Promise<{ json
   return (await res.json()).id
 }
 
+/** "2026-0007" -> 7. Codes are a per-user sequence within the year. */
+function codeNumber(caseCode: string): number {
+  return Number(caseCode.split("-")[1])
+}
+
+type Ctx = { request: { post: (u: string, o: unknown) => Promise<{ status: () => number; text: () => Promise<string>; json: () => Promise<{ id: string; caseCode: string }> }> } }
+
+async function createCase(context: Ctx) {
+  const res = await context.request.post("/api/cases", { headers: JSON_HEADERS, data: { preop: PREOP } })
+  expect(res.status(), await res.text()).toBe(201)
+  return res.json()
+}
+
+/**
+ * Gives both people a case carrying the same code, which is the only situation
+ * in which a transfer renumbers anything.
+ *
+ * It has to be constructed rather than assumed. Codes are per-user sequences,
+ * so they start equal but drift apart as each person accumulates cases — and
+ * this test used to depend on a shared database where the drift happened to
+ * line up. Sequences advance by exactly one and never skip, so walking whichever
+ * person is behind forward always terminates on the other's number.
+ */
+async function giveBothTheSameCode(a: Ctx, b: Ctx) {
+  const created: { context: Ctx; id: string }[] = []
+  let latestA = await createCase(a)
+  created.push({ context: a, id: latestA.id })
+  let latestB = await createCase(b)
+  created.push({ context: b, id: latestB.id })
+
+  for (let guard = 0; guard < 40 && latestA.caseCode !== latestB.caseCode; guard += 1) {
+    if (codeNumber(latestA.caseCode) < codeNumber(latestB.caseCode)) {
+      latestA = await createCase(a)
+      created.push({ context: a, id: latestA.id })
+    } else {
+      latestB = await createCase(b)
+      created.push({ context: b, id: latestB.id })
+    }
+  }
+  expect(latestA.caseCode, "could not align the two case sequences").toBe(latestB.caseCode)
+  return { latestA, latestB, created }
+}
+
 test("a head of department can assign a case within their institution, and it is renumbered", async ({ browser }) => {
   await withRoles(browser, ["member-a", "hod-a", "admin"], async ctx => {
-    const created = await ctx["member-a"].request.post("/api/cases", {
-      headers: JSON_HEADERS, data: { preop: PREOP },
-    })
-    expect(created.status(), await created.text()).toBe(201)
-    const { id, caseCode: originalCode } = await created.json()
+    // Renumbering only happens when the recipient already holds the moving
+    // case's code, so the collision is constructed rather than hoped for. This
+    // test used to rely on a shared database where the two sequences happened
+    // to line up; against a fresh one nothing clashed and it failed on a system
+    // that was behaving correctly.
+    const { latestB, created: setup } = await giveBothTheSameCode(
+      ctx["admin"] as Ctx,
+      ctx["member-a"] as Ctx,
+    )
+    const { id, caseCode: originalCode } = latestB
 
     try {
       const adminId = await userIdOf(ctx["admin"])
@@ -55,8 +103,14 @@ test("a head of department can assign a case within their institution, and it is
       // The new owner can now open it.
       expect((await ctx["admin"].request.get(`/api/cases/${id}`)).status()).toBe(200)
     } finally {
+      // The moved case may sit with either owner depending on where the test
+      // stopped, and the alignment cases belong to whoever created them.
       await ctx["admin"].request.delete(`/api/cases/${id}`, { headers: JSON_HEADERS }).catch(() => {})
       await ctx["member-a"].request.delete(`/api/cases/${id}`, { headers: JSON_HEADERS }).catch(() => {})
+      for (const { context, id: created } of setup) {
+        await (context as unknown as { request: { delete: (u: string, o: unknown) => Promise<unknown> } })
+          .request.delete(`/api/cases/${created}`, { headers: JSON_HEADERS }).catch(() => {})
+      }
     }
   })
 })
