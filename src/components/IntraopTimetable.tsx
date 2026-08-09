@@ -11,6 +11,14 @@ import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import {
+  barContinues,
+  barEntersRow,
+  barLeftClass,
+  barRightClass,
+  computeRowGeometry,
+  showBarGrip,
+} from "@/components/intraop/timetable-row-geometry"
+import {
   selId,
   selIdx,
   type FConflictAnchor,
@@ -1870,40 +1878,31 @@ export function IntraopTimetable({
 
   // ── Per-row renderer ──────────────────────────────────────────────────────────
   function renderRow(rowIdx: number, overrideColStart?: number, overrideColEnd?: number) {
-    const colStart    = overrideColStart ?? rowIdx * ROW_COLS
-    const colEnd      = overrideColEnd   ?? Math.min(colStart + ROW_COLS, colCount)
-    const rowCols     = Array.from({ length: colEnd - colStart }, (_, i) => colStart + i)
-    const isActiveRow = overrideColStart !== undefined
-      ? nowCol !== null
-      : nowCol !== null ? rowIdx === Math.floor(nowCol / ROW_COLS) : rowIdx === Math.ceil(colCount / ROW_COLS) - 1
-    const rowW        = LABEL_W + rowCols.length * colW
-    // Scale nowOffsetPx (stored in COL_W units) to dynamic colW units for display
-    // Stop the live line once the case has ended (endTime is set)
-    const rowNowPx = isActiveRow && nowOffsetPx !== null && !endTime ? (nowOffsetPx - colStart * COL_W) * colW / COL_W : null
+    // Geometry and bar-edge rules live in ./intraop/timetable-row-geometry, where
+    // the now-marker and post-case boundary can be checked at their edges.
+    const {
+      colStart,
+      colEnd,
+      columns: rowCols,
+      isActiveRow,
+      width: rowW,
+      nowPx: rowNowPx,
+      endOverlayLeft: rowEndOverlayLeft,
+    } = computeRowGeometry({
+      rowIdx,
+      rowCols: ROW_COLS,
+      colCount,
+      colW,
+      labelW: LABEL_W,
+      nowCol,
+      nowOffsetPx,
+      baseColW: COL_W,
+      endCol,
+      caseEnded: !!endTime,
+      overrideColStart,
+      overrideColEnd,
+    })
 
-    // Post-case overlay: pixel offset of the end boundary within this row
-    // null  = entire row is pre-end (no overlay)
-    // 0     = entire row is post-end (overlay covers everything)
-    const rowEndOverlayLeft = endCol === null ? null
-      : endCol < colStart ? 0                             // whole row is post-end
-      : endCol < colEnd   ? (endCol - colStart + 1) * colW // partial — from boundary right
-      : null                                              // whole row is pre-end
-
-    // ── bar continuation helpers ──────────────────────────────────────────────
-    function barContinues(endCol: number) { return endCol >= colEnd }
-    function barEntries(startCol: number) { return startCol < colStart }
-
-    // ── per-bar edge classes & grip visibility ────────────────────────────────
-    // isVisualStart = this cell is the first visible cell of the bar (actual start OR first in row)
-    function leftCls(isVisualStart: boolean) {
-      return isVisualStart ? "left-1 border-l rounded-l-full" : "left-0"
-    }
-    function rightCls(endCol: number, isActualEnd: boolean) {
-      return (isActualEnd && !barContinues(endCol)) ? "right-3 border-r rounded-r-sm" : "right-0 border-r-0"
-    }
-    function showGrip(endCol: number, isActualEnd: boolean, isDragPreview: boolean) {
-      return isActualEnd && !barContinues(endCol) && !isDragPreview
-    }
 
     return (
       <div key={rowIdx} ref={isActiveRow ? activeRowRef : undefined}
@@ -2049,8 +2048,8 @@ export function IntraopTimetable({
                   const isStart       = seg?.startCol === ci
                   const effectiveEnd  = seg && extendingAgent === seg.startCol && extendHoverCol !== null ? extendHoverCol : (seg?.endCol ?? -1)
                   const isEnd         = seg !== null && ci === effectiveEnd
-                  const isRowCont     = !isStart && seg != null && ci === colStart && barEntries(seg.startCol)
-                  const isRowExit     = seg != null && barContinues(seg.endCol) && ci === colEnd - 1
+                  const isRowCont     = !isStart && seg != null && ci === colStart && barEntersRow(seg.startCol, colStart)
+                  const isRowExit     = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1
                   const visStart      = Math.max(seg?.startCol ?? 0, colStart)
                   const visEnd        = Math.min(effectiveEnd, colEnd - 1)
 
@@ -2075,7 +2074,7 @@ export function IntraopTimetable({
                               onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).closest("[data-agent-cell]")?.getBoundingClientRect() ?? (e.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ type:"agent", startCol: seg.startCol }); if (isStart) openPickerForSeg(ci, seg, rect) }}
                               onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeSegment(seg.startCol) }}
                               title={seg.stopped ? "Double-click to resume" : undefined}
-                              className={`absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${leftCls(isStart || isRowCont)} ${rightCls(seg.endCol, isEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                              className={`absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.stopped ? "opacity-60 border-dashed" : ""}`}
                             />
                             {label && (
                               <span className={`absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-xs font-bold whitespace-nowrap flex items-center justify-center ${style2.text}`}
@@ -2086,7 +2085,7 @@ export function IntraopTimetable({
                           </>
                         )
                       })()}
-                      {showGrip(seg?.endCol ?? -1, isEnd, isDragPreview) && style2 && seg && !seg.stopped && (
+                      {showBarGrip(seg?.endCol ?? -1, isEnd, isDragPreview, colEnd) && style2 && seg && !seg.stopped && (
                         <div draggable onDragStart={e => { e.stopPropagation(); onGripDragStart(e, seg.startCol) }} onDragEnd={onAgentDragEnd}
                           className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 ${style2.grip} opacity-70 hover:opacity-100 rounded-r-sm`}>
                           <span className="text-white text-[8px] font-bold select-none">|</span>
@@ -2152,7 +2151,7 @@ export function IntraopTimetable({
                 const isStart = seg?.startCol === ci
                 const isEnd   = seg !== null && ci === seg.endCol
                 const isRowCont = !isStart && seg != null && ci === colStart && seg.startCol < colStart
-                const isRowExit = seg != null && barContinues(seg.endCol) && ci === colEnd - 1 && !isEnd
+                const isRowExit = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1 && !isEnd
                 const settings = seg ? gasSettingsAtColumn(seg, ci) : null
                 const isChange = settings?.changeCol === ci
                 const showSettingsLabel = Boolean(settings && (isStart || isRowCont || isChange))
@@ -2166,7 +2165,7 @@ export function IntraopTimetable({
                     }}>
                     {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">tap to start</span>}
                     {seg && (
-                      <div className={`absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${leftCls(isStart || isRowCont)} ${rightCls(seg.endCol, isEnd && !isRowExit)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
+                      <div className={`absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
                     )}
                     {showSettingsLabel && settings && (
                       <span
@@ -2311,7 +2310,7 @@ export function IntraopTimetable({
                   const isActualStart = seg?.startCol === ci
                   const isActualEnd   = seg !== null && ci === effectiveEnd
                   const isRowCont     = !isActualStart && seg != null && ci === colStart
-                  const isRowExit     = seg != null && barContinues(effectiveEnd) && ci === colEnd - 1 && !isActualEnd
+                  const isRowExit     = seg != null && barContinues(effectiveEnd, colEnd) && ci === colEnd - 1 && !isActualEnd
                   return (
                     <div key={ci} style={{ width: colW, minWidth: colW }}
                       className="relative border-l border-slate-100 dark:border-[#2a2a2a]"
@@ -2389,7 +2388,7 @@ export function IntraopTimetable({
                             onDragEnd={() => { setMovingInf(null); setMovingInfCol(null) }}
                             onClick={e => { e.stopPropagation(); setSel(s => s?.type==="infusion"&&s.id===seg.id ? null : { type:"infusion", id:seg.id }) }}
                             title={!seg.stopped ? "Click to select · Double-click for options · Drag to move" : undefined}
-                            className={`absolute left-0 right-0 border-y ${!seg.stopped ? "cursor-grab active:cursor-grabbing" : ""} ${leftCls(isActualStart || isRowCont)} ${rightCls(seg.endCol, isActualEnd && !isRowExit)} ${seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id ? "opacity-50" : ""}`}
+                            className={`absolute left-0 right-0 border-y ${!seg.stopped ? "cursor-grab active:cursor-grabbing" : ""} ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id ? "opacity-50" : ""}`}
                             style={{
                               top: 22, bottom: 4,
                               backgroundColor: sel?.type==="infusion"&&sel.id===seg.id ? color+"99":color+"44",
@@ -2519,7 +2518,7 @@ export function IntraopTimetable({
                   const isRowCont     = !isActualStart && seg != null && ci === colStart
                   const effectiveEnd  = seg && extendingFluid === seg.id && extFluidHover !== null ? Math.max(extFluidHover, seg.startCol) : (seg?.endCol ?? -1)
                   const isActualEnd   = seg !== null && ci === effectiveEnd
-                  const isRowExit     = seg != null && barContinues(seg.endCol) && ci === colEnd - 1 && !isActualEnd
+                  const isRowExit     = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1 && !isActualEnd
                   const isSel         = seg && sel?.type==="fluid" && sel.id===seg.id
                   const stoppedSeg    = !seg
                     ? segs.find(s => s.stopped && s.endCol < ci) ?? null : null
@@ -2533,7 +2532,7 @@ export function IntraopTimetable({
                           <div onClick={e => { e.stopPropagation(); if (isActualStart || isRowCont) setSel({ type:"fluid", id:seg.id }) }}
                             onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeFluid(seg.id) }}
                             title={seg.stopped ? "Double-click to resume" : undefined}
-                            className={`absolute inset-y-1 border-y cursor-pointer ${leftCls(isActualStart || isRowCont)} ${rightCls(seg.endCol, isActualEnd && !isRowExit)} ${isDragPreview ? "opacity-50" : ""} ${seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                            className={`absolute inset-y-1 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview ? "opacity-50" : ""} ${seg.stopped ? "opacity-60 border-dashed" : ""}`}
                             style={{ backgroundColor: isSel ? color+"88":color+"33", borderColor: isSel ? color:color+"88", boxShadow: isSel ? `0 0 0 1.5px ${color}` : undefined }}
                           />
                           {(isActualStart || isRowCont) && (() => {
@@ -2574,7 +2573,7 @@ export function IntraopTimetable({
                           })()}
                         </>
                       )}
-                      {showGrip(seg?.endCol ?? -1, isActualEnd, isDragPreview) && !isRowExit && seg && !seg.stopped && (
+                      {showBarGrip(seg?.endCol ?? -1, isActualEnd, isDragPreview, colEnd) && !isRowExit && seg && !seg.stopped && (
                         <div draggable onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("ext-fluid", seg.id); setExtendingFluid(seg.id) }} onDragEnd={() => { setExtendingFluid(null); setExtFluidHover(null) }}
                           className="absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 opacity-70 hover:opacity-100 rounded-r-sm" style={{ backgroundColor: color }}>
                           <span className="text-white text-[8px] font-bold select-none">|</span>
