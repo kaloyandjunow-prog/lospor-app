@@ -11,6 +11,7 @@ import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
+import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import {
   barContinues,
   barEntersRow,
@@ -3194,68 +3195,24 @@ export function IntraopTimetable({
       })(),
       document.body
     )}
-    {gasPicker !== null && gasPickerRect && typeof document !== "undefined" && createPortal(
-      (() => {
-        const pickerSeg = gasSettings.find(g => gasPicker >= g.startCol && gasPicker <= g.endCol) ?? null
-        const POP_W = 210
-        const spaceBelow = window.innerHeight - gasPickerRect.bottom
-        const showAbove = spaceBelow < 280
-        const left = Math.max(8, Math.min(gasPickerRect.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? gasPickerRect.top - 4 : gasPickerRect.bottom + 4
-        return (
-          <>
-            <div className="fixed inset-0 z-[9998]" onClick={closeGasPicker} />
-            <div
-              style={{ position:"fixed", left, top, width: POP_W, zIndex: 9999, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
-              onClick={e => e.stopPropagation()}>
-              <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{pickerSeg ? "Edit gas settings" : "Start gas settings"}</p>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-500 font-semibold">FGF</span>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{pickerFgf} L/min</span>
-                </div>
-                <input type="range" min={0} max={10} step={0.5}
-                  value={pickerFgf} onChange={e => setPickerFgf(parseFloat(e.target.value))}
-                  className="w-full h-1.5 accent-indigo-500" />
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 font-semibold">Carrier gas</span>
-                <div className="flex gap-1">
-                  {[{ v: null, label: "O2 only" }, { v: "air", label: "+ Air" }, { v: "n2o", label: "+ N2O" }].map(opt => (
-                    <button key={opt.label} type="button"
-                      onClick={() => { setPickerCarrierGas(opt.v); if (opt.v == null) setPickerFio2(100) }}
-                      className={`flex-1 text-[10px] font-semibold px-1.5 py-1 rounded-lg border transition-colors ${
-                        pickerCarrierGas === opt.v ? "bg-indigo-500 border-indigo-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"
-                      }`}>{displayClinicalCode("carrierGas", opt.v ?? "o2", locale, { label: opt.label })}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-500 font-semibold">FiO2</span>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{pickerCarrierGas == null ? 100 : pickerFio2}%</span>
-                </div>
-                <input type="range" min={21} max={100} step={1}
-                  value={pickerCarrierGas == null ? 100 : pickerFio2} onChange={e => setPickerFio2(parseFloat(e.target.value))}
-                  disabled={pickerCarrierGas == null}
-                  className="w-full h-1.5 accent-indigo-500 disabled:opacity-50" />
-              </div>
-
-              <button type="button"
-                onClick={() => pickerSeg ? applyGasChange(pickerSeg.id) : startGas(gasPicker)}
-                className="w-full text-xs font-semibold bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg py-1.5 transition-colors">
-                {pickerSeg ? "Apply" : "Start"}
-              </button>
-            </div>
-          </>
-        )
-      })(),
-      document.body
-    )}
+    {gasPicker !== null && gasPickerRect && (() => {
+      const editing = gasSettings.find(g => gasPicker >= g.startCol && gasPicker <= g.endCol) ?? null
+      return (
+        <GasSettingsPopover
+          anchor={gasPickerRect}
+          isEditing={!!editing}
+          fgf={pickerFgf}
+          carrierGas={pickerCarrierGas}
+          fio2={pickerFio2}
+          carrierGasLabel={(value, fallback) => displayClinicalCode("carrierGas", value ?? "o2", locale, { label: fallback })}
+          onFgfChange={setPickerFgf}
+          onCarrierGasChange={setPickerCarrierGas}
+          onFio2Change={setPickerFio2}
+          onDismiss={closeGasPicker}
+          onApply={() => editing ? applyGasChange(editing.id) : startGas(gasPicker)}
+        />
+      )
+    })()}
     {/* ── Floating prompt portal ─────────────────────────────────────────────── */}
     {fp && typeof document !== "undefined" && createPortal(
       <>
