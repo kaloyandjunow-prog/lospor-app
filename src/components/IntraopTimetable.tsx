@@ -19,6 +19,7 @@ import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import { columnForWallClock } from "@/components/intraop/rate-change-time"
+import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
 import {
   barContinues,
   barEntersRow,
@@ -3523,137 +3524,45 @@ export function IntraopTimetable({
         onDismiss={() => setInfMenu(null)}
       />
     )}
-    {rateDialog && createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setRateDialog(null)}>
-        <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
-          onClick={e => e.stopPropagation()}>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: rateDialog.color }}>{displayInfusionName(rateDialog.name)}{rateDialog.concentration ? ` ${rateDialog.concentration}` : ""} — Change rate</p>
-            {rateDialog.step === "rate" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.setNewRatePrompt")}</p>}
-            {rateDialog.step === "time" && <p className="text-[10px] text-slate-400">{t("intraop.timetable.pickRateChangeTime")}</p>}
-            {(() => {
-              const basis = INFUSION_WEIGHT_BASIS[rateDialog.name]
-              const isPerKg = rateDialog.unit?.includes("/kg/")
-              if (!isPerKg || !basis) return null
-              const wt = basis === "TBW" ? tbw : ibw
-              return (
-                <p className="text-[9px] text-amber-500 dark:text-amber-400 mt-1">
-                  ⚖ Drug totals calculated using {basis}{wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}
-                </p>
-              )
-            })()}
-          </div>
-
-          {rateDialog.step === "rate" && (
-            <>
-              {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name] && (
-                <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.timetable.concentration")}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name].map(c => (
-                      <button key={c} type="button"
-                        onClick={() => setRateDialog(d => d ? { ...d, concentration: d.concentration === c ? undefined : c } : d)}
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                          rateDialog.concentration === c
-                            ? "bg-sky-500 border-sky-500 text-white"
-                            : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
-                        }`}>{c}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input type="number" value={rateDialog.rate} autoFocus
-                    min={rateDialog.rateMin} max={rateDialog.rateMax} step={rateDialog.rateStep}
-                    onChange={e => setRateDialog(d => d ? { ...d, rate: parseFloat(e.target.value) || d.rateMin } : d)}
-                    className="flex-1 text-lg font-semibold text-center border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none focus:ring-1 focus:ring-blue-400 [appearance:textfield]" />
-                  <select value={rateDialog.unit}
-                    onChange={e => setRateDialog(d => d ? { ...d, unit: e.target.value } : d)}
-                    className="text-xs border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none">
-                    {rateDialog.units.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                </div>
-                <input type="range" min={rateDialog.rateMin} max={rateDialog.rateMax} step={rateDialog.rateStep}
-                  value={rateDialog.rate}
-                  onChange={e => setRateDialog(d => d ? { ...d, rate: parseFloat(e.target.value) } : d)}
-                  className="w-full accent-blue-500" />
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>{rateDialog.rateMin}</span><span>{rateDialog.rateMax} {rateDialog.unit}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button type="button"
-                  onClick={() => {
-                    const col = rateDialog.editFromCol !== undefined ? rateDialog.editFromCol : nowCol ?? 0
-                    applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
-                    setRateDialog(null)
-                  }}
-                  className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 transition-colors">
-                  {rateDialog.editFromCol !== undefined ? "Apply" : "Start now"}
-                </button>
-                {rateDialog.editFromCol === undefined && (
-                  <button type="button"
-                    onClick={() => setRateDialog(d => d ? { ...d, step: "time" } : d)}
-                    className="flex-1 text-sm font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-2 transition-colors">
-                    Pick time
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {rateDialog.step === "time" && (() => {
-            const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))
-            const mins = Array.from(
-              { length: 60 / INTRAOP_COLUMN_MINUTES },
-              (_, index) => String(index * INTRAOP_COLUMN_MINUTES).padStart(2, "0"),
-            )
-            const selCls = "flex h-10 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 flex-1"
-            return (
-              <>
-                <div className="flex items-center gap-2">
-                  <select className={selCls} value={rateDialog.timeH}
-                    onChange={e => setRateDialog(d => d ? { ...d, timeH: e.target.value } : d)}>
-                    <option value="">HH</option>
-                    {hours.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                  <span className="font-bold text-slate-400">:</span>
-                  <select className={selCls} value={rateDialog.timeM}
-                    onChange={e => setRateDialog(d => d ? { ...d, timeM: e.target.value } : d)}>
-                    <option value="">MM</option>
-                    {mins.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setRateDialog(d => d ? { ...d, step: "rate" } : d)}
-                    className="text-sm px-3 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                    Back
-                  </button>
-                  <button type="button"
-                    disabled={!rateDialog.timeH || !rateDialog.timeM}
-                    onClick={() => {
-                      const changeCol = columnForWallClock({
-                        time: `${rateDialog.timeH}:${rateDialog.timeM}`,
-                        caseStart: startTime,
-                        intervalMinutes: INTERVAL,
-                        columnCount: colCount,
-                      })
-                      applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
-                      setRateDialog(null)
-                    }}
-                    className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-lg py-2 transition-colors">
-                    Confirm
-                  </button>
-                </div>
-              </>
-            )
-          })()}
-        </div>
-      </div>,
-      document.body
+    {rateDialog && (
+      <RateChangeDialog
+        state={rateDialog}
+        displayName={displayInfusionName(rateDialog.name)}
+        concentrations={LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name]}
+        weightBasis={(() => {
+          const basis = INFUSION_WEIGHT_BASIS[rateDialog.name]
+          if (!basis || !rateDialog.unit?.includes("/kg/")) return null
+          return { basis, weightKg: basis === "TBW" ? tbw ?? null : ibw ?? null }
+        })()}
+        hours={Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))}
+        minutes={Array.from(
+          { length: 60 / INTRAOP_COLUMN_MINUTES },
+          (_, i) => String(i * INTRAOP_COLUMN_MINUTES).padStart(2, "0"),
+        )}
+        labels={{
+          setNewRatePrompt: t("intraop.timetable.setNewRatePrompt"),
+          pickRateChangeTime: t("intraop.timetable.pickRateChangeTime"),
+          concentration: t("intraop.timetable.concentration"),
+        }}
+        onPatch={patch => setRateDialog(d => d ? { ...d, ...patch } : d)}
+        onApply={() => {
+          const col = rateDialog.editFromCol !== undefined ? rateDialog.editFromCol : nowCol ?? 0
+          applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
+          setRateDialog(null)
+        }}
+        onConfirmTime={() => {
+          const changeCol = columnForWallClock({
+            time: `${rateDialog.timeH}:${rateDialog.timeM}`,
+            caseStart: startTime,
+            intervalMinutes: INTERVAL,
+            columnCount: colCount,
+          })
+          applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
+          setRateDialog(null)
+        }}
+        onDismiss={() => setRateDialog(null)}
+      />
     )}
-    {/* Vitals slider popup */}
     {vitalsPopup && (
       <VitalsPopover
         anchor={vitalsPopup.rect}
