@@ -14,6 +14,7 @@ import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import { VitalsPopover } from "@/components/intraop/VitalsPopover"
 import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { AnchoredPopover } from "@/components/intraop/AnchoredPopover"
+import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import {
   barContinues,
   barEntersRow,
@@ -2851,63 +2852,28 @@ export function IntraopTimetable({
 
       </div>
     </div>
-    {/* -- Fluid picker portal -- */}
-    {fluidPicker && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 240
-        const r = fluidPicker.rect
-        const spaceBelow = window.innerHeight - r.bottom
-        const showAbove  = spaceBelow < 300
-        const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? r.top - 4 : r.bottom + 4
-        const filtered = fpSearch.trim()
-          ? QUICK_FLUIDS.map(c => ({ ...c, fluids: c.fluids.filter(f => `${f.name} ${displayFluidName(f.name)}`.toLowerCase().includes(fpSearch.toLowerCase())) })).filter(c => c.fluids.length > 0)
-          : QUICK_FLUIDS
-        return (
-          <>
-            <div className="fixed inset-0 z-[9990]" onClick={() => setFluidPicker(null)} />
-            <div style={{ position:"fixed", left, top, width: POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}>
-              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <input autoFocus type="text" placeholder={t("intraop.timetable.searchFluid")} value={fpSearch}
-                  onChange={e => setFpSearch(e.target.value)}
-                  onKeyDown={e => e.key === "Escape" && setFluidPicker(null)}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                />
-              </div>
-              <div className="max-h-56 overflow-y-auto p-2 space-y-2">
-                {filtered.map(cat => (
-                  <div key={cat.cat}>
-                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-[#666] mb-1">{displayGroupName(cat.cat)}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {cat.fluids.map(fluid => (
-                        <button key={fluid.name} type="button"
-                          onClick={() => {
-                            const { ci, rect } = fluidPicker!
-                            setFluidPicker(null)
-                            // Always open the dose selector, pre-filled — mirroring mobile's
-                            // selectFluid. Web used to add the fluid immediately whenever the
-                            // library supplied a quick volume, which is why the slider and
-                            // quick pills never appeared for the common fluids: they all have
-                            // one. Volume is a clinical value; it gets confirmed, not assumed.
-                            openFluidFP(ci, fluid.name, cat.cat, rect)
-                          }}
-                          className={`text-xs font-medium px-2 py-1 rounded border cursor-pointer hover:opacity-80 transition-opacity ${cat.color}`}>
-                          {displayFluidName(fluid.name)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No fluids found</p>}
-              </div>
-            </div>
-          </>
-        )
-      })()
-    ,
-      document.body
+    {fluidPicker && (
+      <FluidPickerPopover
+        anchor={fluidPicker.rect}
+        search={fpSearch}
+        searchPlaceholder={t("intraop.timetable.searchFluid")}
+        categories={QUICK_FLUIDS.map(category => ({
+          cat: category.cat,
+          displayCat: displayGroupName(category.cat),
+          color: category.color,
+          fluids: category.fluids.map(fluid => ({
+            name: fluid.name,
+            displayName: displayFluidName(fluid.name),
+          })),
+        }))}
+        onSearchChange={setFpSearch}
+        onPick={(fluid, category) => {
+          const { ci, rect } = fluidPicker
+          setFluidPicker(null)
+          openFluidFP(ci, fluid.name, category.cat, rect)
+        }}
+        onDismiss={() => setFluidPicker(null)}
+      />
     )}
     {/* ── Event picker popover ───────────────────────────────────────────────── */}
     {eventPicker && (
@@ -2982,55 +2948,42 @@ export function IntraopTimetable({
         />
       </AnchoredPopover>
     )}
-    {/* -- Infusion picker portal -- */}
-    {infPicker && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 220
-        const spaceBelow = window.innerHeight - infPicker.rect.bottom
-        const showAbove  = spaceBelow < 320
-        const left = Math.max(8, Math.min(infPicker.rect.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? infPicker.rect.top - 4 : infPicker.rect.bottom + 4
-        const names = Object.keys(INFUSION_CONFIGS)
-          .filter(name => visibleInfusionNames.has(name))
-          .sort()
-        return (
-          <>
-            <div className="fixed inset-0 z-[9990]" onClick={() => setInfPicker(null)} />
-            <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}>
-              {/* Same menu as mobile's InfusionSheet. */}
-              <ScenarioPicker
-                scenarios={INFUSION_SCENARIOS}
-                favourites={favouriteInfusions}
-                browse={[{
-                  cat: "All infusions",
-                  color: "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300",
-                  items: names.map(name => ({ name, unit: INFUSION_CONFIGS[name]?.units[0] })),
-                }]}
-                displayItem={displayInfusionName}
-                displayScenario={displayScenarioName}
-                displayCategory={displayGroupName}
-                onPick={(name, unit) => {
-                  const { ci, rect } = infPicker!
-                  setInfPicker(null)
-                  const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
-                  openFP(ci, name, unit ?? INFUSION_CONFIGS[name]?.units[0] ?? "mg/h", anchor, "infusion")
-                }}
-                labels={{
-                  favourites: t("intraop.timetable.favourites"),
-                  browseAll: t("intraop.timetable.browseAllInfusions"),
-                  search: t("intraop.timetable.searchInfusion"),
-                  empty: t("intraop.timetable.noInfusionsFound"),
-                  favouritesHint: t("intraop.timetable.favouritesHint"),
-                }}
-              />
-            </div>
-          </>
-        )
-      })()
-    ,
-      document.body
+    {infPicker && (
+      <AnchoredPopover
+        anchor={infPicker.rect}
+        width={220}
+        flipBelowSpace={320}
+        onDismiss={() => setInfPicker(null)}
+      >
+        {/* Same menu as mobile's InfusionSheet. */}
+        <ScenarioPicker
+          scenarios={INFUSION_SCENARIOS}
+          favourites={favouriteInfusions}
+          browse={[{
+            cat: "All infusions",
+            color: "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300",
+            items: Object.keys(INFUSION_CONFIGS)
+              .filter(name => visibleInfusionNames.has(name))
+              .sort()
+              .map(name => ({ name, unit: INFUSION_CONFIGS[name]?.units[0] })),
+          }]}
+          displayItem={displayInfusionName}
+          displayScenario={displayScenarioName}
+          displayCategory={displayGroupName}
+          onPick={(name, unit) => {
+            const { ci, rect } = infPicker
+            setInfPicker(null)
+            openFP(ci, name, unit ?? INFUSION_CONFIGS[name]?.units[0] ?? "mg/h", rectAnchor(rect), "infusion")
+          }}
+          labels={{
+            favourites: t("intraop.timetable.favourites"),
+            browseAll: t("intraop.timetable.browseAllInfusions"),
+            search: t("intraop.timetable.searchInfusion"),
+            empty: t("intraop.timetable.noInfusionsFound"),
+            favouritesHint: t("intraop.timetable.favouritesHint"),
+          }}
+        />
+      </AnchoredPopover>
     )}
     {/* ── Fluid conflict popover ─────────────────────────────────────────────── */}
     {fluidConflict && (
