@@ -142,7 +142,11 @@ export function InfusionLane({
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
 
   return (
-    <div className="flex items-stretch border-t border-slate-100 dark:border-[#2a2a2a] relative" style={{ minHeight: 52 }}>
+    <div
+      data-testid="infusion-lane"
+      className="flex items-stretch border-t border-slate-100 dark:border-[#2a2a2a] relative"
+      style={{ minHeight: 52 }}
+    >
       <div
         style={{ width: labelWidth, minWidth: labelWidth }}
         className="flex flex-col items-end justify-end pr-2 pb-1.5 gap-0 select-none shrink-0"

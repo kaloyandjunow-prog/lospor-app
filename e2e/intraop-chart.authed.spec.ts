@@ -114,3 +114,53 @@ test("a general anaesthetic gets the agent and gas lanes", async ({ page }) => {
   // prompt is the lane rendering, not a segment.
   await expect(chart.getByText("choose", { exact: true }).first()).toBeVisible()
 })
+
+test("an infusion started from the chart can be dragged to a different time", async ({ page }) => {
+  const id = await createStartedCase(page)
+  const chart = await openChart(page, id)
+
+  // Start an infusion from the chart's own entry point, in an early column.
+  // The picker opens on favourites and scenarios; "Browse all" is the path
+  // that does not depend on which scenarios the option library ships.
+  await chart.getByTestId("add-infusion").nth(2).click({ timeout: 30_000 })
+  await page.getByRole("button", { name: "Browse all infusions" }).click({ timeout: 30_000 })
+  await page.getByPlaceholder("Search infusion").fill("Propofol")
+  await page.getByRole("button", { name: /^Propofol/ }).first().click()
+
+  // The flyout opens on the chosen drug at its suggested rate.
+  const start = page.getByRole("button", { name: "Start Infusion" })
+  await expect(start).toBeVisible({ timeout: 30_000 })
+  await start.click()
+
+  // The lane exists once the infusion is on the chart.
+  await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible({ timeout: 30_000 })
+  const bar = chart.locator('[draggable="true"]').first()
+  await expect(bar).toBeVisible()
+
+  // Drag the bar to a later column. This is the interaction the chart is most
+  // used for after entry, and the one a refactor of the drag state would break
+  // without any other test noticing.
+  const before = await bar.boundingBox()
+  expect(before, "no bar to drag").not.toBeNull()
+
+  // Drop onto a cell of the lane itself. The drop-zone button below the lane
+  // has no drag handlers, so dropping there does nothing at all — which an
+  // assertion that only checks the lane survived would not notice.
+  const lane = chart.getByTestId("infusion-lane").first()
+  const laneBox = await lane.boundingBox()
+  expect(laneBox, "no infusion lane").not.toBeNull()
+  await bar.dragTo(lane, {
+    targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 },
+  })
+
+  // The bar has to have actually moved. Asserting only that the lane survived
+  // would pass just as well on a drag that did nothing at all.
+  await expect(async () => {
+    const after = await chart.locator('[draggable="true"]').first().boundingBox()
+    expect(after, "the bar left the chart").not.toBeNull()
+    expect(after!.x, "the bar did not move").toBeGreaterThan(before!.x)
+  }).toPass({ timeout: 10_000 })
+
+  // And it is still an infusion lane, not a bar orphaned out of its row.
+  await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible()
+})
