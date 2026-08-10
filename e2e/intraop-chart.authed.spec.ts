@@ -196,3 +196,63 @@ test("an infusion's right grip extends the bar", async ({ page }) => {
       .toBeGreaterThan(before)
   }).toPass({ timeout: 10_000 })
 })
+
+test("an infusion's left grip extends the bar backwards in time", async ({ page }) => {
+  const id = await createStartedCase(page)
+  const chart = await openChart(page, id)
+  await startInfusion(page, chart)
+
+  const lane = chart.getByTestId("infusion-lane").first()
+  await chart.locator('[draggable="true"]').first().click()
+
+  // The left grip is the one that moves a bar's start earlier — for an
+  // infusion that was running before anyone got round to charting it.
+  const leftGrip = lane.locator('.cursor-col-resize.rounded-l-sm')
+  await expect(leftGrip).toBeVisible()
+
+  const before = await lane.locator('[draggable="true"]').count()
+  const laneBox = await lane.boundingBox()
+  await leftGrip.dragTo(lane, { targetPosition: { x: 120, y: laneBox!.height / 2 } })
+
+  await expect(async () => {
+    expect(await lane.locator('[draggable="true"]').count(), "the bar did not lengthen")
+      .toBeGreaterThan(before)
+  }).toPass({ timeout: 10_000 })
+})
+
+test("a rate change can be recorded, and dragging it copies it to another time", async ({ page }) => {
+  const id = await createStartedCase(page)
+  const chart = await openChart(page, id)
+  await startInfusion(page, chart)
+
+  const lane = chart.getByTestId("infusion-lane").first()
+
+  // A fresh infusion occupies one column, so there is nowhere for a rate
+  // change to sit. Lengthen it first, then open the menu from a later column
+  // of the rate strip so the change lands after the bar started.
+  await chart.locator('[draggable="true"]').first().click()
+  const laneBox = await lane.boundingBox()
+  await lane.locator('.cursor-col-resize.rounded-r-sm')
+    .dragTo(lane, { targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 } })
+
+  // y is inside the rate strip, which is the upper band of the bar.
+  await lane.click({ position: { x: laneBox!.width - 200, y: 10 } })
+  await page.getByRole("button", { name: "Change rate" }).click({ timeout: 30_000 })
+  await page.getByRole("button", { name: "Apply" }).click({ timeout: 30_000 })
+
+  // A recorded change puts a draggable divider on the rate strip, marking where
+  // one rate gives way to the next.
+  const dividers = lane.locator('[draggable="true"].cursor-col-resize.rounded-full')
+  await expect(dividers.first()).toBeVisible({ timeout: 30_000 })
+  const before = await dividers.count()
+
+  // Dragging a divider copies the change to the column it lands on and leaves
+  // the original in place — the handler passes fromCol as null deliberately.
+  // The same rate resuming later is a second event, not a correction of the
+  // first, so both stay on the record.
+  await dividers.first().dragTo(lane, { targetPosition: { x: laneBox!.width - 120, y: 10 } })
+
+  await expect(async () => {
+    expect(await dividers.count(), "the rate change was not copied").toBeGreaterThan(before)
+  }).toPass({ timeout: 10_000 })
+})
