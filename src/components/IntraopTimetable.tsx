@@ -20,6 +20,7 @@ import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import { columnForWallClock } from "@/components/intraop/rate-change-time"
 import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLanes"
+import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -1790,80 +1791,35 @@ export function IntraopTimetable({
             />
           )}
 
-          {/* Clinical Events row */}
-          {(() => {
-            const colEvents = rowCols.map(ci => (data.clinicalEvents ?? []).filter(e => e.colIdx === ci))
-            return (
-              <div className="flex items-stretch border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50/20 dark:bg-[#181818]/40" style={{ minHeight: 34 }}>
-                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-1.5"}>{t("intraop.timetable.events")}</div>
-                {rowCols.map((ci, lIdx) => {
-                  const evs = colEvents[lIdx]
-                  return (
-                    <div key={ci} style={{ width: colW, minWidth: colW }}
-                      className="group border-l border-slate-100 dark:border-[#2a2a2a] relative flex flex-col items-center justify-start py-0.5 px-0.5 cursor-pointer hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors"
-                      onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setEventPicker({ ci, rect }); setEvSearch("") }}>
-                      {evs.length === 0 && (
-                        <Plus className="h-2.5 w-2.5 opacity-0 group-hover:opacity-30 transition-opacity text-slate-400 dark:text-[#666] mt-1.5" />
-                      )}
-                      <div className="flex flex-col items-start gap-0.5 w-full">
-                        {evs.slice(0, 5).map(ev => (
-                          <div key={ev.label} title={displayNamedOption("INTRAOP_EVENT", eventLibOpts, ev.label, locale)}
-                            onClick={e => { e.stopPropagation(); removeClinicalEvent(ci, ev.label) }}
-                            className="flex items-center rounded-full px-1 py-px cursor-pointer hover:opacity-60 transition-opacity select-none w-full min-w-0"
-                            style={{ backgroundColor: ev.color + "20", color: ev.color, border: `1px solid ${ev.color}40` }}>
-                            <span className="text-[8px] font-bold truncate leading-tight">{displayNamedOption("INTRAOP_EVENT", eventLibOpts, ev.label, locale)}</span>
-                          </div>
-                        ))}
-                        {evs.length > 5 && (
-                          <span className="text-[8px] text-slate-400 dark:text-[#666] font-medium px-0.5">+{evs.length - 5}</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
+          <ClinicalEventsLane
+            label={t("intraop.timetable.events")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            events={data.clinicalEvents ?? []}
+            displayEventName={label => displayNamedOption("INTRAOP_EVENT", eventLibOpts, label, locale)}
+            onOpenPicker={(ci, rect) => { setEventPicker({ ci, rect }); setEvSearch("") }}
+            onRemove={removeClinicalEvent}
+          />
 
-          {/* Drug row */}
-          <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a]">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-3 flex items-start justify-end"}>{t("intraop.timetable.drugs")}</div>
-            {rowCols.map(ci => {
-              const colDrugs = data.drugs.filter(d => d.colIdx === ci)
-              return (
-                <div key={ci} style={{ width: colW, minWidth: colW }}
-                  onDragOver={e => onDrugDragOver(e, ci)}
-                  onDragLeave={() => setDragOver(null)}
-                  onDrop={e => onDrugDrop(e, ci)}
-                  className={`border-l border-slate-100 dark:border-[#2a2a2a] px-1 py-1 space-y-0.5 transition-colors ${dragOver === ci ? "bg-violet-50 dark:bg-violet-900/20" : ""}`}>
-                  {colDrugs.map(d => {
-                    const gi = data.drugs.findIndex(g => g === d)
-                    return (
-                      <div key={gi} draggable
-                        title={`${displayDrugName(d.name)}${d.dose ? " — " + d.dose + " " + d.unit : ""}`}
-                        onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("item-type","move-drug"); e.dataTransfer.setData("item-idx", String(gi)); e.dataTransfer.effectAllowed="move" }}
-                        onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
-                        onDoubleClick={e => { e.stopPropagation(); setDoseEditDrug({ idx: gi, dose: d.dose, unit: d.unit, rect: e.currentTarget.getBoundingClientRect() }) }}
-                        className={`flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${sel?.type === "drug" && sel.idx === gi ? "bg-violet-400 dark:bg-violet-600 ring-2 ring-violet-500 dark:ring-violet-400" : "bg-violet-100 dark:bg-violet-900/40 hover:bg-violet-200 dark:hover:bg-violet-800/40"}`}>
-                        <span className="text-[10px] font-semibold text-violet-800 dark:text-violet-300 leading-tight truncate flex-1">
-                          {displayDrugName(d.name)}{d.dose && <><br /><span className="font-normal font-mono text-[9px] opacity-90">{d.dose} {d.unit}</span></>}
-                        </span>
-                        <button type="button" tabIndex={-1} onClick={e => { e.stopPropagation(); removeDrug(gi) }}
-                          className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity text-violet-400 hover:text-violet-700 shrink-0 mt-0.5">
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                  <button type="button" tabIndex={-1} data-testid="add-drug"
-                    onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
-                    className="w-full mt-1 flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-400 dark:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 py-1 transition-colors">
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+          <DrugLane
+            label={t("intraop.timetable.drugs")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            drugs={data.drugs}
+            displayDrugName={displayDrugName}
+            sel={sel}
+            dragOver={dragOver}
+            onDragOver={onDrugDragOver}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={onDrugDrop}
+            onOpenPicker={(ci, rect) => setDrugPicker({ ci, rect })}
+            onEditDose={(idx, dose, unit, rect) => setDoseEditDrug({ idx, dose, unit, rect })}
+            onRemove={removeDrug}
+          />
 
           {/* Infusion rows */}
           {[...new Set((data.infusions ?? []).map(i => i.name))].map(drugName => {
