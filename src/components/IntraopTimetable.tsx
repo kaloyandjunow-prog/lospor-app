@@ -22,6 +22,7 @@ import { columnForWallClock } from "@/components/intraop/rate-change-time"
 import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLanes"
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { FluidLane } from "@/components/intraop/TimetableFluidLane"
+import { InfusionLane, type InfusionBarMove } from "@/components/intraop/TimetableInfusionLane"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -30,9 +31,6 @@ import {
 } from "@/components/intraop/flyout-state"
 import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
 import {
-  barContinues,
-  barLeftClass,
-  barRightClass,
   computeRowGeometry,
 } from "@/components/intraop/timetable-row-geometry"
 import {
@@ -1293,6 +1291,33 @@ export function IntraopTimetable({
   const { removeInfusion, extendInfusion, extendInfusionLeft, restoreInfusion, applyInfRateChange } =
     useInfusionHandlers(data, onChange, dataRef, onChangeRef, onLogEventDeleteRef, emitLogEvent, nowCol)
 
+  /**
+   * Land a whole-bar drag. Rate changes travel with the bar, since they are
+   * recorded against columns rather than against the infusion's own start.
+   *
+   * Dragging off the left-hand edge is an intent to delete, not a move to a
+   * negative time — it asks first, because a whole infusion is being removed.
+   */
+  function moveInfusionBar(move: InfusionBarMove, toCol: number) {
+    const delta = toCol - move.fromCol
+    const newStart = move.origStart + delta
+    if (newStart < 0) {
+      setDeleteInfPrompt(move.id)
+      return
+    }
+    onChangeRef.current({
+      ...dataRef.current,
+      infusions: (dataRef.current.infusions ?? []).map(i => i.id === move.id
+        ? {
+            ...i,
+            startCol: newStart,
+            endCol: move.origEnd + delta,
+            rateChanges: (i.rateChanges ?? []).map(rc => ({ ...rc, col: rc.col + delta })),
+          }
+        : i),
+    })
+  }
+
   // ── Fluids ──────────────────────────────────────────────────────────────────
   const { removeFluid, extendFluid, resumeFluid, continueFluid } =
     useFluidHandlers(data, onChange, dataRef, onChangeRef, onLogEventDeleteRef, emitLogEvent, nowCol)
@@ -1821,223 +1846,50 @@ export function IntraopTimetable({
             onRemove={removeDrug}
           />
 
-          {/* Infusion rows */}
+          {/* One lane per infusion name; a drug restarted later keeps its lane
+              rather than opening a second one. */}
           {[...new Set((data.infusions ?? []).map(i => i.name))].map(drugName => {
-            const segs  = (data.infusions ?? []).filter(i => i.name === drugName)
-            const color = segs[0]?.color ?? "#64748b"
-            const isBusyMovingBar  = movingInf !== null && segs.some(s => s.id === movingInf.id)
-            const isBusyMovingPill = movingRatePill !== null && segs.some(s => s.id === movingRatePill.infId)
+            const segs = (data.infusions ?? []).filter(i => i.name === drugName)
             return (
-              <div key={drugName} className="flex items-stretch border-t border-slate-100 dark:border-[#2a2a2a] relative" style={{ minHeight: 52 }}>
-                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="flex flex-col items-end justify-end pr-2 pb-1.5 gap-0 select-none shrink-0">
-                  <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{drugName}</span>
-                  <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">infusion</span>
-                </div>
-                {rowCols.map(ci => {
-                  const seg = segs.find(s => ci >= s.startCol && ci <= s.endCol)
-                  // Right-grip extension preview (cells beyond seg.endCol but within extInfHover)
-                  const rightPreviewSeg = !seg && extendingInf
-                    ? segs.find(s => s.id === extendingInf && ci > s.endCol && extInfHover !== null && ci <= extInfHover) ?? null : null
-                  // Left-grip extension preview (cells before seg.startCol down to extInfLeftHover)
-                  const leftPreviewSeg = !seg && extendingInfLeft
-                    ? segs.find(s => s.id === extendingInfLeft && extInfLeftHover !== null && ci >= extInfLeftHover && ci < s.startCol) ?? null : null
-                  // Bar-move preview position
-                  const previewStart = isBusyMovingBar && movingInfCol !== null ? movingInf!.origStart + (movingInfCol - movingInf!.fromCol) : null
-                  const previewEnd   = previewStart !== null ? previewStart + (movingInf!.origEnd - movingInf!.origStart) : null
-                  const isPreview    = !seg && !rightPreviewSeg && !leftPreviewSeg && previewStart !== null && previewEnd !== null && ci >= previewStart && ci <= previewEnd
-                  // Effective end follows right-grip hover
-                  const effectiveEnd  = seg && extendingInf === seg.id && extInfHover !== null ? Math.max(extInfHover, seg.startCol) : (seg?.endCol ?? -1)
-                  const isActualStart = seg?.startCol === ci
-                  const isActualEnd   = seg !== null && ci === effectiveEnd
-                  const isRowCont     = !isActualStart && seg != null && ci === colStart
-                  const isRowExit     = seg != null && barContinues(effectiveEnd, colEnd) && ci === colEnd - 1 && !isActualEnd
-                  return (
-                    <div key={ci} style={{ width: colW, minWidth: colW }}
-                      className="relative border-l border-slate-100 dark:border-[#2a2a2a]"
-                      onDragOver={e => {
-                        if (extendingInf) { e.preventDefault(); e.stopPropagation(); const s = segs.find(s => s.id === extendingInf); if (s) setExtInfHover(Math.max(ci, s.startCol)) }
-                        else if (extendingInfLeft) { e.preventDefault(); e.stopPropagation(); const s = segs.find(s => s.id === extendingInfLeft); if (s && ci <= s.endCol) setExtInfLeftHover(Math.max(0, ci)) }
-                        else if (isBusyMovingBar) { e.preventDefault(); setMovingInfCol(ci) }
-                        else if (isBusyMovingPill) { e.preventDefault(); setMovingRatePillCol(ci) }
-                      }}
-                      onDrop={e => {
-                        if (extendingInf) { e.preventDefault(); const s = segs.find(s => s.id === extendingInf); if (s) extendInfusion(extendingInf, Math.max(ci, s.startCol)); setExtendingInf(null); setExtInfHover(null) }
-                        else if (extendingInfLeft) { e.preventDefault(); extendInfusionLeft(extendingInfLeft, Math.max(0, extInfLeftHover ?? ci)); setExtendingInfLeft(null); setExtInfLeftHover(null) }
-                        else if (isBusyMovingBar) {
-                          e.preventDefault()
-                          const delta = ci - movingInf!.fromCol
-                          const newStart = movingInf!.origStart + delta
-                          if (newStart < 0) { setDeleteInfPrompt(movingInf!.id) }
-                          else { onChangeRef.current({ ...dataRef.current, infusions: (dataRef.current.infusions ?? []).map(i => i.id === movingInf!.id ? { ...i, startCol: newStart, endCol: movingInf!.origEnd + delta, rateChanges: (i.rateChanges ?? []).map(rc => ({ ...rc, col: rc.col + delta })) } : i) }) }
-                          setMovingInf(null); setMovingInfCol(null)
-                        } else if (isBusyMovingPill) {
-                          e.preventDefault()
-                          // Only copy if target cell has an infusion; fromCol=null keeps original pill
-                          if (seg) applyInfRateChange(movingRatePill!.infId, null, ci, movingRatePill!.rate, movingRatePill!.unit)
-                          setMovingRatePill(null); setMovingRatePillCol(null)
-                        }
-                      }}>
-
-                      {/* Rate segment bar — matches infusion bar geometry (same left/right insets + rounded corners) */}
-                      {seg && !seg.stopped && (() => {
-                        const sortedChanges = (seg.rateChanges ?? []).slice().sort((a, b) => a.col - b.col)
-                        const prevChange = sortedChanges.filter(rc => rc.col <= ci).pop()
-                        const curRate    = prevChange?.rate ?? seg.rate
-                        const curUnit    = prevChange?.unit ?? seg.unit
-                        const isSegStart = ci === seg.startCol || sortedChanges.some(rc => rc.col === ci)
-                        const isRateChangeCol = sortedChanges.some(rc => rc.col === ci)
-                        const isSel = sel?.type === "infusion" && sel.id === seg.id
-                        // Use same left/right geometry as infusion bar for seamless visual alignment
-                        const leftStyle  = (isActualStart || isRowCont) ? "left-1"  : "left-0"
-                        const rightStyle = (isActualEnd && !isRowExit)  ? "right-3" : "right-0"
-                        const tlRadius   = (isActualStart || isRowCont) ? "rounded-tl-full" : ""
-                        const trRadius   = (isActualEnd && !isRowExit)  ? "rounded-tr-sm"  : ""
-                        return (
-                          <div
-                            className={`absolute top-0 z-20 flex items-center cursor-pointer select-none hover:opacity-90 transition-opacity overflow-hidden ${leftStyle} ${rightStyle} ${tlRadius} ${trRadius}`}
-                            style={{ height: 21, backgroundColor: color + (isSel ? "50" : "2e") }}
-                            onClick={e => { e.stopPropagation(); setInfMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci }) }}
-                          >
-                            {/* Draggable rate-change boundary — styled as a subtle divider */}
-                            {isRateChangeCol && (
-                              <div
-                                draggable
-                                className="absolute left-0 top-1 bottom-1 w-[2px] cursor-col-resize z-30 rounded-full opacity-70 hover:opacity-100"
-                                style={{ backgroundColor: color }}
-                                onDragStart={e => { e.stopPropagation(); const rc = sortedChanges.find(r => r.col === ci)!; setMovingRatePill({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit }) }}
-                                onDragEnd={() => { setMovingRatePill(null); setMovingRatePillCol(null) }}
-                                onClick={e => e.stopPropagation()}
-                              />
-                            )}
-                            {/* Rate label at start of each segment */}
-                            {isSegStart && (
-                              <span className="text-[8px] font-bold whitespace-nowrap truncate leading-none" style={{ color, paddingLeft: isRateChangeCol ? 10 : 5 }}>
-                                {curRate} {curUnit}
-                              </span>
-                            )}
-                          </div>
-                        )
-                      })()}
-
-                      {/* Infusion bar — lower portion of cell */}
-                      {seg && (
-                        <>
-                          <div
-                            draggable={!seg.stopped}
-                            onDragStart={!seg.stopped ? e => { e.stopPropagation(); setMovingInf({ id: seg.id, origStart: seg.startCol, origEnd: seg.endCol, fromCol: ci }) } : undefined}
-                            onDragEnd={() => { setMovingInf(null); setMovingInfCol(null) }}
-                            onClick={e => { e.stopPropagation(); setSel(s => s?.type==="infusion"&&s.id===seg.id ? null : { type:"infusion", id:seg.id }) }}
-                            title={!seg.stopped ? "Click to select · Double-click for options · Drag to move" : undefined}
-                            className={`absolute left-0 right-0 border-y ${!seg.stopped ? "cursor-grab active:cursor-grabbing" : ""} ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id ? "opacity-50" : ""}`}
-                            style={{
-                              top: 22, bottom: 4,
-                              backgroundColor: sel?.type==="infusion"&&sel.id===seg.id ? color+"99":color+"44",
-                              borderColor: sel?.type==="infusion"&&sel.id===seg.id ? color : color+"88",
-                              borderStyle: seg.stopped || hoverDiscontinue === seg.id ? "dashed" : "solid",
-                              boxShadow: sel?.type==="infusion"&&sel.id===seg.id ? `0 0 0 1.5px ${color}` : undefined,
-                            }}>
-                            {/* Drug name — centred over visible span */}
-                            {(isActualStart || isRowCont) && (() => {
-                              const visStart = Math.max(seg.startCol, colStart)
-                              const visEnd   = Math.min(seg.endCol, colEnd - 1)
-                              return (
-                                <span className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold whitespace-nowrap pointer-events-none select-none text-center block"
-                                  style={{ color, left: 0, width: (visEnd - visStart + 1) * colW }}>
-                                  {displayInfusionName(seg.name)}
-                                </span>
-                              )
-                            })()}
-                          </div>
-                          {/* Left grip — shown only when selected */}
-                          {isActualStart && sel?.type==="infusion" && sel.id===seg.id && !seg.stopped && (
-                            <div draggable
-                              onDragStart={e => { e.stopPropagation(); setExtendingInfLeft(seg.id) }}
-                              onDragEnd={() => { setExtendingInfLeft(null); setExtInfLeftHover(null) }}
-                              className="absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm"
-                              style={{ top: 22, bottom: 4, width: 10, backgroundColor: color }}>
-                              <span className="text-white text-[8px] font-bold select-none">|</span>
-                            </div>
-                          )}
-                          {/* Right grip — shown only when selected */}
-                          {isActualEnd && sel?.type==="infusion" && sel.id===seg.id && !seg.stopped && !isRowExit && (
-                            <div draggable
-                              onDragStart={e => { e.stopPropagation(); setExtendingInf(seg.id) }}
-                              onDragEnd={() => { setExtendingInf(null); setExtInfHover(null) }}
-                              className="absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm"
-                              style={{ top: 22, bottom: 4, width: 10, backgroundColor: color }}>
-                              <span className="text-white text-[8px] font-bold select-none">|</span>
-                            </div>
-                          )}
-                          {/* Inline discontinue button */}
-                          {isActualEnd && !isRowExit && sel?.type==="infusion" && sel.id===seg.id && !seg.stopped && (
-                            <div className="absolute z-30 flex items-center gap-1" style={{ top: 24, right: 14 }}>
-                              {discConfirmId === seg.id ? (
-                                <>
-                                  <button type="button"
-                                    onClick={e => { e.stopPropagation(); extendInfusion(seg.id, nowCol ?? seg.endCol, true); setSel(null); setDiscConfirmId(null) }}
-                                    className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap">
-                                    ✓ Confirm
-                                  </button>
-                                  <button type="button"
-                                    onClick={e => { e.stopPropagation(); setDiscConfirmId(null) }}
-                                    className="text-[8px] text-white/60 hover:text-white px-1 whitespace-nowrap">
-                                    ✕
-                                  </button>
-                                </>
-                              ) : (
-                                <button type="button"
-                                  onClick={e => { e.stopPropagation(); setDiscConfirmId(seg.id) }}
-                                  className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap">
-                                  ✕ Disc
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Ghost bar — whole-bar move */}
-                      {isPreview && (
-                        <div className="absolute left-0 right-0 border border-dashed opacity-25"
-                          style={{ top: 22, bottom: 4, backgroundColor: color + "33", borderColor: color,
-                            borderRadius: ci === previewStart ? "6px 0 0 6px" : ci === previewEnd ? "0 6px 6px 0" : 0 }} />
-                      )}
-                      {/* Ghost bar — right-grip extension preview */}
-                      {rightPreviewSeg && (
-                        <>
-                          <div className="absolute left-0 right-0 opacity-40 border-y"
-                            style={{ top: 22, bottom: 4, backgroundColor: color + "33", borderColor: color + "88",
-                              borderRight: ci === extInfHover ? `1px solid ${color}88` : undefined,
-                              borderRadius: ci === extInfHover ? "0 6px 6px 0" : 0 }} />
-                          {/* Grip handle at hover position */}
-                          {ci === extInfHover && sel?.type==="infusion" && sel.id===rightPreviewSeg.id && (
-                            <div className="absolute right-0 z-20 flex items-center justify-center rounded-r-sm"
-                              style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, opacity: 0.7 }}>
-                              <span className="text-white text-[8px] font-bold select-none">|</span>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {/* Ghost bar — left-grip extension preview */}
-                      {leftPreviewSeg && (
-                        <>
-                          <div className="absolute left-0 right-0 opacity-40 border-y"
-                            style={{ top: 22, bottom: 4, backgroundColor: color + "33", borderColor: color + "88",
-                              borderLeft: extInfLeftHover !== null && ci === extInfLeftHover ? `1px solid ${color}88` : undefined,
-                              borderRadius: extInfLeftHover !== null && ci === extInfLeftHover ? "6px 0 0 6px" : 0 }} />
-                          {/* Grip handle at hover position */}
-                          {extInfLeftHover !== null && ci === extInfLeftHover && sel?.type==="infusion" && sel.id===leftPreviewSeg.id && (
-                            <div className="absolute left-0 z-20 flex items-center justify-center rounded-l-sm"
-                              style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, opacity: 0.7 }}>
-                              <span className="text-white text-[8px] font-bold select-none">|</span>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+              <InfusionLane
+                key={drugName}
+                drugName={drugName}
+                color={segs[0]?.color ?? "#64748b"}
+                segments={segs}
+                labelWidth={LABEL_W}
+                rowCols={rowCols}
+                colStart={colStart}
+                colEnd={colEnd}
+                colW={colW}
+                nowCol={nowCol}
+                sel={sel}
+                setSel={setSel}
+                clearSel={() => setSel(null)}
+                displayInfusionName={displayInfusionName}
+                discConfirmId={discConfirmId}
+                setDiscConfirmId={setDiscConfirmId}
+                hoverDiscontinue={hoverDiscontinue}
+                extendingInf={extendingInf}
+                extInfHover={extInfHover}
+                setExtendingInf={setExtendingInf}
+                setExtInfHover={setExtInfHover}
+                extendingInfLeft={extendingInfLeft}
+                extInfLeftHover={extInfLeftHover}
+                setExtendingInfLeft={setExtendingInfLeft}
+                setExtInfLeftHover={setExtInfLeftHover}
+                movingInf={movingInf}
+                movingInfCol={movingInfCol}
+                setMovingInf={setMovingInf}
+                setMovingInfCol={setMovingInfCol}
+                movingRatePill={movingRatePill}
+                setMovingRatePill={setMovingRatePill}
+                setMovingRatePillCol={setMovingRatePillCol}
+                extendInfusion={extendInfusion}
+                extendInfusionLeft={extendInfusionLeft}
+                applyInfRateChange={applyInfRateChange}
+                onMoveBar={moveInfusionBar}
+                onOpenMenu={setInfMenu}
+              />
             )
           })}
 
