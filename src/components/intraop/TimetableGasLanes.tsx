@@ -4,6 +4,7 @@ import { X } from "lucide-react"
 import { displayGasMix, displayGasSettings } from "@/lib/clinical-display"
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
 import { barContinues, barEntersRow, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
+import type { TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import type { AgentSegment, GasSettingsSegment } from "@/types/timetable"
 import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
@@ -51,9 +52,7 @@ export type AgentLaneProps = LaneChrome & {
   segmentAt: (col: number) => AgentSegment | null
   agentStyle: Record<string, AgentStyle>
   displayAgentName: (name: string) => string
-  /** Start column of the segment being drag-extended, or null. */
-  extendingAgent: number | null
-  extendHoverCol: number | null
+  drag: TimetableDragState
   onCellDragOver: (event: React.DragEvent, col: number) => void
   onCellDrop: (event: React.DragEvent, col: number) => void
   onGripDragStart: (event: React.DragEvent, startCol: number) => void
@@ -83,8 +82,7 @@ export function AgentLane({
   segmentAt,
   agentStyle,
   displayAgentName,
-  extendingAgent,
-  extendHoverCol,
+  drag,
   onCellDragOver,
   onCellDrop,
   onGripDragStart,
@@ -96,6 +94,8 @@ export function AgentLane({
   removeSegment,
   continueAgent,
 }: AgentLaneProps) {
+  const { extendingAgent, extendHoverCol } = drag
+
   return (
     <div
       className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/60 dark:bg-[#1a1a1a]/60 relative"

@@ -3,6 +3,7 @@
 import { X } from "lucide-react"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { barContinues, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
+import type { TimetableDragActions, TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import type { TimetableFluid } from "@/types/timetable"
 
@@ -48,11 +49,8 @@ export type FluidLaneProps = {
   sel: TtSel | null
   setSel: (sel: TtSel | null) => void
   displayFluidName: (name: string) => string
-  /** Id of the segment being drag-extended, and the column under the cursor. */
-  extendingFluid: string | null
-  extFluidHover: number | null
-  setExtendingFluid: (id: string | null) => void
-  setExtFluidHover: (col: number | null) => void
+  drag: TimetableDragState
+  dragActions: TimetableDragActions
   extendFluid: (id: string, toCol: number) => void
   resumeFluid: (id: string) => void
   continueFluid: (seg: TimetableFluid, col: number) => void
@@ -73,10 +71,8 @@ export function FluidLane({
   sel,
   setSel,
   displayFluidName,
-  extendingFluid,
-  extFluidHover,
-  setExtendingFluid,
-  setExtFluidHover,
+  drag,
+  dragActions,
   extendFluid,
   resumeFluid,
   continueFluid,
@@ -84,6 +80,8 @@ export function FluidLane({
   onChangeRate,
   onDiscontinue,
 }: FluidLaneProps) {
+  const { extendingFluid, extFluidHover } = drag
+
   return (
     <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
       <div
@@ -123,15 +121,14 @@ export function FluidLane({
               e.preventDefault()
               e.stopPropagation()
               const s = segments.find(s => s.id === extendingFluid)
-              if (s) setExtFluidHover(Math.max(ci, s.startCol))
+              if (s) dragActions.fluidExtendHover(Math.max(ci, s.startCol))
             }}
             onDrop={e => {
               if (!extendingFluid) return
               e.preventDefault()
               const s = segments.find(s => s.id === extendingFluid)
               if (s) extendFluid(extendingFluid, Math.max(ci, s.startCol))
-              setExtendingFluid(null)
-              setExtFluidHover(null)
+              dragActions.fluidExtendEnd()
             }}
           >
             {seg && (
@@ -191,8 +188,8 @@ export function FluidLane({
             {showBarGrip(seg?.endCol ?? -1, isActualEnd, isDragPreview, colEnd) && !isRowExit && seg && !seg.stopped && (
               <div
                 draggable
-                onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("ext-fluid", seg.id); setExtendingFluid(seg.id) }}
-                onDragEnd={() => { setExtendingFluid(null); setExtFluidHover(null) }}
+                onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("ext-fluid", seg.id); dragActions.fluidExtendStart(seg.id) }}
+                onDragEnd={() => dragActions.fluidExtendEnd()}
                 className="absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 opacity-70 hover:opacity-100 rounded-r-sm"
                 style={{ backgroundColor: color }}
               >

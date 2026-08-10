@@ -25,6 +25,7 @@ import { FluidLane } from "@/components/intraop/TimetableFluidLane"
 import { InfusionLane, type InfusionBarMove } from "@/components/intraop/TimetableInfusionLane"
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
+import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -480,22 +481,15 @@ export function IntraopTimetable({
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
-  const [dragOver, setDragOver]           = useState<number | null>(null)
+  // Every in-progress drag lives in one reducer; see intraop/use-timetable-drag.
+  const [drag, dragActions] = useTimetableDrag()
   // Extending an infusion segment
   // Whole-bar drag
-  const [movingInf, setMovingInf]         = useState<{ id: string; origStart: number; origEnd: number; fromCol: number } | null>(null)
-  const [movingInfCol, setMovingInfCol]   = useState<number | null>(null)
   // Rate-pill drag
-  const [movingRatePill, setMovingRatePill]       = useState<{ infId: string; fromCol: number; rate: number; unit: string } | null>(null)
-  const [, setMovingRatePillCol] = useState<number | null>(null)
   // Misc infusion UI state
   const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null)
   const [hoverDiscontinue, setHoverDiscontinue] = useState<string | null>(null)
   // Right-grip (extend endCol) and left-grip (extend startCol backward)
-  const [extendingInf, setExtendingInf]         = useState<string | null>(null)
-  const [extInfHover, setExtInfHover]           = useState<number | null>(null)
-  const [extendingInfLeft, setExtendingInfLeft] = useState<string | null>(null)
-  const [extInfLeftHover, setExtInfLeftHover]   = useState<number | null>(null)
   // Item-level selection (pill or infusion bar)
   const [sel, setSel] = useState<TtSel | null>(null)
   // Floating prompt portal
@@ -1259,13 +1253,8 @@ export function IntraopTimetable({
     if (!caseStarted) return          // don't auto-scroll until the case has started
     activeRowRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [nowCol, caseStarted])
-  const [fluidDragOver, setFluidDragOver]   = useState<number | null>(null)
-  const [extendingFluid, setExtendingFluid] = useState<string | null>(null)
-  const [extFluidHover, setExtFluidHover]   = useState<number | null>(null)
   const [fluidConflict, setFluidConflict]   = useState<FluidConflict | null>(null)
   // Drag-to-extend state: startCol of segment being extended
-  const [extendingAgent, setExtendingAgent]   = useState<number | null>(null)
-  const [extendHoverCol, setExtendHoverCol]   = useState<number | null>(null)
 
   const roundedStart = floorTo5(startTime || "08:00")
   const times  = Array.from({ length: colCount }, (_, i) => addMinutes(roundedStart, i * INTERVAL))
@@ -1551,29 +1540,30 @@ export function IntraopTimetable({
   function onGripDragStart(e: React.DragEvent, startCol: number) {
     e.dataTransfer.setData("extend-agent", String(startCol))
     e.dataTransfer.effectAllowed = "move"
-    setExtendingAgent(startCol)
+    dragActions.agentExtendStart(startCol)
   }
   function onAgentCellDragOver(e: React.DragEvent, col: number) {
-    if (extendingAgent === null) return
+    if (drag.extendingAgent === null) return
     e.preventDefault()
     e.stopPropagation()
-    if (col >= extendingAgent) setExtendHoverCol(col)
-    else setExtendHoverCol(extendingAgent) // retract to minimum = startCol
+    // Retracting past the start would give the segment a negative length, so
+    // the hover clamps to the column it began in.
+    dragActions.agentExtendHover(Math.max(col, drag.extendingAgent))
   }
   function onAgentCellDrop(e: React.DragEvent, col: number) {
-    if (extendingAgent === null) return
+    if (drag.extendingAgent === null) return
     e.preventDefault()
     const startCol = parseInt(e.dataTransfer.getData("extend-agent"))
     if (isNaN(startCol)) return
     extendSegment(startCol, Math.max(col, startCol))
-    setExtendingAgent(null); setExtendHoverCol(null)
+    dragActions.agentExtendEnd()
   }
-  function onAgentDragEnd() { setExtendingAgent(null); setExtendHoverCol(null) }
+  function onAgentDragEnd() { dragActions.agentExtendEnd() }
 
   // ── Drug/fluid drag ──────────────────────────────────────────────────────────
-  function onDrugDragOver(e: React.DragEvent, col: number)  { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); setDragOver(col) }
+  function onDrugDragOver(e: React.DragEvent, col: number)  { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); dragActions.dropTargetOver(col) }
   function onDrugDrop(e: React.DragEvent, col: number) {
-    e.preventDefault(); setDragOver(null)
+    e.preventDefault(); dragActions.dropTargetOver(null)
     const type = e.dataTransfer.getData("item-type")
     if (type === "move-drug") {
       const idx = parseInt(e.dataTransfer.getData("item-idx"))
@@ -1584,7 +1574,7 @@ export function IntraopTimetable({
     openFP(col, e.dataTransfer.getData("item-name"), e.dataTransfer.getData("item-unit"), e.currentTarget, "bolus")
   }
   function onFluidDrop(e: React.DragEvent, col: number) {
-    e.preventDefault(); setFluidDragOver(null)
+    e.preventDefault(); dragActions.fluidDropTargetOver(null)
     const type = e.dataTransfer.getData("item-type")
     if (type === "move-fluid") {
       const id = e.dataTransfer.getData("item-id")
@@ -1740,8 +1730,7 @@ export function IntraopTimetable({
               segmentAt={segmentAt}
               agentStyle={AGENT_STYLE}
               displayAgentName={displayAgentName}
-              extendingAgent={extendingAgent}
-              extendHoverCol={extendHoverCol}
+              drag={drag}
               onCellDragOver={onAgentCellDragOver}
               onCellDrop={onAgentCellDrop}
               onGripDragStart={onGripDragStart}
@@ -1799,9 +1788,9 @@ export function IntraopTimetable({
             drugs={data.drugs}
             displayDrugName={displayDrugName}
             sel={sel}
-            dragOver={dragOver}
+            drag={drag}
             onDragOver={onDrugDragOver}
-            onDragLeave={() => setDragOver(null)}
+            onDragLeave={() => dragActions.dropTargetOver(null)}
             onDrop={onDrugDrop}
             onOpenPicker={(ci, rect) => setDrugPicker({ ci, rect })}
             onEditDose={(idx, dose, unit, rect) => setDoseEditDrug({ idx, dose, unit, rect })}
@@ -1831,21 +1820,8 @@ export function IntraopTimetable({
                 discConfirmId={discConfirmId}
                 setDiscConfirmId={setDiscConfirmId}
                 hoverDiscontinue={hoverDiscontinue}
-                extendingInf={extendingInf}
-                extInfHover={extInfHover}
-                setExtendingInf={setExtendingInf}
-                setExtInfHover={setExtInfHover}
-                extendingInfLeft={extendingInfLeft}
-                extInfLeftHover={extInfLeftHover}
-                setExtendingInfLeft={setExtendingInfLeft}
-                setExtInfLeftHover={setExtInfLeftHover}
-                movingInf={movingInf}
-                movingInfCol={movingInfCol}
-                setMovingInf={setMovingInf}
-                setMovingInfCol={setMovingInfCol}
-                movingRatePill={movingRatePill}
-                setMovingRatePill={setMovingRatePill}
-                setMovingRatePillCol={setMovingRatePillCol}
+                drag={drag}
+                dragActions={dragActions}
                 extendInfusion={extendInfusion}
                 extendInfusionLeft={extendInfusionLeft}
                 applyInfRateChange={applyInfRateChange}
@@ -1872,10 +1848,8 @@ export function IntraopTimetable({
               sel={sel}
               setSel={setSel}
               displayFluidName={displayFluidName}
-              extendingFluid={extendingFluid}
-              extFluidHover={extFluidHover}
-              setExtendingFluid={setExtendingFluid}
-              setExtFluidHover={setExtFluidHover}
+              drag={drag}
+              dragActions={dragActions}
               extendFluid={extendFluid}
               resumeFluid={resumeFluid}
               continueFluid={continueFluid}
@@ -1907,10 +1881,10 @@ export function IntraopTimetable({
             <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
-                onDragOver={e => { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); setFluidDragOver(ci) }}
-                onDragLeave={() => setFluidDragOver(null)}
+                onDragOver={e => { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); dragActions.fluidDropTargetOver(ci) }}
+                onDragLeave={() => dragActions.fluidDropTargetOver(null)}
                 onDrop={e => onFluidDrop(e, ci)}
-                className={`border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center transition-colors ${fluidDragOver===ci ? "bg-cyan-100 dark:bg-cyan-900/20" : ""}`}>
+                className={`border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center transition-colors ${drag.fluidDragOver===ci ? "bg-cyan-100 dark:bg-cyan-900/20" : ""}`}>
                 <button type="button" tabIndex={-1}
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setFluidPicker({ ci, rect }); setFpSearch("") }}
                   className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-cyan-300 dark:border-cyan-700 text-cyan-400 dark:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-1 py-1 transition-colors w-[72px]">

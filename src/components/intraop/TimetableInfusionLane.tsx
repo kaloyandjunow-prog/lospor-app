@@ -3,6 +3,7 @@
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
 import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geometry"
+import type { TimetableDragActions, TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import type { TimetableInfusion } from "@/types/timetable"
 
@@ -75,22 +76,8 @@ export type InfusionLaneProps = {
   /** Id of the bar the Discontinue menu item is hovering, drawn as about to end. */
   hoverDiscontinue: string | null
 
-  extendingInf: string | null
-  extInfHover: number | null
-  setExtendingInf: (id: string | null) => void
-  setExtInfHover: (col: number | null) => void
-  extendingInfLeft: string | null
-  extInfLeftHover: number | null
-  setExtendingInfLeft: (id: string | null) => void
-  setExtInfLeftHover: (col: number | null) => void
-
-  movingInf: InfusionBarMove | null
-  movingInfCol: number | null
-  setMovingInf: (move: InfusionBarMove | null) => void
-  setMovingInfCol: (col: number | null) => void
-  movingRatePill: RatePillMove | null
-  setMovingRatePill: (move: RatePillMove | null) => void
-  setMovingRatePillCol: (col: number | null) => void
+  drag: TimetableDragState
+  dragActions: TimetableDragActions
 
   extendInfusion: (id: string, toCol: number, stop?: boolean) => void
   extendInfusionLeft: (id: string, toCol: number) => void
@@ -117,27 +104,15 @@ export function InfusionLane({
   discConfirmId,
   setDiscConfirmId,
   hoverDiscontinue,
-  extendingInf,
-  extInfHover,
-  setExtendingInf,
-  setExtInfHover,
-  extendingInfLeft,
-  extInfLeftHover,
-  setExtendingInfLeft,
-  setExtInfLeftHover,
-  movingInf,
-  movingInfCol,
-  setMovingInf,
-  setMovingInfCol,
-  movingRatePill,
-  setMovingRatePill,
-  setMovingRatePillCol,
+  drag,
+  dragActions,
   extendInfusion,
   extendInfusionLeft,
   applyInfRateChange,
   onMoveBar,
   onOpenMenu,
 }: InfusionLaneProps) {
+  const { movingInf, movingInfCol, movingRatePill, extendingInf, extInfHover, extendingInfLeft, extInfLeftHover } = drag
   const isBusyMovingBar = movingInf !== null && segments.some(s => s.id === movingInf.id)
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
 
@@ -190,15 +165,15 @@ export function InfusionLane({
               if (extendingInf) {
                 e.preventDefault(); e.stopPropagation()
                 const s = segments.find(s => s.id === extendingInf)
-                if (s) setExtInfHover(Math.max(ci, s.startCol))
+                if (s) dragActions.infusionExtendHover(Math.max(ci, s.startCol), "right")
               } else if (extendingInfLeft) {
                 e.preventDefault(); e.stopPropagation()
                 const s = segments.find(s => s.id === extendingInfLeft)
-                if (s && ci <= s.endCol) setExtInfLeftHover(Math.max(0, ci))
+                if (s && ci <= s.endCol) dragActions.infusionExtendHover(Math.max(0, ci), "left")
               } else if (isBusyMovingBar) {
-                e.preventDefault(); setMovingInfCol(ci)
+                e.preventDefault(); dragActions.infusionMoveHover(ci)
               } else if (isBusyMovingPill) {
-                e.preventDefault(); setMovingRatePillCol(ci)
+                e.preventDefault()
               }
             }}
             onDrop={e => {
@@ -206,21 +181,21 @@ export function InfusionLane({
                 e.preventDefault()
                 const s = segments.find(s => s.id === extendingInf)
                 if (s) extendInfusion(extendingInf, Math.max(ci, s.startCol))
-                setExtendingInf(null); setExtInfHover(null)
+                dragActions.infusionExtendEnd("right")
               } else if (extendingInfLeft) {
                 e.preventDefault()
                 extendInfusionLeft(extendingInfLeft, Math.max(0, extInfLeftHover ?? ci))
-                setExtendingInfLeft(null); setExtInfLeftHover(null)
+                dragActions.infusionExtendEnd("left")
               } else if (isBusyMovingBar) {
                 e.preventDefault()
                 onMoveBar(movingInf!, ci)
-                setMovingInf(null); setMovingInfCol(null)
+                dragActions.infusionMoveEnd()
               } else if (isBusyMovingPill) {
                 e.preventDefault()
                 // Only lands where an infusion is running; fromCol null keeps
                 // the original change in place rather than moving it.
                 if (seg) applyInfRateChange(movingRatePill!.infId, null, ci, movingRatePill!.rate, movingRatePill!.unit)
-                setMovingRatePill(null); setMovingRatePillCol(null)
+                dragActions.ratePillEnd()
               }
             }}
           >
@@ -261,9 +236,9 @@ export function InfusionLane({
                       onDragStart={e => {
                         e.stopPropagation()
                         const rc = sortedChanges.find(r => r.col === ci)!
-                        setMovingRatePill({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit })
+                        dragActions.ratePillStart({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit })
                       }}
-                      onDragEnd={() => { setMovingRatePill(null); setMovingRatePillCol(null) }}
+                      onDragEnd={() => dragActions.ratePillEnd()}
                       onClick={e => e.stopPropagation()}
                     />
                   )}
@@ -284,9 +259,9 @@ export function InfusionLane({
                 <div
                   draggable={!seg.stopped}
                   onDragStart={!seg.stopped
-                    ? e => { e.stopPropagation(); setMovingInf({ id: seg.id, origStart: seg.startCol, origEnd: seg.endCol, fromCol: ci }) }
+                    ? e => { e.stopPropagation(); dragActions.infusionMoveStart({ id: seg.id, origStart: seg.startCol, origEnd: seg.endCol, fromCol: ci }) }
                     : undefined}
-                  onDragEnd={() => { setMovingInf(null); setMovingInfCol(null) }}
+                  onDragEnd={() => dragActions.infusionMoveEnd()}
                   onClick={e => { e.stopPropagation(); setSel(s => s?.type === "infusion" && s.id === seg.id ? null : { type: "infusion", id: seg.id }) }}
                   title={!seg.stopped ? "Click to select · Double-click for options · Drag to move" : undefined}
                   className={`absolute left-0 right-0 border-y ${!seg.stopped ? "cursor-grab active:cursor-grabbing" : ""} ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id ? "opacity-50" : ""}`}
@@ -318,8 +293,8 @@ export function InfusionLane({
                 {isActualStart && isSelected && !seg.stopped && (
                   <div
                     draggable
-                    onDragStart={e => { e.stopPropagation(); setExtendingInfLeft(seg.id) }}
-                    onDragEnd={() => { setExtendingInfLeft(null); setExtInfLeftHover(null) }}
+                    onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "left") }}
+                    onDragEnd={() => dragActions.infusionExtendEnd("left")}
                     className="absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm"
                     style={{ top: 22, bottom: 4, width: 10, backgroundColor: color }}
                   >
@@ -329,8 +304,8 @@ export function InfusionLane({
                 {isActualEnd && isSelected && !seg.stopped && !isRowExit && (
                   <div
                     draggable
-                    onDragStart={e => { e.stopPropagation(); setExtendingInf(seg.id) }}
-                    onDragEnd={() => { setExtendingInf(null); setExtInfHover(null) }}
+                    onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "right") }}
+                    onDragEnd={() => dragActions.infusionExtendEnd("right")}
                     className="absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm"
                     style={{ top: 22, bottom: 4, width: 10, backgroundColor: color }}
                   >

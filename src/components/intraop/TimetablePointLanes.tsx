@@ -1,6 +1,7 @@
 "use client"
 
 import { Plus, X } from "lucide-react"
+import type { TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import type { TimetableData } from "@/types/timetable"
 
@@ -100,8 +101,7 @@ export type DrugLaneProps = LaneChrome & {
   drugs: TimetableData["drugs"]
   displayDrugName: (name: string) => string
   sel: TtSel | null
-  /** Column currently under a drag, highlighted as a drop target. */
-  dragOver: number | null
+  drag: TimetableDragState
   onDragOver: (event: React.DragEvent, col: number) => void
   onDragLeave: () => void
   onDrop: (event: React.DragEvent, col: number) => void
@@ -119,7 +119,7 @@ export function DrugLane({
   drugs,
   displayDrugName,
   sel,
-  dragOver,
+  drag,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -141,7 +141,7 @@ export function DrugLane({
             onDragOver={e => onDragOver(e, ci)}
             onDragLeave={onDragLeave}
             onDrop={e => onDrop(e, ci)}
-            className={`border-l border-slate-100 dark:border-[#2a2a2a] px-1 py-1 space-y-0.5 transition-colors ${dragOver === ci ? "bg-violet-50 dark:bg-violet-900/20" : ""}`}
+            className={`border-l border-slate-100 dark:border-[#2a2a2a] px-1 py-1 space-y-0.5 transition-colors ${drag.dragOver === ci ? "bg-violet-50 dark:bg-violet-900/20" : ""}`}
           >
             {colDrugs.map(drug => {
               // Position in the case's own list, not in this column: that index
