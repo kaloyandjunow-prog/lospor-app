@@ -26,7 +26,7 @@ import { InfusionLane, type InfusionBarMove } from "@/components/intraop/Timetab
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
-import { fitPopoverWidth, positionPopover } from "@/components/intraop/anchored-position"
+import { DosingFlyout } from "@/components/intraop/DosingFlyout"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -99,7 +99,6 @@ import {
 } from "@lospor/core/option-library"
 import { metadataNumber, metadataString } from "@lospor/core/option-contracts"
 import {
-  drugSelectorAtomicState,
 } from "@/lib/drug-selector-surface"
 import {
   applyAdultDoseProfilesToOptions,
@@ -116,7 +115,6 @@ import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
 import {
   currentFluidRate,
   fluidDeliveredVolumeMl,
-  resolveFluidSelectorDefaults,
 } from "@/lib/fluid-entry-ui"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -464,21 +462,6 @@ export function IntraopTimetable({
     fluidDefaultConcentrations: FLUID_DEFAULT_CONCENTRATIONS,
     manualDoseOnlyHint: t("pediatric.manualDoseOnly"),
   })
-  const {
-    pediatricSurfaceFor,
-    calcSuggestedDose,
-    bolusRange,
-    bolusRouteSurface,
-    infusionRouteSurface,
-    pediatricProfilesFor,
-    pediatricProfileResolution,
-    clinicalPediatricInfusionFor,
-    clinicalFluidProfileFor,
-    fluidDoseSurface,
-    adultBolusSurface,
-    calculationAuditFromSurface,
-    adultDoseAudit,
-  } = doseSurfaces
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
@@ -2206,427 +2189,30 @@ export function IntraopTimetable({
       )
     })()}
     {/* ── Floating prompt portal ─────────────────────────────────────────────── */}
-    {fp && typeof document !== "undefined" && createPortal(
-      <>
-        {/* Backdrop to close */}
-        <div className="fixed inset-0 z-[9998]" onClick={() => setFp(null)} />
-        {/* Popup */}
-        {(() => {
-          const bsurf = bolusRouteSurface(fp.name, fp.route)
-          const adultSurface = !isPediatric && fp.mode === "bolus"
-            ? adultBolusSurface(fp.name, fp.route)
-            : null
-          const pediatricProfiles = isPediatric && fp.mode === "bolus" ? pediatricProfilesFor(fp.name) : []
-          const pediatricSurface = pediatricProfiles.length === 1
-            ? pediatricProfileResolution(pediatricProfiles[0], fp.route)
-            : null
-          const bolusSurface = pediatricSurface ?? adultSurface
-          const hasDetailedBolus = fp.mode === "bolus" && !!bolusSurface && (
-            bolusSurface.routes.length > 1
-            || bolusSurface.quickValues.length > 5
-            || bolusSurface.concentrationOptions.length > 0
-            || bolusSurface.formulationOptions.length > 0
-          )
-          const hasDetailedFluid = fp.mode === "fluid" && (
-            (fp.fluidEntryModes?.length ?? 0) > 1
-            || (fp.fluidConcentrations?.length ?? 0) > 0
-          )
-          // A flyout with routes, concentrations or entry modes needs both more
-          // width and more headroom before it is worth opening downwards.
-          const detailed = hasDetailedBolus || hasDetailedFluid
-          const viewport = { width: window.innerWidth, height: window.innerHeight }
-          const POP_W = fitPopoverWidth(detailed ? 300 : 220, viewport.width)
-          const { left, top, showAbove } = positionPopover({
-            anchor: fp.anchor,
-            width: POP_W,
-            viewport,
-            flipBelowSpace: detailed ? 420 : 260,
-            align: "center",
-            belowGap: 6,
-          })
-          const br = bolusSurface
-            ? { min: bolusSurface.min, max: bolusSurface.max, step: bolusSurface.step }
-            : bsurf
-              ? { min: bsurf.min, max: bsurf.max, step: bsurf.step }
-              : bolusRange(fp.name, fp.unit)
-          return (
-            <div
-              style={{ position:"fixed", left, top, width:POP_W, zIndex:9999, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="max-h-[calc(100vh-16px)] overflow-y-auto bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{fp.mode === "bolus" ? displayDrugName(fp.name) : fp.mode === "infusion" ? displayInfusionName(fp.name) : displayFluidName(fp.name)}</span>
-                <button type="button" onClick={() => setFp(null)} className="text-slate-300 hover:text-red-400 shrink-0 transition-colors"><X className="h-3.5 w-3.5" /></button>
-              </div>
-              <p className="text-[9px] text-slate-400 dark:text-slate-500">
-                at <span className="font-semibold text-blue-500 dark:text-blue-400">{times[fp.col]}</span>
-              </p>
-
-              {fp.mode === "fluid" && (() => {
-                const fluidEntryMode = fp.fluidEntryMode ?? "VOLUME"
-                const fluidConcentrations = fp.fluidConcentrations
-                const category = getFluidCategory(fp.name)
-                return (
-                  <div className="space-y-2">
-                    {(fp.fluidEntryModes?.length ?? 0) > 1 && (
-                      <div className="grid grid-cols-2 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-[#3a3a3a] dark:bg-[#252525]" role="group" aria-label="Fluid entry mode">
-                        {fp.fluidEntryModes?.map(mode => (
-                          <button
-                            key={mode}
-                            type="button"
-                            aria-pressed={fluidEntryMode === mode}
-                            onClick={() => setFp(current => current ? { ...current, fluidEntryMode: mode } : current)}
-                            className={`rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
-                              fluidEntryMode === mode
-                                ? "bg-cyan-500 text-white shadow-sm"
-                                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                            }`}
-                          >
-                            {mode === "VOLUME" ? "Bag" : "Rate"}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {fp.fluidProfileConflict && (
-                      <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[10px] font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                        Multiple clinical fluid profiles apply. Resolve the overlapping rules before using this selector.
-                      </p>
-                    )}
-                    <DoseSelector
-                      key={`fluid-${fp.name}-${fluidEntryMode}`}
-                      accent="cyan"
-                      quickValues={fluidEntryMode === "VOLUME" ? fp.quickDoses : undefined}
-                      concentrationOptions={fluidConcentrations}
-                      concentration={fp.concentration}
-                      concentrationUnit="%"
-                      onConcentrationChange={concentration => setFp(current => {
-                        if (!current) return current
-                        const clinicalProfile = clinicalFluidProfileFor(current.name)
-                        const defaults = resolveFluidSelectorDefaults({
-                          clinicalMode,
-                          name: current.name,
-                          category,
-                          concentration,
-                          profile: clinicalProfile.profile,
-                          totalBodyWeightKg: tbw,
-                          mclarenIdealBodyWeightKg: ibw,
-                          useIdealBodyWeight: false,
-                        })
-                        return {
-                          ...current,
-                          concentration,
-                          customConc: "",
-                          fluidRate: defaults.rate,
-                          fluidRateHint: defaults.rateHint,
-                          fluidEntryModes: defaults.availableModes,
-                          fluidEntryMode: current.fluidEntryMode
-                            && defaults.availableModes.includes(current.fluidEntryMode)
-                              ? current.fluidEntryMode
-                              : defaults.defaultMode,
-                          fluidProfileConflict: clinicalProfile.conflict,
-                        }
-                      })}
-                      customConcentration={fp.customConc}
-                      onCustomConcentrationChange={customConc => setFp(current => current ? { ...current, customConc } : current)}
-                      value={fluidEntryMode === "VOLUME" ? fp.dose : fp.fluidRate ?? ""}
-                      onValueChange={value => setFp(current => current
-                        ? fluidEntryMode === "VOLUME"
-                          ? { ...current, dose: value }
-                          : { ...current, fluidRate: value }
-                        : current)}
-                      valuePlaceholder={fluidEntryMode === "VOLUME" ? "Bag volume" : "Rate"}
-                      min={fluidEntryMode === "VOLUME" ? fp.fluidBagMin ?? 0 : fp.fluidRateMin ?? 1}
-                      max={fluidEntryMode === "VOLUME" ? fp.fluidBagMax ?? 2000 : fp.fluidRateMax ?? 200}
-                      step={fluidEntryMode === "VOLUME" ? fp.fluidBagStep ?? 50 : fp.fluidRateStep ?? 1}
-                      unitSuffix={fluidEntryMode === "VOLUME" ? fp.unit : "mL/h"}
-                      extraHint={fluidEntryMode === "RATE" ? fp.fluidRateHint : undefined}
-                      routes={fp.routes}
-                      route={fp.route}
-                      onRouteChange={route => setFp(current => {
-                        if (!current) return current
-                        const next = fluidDoseSurface(current.name, route)
-                        const concentration = next.surface.defaultConcentration
-                        const defaults = resolveFluidSelectorDefaults({
-                          clinicalMode,
-                          name: current.name,
-                          category,
-                          concentration,
-                          profile: next.profile,
-                          totalBodyWeightKg: tbw,
-                          mclarenIdealBodyWeightKg: ibw,
-                          useIdealBodyWeight: false,
-                        })
-                        return {
-                          ...current,
-                          unit: next.surface.unit,
-                          route: next.surface.route,
-                          dose: String(next.surface.suggestedVolume),
-                          quickDoses: next.surface.quickValues,
-                          concentration,
-                          customConc: "",
-                          fluidConcentrations: next.surface.concentrationOptions,
-                          fluidBagMin: next.surface.min,
-                          fluidBagMax: next.surface.max,
-                          fluidBagStep: next.surface.step,
-                          fluidEntryModes: defaults.availableModes,
-                          fluidEntryMode: current.fluidEntryMode
-                            && defaults.availableModes.includes(current.fluidEntryMode)
-                              ? current.fluidEntryMode
-                              : defaults.defaultMode,
-                          fluidRate: defaults.rate,
-                          fluidRateHint: defaults.rateHint,
-                          fluidRateMin: defaults.rateProfile.min,
-                          fluidRateMax: defaults.rateProfile.max,
-                          fluidRateStep: defaults.rateProfile.step,
-                          fluidProfileConflict: next.conflict,
-                          clinicalRuleKey: next.clinicalRuleKey,
-                          clinicalRuleVersion: next.clinicalRuleVersion,
-                          clinicalRuleSourceIds: next.clinicalRuleSourceIds,
-                        }
-                      })}
-                      confirmLabel={fluidEntryMode === "VOLUME" ? "Add bag" : "Start fluid"}
-                      confirmDisabled={fp.fluidProfileConflict || (fluidEntryMode === "VOLUME"
-                        ? !fp.dose
-                        : !fp.fluidRate || Number(fp.fluidRate) <= 0)}
-                      onConfirm={fpCommitFluid}
-                    />
-                  </div>
-                )
-              })()}
-
-              {fp.mode === "bolus" && (() => {
-                const conc = bolusSurface?.concentrationOptions.length
-                  ? bolusSurface.concentrationOptions
-                  : !isPediatric && bsurf
-                    ? (bsurf.mode?.includes("concentration") ? bsurf.concentrationOptions : undefined)
-                    : !isPediatric
-                      ? LA_CONCENTRATIONS[fp.name]
-                      : undefined
-                const isLA = !!conc?.length
-                const laSelected = isLA && !!fp.concentration
-                const quick = bolusSurface?.quickValues ?? bsurf?.quickValues ?? fp.quickDoses
-                return (
-                  <>
-                    {isPediatric && pediatricRulesLoading ? (
-                      <p className="text-[10px] text-slate-500">
-                        {isBg ? "Зареждане на одобрения набор..." : "Loading the approved preset..."}
-                      </p>
-                    ) : null}
-                    {isPediatric && pediatricRulesSource === "cache" ? (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                        {isBg
-                          ? `Използва се последният запазен набор${pediatricRulesCachedAt ? ` от ${new Date(pediatricRulesCachedAt).toLocaleString()}` : ""}.`
-                          : `Using the last cached preset${pediatricRulesCachedAt ? ` from ${new Date(pediatricRulesCachedAt).toLocaleString()}` : ""}.`}
-                      </p>
-                    ) : null}
-                    {isPediatric && !pediatricRulesLoading && pediatricProfiles.length === 0 ? (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                        {isBg
-                          ? "Няма приложим одобрен профил. Въведете ръчно проверена доза."
-                          : "No applicable approved profile. Enter a manually verified dose."}
-                        {pediatricRulesError ? ` ${pediatricRulesError}` : ""}
-                      </p>
-                    ) : null}
-                    {isPediatric && pediatricProfiles.length > 1 ? (
-                      <p className="text-[10px] text-red-600 dark:text-red-400">
-                        {isBg
-                          ? "Има припокриващи се профили. Дозата не може да бъде записана."
-                          : "Overlapping profiles were returned. The dose cannot be recorded."}
-                      </p>
-                    ) : null}
-                    {fp.calculationUnavailableReason && (!isPediatric || pediatricProfiles.length === 1) ? (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                        {isBg
-                          ? "Дозата не може да бъде изчислена от наличните данни. Въведете я ръчно."
-                          : "The dose cannot be calculated from the available patient data. Enter it manually."}
-                      </p>
-                    ) : null}
-                    <DoseSelector
-                      key={`bolus-${fp.name}-${fp.route}`}
-                      accent="violet"
-                      hint={fp.doseHint}
-                      quickValues={quick}
-                      manualEntryOnly={fp.manualEntryOnly}
-                      concentrationOptions={isLA ? conc : undefined}
-                      concentration={fp.concentration}
-                      concentrationUnit={bolusSurface?.concentrationUnit ?? (isLA ? "%" : undefined)}
-                      onConcentrationChange={c => setFp(f => f ? {
-                        ...f,
-                        concentration: c,
-                        customConc: "",
-                        unit: c && !bolusSurface ? "ml" : f.unit,
-                      } : f)}
-                      customConcentration={fp.customConc}
-                      onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
-                      formulationOptions={bolusSurface?.formulationOptions}
-                      formulation={fp.formulation}
-                      onFormulationChange={formulation => setFp(f => f ? { ...f, formulation } : f)}
-                      value={fp.dose} onValueChange={dose => setFp(f => f ? {...f, dose, unit: laSelected ? "ml" : f.unit} : f)}
-                      valuePlaceholder="Dose"
-                      min={br.min} max={br.max} step={br.step}
-                      units={!bolusSurface && !laSelected ? ["mg","mcg","ml","g","IU"] : undefined}
-                      unit={fp.unit} onUnitChange={u => setFp(f => f ? {...f, unit: u} : f)}
-                      unitSuffix={bolusSurface || laSelected ? fp.unit : undefined}
-                      routes={fp.routes}
-                      route={fp.route}
-                      onRouteChange={r => setFp(f => {
-                        if (!f) return f
-                        const nextPediatricSurface = isPediatric ? pediatricSurfaceFor(f.name, r) : null
-                        const nextAdultSurface = !isPediatric ? adultBolusSurface(f.name, r) : null
-                        const nextSurface = nextPediatricSurface ?? nextAdultSurface
-                        const sugg = calcSuggestedDose(f.name, ibw ?? null, tbw ?? null, r)
-                        if (nextSurface) {
-                          const nextAudit = calculationAuditFromSurface(nextSurface)
-                          const nextRuleAudit = nextPediatricSurface
-                            ? {
-                                clinicalRuleKey: nextPediatricSurface.ruleKey,
-                                clinicalRuleVersion: nextPediatricSurface.ruleVersion,
-                                clinicalRuleSourceIds: nextPediatricSurface.sourceIds,
-                              }
-                            : adultDoseAudit(f.name, nextSurface)
-                          return {
-                            ...f,
-                            ...drugSelectorAtomicState(nextSurface),
-                            doseHint: isPediatric ? "" : sugg.hint,
-                            calculationBasis: nextAudit.calculationBasis,
-                            calculationWeightKg: nextAudit.calculationWeightKg,
-                            calculationMethod: nextAudit.calculationMethod,
-                            clinicalRuleKey: nextRuleAudit.clinicalRuleKey,
-                            clinicalRuleVersion: nextRuleAudit.clinicalRuleVersion,
-                            clinicalRuleSourceIds: "clinicalRuleSourceIds" in nextRuleAudit
-                              ? nextRuleAudit.clinicalRuleSourceIds
-                              : undefined,
-                            manualEntryOnly: nextPediatricSurface?.manualEntryOnly
-                              ?? (nextAdultSurface?.calculationUnavailableReason === "NO_AUTOFILL"
-                                && nextAdultSurface.quickValues.length === 0),
-                          }
-                        }
-                        const surf = bolusRouteSurface(f.name, r)
-                        return {
-                          ...f,
-                          route: r,
-                          dose: isPediatric ? "" : sugg.dose,
-                          doseHint: isPediatric ? "" : sugg.hint,
-                          unit: surf?.unit ?? f.unit,
-                          quickDoses: isPediatric ? undefined : surf?.quickValues ?? f.quickDoses,
-                          concentration: undefined,
-                          concentrationUnitHint: undefined,
-                          customConc: "",
-                          formulation: undefined,
-                          calculationBasis: undefined,
-                          calculationWeightKg: undefined,
-                          calculationMethod: undefined,
-                          calculationUnavailableReason: undefined,
-                          clinicalRuleKey: undefined,
-                          clinicalRuleVersion: undefined,
-                          clinicalRuleSourceIds: undefined,
-                        }
-                      })}
-                      confirmLabel="Administer"
-                      onConfirm={fpCommitBolus}
-                      confirmDisabled={
-                        !fp.dose
-                        || (!!bolusSurface?.concentrationOptions.length && !fp.concentration)
-                        || (!!bolusSurface?.formulationOptions.length && !fp.formulation)
-                        || pediatricProfiles.length > 1
-                      }
-                      stickyConfirm
-                    />
-                  </>
-                )
-              })()}
-
-              {fp.mode === "infusion" && (
-                (() => {
-                  const isurf = infusionRouteSurface(fp.name, fp.route)
-                  const conc = isPediatric
-                    ? fp.concentrationOptions
-                    : isurf ? (isurf.mode?.includes("concentration") ? isurf.concentrationOptions : undefined) : LA_CONCENTRATIONS[fp.name]
-                  const isLA = !!fp.concentrationUnitHint || !!conc?.length
-                  const basis = INFUSION_WEIGHT_BASIS[fp.name]
-                  const isPerKg = fp.rateUnit?.includes("/kg/")
-                  const wt = basis === "TBW" ? tbw : ibw
-                  const weightHint = isPerKg && basis
-                    ? `⚖ Total will use ${basis}${wt ? ` ${Math.round(wt * 10) / 10} kg` : " — enter patient weight in preop"}`
-                    : undefined
-                  const extraHint = [fp.advisory, weightHint].filter(Boolean).join(" · ") || undefined
-                  return (
-                    <DoseSelector
-                      accent="blue"
-                      concentrationOptions={isLA ? conc : undefined}
-                      concentrationUnit={isLA ? fp.concentrationUnitHint : undefined}
-                      concentration={fp.concentration}
-                      onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: ""} : f)}
-                      customConcentration={fp.customConc}
-                      onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
-                      quickValues={fp.quickRates}
-                      manualEntryOnly={fp.manualEntryOnly}
-                      value={String(fp.rate)} onValueChange={v => setFp(f => f ? {...f, rate: parseFloat(v) || f.rateMin} : f)}
-                      valuePlaceholder="Rate"
-                      min={fp.rateMin} max={fp.rateMax} step={fp.rateStep}
-                      units={!isLA ? fp.rateUnits : undefined}
-                      unit={fp.rateUnit} onUnitChange={u => setFp(f => f ? {...f, rateUnit: u} : f)}
-                      unitSuffix={fp.rateUnit}
-                      extraHint={extraHint}
-                      formulationOptions={fp.formulationOptions}
-                      formulation={fp.formulation}
-                      onFormulationChange={formulation => setFp(f => f ? { ...f, formulation } : f)}
-                      routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => {
-                        if (!f) return f
-                        if (isPediatric) {
-                          const next = clinicalPediatricInfusionFor(f.name, r).surface
-                          if (!next || next.disposition === "HIDDEN") return f
-                          return {
-                            ...f,
-                            route: next.route,
-                            rate: next.suggestedRate ?? 0,
-                            rateUnit: next.unit,
-                            rateUnits: [next.unit],
-                            rateMin: next.min,
-                            rateMax: next.max,
-                            rateStep: next.step,
-                            quickRates: next.quickValues,
-                            concentration: next.concentration || undefined,
-                            concentrationOptions: next.concentrationOptions,
-                            concentrationUnitHint: next.concentrationUnit,
-                            customConc: "",
-                            formulation: next.formulation,
-                            formulationOptions: next.formulationOptions,
-                            manualEntryOnly: next.manualEntryOnly,
-                            advisory: next.advisory ?? undefined,
-                            clinicalRuleKey: next.ruleKey,
-                            clinicalRuleVersion: next.ruleVersion,
-                            clinicalRuleSourceIds: next.sourceIds,
-                          }
-                        }
-                        const surf = infusionRouteSurface(f.name, r)
-                        if (!surf) return { ...f, route: r }
-                        return { ...f, route: r,
-                          rateUnit: surf.unit, rateUnits: [surf.unit],
-                          rateMin: surf.min, rateMax: surf.max, rateStep: surf.step,
-                          rate: surf.suggestedRate ?? surf.min,
-                          quickRates: surf.quickValues ?? f.quickRates,
-                          concentration: surf.suggestedConcentration, customConc: "" }
-                      })}
-                      confirmLabel="Start Infusion"
-                      confirmDisabled={
-                        !Number.isFinite(Number(fp.rate))
-                        || Number(fp.rate) <= 0
-                        || (!!fp.concentrationUnitHint && !fp.concentration)
-                        || (!!fp.formulationOptions?.length && !fp.formulation)
-                      }
-                      onConfirm={fpCommitInfusion}
-                    />
-                  )
-                })()
-              )}
-            </div>
-          )
-        })()}
-      </>,
-      document.body
-    )}
+    <DosingFlyout
+      fp={fp}
+      setFp={setFp}
+      doseSurfaces={doseSurfaces}
+      times={times}
+      isPediatric={isPediatric}
+      isBg={isBg}
+      ibw={ibw}
+      tbw={tbw}
+      displayDrugName={displayDrugName}
+      displayInfusionName={displayInfusionName}
+      displayFluidName={displayFluidName}
+      getFluidCategory={getFluidCategory}
+      fpCommitBolus={fpCommitBolus}
+      fpCommitInfusion={fpCommitInfusion}
+      fpCommitFluid={fpCommitFluid}
+      clinicalMode={clinicalMode}
+      laConcentrations={LA_CONCENTRATIONS}
+      infusionWeightBasis={INFUSION_WEIGHT_BASIS}
+      pediatricRulesSource={pediatricRulesSource}
+      pediatricRulesCachedAt={pediatricRulesCachedAt}
+      pediatricRulesLoading={pediatricRulesLoading}
+      pediatricRulesError={pediatricRulesError}
+    />
     {doseEditDrug && (
       <DoseEditPopover
         anchor={doseEditDrug.rect}
