@@ -6,7 +6,7 @@
   "src/components/forms/IntraopForm.tsx": 973,
   "src/components/CaseSummary.tsx": 932,
   "src/components/SettingsMenu.tsx": 847,
-  "src/components/clinical-rules/DoseProfileEditor.tsx": 843,
+  "src/components/clinical-rules/DoseProfileEditor.tsx": 773,
   "src/components/clinical-rules/ClinicalRuleEditor.tsx": 690,
   "src/components/forms/PediatricPreopSections.tsx": 579,
   "src/components/forms/sections/AirwaySection.tsx": 529,
