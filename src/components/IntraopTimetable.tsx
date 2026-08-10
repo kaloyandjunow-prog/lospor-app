@@ -1893,7 +1893,7 @@ export function IntraopTimetable({
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
-                <button type="button" tabIndex={-1}
+                <button type="button" tabIndex={-1} data-testid="add-infusion"
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
                   className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
