@@ -2,7 +2,10 @@ import type { createDoseSurfaces } from "./dose-surfaces"
 import type { FConflictAnchor, TtFP } from "./timetable-types"
 import { fluidClinicalRuleAudit, resolveFluidSelectorDefaults } from "@/lib/fluid-entry-ui"
 import { FLUID_CAT_COLOR } from "@/lib/timetable-fluid-rows"
-import { resolvePediatricInfusionProfileSurface } from "@lospor/core/clinical-rules"
+import {
+  resolvePediatricInfusionProfileSurface,
+  visiblePediatricInfusionRoutes,
+} from "@lospor/core/clinical-rules"
 
 /**
  * What the quick-entry flyout opens with.
@@ -107,13 +110,10 @@ export function buildDrugFlyoutState({
   if (pediatricInfusion.surface?.disposition === "HIDDEN") return null
   const adultSurface = !isPediatric && mode === "bolus" ? surfaces.adultBolusSurface(name) : null
   const bolusSurface = pediatricSurface ?? adultSurface
-  const pediatricInfusionRoutes = pediatricInfusion.rule && pediatricInfusion.surface
-    ? pediatricInfusion.surface.routes.filter(candidate => (
-        resolvePediatricInfusionProfileSurface({
-          rule: pediatricInfusion.rule!,
-          route: candidate,
-        }).disposition !== "HIDDEN"
-      ))
+  // A ruleset can withdraw one route rather than the whole drug; core decides
+  // which survive, so the phone offers the same list.
+  const pediatricInfusionRoutes = pediatricInfusion.rule
+    ? visiblePediatricInfusionRoutes(pediatricInfusion.rule)
     : null
   const routes = bolusSurface?.routes
     ?? (mode === "infusion"
