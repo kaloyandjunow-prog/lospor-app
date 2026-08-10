@@ -10,9 +10,10 @@ import type { DoseProfile } from "@lospor/core/catalog"
 import { normalizeAdministrationRoute } from "@lospor/core/clinical-rule-vocabulary"
 import {
   applicablePediatricDrugProfiles,
-  applicablePediatricInfusionProfiles,
   resolvePediatricDrugProfileSurface,
   resolvePediatricInfusionProfileSurface,
+  selectApplicablePediatricDrugProfile,
+  selectApplicablePediatricInfusionProfile,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
   type PediatricDrugSelectionResolution,
@@ -147,8 +148,13 @@ export function createDoseSurfaces({
   }
 
   function pediatricSurfaceFor(name: string, route?: string): PediatricDrugSelectionResolution | null {
-    const profiles = pediatricProfilesFor(name)
-    return profiles.length === 1 ? pediatricProfileResolution(profiles[0], route) : null
+    const { profile } = selectApplicablePediatricDrugProfile({
+      medicationKey: name,
+      age: pediatricAge,
+      weightKg: tbw,
+      profiles: pediatricDrugProfiles,
+    })
+    return profile ? pediatricProfileResolution(profile, route) : null
   }
 
   // Thin wrapper over the shared pure dosing logic (src/lib/dose-calc.ts).
@@ -227,18 +233,16 @@ export function createDoseSurfaces({
     conflict: boolean
   } {
     if (!isPediatric) return { rule: null, surface: null, conflict: false }
-    const matches = applicablePediatricInfusionProfiles({
+    const { profile, conflict } = selectApplicablePediatricInfusionProfile({
       itemKey: name,
       age: pediatricAge,
       weightKg: tbw,
       profiles: pediatricInfusionProfiles,
     })
-    if (matches.length !== 1) {
-      return { rule: null, surface: null, conflict: matches.length > 1 }
-    }
+    if (!profile) return { rule: null, surface: null, conflict }
     return {
-      rule: matches[0],
-      surface: resolvePediatricInfusionProfileSurface({ rule: matches[0], route }),
+      rule: profile,
+      surface: resolvePediatricInfusionProfileSurface({ rule: profile, route }),
       conflict: false,
     }
   }
