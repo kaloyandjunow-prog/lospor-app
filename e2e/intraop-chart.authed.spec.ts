@@ -66,6 +66,24 @@ async function openChart(page: Page, id: string) {
   return chart
 }
 
+/**
+ * Start an infusion from the chart's own entry point: browse, search, pick,
+ * confirm. "Browse all" is used rather than the favourites or scenario
+ * shortcuts, because those depend on what the option library ships.
+ */
+async function startInfusion(page: Page, chart: ReturnType<Page["locator"]>) {
+  await chart.getByTestId("add-infusion").nth(2).click({ timeout: 30_000 })
+  await page.getByRole("button", { name: "Browse all infusions" }).click({ timeout: 30_000 })
+  await page.getByPlaceholder("Search infusion").fill("Propofol")
+  await page.getByRole("button", { name: /^Propofol/ }).first().click()
+
+  const start = page.getByRole("button", { name: "Start Infusion" })
+  await expect(start).toBeVisible({ timeout: 30_000 })
+  await start.click()
+
+  await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible({ timeout: 30_000 })
+}
+
 test("the chart mounts with its time columns and vitals rows", async ({ page }) => {
   const id = await createStartedCase(page)
   const chart = await openChart(page, id)
@@ -119,21 +137,8 @@ test("an infusion started from the chart can be dragged to a different time", as
   const id = await createStartedCase(page)
   const chart = await openChart(page, id)
 
-  // Start an infusion from the chart's own entry point, in an early column.
-  // The picker opens on favourites and scenarios; "Browse all" is the path
-  // that does not depend on which scenarios the option library ships.
-  await chart.getByTestId("add-infusion").nth(2).click({ timeout: 30_000 })
-  await page.getByRole("button", { name: "Browse all infusions" }).click({ timeout: 30_000 })
-  await page.getByPlaceholder("Search infusion").fill("Propofol")
-  await page.getByRole("button", { name: /^Propofol/ }).first().click()
+  await startInfusion(page, chart)
 
-  // The flyout opens on the chosen drug at its suggested rate.
-  const start = page.getByRole("button", { name: "Start Infusion" })
-  await expect(start).toBeVisible({ timeout: 30_000 })
-  await start.click()
-
-  // The lane exists once the infusion is on the chart.
-  await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible({ timeout: 30_000 })
   const bar = chart.locator('[draggable="true"]').first()
   await expect(bar).toBeVisible()
 
@@ -163,4 +168,31 @@ test("an infusion started from the chart can be dragged to a different time", as
 
   // And it is still an infusion lane, not a bar orphaned out of its row.
   await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible()
+})
+
+test("an infusion's right grip extends the bar", async ({ page }) => {
+  const id = await createStartedCase(page)
+  const chart = await openChart(page, id)
+  await startInfusion(page, chart)
+
+  const lane = chart.getByTestId("infusion-lane").first()
+  const bar = chart.locator('[draggable="true"]').first()
+
+  // Grips appear only on the selected bar, so an unselected chart is not
+  // covered in handles. Selecting is what makes the grip reachable at all.
+  await bar.click()
+  const grip = lane.locator('[draggable="true"]').last()
+  await expect(grip).toBeVisible()
+
+  const before = await lane.locator('[draggable="true"]').count()
+  const laneBox = await lane.boundingBox()
+  await grip.dragTo(lane, { targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 } })
+
+  // Extending adds cells to the bar; each column of a bar is its own draggable
+  // element, so a longer bar is a larger count. Asserting the bar merely still
+  // exists would pass on a grip drag that did nothing.
+  await expect(async () => {
+    expect(await lane.locator('[draggable="true"]').count(), "the bar did not lengthen")
+      .toBeGreaterThan(before)
+  }).toPass({ timeout: 10_000 })
 })
