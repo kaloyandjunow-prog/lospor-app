@@ -1977,7 +1977,7 @@ export function IntraopTimetable({
                       </div>
                     )
                   })}
-                  <button type="button" tabIndex={-1}
+                  <button type="button" tabIndex={-1} data-testid="add-drug"
                     onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setDrugPicker({ ci, rect }) }}
                     className="w-full mt-1 flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-400 dark:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 py-1 transition-colors">
                     <Plus className="h-3 w-3" />
