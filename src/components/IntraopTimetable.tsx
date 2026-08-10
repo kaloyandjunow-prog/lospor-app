@@ -16,6 +16,8 @@ import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { AnchoredPopover } from "@/components/intraop/AnchoredPopover"
 import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
+import { baseInfusionName } from "@/components/intraop/infusion-naming"
+import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import {
   barContinues,
   barEntersRow,
@@ -3485,58 +3487,41 @@ export function IntraopTimetable({
       />
     )}
     {/* Infusion context menu */}
-    {infMenu && createPortal(
-      <div className="fixed inset-0 z-50" onClick={() => setInfMenu(null)}>
-        <div className="absolute bg-white dark:bg-[#2a2a2a] rounded-xl shadow-xl border border-slate-200 dark:border-[#3a3a3a] overflow-hidden min-w-[160px]"
-          style={{ top: Math.min(infMenu.rect.bottom + 4, window.innerHeight - 120), left: Math.min(infMenu.rect.left, window.innerWidth - 180) }}
-          onClick={e => e.stopPropagation()}>
-          <p className="text-[9px] font-bold uppercase tracking-wider px-3 pt-2.5 pb-1 flex items-center gap-1.5" style={{ color: infMenu.color }}>
-            {displayInfusionName(infMenu.name)}
-            {infMenu.stopped && <span className="text-[8px] font-normal text-slate-400 normal-case tracking-normal">discontinued</span>}
-          </p>
-          {infMenu.stopped ? (
-            <button type="button"
-              onClick={() => { restoreInfusion(infMenu.segId); setInfMenu(null) }}
-              className="w-full text-left text-sm font-medium px-4 py-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-emerald-600 dark:text-emerald-400">
-              Restore infusion
-            </button>
-          ) : (
-            <>
-              <button type="button"
-                onClick={() => {
-                  const seg = (data.infusions ?? []).find(i => i.id === infMenu.segId)
-                  if (!seg) { setInfMenu(null); return }
-                  // seg.name carries a " 1%"-style concentration suffix for LA infusions
-                  // (kept for display backward-compat) — strip it to look up the base
-                  // drug's config/concentration options.
-                  const baseDrugName = seg.concentration && seg.name.endsWith(seg.concentration)
-                    ? seg.name.slice(0, -(seg.concentration.length + 1)) : seg.name
-                  const cfg = INFUSION_CONFIGS[baseDrugName] ?? DEFAULT_INF
-                  const pillCol = infMenu.fromPillCol
-                  const cur = pillCol != null ? (
-                    pillCol === seg.startCol ? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
-                    : (seg.rateChanges ?? []).find(rc => rc.col === pillCol) ?? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
-                  ) : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
-                  setRateDialog({ segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit, units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step, color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "", editFromCol: pillCol, concentration: cur.concentration, baseDrugName })
-                  setInfMenu(null)
-                }}
-                className="w-full text-left text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-[#333] transition-colors text-slate-700 dark:text-slate-200">
-                Change rate
-              </button>
-              <button type="button"
-                onMouseEnter={() => setHoverDiscontinue(infMenu.segId)}
-                onMouseLeave={() => setHoverDiscontinue(null)}
-                onClick={() => { setHoverDiscontinue(null); extendInfusion(infMenu.segId, nowCol ?? 0, true); setInfMenu(null) }}
-                className="w-full text-left text-sm font-medium px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400 border-t border-slate-100 dark:border-[#3a3a3a]">
-                Discontinue
-              </button>
-            </>
-          )}
-        </div>
-      </div>,
-      document.body
+    {infMenu && (
+      <InfusionMenuPopover
+        anchor={infMenu.rect}
+        name={displayInfusionName(infMenu.name)}
+        color={infMenu.color}
+        stopped={!!infMenu.stopped}
+        onChangeRate={() => {
+          const seg = (data.infusions ?? []).find(i => i.id === infMenu.segId)
+          if (!seg) { setInfMenu(null); return }
+          const baseDrugName = baseInfusionName(seg.name, seg.concentration)
+          const cfg = INFUSION_CONFIGS[baseDrugName] ?? DEFAULT_INF
+          const pillCol = infMenu.fromPillCol
+          // Editing from a rate-change pill edits that change, not the original.
+          const cur = pillCol != null && pillCol !== seg.startCol
+            ? (seg.rateChanges ?? []).find(rc => rc.col === pillCol)
+              ?? { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
+            : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
+          setRateDialog({
+            segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit,
+            units: cfg.units, rateMin: cfg.min, rateMax: cfg.max, rateStep: cfg.step,
+            color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "",
+            editFromCol: pillCol, concentration: cur.concentration, baseDrugName,
+          })
+          setInfMenu(null)
+        }}
+        onDiscontinue={() => {
+          setHoverDiscontinue(null)
+          extendInfusion(infMenu.segId, nowCol ?? 0, true)
+          setInfMenu(null)
+        }}
+        onRestore={() => { restoreInfusion(infMenu.segId); setInfMenu(null) }}
+        onDiscontinueHover={hovering => setHoverDiscontinue(hovering ? infMenu.segId : null)}
+        onDismiss={() => setInfMenu(null)}
+      />
     )}
-    {/* Rate change dialog */}
     {rateDialog && createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setRateDialog(null)}>
         <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
