@@ -13,6 +13,7 @@ import { AgentPopover } from "@/components/intraop/AgentPopover"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import { VitalsPopover } from "@/components/intraop/VitalsPopover"
 import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
+import { AnchoredPopover } from "@/components/intraop/AnchoredPopover"
 import {
   barContinues,
   barEntersRow,
@@ -195,6 +196,20 @@ interface Props {
 // Pure HH:MM time math lives in src/lib/timetable-time.ts (imported above).
 // The chart’s own shapes live in ./intraop/timetable-types, so anything lifted
 // out of this file can be given a real type instead of widening to unknown.
+
+/**
+ * openFP takes an element so it can measure it, but a picker only kept the rect
+ * of the cell that opened it. This presents that rect as something measurable.
+ */
+function rectAnchor(rect: FConflictAnchor & { height?: number }): HTMLElement {
+  return {
+    getBoundingClientRect: () => ({
+      top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+      width: rect.width, height: rect.height ?? rect.bottom - rect.top,
+      x: rect.left, y: rect.top, toJSON: () => ({}),
+    }),
+  } as unknown as HTMLElement
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function IntraopTimetable({
@@ -2936,49 +2951,36 @@ export function IntraopTimetable({
       />
     )}
     {/* -- Drug picker portal -- */}
-    {drugPicker && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 260
-        const spaceBelow = window.innerHeight - drugPicker.rect.bottom
-        const showAbove  = spaceBelow < 320
-        const left = Math.max(8, Math.min(drugPicker.rect.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? drugPicker.rect.top - 4 : drugPicker.rect.bottom + 4
-        const allCats = QUICK_DRUGS
-        return (
-          <>
-            <div className="fixed inset-0 z-[9990]" onClick={() => setDrugPicker(null)} />
-            <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}>
-              {/* Same menu as mobile's DrugSheet: favourites, the eight clinical
-                  scenarios, then browse the full library. */}
-              <ScenarioPicker
-                scenarios={BOLUS_SCENARIOS}
-                favourites={favouriteDrugs}
-                browse={allCats.map(c => ({ cat: c.cat, color: c.color, items: c.drugs }))}
-                displayItem={displayDrugName}
-                displayScenario={displayScenarioName}
-                displayCategory={displayGroupName}
-                onPick={(name, unit) => {
-                  const { ci, rect } = drugPicker!
-                  setDrugPicker(null)
-                  const anchor = { getBoundingClientRect: () => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height, x: rect.left, y: rect.top, toJSON: () => ({}) }) } as unknown as HTMLElement
-                  openFP(ci, name, unit ?? "mg", anchor, "bolus")
-                }}
-                labels={{
-                  favourites: t("intraop.timetable.favourites"),
-                  browseAll: t("intraop.timetable.browseAllDrugs"),
-                  search: t("intraop.timetable.searchDrug"),
-                  empty: t("intraop.timetable.noDrugsFound"),
-                  favouritesHint: t("intraop.timetable.favouritesHint"),
-                }}
-              />
-            </div>
-          </>
-        )
-      })()
-    ,
-      document.body
+    {drugPicker && (
+      <AnchoredPopover
+        anchor={drugPicker.rect}
+        width={260}
+        flipBelowSpace={320}
+        onDismiss={() => setDrugPicker(null)}
+      >
+        {/* Same menu as mobile's DrugSheet: favourites, the eight clinical
+            scenarios, then browse the full library. */}
+        <ScenarioPicker
+          scenarios={BOLUS_SCENARIOS}
+          favourites={favouriteDrugs}
+          browse={QUICK_DRUGS.map(c => ({ cat: c.cat, color: c.color, items: c.drugs }))}
+          displayItem={displayDrugName}
+          displayScenario={displayScenarioName}
+          displayCategory={displayGroupName}
+          onPick={(name, unit) => {
+            const { ci, rect } = drugPicker
+            setDrugPicker(null)
+            openFP(ci, name, unit ?? "mg", rectAnchor(rect), "bolus")
+          }}
+          labels={{
+            favourites: t("intraop.timetable.favourites"),
+            browseAll: t("intraop.timetable.browseAllDrugs"),
+            search: t("intraop.timetable.searchDrug"),
+            empty: t("intraop.timetable.noDrugsFound"),
+            favouritesHint: t("intraop.timetable.favouritesHint"),
+          }}
+        />
+      </AnchoredPopover>
     )}
     {/* -- Infusion picker portal -- */}
     {infPicker && typeof document !== "undefined" && createPortal(
