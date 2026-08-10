@@ -15,6 +15,7 @@ import { VitalsPopover } from "@/components/intraop/VitalsPopover"
 import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { AnchoredPopover } from "@/components/intraop/AnchoredPopover"
 import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
+import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import {
   barContinues,
   barEntersRow,
@@ -3465,37 +3466,23 @@ export function IntraopTimetable({
       </>,
       document.body
     )}
-    {doseEditDrug && createPortal(
-      <div className="fixed inset-0 z-50" onClick={() => setDoseEditDrug(null)}>
-        <div className="absolute bg-white dark:bg-[#2a2a2a] rounded-xl shadow-2xl p-3 space-y-2 w-52 border border-slate-200 dark:border-[#3a3a3a]"
-          style={{ top: Math.min(doseEditDrug.rect.bottom + 4, window.innerHeight - 160), left: Math.min(doseEditDrug.rect.left, window.innerWidth - 220) }}
-          onClick={e => e.stopPropagation()}>
-          <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide">{t("intraop.timetable.changeDose")}</p>
-          <div className="flex items-center gap-1.5">
-            <input type="number" value={doseEditDrug.dose}
-              onChange={e => setDoseEditDrug(prev => prev ? { ...prev, dose: e.target.value } : null)}
-              autoFocus
-              className="flex-1 text-sm border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 bg-white dark:bg-[#1e1e1e] focus:outline-none focus:ring-1 focus:ring-violet-400 [appearance:textfield]"
-              placeholder="0" />
-            <select value={doseEditDrug.unit}
-              onChange={e => setDoseEditDrug(prev => prev ? { ...prev, unit: e.target.value } : null)}
-              className="text-xs border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-1 py-1 bg-white dark:bg-[#1e1e1e] focus:outline-none">
-              {["mg","mcg","g","ml","IU"].map(u => <option key={u}>{u}</option>)}
-            </select>
-          </div>
-          <button type="button"
-            onClick={() => {
-              const next = [...data.drugs]
-              next[doseEditDrug.idx] = { ...next[doseEditDrug.idx], dose: doseEditDrug.dose, unit: doseEditDrug.unit }
-              onChange({ ...data, drugs: next })
-              setDoseEditDrug(null)
-            }}
-            className="w-full text-xs font-semibold bg-violet-500 hover:bg-violet-600 text-white rounded-lg py-1.5 transition-colors">
-            Apply
-          </button>
-        </div>
-      </div>,
-      document.body
+    {doseEditDrug && (
+      <DoseEditPopover
+        anchor={doseEditDrug.rect}
+        dose={doseEditDrug.dose}
+        unit={doseEditDrug.unit}
+        units={["mg", "mcg", "g", "ml", "IU"]}
+        title={t("intraop.timetable.changeDose")}
+        onDoseChange={dose => setDoseEditDrug(prev => prev ? { ...prev, dose } : null)}
+        onUnitChange={unit => setDoseEditDrug(prev => prev ? { ...prev, unit } : null)}
+        onApply={() => {
+          const next = [...data.drugs]
+          next[doseEditDrug.idx] = { ...next[doseEditDrug.idx], dose: doseEditDrug.dose, unit: doseEditDrug.unit }
+          onChange({ ...data, drugs: next })
+          setDoseEditDrug(null)
+        }}
+        onDismiss={() => setDoseEditDrug(null)}
+      />
     )}
     {/* Infusion context menu */}
     {infMenu && createPortal(
