@@ -20,6 +20,11 @@ import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import { columnForWallClock } from "@/components/intraop/rate-change-time"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
+import {
+  DEFAULT_INF,
+  buildDrugFlyoutState,
+  buildFluidFlyoutState,
+} from "@/components/intraop/flyout-state"
 import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
 import {
   barContinues,
@@ -99,7 +104,6 @@ import {
   applyPediatricDrugProfilesToOptions,
   applyPediatricInfusionProfilesToOptions,
   visibleClinicalOptions,
-  resolvePediatricInfusionProfileSurface,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
   type PediatricFluidProfileRule,
@@ -109,7 +113,6 @@ import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
 import {
   currentFluidRate,
-  fluidClinicalRuleAudit,
   fluidDeliveredVolumeMl,
   resolveFluidSelectorDefaults,
 } from "@/lib/fluid-entry-ui"
@@ -131,7 +134,6 @@ const ROW_COLS  = 60 / INTRAOP_COLUMN_MINUTES
 // and WeightBasisMap live in src/lib/infusion-calc.ts since IntraopForm.tsx
 // and EndCaseModal.tsx (a separate component file) both need them too, and
 // a cross-file caller can't reach this component's closures.
-const DEFAULT_INF = { units:["mg/hr","mcg/kg/min","ml/hr"], min:0, max:100, step:1, color:"#64748b" }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // Canonical definitions live in src/types/timetable.ts (shared with the
@@ -437,21 +439,7 @@ export function IntraopTimetable({
 
   // Every dose the chart suggests is resolved here — paediatric profile, then
   // adult profile, then the option library, then nothing. See dose-surfaces.
-  const {
-    pediatricProfilesFor,
-    pediatricProfileResolution,
-    pediatricSurfaceFor,
-    calcSuggestedDose,
-    bolusRange,
-    bolusRouteSurface,
-    infusionRouteSurface,
-    clinicalPediatricInfusionFor,
-    clinicalFluidProfileFor,
-    fluidDoseSurface,
-    adultBolusSurface,
-    calculationAuditFromSurface,
-    adultDoseAudit,
-  } = createDoseSurfaces({
+  const doseSurfaces = createDoseSurfaces({
     isPediatric,
     pediatricAge,
     ibw,
@@ -474,6 +462,21 @@ export function IntraopTimetable({
     fluidDefaultConcentrations: FLUID_DEFAULT_CONCENTRATIONS,
     manualDoseOnlyHint: t("pediatric.manualDoseOnly"),
   })
+  const {
+    pediatricSurfaceFor,
+    calcSuggestedDose,
+    bolusRange,
+    bolusRouteSurface,
+    infusionRouteSurface,
+    pediatricProfilesFor,
+    pediatricProfileResolution,
+    clinicalPediatricInfusionFor,
+    clinicalFluidProfileFor,
+    fluidDoseSurface,
+    adultBolusSurface,
+    calculationAuditFromSurface,
+    adultDoseAudit,
+  } = doseSurfaces
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
@@ -671,171 +674,44 @@ export function IntraopTimetable({
     onLogEventRef.current?.({ id: uid(), ts: new Date().toISOString(), ...partial })
   }, [uid])
 
+  const flyoutPreset = { id: clinicalPresetId, version: clinicalPresetVersion, scope: clinicalPresetScope }
+
   function openFP(col: number, name: string, unit: string, anchorEl: Element, mode: "bolus" | "infusion") {
     const r = anchorEl.getBoundingClientRect()
-    const cfg = INFUSION_CONFIGS[name]
-    const pediatricProfiles = isPediatric && mode === "bolus" ? pediatricProfilesFor(name) : []
-    const pediatricSurface = pediatricProfiles.length === 1
-      ? pediatricProfileResolution(pediatricProfiles[0])
-      : null
-    if (pediatricProfiles.some(profile => profile.availability === "HIDDEN")) return
-    const pediatricInfusion = mode === "infusion"
-      ? clinicalPediatricInfusionFor(name)
-      : { rule: null, surface: null, conflict: false }
-    if (pediatricInfusion.surface?.disposition === "HIDDEN") return
-    const adultSurface = !isPediatric && mode === "bolus" ? adultBolusSurface(name) : null
-    const bolusSurface = pediatricSurface ?? adultSurface
-    const pediatricInfusionRoutes = pediatricInfusion.rule && pediatricInfusion.surface
-      ? pediatricInfusion.surface.routes.filter(candidate => (
-          resolvePediatricInfusionProfileSurface({
-            rule: pediatricInfusion.rule!,
-            route: candidate,
-          }).disposition !== "HIDDEN"
-        ))
-      : null
-    const routes = bolusSurface?.routes
-      ?? (mode === "infusion"
-        ? pediatricInfusionRoutes?.length
-          ? pediatricInfusionRoutes
-          : (INFUSION_ROUTES[name] ?? ["IV"])
-        : (DRUG_ROUTES[name] ?? ["IV"]))
-    const route0 = bolusSurface?.route ?? pediatricInfusion.surface?.route ?? routes[0]
-    const pediatricInfusionSurface = pediatricInfusion.rule
-      ? resolvePediatricInfusionProfileSurface({ rule: pediatricInfusion.rule, route: route0 })
-      : null
-    const sugg = isPediatric
-      ? { dose: pediatricSurface?.dose ?? "", hint: "" }
-      : calcSuggestedDose(name, ibw ?? null, tbw ?? null, route0)
-    // Per-route surfaces let route-varying drugs open with their correct adult defaults.
-    // Pediatric boluses use only the assigned published preset plus approved local changes.
-    const isurf = mode === "infusion" && !pediatricInfusionSurface
-      ? infusionRouteSurface(name, route0)
-      : undefined
-    const bsurf = mode === "bolus" ? bolusRouteSurface(name, route0) : undefined
-    const adultAudit = !isPediatric && mode === "bolus" && adultSurface
-      ? adultDoseAudit(name, adultSurface)
-      : null
-    const pediatricAudit = pediatricSurface ? {
-      ...calculationAuditFromSurface(pediatricSurface),
-      clinicalRuleKey: pediatricSurface.ruleKey,
-      clinicalRuleVersion: pediatricSurface.ruleVersion,
-      clinicalRuleSourceIds: pediatricSurface.sourceIds,
-    } : null
-    const pediatricInfusionAudit = pediatricInfusionSurface ? {
-      clinicalRuleKey: pediatricInfusionSurface.ruleKey,
-      clinicalRuleVersion: pediatricInfusionSurface.ruleVersion,
-      clinicalRuleSourceIds: pediatricInfusionSurface.sourceIds,
-    } : null
-    const presetAudit = clinicalPresetId && clinicalPresetVersion && clinicalPresetScope
-      ? { clinicalPresetId, clinicalPresetVersion, clinicalPresetScope }
-      : {}
-    setFp({
+    const next = buildDrugFlyoutState({
       col,
       name,
-      unit: bolusSurface?.unit ?? bsurf?.unit ?? unit,
+      unit,
       mode,
-      dose: bolusSurface?.dose ?? sugg.dose,
-      doseHint: sugg.hint,
-      rate: pediatricInfusionSurface?.suggestedRate ?? (isPediatric ? 0 : isurf?.suggestedRate ?? cfg?.suggestedRate ?? isurf?.min ?? cfg?.min ?? 0),
-      rateUnit: pediatricInfusionSurface?.unit ?? isurf?.unit ?? cfg?.units[0] ?? "mg/hr",
-      rateUnits: pediatricInfusionSurface
-        ? [pediatricInfusionSurface.unit]
-        : isurf ? [isurf.unit] : cfg?.units ?? DEFAULT_INF.units,
-      rateMin: pediatricInfusionSurface?.min ?? (isPediatric ? 0 : isurf?.min ?? cfg?.min ?? DEFAULT_INF.min),
-      rateMax: pediatricInfusionSurface?.max ?? (isPediatric ? 100000 : isurf?.max ?? cfg?.max ?? DEFAULT_INF.max),
-      rateStep: pediatricInfusionSurface?.step ?? (isPediatric ? 0.1 : isurf?.step ?? cfg?.step ?? DEFAULT_INF.step),
-      color: cfg?.color ?? DEFAULT_INF.color,
-      concentration: isPediatric
-        ? pediatricInfusionSurface?.concentration || pediatricSurface?.concentration || undefined
-        : mode === "bolus"
-          ? adultSurface?.concentration || undefined
-          : isurf?.suggestedConcentration,
-      concentrationUnitHint: mode === "bolus" ? bolusSurface?.concentrationUnit : pediatricInfusionSurface?.concentrationUnit,
-      concentrationOptions: mode === "infusion" ? pediatricInfusionSurface?.concentrationOptions : undefined,
-      formulation: mode === "bolus" ? bolusSurface?.formulation : pediatricInfusionSurface?.formulation,
-      formulationOptions: mode === "infusion" ? pediatricInfusionSurface?.formulationOptions : undefined,
-      manualEntryOnly: mode === "bolus" && isPediatric
-        ? pediatricSurface?.manualEntryOnly ?? true
-        : pediatricInfusionSurface?.manualEntryOnly,
-      advisory: pediatricInfusionSurface?.advisory ?? undefined,
-      calculationBasis: pediatricAudit?.calculationBasis ?? adultAudit?.calculationBasis,
-      calculationWeightKg: pediatricAudit?.calculationWeightKg ?? adultAudit?.calculationWeightKg,
-      calculationMethod: pediatricAudit?.calculationMethod ?? adultAudit?.calculationMethod,
-      calculationUnavailableReason: bolusSurface?.calculationUnavailableReason,
-      clinicalRuleKey: pediatricAudit?.clinicalRuleKey ?? pediatricInfusionAudit?.clinicalRuleKey ?? adultAudit?.clinicalRuleKey,
-      clinicalRuleVersion: pediatricAudit?.clinicalRuleVersion ?? pediatricInfusionAudit?.clinicalRuleVersion ?? adultAudit?.clinicalRuleVersion,
-      clinicalRuleSourceIds: pediatricAudit?.clinicalRuleSourceIds ?? pediatricInfusionAudit?.clinicalRuleSourceIds,
-      ...presetAudit,
-      quickDoses: bolusSurface?.quickValues
-        ?? (isPediatric ? undefined : bsurf?.quickValues ?? QUICK_DOSES[name]),
-      quickRates: pediatricInfusionSurface?.quickValues ?? (isPediatric ? undefined : isurf?.quickValues ?? QUICK_RATES[name]),
-      routes,
-      route: route0,
       anchor: { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width },
+      surfaces: doseSurfaces,
+      isPediatric,
+      ibw,
+      tbw,
+      infusionConfigs: INFUSION_CONFIGS,
+      infusionRoutes: INFUSION_ROUTES,
+      drugRoutes: DRUG_ROUTES,
+      quickDoses: QUICK_DOSES,
+      quickRates: QUICK_RATES,
+      preset: flyoutPreset,
     })
+    // Null means a rule hides this drug for this patient: the tap does nothing.
+    if (next) setFp(next)
   }
 
   function openFluidFP(col: number, name: string, category: string, rect: DOMRect) {
-    const {
-      profile,
-      conflict,
-      surface,
-      clinicalRuleKey,
-      clinicalRuleVersion,
-      clinicalRuleSourceIds,
-    } = fluidDoseSurface(name)
-    const concentration = surface.defaultConcentration
-    const defaults = resolveFluidSelectorDefaults({
-      clinicalMode,
-      name,
-      category,
-      concentration,
-      profile,
-      totalBodyWeightKg: tbw,
-      mclarenIdealBodyWeightKg: ibw,
-      useIdealBodyWeight: false,
-    })
-    setFp({
+    setFp(buildFluidFlyoutState({
       col,
       name,
-      unit: surface.unit,
-      mode: "fluid",
-      dose: String(surface.suggestedVolume),
-      doseHint: "",
-      fluidScale: "L",
-      rate: 0,
-      rateUnit: "ml",
-      rateUnits: ["ml"],
-      rateMin: 0,
-      rateMax: 2000,
-      rateStep: 50,
-      fluidEntryMode: defaults.defaultMode,
-      fluidEntryModes: defaults.availableModes,
-      fluidRate: defaults.rate,
-      fluidRateHint: defaults.rateHint,
-      fluidRateMin: defaults.rateProfile.min,
-      fluidRateMax: defaults.rateProfile.max,
-      fluidRateStep: defaults.rateProfile.step,
-      fluidBagMin: surface.min,
-      fluidBagMax: surface.max,
-      fluidBagStep: surface.step,
-      fluidConcentrations: surface.concentrationOptions,
-      fluidProfileConflict: conflict,
-      ...fluidClinicalRuleAudit({
-        ruleKey: clinicalRuleKey,
-        ruleVersion: clinicalRuleVersion,
-        sourceIds: clinicalRuleSourceIds,
-        presetId: clinicalPresetId,
-        presetVersion: clinicalPresetVersion,
-        presetScope: clinicalPresetScope,
-      }),
-      color: FLUID_CAT_COLOR[category] ?? getFluidColor(name),
-      concentration,
-      quickDoses: surface.quickValues,
-      routes: surface.routes,
-      route: surface.route,
+      category,
       anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
-    })
+      surfaces: doseSurfaces,
+      clinicalMode,
+      ibw,
+      tbw,
+      fluidColor: getFluidColor,
+      preset: flyoutPreset,
+    }))
   }
 
   function fpCommitBolus() {
