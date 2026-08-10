@@ -84,6 +84,12 @@ export default defineConfig({
         BREVO_API_KEY: "",
         DATABASE_URL: e2eDatabaseUrl,
         DIRECT_URL: e2eDatabaseUrl,
+        // The suite signs in more than a dozen times from one address against a
+        // limit of ten per fifteen minutes, so it exhausts a control it imposed
+        // on itself. The API refuses this flag on a production build, on any
+        // Vercel deployment, and against the production project — see
+        // rateLimitingDisabledForTests.
+        LOSPOR_DISABLE_RATE_LIMIT: "true",
       },
     },
     {
