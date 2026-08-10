@@ -34,12 +34,12 @@ test.afterEach(async ({ page }) => {
   }
 })
 
-async function createStartedCase(page: Page) {
+async function createStartedCase(page: Page, intraop: Record<string, unknown> = {}) {
   const create = await page.request.post("/api/cases", {
     headers: { Origin: ORIGIN },
     data: {
       preop: { ageYears: 41, sex: "MALE", heightCm: 178, weightKg: 82, clinicalMode: "ADULT" },
-      intraop: { startTime: "08:00" },
+      intraop: { startTime: "08:00", ...intraop },
     },
   })
   expect(create.ok(), `create failed: ${create.status()}`).toBeTruthy()
@@ -80,6 +80,11 @@ test("the chart mounts with its time columns and vitals rows", async ({ page }) 
   // the DOM as "BP Sys" and uppercased by CSS, so match the source text.
   await expect(chart.getByText("BP Sys", { exact: true }).first()).toBeVisible()
   await expect(chart.getByText("BP Dia", { exact: true }).first()).toBeVisible()
+
+  // No inhalational technique on this case, so no agent or gas lane. This is
+  // also the negative control for the lane test below, which would otherwise
+  // be able to pass without those lanes ever being gated on anything.
+  await expect(chart.getByText("Gas Settings", { exact: true })).toHaveCount(0)
 })
 
 test("tapping a drug cell opens the picker the dosing flyout is reached through", async ({ page }) => {
@@ -95,4 +100,17 @@ test("tapping a drug cell opens the picker the dosing flyout is reached through"
   // picker is the visible symptom of the library having failed to load.
   await expect(page.getByText(/propofol|fentanyl|midazolam|ketamine/i).first())
     .toBeVisible({ timeout: 30_000 })
+})
+
+test("a general anaesthetic gets the agent and gas lanes", async ({ page }) => {
+  // Both lanes are gated on an inhalational technique, so a case without one
+  // has no agent row at all and would pass this test vacuously.
+  const id = await createStartedCase(page, { techniques: ["GENERAL_INHALATION"] })
+  const chart = await openChart(page, id)
+
+  await expect(chart.getByText("Gas Settings", { exact: true }).first()).toBeVisible()
+
+  // The agent lane offers its empty cells before anything is recorded; that
+  // prompt is the lane rendering, not a segment.
+  await expect(chart.getByText("choose", { exact: true }).first()).toBeVisible()
 })

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
-import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
+import { displayClinicalCode, displayNamedOption } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
@@ -19,6 +19,7 @@ import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import { columnForWallClock } from "@/components/intraop/rate-change-time"
+import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLanes"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -28,7 +29,6 @@ import {
 import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
 import {
   barContinues,
-  barEntersRow,
   barLeftClass,
   barRightClass,
   computeRowGeometry,
@@ -68,7 +68,6 @@ import {
   INTRAOP_RESUME_WINDOW_MS,
   INTRAOP_RESUME_WINDOW_SECONDS,
 } from "@lospor/core/intraop-engine"
-import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
 import { useDrugHandlers } from "@/hooks/useDrugHandlers"
 import { useVitalsHandlers } from "@/hooks/useVitalsHandlers"
 import { useClinicalEventHandlers } from "@/hooks/useClinicalEventHandlers"
@@ -1735,181 +1734,60 @@ export function IntraopTimetable({
             })}
           </div>
 
-          {/* Agent row */}
-          {showAgentRow && (() => {
-            return (
-              <div className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/60 dark:bg-[#1a1a1a]/60 relative" style={{ minHeight: 32 }}>
-                <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>{t("intraop.timetable.inhAgent")}</div>
-                {rowCols.map(ci => {
-                  const committedSeg = segmentAt(ci)
-                  const draggingSeg = (() => {
-                    if (extendingAgent === null || extendHoverCol === null) return null
-                    const s = agents.find(a => a.startCol === extendingAgent)
-                    if (!s) return null
-                    return (ci > s.endCol && ci <= extendHoverCol) ? s : null
-                  })()
-                  const seg           = committedSeg ?? draggingSeg
-                  const isDragPreview = !committedSeg && !!draggingSeg
-                  const style2        = seg ? (AGENT_STYLE[seg.name] ?? AGENT_STYLE["Sevoflurane"]) : null
-                  const isStart       = seg?.startCol === ci
-                  const effectiveEnd  = seg && extendingAgent === seg.startCol && extendHoverCol !== null ? extendHoverCol : (seg?.endCol ?? -1)
-                  const isEnd         = seg !== null && ci === effectiveEnd
-                  const isRowCont     = !isStart && seg != null && ci === colStart && barEntersRow(seg.startCol, colStart)
-                  const isRowExit     = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1
-                  const visStart      = Math.max(seg?.startCol ?? 0, colStart)
-                  const visEnd        = Math.min(effectiveEnd, colEnd - 1)
-
-                  return (
-                    <div key={ci} style={{ width: colW, minWidth: colW }}
-                      data-agent-cell
-                      className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center"
-                      onDragOver={e => onAgentCellDragOver(e, ci)}
-                      onDrop={e => onAgentCellDrop(e, ci)}
-                      onClick={e => {
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                        if (seg && isStart) openPickerForSeg(ci, seg, rect)
-                        else if (!seg) openPickerEmpty(ci, rect)
-                      }}>
-                      {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none">choose</span>}
-                      {seg && style2 && (() => {
-                        const isAgentSel = sel?.type === "agent" && sel.startCol === seg.startCol
-                        const label = (isStart || isRowCont) ? [displayAgentName(seg.name), seg.n2o != null ? `+ N2O ${seg.n2o}%` : null].filter(Boolean).join(" ") : null
-                        return (
-                          <>
-                            <div
-                              onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).closest("[data-agent-cell]")?.getBoundingClientRect() ?? (e.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ type:"agent", startCol: seg.startCol }); if (isStart) openPickerForSeg(ci, seg, rect) }}
-                              onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeSegment(seg.startCol) }}
-                              title={seg.stopped ? "Double-click to resume" : undefined}
-                              className={`absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.stopped ? "opacity-60 border-dashed" : ""}`}
-                            />
-                            {label && (
-                              <span className={`absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-xs font-bold whitespace-nowrap flex items-center justify-center ${style2.text}`}
-                                style={{ left: 0, width: (visEnd - visStart + 1) * colW }}>
-                                {label}
-                              </span>
-                            )}
-                          </>
-                        )
-                      })()}
-                      {showBarGrip(seg?.endCol ?? -1, isEnd, isDragPreview, colEnd) && style2 && seg && !seg.stopped && (
-                        <div draggable onDragStart={e => { e.stopPropagation(); onGripDragStart(e, seg.startCol) }} onDragEnd={onAgentDragEnd}
-                          className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 ${style2.grip} opacity-70 hover:opacity-100 rounded-r-sm`}>
-                          <span className="text-white text-[8px] font-bold select-none">|</span>
-                        </div>
-                      )}
-                      {isEnd && !isRowExit && sel?.type === "agent" && sel.startCol === seg?.startCol && seg && !seg.stopped && !isDragPreview && (
-                        <div className="absolute z-30 flex items-center gap-1" style={{ top: 2, right: 14 }}>
-                          {discConfirmId === `agent-${seg.startCol}` ? (
-                            <>
-                              <button type="button"
-                                onClick={e => { e.stopPropagation(); extendSegment(seg.startCol, nowCol ?? seg.endCol, true); setSel(null); setDiscConfirmId(null) }}
-                                className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap">
-                                ✓ Confirm
-                              </button>
-                              <button type="button"
-                                onClick={e => { e.stopPropagation(); setDiscConfirmId(null) }}
-                                className="text-[8px] text-white/70 hover:text-white px-1 whitespace-nowrap">
-                                ✕
-                              </button>
-                            </>
-                          ) : (
-                            <button type="button"
-                              onClick={e => { e.stopPropagation(); setDiscConfirmId(`agent-${seg.startCol}`) }}
-                              className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap">
-                              ✕ Disc
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {isStart && seg && (
-                        <button type="button" onClick={e => { e.stopPropagation(); removeSegment(seg.startCol) }}
-                          className="absolute top-0.5 right-3 z-10 opacity-0 hover:opacity-100 [@media(hover:none)]:opacity-100 text-slate-400 hover:text-red-500 transition-opacity">
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                      {!seg && !isDragPreview && (() => {
-                        const stoppedAgent = agents.find(a => a.stopped && a.endCol < ci)
-                        return stoppedAgent ? (
-                          <button type="button"
-                            onClick={e => { e.stopPropagation(); continueAgent(stoppedAgent, ci) }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer">
-                            <span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-400 bg-white/80 dark:bg-black/40 px-1.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 whitespace-nowrap">
-                              Continue?
-                            </span>
-                          </button>
-                        ) : null
-                      })()}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
-
-          {/* Gas settings row — FGF / carrier gas / FiO2. Visible whenever the
-              agent row is (same gating: GA technique selected), but starts
-              empty/unstarted until manually tapped. */}
           {showAgentRow && (
-            <div className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/40 dark:bg-[#1a1a1a]/40 relative" style={{ minHeight: 32 }}>
-              <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " flex items-center justify-end py-2"}>Gas Settings</div>
-              {rowCols.map(ci => {
-                const seg     = gasSegmentAt(ci)
-                const isStart = seg?.startCol === ci
-                const isEnd   = seg !== null && ci === seg.endCol
-                const isRowCont = !isStart && seg != null && ci === colStart && seg.startCol < colStart
-                const isRowExit = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1 && !isEnd
-                const settings = seg ? gasSettingsAtColumn(seg, ci) : null
-                const isChange = settings?.changeCol === ci
-                const showSettingsLabel = Boolean(settings && (isStart || isRowCont || isChange))
-                return (
-                  <div key={ci} style={{ width: colW, minWidth: colW }}
-                    className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
-                    onClick={e => {
-                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                      if (seg) openGasPickerForSeg(ci, seg, rect)
-                      else if (!seg) openGasPickerEmpty(ci, rect)
-                    }}>
-                    {!seg && <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">tap to start</span>}
-                    {seg && (
-                      <div className={`absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
-                    )}
-                    {showSettingsLabel && settings && (
-                      <span
-                        title={displayGasSettings(settings, locale)}
-                        className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-[9px] font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
-                      >
-                        <span>FGF {settings.fgf} L/min</span>
-                        <span className="text-[8px]">{displayGasMix(settings, locale)}</span>
-                      </span>
-                    )}
-                    {isEnd && seg && !seg.stopped && (
-                      <div className="absolute z-30 flex items-center gap-1" style={{ top: 2, right: 2 }}>
-                        {discConfirmId === `gas-${seg.startCol}` ? (
-                          <>
-                            <button type="button"
-                              onClick={e => { e.stopPropagation(); stopGas(seg.id, nowCol); setDiscConfirmId(null) }}
-                              className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap">
-                              ✓ Confirm
-                            </button>
-                            <button type="button"
-                              onClick={e => { e.stopPropagation(); setDiscConfirmId(null) }}
-                              className="text-[8px] text-white/70 hover:text-white px-1 whitespace-nowrap">
-                              ✕
-                            </button>
-                          </>
-                        ) : (
-                          <button type="button"
-                            onClick={e => { e.stopPropagation(); setDiscConfirmId(`gas-${seg.startCol}`) }}
-                            className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap">
-                            ✕ Disc
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <AgentLane
+              label={t("intraop.timetable.inhAgent")}
+              labelWidth={LABEL_W}
+              rowLabelClass={rowLabelCls}
+              rowCols={rowCols}
+              colStart={colStart}
+              colEnd={colEnd}
+              colW={colW}
+              nowCol={nowCol}
+              sel={sel}
+              setSel={setSel}
+              discConfirmId={discConfirmId}
+              setDiscConfirmId={setDiscConfirmId}
+              agents={agents}
+              segmentAt={segmentAt}
+              agentStyle={AGENT_STYLE}
+              displayAgentName={displayAgentName}
+              extendingAgent={extendingAgent}
+              extendHoverCol={extendHoverCol}
+              onCellDragOver={onAgentCellDragOver}
+              onCellDrop={onAgentCellDrop}
+              onGripDragStart={onGripDragStart}
+              onDragEnd={onAgentDragEnd}
+              openPickerForSeg={openPickerForSeg}
+              openPickerEmpty={openPickerEmpty}
+              resumeSegment={resumeSegment}
+              extendSegment={extendSegment}
+              removeSegment={removeSegment}
+              continueAgent={continueAgent}
+            />
+          )}
+
+          {/* Gas settings shares the agent row's gating (GA technique selected)
+              but starts empty until it is tapped. */}
+          {showAgentRow && (
+            <GasSettingsLane
+              labelWidth={LABEL_W}
+              rowLabelClass={rowLabelCls}
+              rowCols={rowCols}
+              colStart={colStart}
+              colEnd={colEnd}
+              colW={colW}
+              nowCol={nowCol}
+              sel={sel}
+              setSel={setSel}
+              discConfirmId={discConfirmId}
+              setDiscConfirmId={setDiscConfirmId}
+              locale={locale}
+              gasSegmentAt={gasSegmentAt}
+              openPickerForSeg={openGasPickerForSeg}
+              openPickerEmpty={openGasPickerEmpty}
+              stopGas={stopGas}
+            />
           )}
 
           {/* Clinical Events row */}
