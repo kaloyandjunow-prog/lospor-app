@@ -1,5 +1,7 @@
 "use client"
 
+import { DiscontinuePrompt } from "./DiscontinuePrompt"
+import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geometry"
 import type { TtSel } from "./timetable-types"
 import type { TimetableInfusion } from "@/types/timetable"
@@ -332,98 +334,36 @@ export function InfusionLane({
                   </div>
                 )}
                 {isActualEnd && !isRowExit && isSelected && !seg.stopped && (
-                  <div className="absolute z-30 flex items-center gap-1" style={{ top: 24, right: 14 }}>
-                    {discConfirmId === seg.id ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={e => { e.stopPropagation(); extendInfusion(seg.id, nowCol ?? seg.endCol, true); clearSel(); setDiscConfirmId(null) }}
-                          className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap"
-                        >
-                          ✓ Confirm
-                        </button>
-                        <button
-                          type="button"
-                          onClick={e => { e.stopPropagation(); setDiscConfirmId(null) }}
-                          className="text-[8px] text-white/60 hover:text-white px-1 whitespace-nowrap"
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); setDiscConfirmId(seg.id) }}
-                        className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap"
-                      >
-                        ✕ Disc
-                      </button>
-                    )}
-                  </div>
+                  <DiscontinuePrompt
+                    open={discConfirmId === seg.id}
+                    onOpen={() => setDiscConfirmId(seg.id)}
+                    onConfirm={() => { extendInfusion(seg.id, nowCol ?? seg.endCol, true); clearSel(); setDiscConfirmId(null) }}
+                    onCancel={() => setDiscConfirmId(null)}
+                    style={{ top: 24, right: 14 }}
+                    cancelClassName="text-[8px] text-white/60 hover:text-white px-1 whitespace-nowrap"
+                  />
                 )}
               </>
             )}
 
-            {/* Ghost — whole-bar move. */}
             {isPreview && (
-              <div
-                className="absolute left-0 right-0 border border-dashed opacity-25"
-                style={{
-                  top: 22,
-                  bottom: 4,
-                  backgroundColor: color + "33",
-                  borderColor: color,
-                  borderRadius: ci === previewStart ? "6px 0 0 6px" : ci === previewEnd ? "0 6px 6px 0" : 0,
-                }}
+              <MoveGhost color={color} isFirst={ci === previewStart} isLast={ci === previewEnd} />
+            )}
+            {rightPreviewSeg && (
+              <ExtendGhost
+                color={color}
+                side="right"
+                atHoverEdge={ci === extInfHover}
+                showGrip={ghostGripVisible(sel, rightPreviewSeg.id)}
               />
             )}
-            {/* Ghost — right-grip extension. */}
-            {rightPreviewSeg && (
-              <>
-                <div
-                  className="absolute left-0 right-0 opacity-40 border-y"
-                  style={{
-                    top: 22,
-                    bottom: 4,
-                    backgroundColor: color + "33",
-                    borderColor: color + "88",
-                    borderRight: ci === extInfHover ? `1px solid ${color}88` : undefined,
-                    borderRadius: ci === extInfHover ? "0 6px 6px 0" : 0,
-                  }}
-                />
-                {ci === extInfHover && sel?.type === "infusion" && sel.id === rightPreviewSeg.id && (
-                  <div
-                    className="absolute right-0 z-20 flex items-center justify-center rounded-r-sm"
-                    style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, opacity: 0.7 }}
-                  >
-                    <span className="text-white text-[8px] font-bold select-none">|</span>
-                  </div>
-                )}
-              </>
-            )}
-            {/* Ghost — left-grip extension. */}
             {leftPreviewSeg && (
-              <>
-                <div
-                  className="absolute left-0 right-0 opacity-40 border-y"
-                  style={{
-                    top: 22,
-                    bottom: 4,
-                    backgroundColor: color + "33",
-                    borderColor: color + "88",
-                    borderLeft: extInfLeftHover !== null && ci === extInfLeftHover ? `1px solid ${color}88` : undefined,
-                    borderRadius: extInfLeftHover !== null && ci === extInfLeftHover ? "6px 0 0 6px" : 0,
-                  }}
-                />
-                {extInfLeftHover !== null && ci === extInfLeftHover && sel?.type === "infusion" && sel.id === leftPreviewSeg.id && (
-                  <div
-                    className="absolute left-0 z-20 flex items-center justify-center rounded-l-sm"
-                    style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, opacity: 0.7 }}
-                  >
-                    <span className="text-white text-[8px] font-bold select-none">|</span>
-                  </div>
-                )}
-              </>
+              <ExtendGhost
+                color={color}
+                side="left"
+                atHoverEdge={extInfLeftHover !== null && ci === extInfLeftHover}
+                showGrip={ghostGripVisible(sel, leftPreviewSeg.id)}
+              />
             )}
           </div>
         )

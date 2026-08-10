@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react"
 import { displayGasMix, displayGasSettings } from "@/lib/clinical-display"
+import { DiscontinuePrompt } from "./DiscontinuePrompt"
 import { barContinues, barEntersRow, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
 import type { TtSel } from "./timetable-types"
 import type { AgentSegment, GasSettingsSegment } from "@/types/timetable"
@@ -41,45 +42,6 @@ type LaneChrome = {
   /** Which segment is currently showing its confirm-discontinue prompt. */
   discConfirmId: string | null
   setDiscConfirmId: (id: string | null) => void
-}
-
-const discButtonClass =
-  "text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap"
-const confirmButtonClass =
-  "text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap"
-const cancelButtonClass = "text-[8px] text-white/70 hover:text-white px-1 whitespace-nowrap"
-
-function DiscontinuePrompt({
-  open,
-  onOpen,
-  onConfirm,
-  onCancel,
-  style,
-}: {
-  open: boolean
-  onOpen: () => void
-  onConfirm: () => void
-  onCancel: () => void
-  style: React.CSSProperties
-}) {
-  return (
-    <div className="absolute z-30 flex items-center gap-1" style={style}>
-      {open ? (
-        <>
-          <button type="button" onClick={e => { e.stopPropagation(); onConfirm() }} className={confirmButtonClass}>
-            ✓ Confirm
-          </button>
-          <button type="button" onClick={e => { e.stopPropagation(); onCancel() }} className={cancelButtonClass}>
-            ✕
-          </button>
-        </>
-      ) : (
-        <button type="button" onClick={e => { e.stopPropagation(); onOpen() }} className={discButtonClass}>
-          ✕ Disc
-        </button>
-      )}
-    </div>
-  )
 }
 
 export type AgentLaneProps = LaneChrome & {
