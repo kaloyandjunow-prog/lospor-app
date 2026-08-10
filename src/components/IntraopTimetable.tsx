@@ -19,6 +19,7 @@ import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
 import { columnForWallClock } from "@/components/intraop/rate-change-time"
+import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
 import {
   barContinues,
@@ -37,7 +38,6 @@ import {
   type TtFP,
   type TtSel,
 } from "@/components/intraop/timetable-types"
-import { suggestedDoseFromWeights } from "@/lib/dose-calc"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import {
@@ -91,42 +91,27 @@ import {
   weightBasisMap,
 } from "@lospor/core/option-library"
 import { metadataNumber, metadataString } from "@lospor/core/option-contracts"
-import { normalizeAdministrationRoute } from "@lospor/core/clinical-rule-vocabulary"
 import {
   drugSelectorAtomicState,
-  resolveAdultDrugSelectorSurface,
 } from "@/lib/drug-selector-surface"
-import type { DoseProfile } from "@lospor/core/catalog"
 import {
-  applicablePediatricDrugProfiles,
-  applicablePediatricInfusionProfiles,
   applyAdultDoseProfilesToOptions,
   applyPediatricDrugProfilesToOptions,
   applyPediatricInfusionProfilesToOptions,
   visibleClinicalOptions,
-  resolvePediatricDrugProfileSurface,
   resolvePediatricInfusionProfileSurface,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
   type PediatricFluidProfileRule,
   type PediatricInfusionProfileRule,
-  type PediatricInfusionSelectionResolution,
-  type PediatricDrugSelectionResolution,
 } from "@lospor/core/clinical-rules"
-import {
-  resolveDrugSelectionSurface,
-  type DrugSelectionSurface,
-} from "@lospor/core/drug-selection"
-import { calculateMostellerBsa } from "@lospor/core/pediatric-calculators"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
 import {
   currentFluidRate,
   fluidClinicalRuleAudit,
   fluidDeliveredVolumeMl,
-  resolveFluidDoseSelectorSurface,
   resolveFluidSelectorDefaults,
-  selectApplicablePediatricFluidProfile,
 } from "@/lib/fluid-entry-ui"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -450,289 +435,45 @@ export function IntraopTimetable({
     }
   }, [agentLibOpts])
 
-  function pediatricProfilesFor(medicationKey: string): PediatricDrugProfileRule[] {
-    return applicablePediatricDrugProfiles({
-      medicationKey,
-      age: pediatricAge,
-      weightKg: tbw,
-      profiles: pediatricDrugProfiles,
-    })
-  }
-
-  function pediatricProfileResolution(profile: PediatricDrugProfileRule, route?: string) {
-    return pediatricAge
-      ? resolvePediatricDrugProfileSurface({
-          rule: profile,
-          age: pediatricAge,
-          route,
-          weightKg: tbw,
-          heightCm: patientHeightCm,
-          sex: patientSex,
-        })
-      : null
-  }
-
-  function pediatricSurfaceFor(name: string, route?: string): PediatricDrugSelectionResolution | null {
-    const profiles = pediatricProfilesFor(name)
-    return profiles.length === 1 ? pediatricProfileResolution(profiles[0], route) : null
-  }
-
-  // Thin wrapper over the shared pure dosing logic (src/lib/dose-calc.ts).
-  // Per-route override (Ketamine IV/IM/IN/PO, Lidocaine IV) takes priority;
-  // IBW basis is capped at the patient's actual weight inside the helper.
-  function calcSuggestedDose(name: string, ibw: number | null, tbw: number | null, route?: string): { dose: string; hint: string } {
-    if (isPediatric) {
-      return {
-        dose: "",
-        hint: t("pediatric.manualDoseOnly"),
-      }
-    }
-    const entry = BOLUS_DOSES[name]
-    const matchingRoute = route && entry?.byRoute
-      ? Object.keys(entry.byRoute).find(candidate => (
-          (normalizeAdministrationRoute(candidate) ?? candidate) === route
-        )) ?? route
-      : route
-    return suggestedDoseFromWeights(entry, matchingRoute, ibw, tbw)
-  }
-
-  function bolusRange(name: string, unit: string) {
-    if (isPediatric) {
-      if (unit === "mcg") return { min:0, max:100000, step:1 }
-      if (unit === "g") return { min:0, max:100, step:0.01 }
-      if (unit === "ml") return { min:0, max:1000, step:0.1 }
-      return { min:0, max:100000, step:0.1 }
-    }
-    if (BOLUS_CONFIGS[name]) return BOLUS_CONFIGS[name]
-    if (unit === "mcg") return { min:0, max:2000, step:10 }
-    if (unit === "g")   return { min:0, max:10,   step:0.5 }
-    if (unit === "ml")  return { min:0, max:100,  step:1 }
-    if (unit === "IU")  return { min:0, max:200,  step:5 }
-    return { min:0, max:500, step:5 }
-  }
-
-  // Resolve the effective per-route surface for a drug/infusion, merging the
-  // route's profile (if any) over the flat fields. Returns undefined when the
-  // drug has no routeModes so callers fall back to their flat lookups.
-  function bolusRouteSurface(name: string, route?: string) {
-    if (!route) return undefined
-    const profiles = BOLUS_ROUTE_PROFILES[name]
-    const key = profiles
-      ? Object.keys(profiles).find(candidate => (
-          (normalizeAdministrationRoute(candidate) ?? candidate) === route
-        ))
-      : undefined
-    return key ? profiles[key] : undefined
-  }
-  function infusionRouteSurface(name: string, route?: string) {
-    if (!route) return undefined
-    const profiles = INFUSION_ROUTE_PROFILES[name]
-    const key = profiles
-      ? Object.keys(profiles).find(candidate => (
-          (normalizeAdministrationRoute(candidate) ?? candidate) === route
-        ))
-      : undefined
-    return key ? profiles[key] : undefined
-  }
-  function adultRuleFor(name: string) {
-    const normalized = name.trim().toUpperCase()
-    return adultDoseProfiles.find(rule => (
-      rule.kind === "ADULT_DRUG_PROFILE"
-      && rule.availability !== "HIDDEN"
-      && [rule.itemKey, rule.labelEn, rule.labelBg]
-        .some(value => value?.trim().toUpperCase() === normalized)
-    ))
-  }
-
-  function clinicalPediatricInfusionFor(
-    name: string,
-    route?: string | null,
-  ): {
-    rule: PediatricInfusionProfileRule | null
-    surface: PediatricInfusionSelectionResolution | null
-    conflict: boolean
-  } {
-    if (!isPediatric) return { rule: null, surface: null, conflict: false }
-    const matches = applicablePediatricInfusionProfiles({
-      itemKey: name,
-      age: pediatricAge,
-      weightKg: tbw,
-      profiles: pediatricInfusionProfiles,
-    })
-    if (matches.length !== 1) {
-      return { rule: null, surface: null, conflict: matches.length > 1 }
-    }
-    return {
-      rule: matches[0],
-      surface: resolvePediatricInfusionProfileSurface({ rule: matches[0], route }),
-      conflict: false,
-    }
-  }
-
-  function clinicalFluidProfileFor(name: string): {
-    profile: DoseProfile | null
-    conflict: boolean
-    clinicalRuleKey?: string
-    clinicalRuleVersion?: string
-    clinicalRuleSourceIds?: string[]
-  } {
-    if (isPediatric) {
-      const selection = selectApplicablePediatricFluidProfile({
-        itemKey: name,
-        age: pediatricAge,
-        profiles: pediatricFluidProfiles,
-      })
-      return {
-        profile: selection.profile?.profile ?? null,
-        conflict: selection.conflict,
-        clinicalRuleKey: selection.profile?.ruleKey,
-        clinicalRuleVersion: selection.profile?.ruleVersion,
-        clinicalRuleSourceIds: selection.profile ? [...selection.profile.sourceIds] : undefined,
-      }
-    }
-    const normalized = name.trim().toUpperCase()
-    const matches = adultDoseProfiles.filter(rule => (
-      rule.kind === "ADULT_FLUID_PROFILE"
-      && [rule.itemKey, rule.labelEn]
-        .some(value => value.trim().toUpperCase() === normalized)
-    ))
-    return {
-      profile: matches.length === 1 ? matches[0]?.profile ?? null : null,
-      conflict: matches.length > 1,
-      clinicalRuleKey: matches.length === 1 ? matches[0]?.ruleKey : undefined,
-      clinicalRuleVersion: matches.length === 1 ? matches[0]?.ruleVersion : undefined,
-    }
-  }
-
-  function fluidDoseSurface(name: string, route?: string | null) {
-    const clinicalProfile = clinicalFluidProfileFor(name)
-    const config = FLUID_CONFIGS[name] ?? {
-      min: 0,
-      max: 2000,
-      step: 50,
-      unit: "mL",
-      suggestedVolume: undefined,
-    }
-    return {
-      ...clinicalProfile,
-      surface: resolveFluidDoseSelectorSurface({
-        profile: clinicalProfile.profile,
-        route,
-        fallback: {
-          min: config.min,
-          max: config.max,
-          step: config.step,
-          quickValues: FLUID_QUICK_VOLUMES[name] ?? [],
-          unit: config.unit,
-          routes: FLUID_ROUTES[name] ?? ["IV"],
-          concentrationOptions: FLUID_CONCENTRATIONS[name] ?? [],
-          defaultConcentration: FLUID_DEFAULT_CONCENTRATIONS[name],
-          suggestedVolume: config.suggestedVolume,
-        },
-      }),
-    }
-  }
-
-  function adultBolusSurface(name: string, route?: string): DrugSelectionSurface | null {
-    const adultRule = adultRuleFor(name)
-    if (adultRule) {
-      if (adultRule.availability === "LOCAL") {
-        const configuredRoute = route
-          ?? adultRule.profile.defaultRoute
-          ?? adultRule.profile.routes[0]
-          ?? "IV"
-        const route0 = normalizeAdministrationRoute(configuredRoute) ?? configuredRoute
-        return {
-          route: route0,
-          routes: [route0],
-          mode: "dose",
-          min: 0,
-          max: 100_000,
-          step: 0.1,
-          quickValues: [],
-          unit: adultRule.profile.unit ?? "mg",
-          dose: "",
-          concentrationOptions: [],
-          concentration: "",
-          formulationOptions: [],
-          calculationUnavailableReason: "NO_AUTOFILL",
-        }
-      }
-      const bsa = patientHeightCm != null && tbw != null
-        ? calculateMostellerBsa({ heightCm: patientHeightCm, weightKg: tbw })
-        : null
-      const surface = resolveDrugSelectionSurface({
-        profile: adultRule.profile,
-        route,
-        allowWeightBasisFallback: true,
-        patient: {
-          totalBodyWeightKg: tbw,
-          idealBodyWeightKg: ibw,
-          idealBodyWeightMethod: "DEVINE_1974",
-          bodySurfaceAreaM2: bsa?.available ? bsa.value.squareMetres : null,
-        },
-      })
-      return adultRule.availability === "MANUAL"
-        ? { ...surface, dose: "", calculation: undefined, calculationUnavailableReason: "NO_AUTOFILL" }
-        : surface
-    }
-
-    // Old cached platform snapshots can predate the canonical profile fields.
-    // Keep them readable while all new snapshots use the shared resolver.
-    const option = drugLibOpts.find(candidate => candidate.label === name)
-    const legacy = resolveAdultDrugSelectorSurface(option, route)
-    if (!legacy) return null
-    const suggested = legacy.suggestedValue != null
-      ? String(legacy.suggestedValue)
-      : calcSuggestedDose(name, ibw ?? null, tbw ?? null, legacy.route).dose
-    return {
-      route: legacy.route,
-      routes: legacy.routes,
-      mode: legacy.concentrationOptions.length ? "concentration" : "dose",
-      min: legacy.min,
-      max: legacy.max,
-      step: legacy.step,
-      quickValues: legacy.quickValues,
-      unit: legacy.unit,
-      dose: suggested,
-      concentrationOptions: legacy.concentrationOptions,
-      concentration: legacy.concentration ?? "",
-      concentrationUnit: legacy.concentrationUnit,
-      formulationOptions: legacy.formulationOptions,
-      formulation: legacy.formulation,
-      ...(!suggested ? { calculationUnavailableReason: "NO_AUTOFILL" as const } : {}),
-    }
-  }
-
-  function calculationAuditFromSurface(surface: DrugSelectionSurface) {
-    const basis = surface.calculation?.basis
-    return {
-      calculationBasis: basis,
-      calculationWeightKg: basis === "TBW" || basis === "IBW"
-        ? surface.calculation?.calculationWeight
-        : undefined,
-      calculationMethod: surface.calculation?.calculationMethod
-        ?? (basis === "TBW"
-          ? "TOTAL_BODY_WEIGHT"
-          : basis === "BSA_M2"
-            ? "MOSTELLER_BSA_M2"
-            : basis === "FLAT"
-              ? "PROFILE_FLAT"
-              : undefined),
-    }
-  }
-
-  function adultDoseAudit(name: string, surface: DrugSelectionSurface) {
-    const adultRule = adultRuleFor(name)
-    const ruleAudit = adultRule ? {
-      clinicalRuleKey: adultRule.ruleKey,
-      clinicalRuleVersion: adultRule.ruleVersion,
-    } : {}
-    return {
-      ...ruleAudit,
-      ...calculationAuditFromSurface(surface),
-    }
-  }
+  // Every dose the chart suggests is resolved here — paediatric profile, then
+  // adult profile, then the option library, then nothing. See dose-surfaces.
+  const {
+    pediatricProfilesFor,
+    pediatricProfileResolution,
+    pediatricSurfaceFor,
+    calcSuggestedDose,
+    bolusRange,
+    bolusRouteSurface,
+    infusionRouteSurface,
+    clinicalPediatricInfusionFor,
+    clinicalFluidProfileFor,
+    fluidDoseSurface,
+    adultBolusSurface,
+    calculationAuditFromSurface,
+    adultDoseAudit,
+  } = createDoseSurfaces({
+    isPediatric,
+    pediatricAge,
+    ibw,
+    tbw,
+    patientHeightCm,
+    patientSex,
+    pediatricDrugProfiles,
+    pediatricFluidProfiles,
+    pediatricInfusionProfiles,
+    adultDoseProfiles,
+    drugOptions: drugLibOpts,
+    bolusDoses: BOLUS_DOSES,
+    bolusConfigs: BOLUS_CONFIGS,
+    bolusRouteProfiles: BOLUS_ROUTE_PROFILES,
+    infusionRouteProfiles: INFUSION_ROUTE_PROFILES,
+    fluidConfigs: FLUID_CONFIGS,
+    fluidQuickVolumes: FLUID_QUICK_VOLUMES,
+    fluidRoutes: FLUID_ROUTES,
+    fluidConcentrations: FLUID_CONCENTRATIONS,
+    fluidDefaultConcentrations: FLUID_DEFAULT_CONCENTRATIONS,
+    manualDoseOnlyHint: t("pediatric.manualDoseOnly"),
+  })
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
   const [chartOpen, setChartOpen]         = useState(() => typeof window !== "undefined" && localStorage.getItem("vitalsExpanded") !== "false")
