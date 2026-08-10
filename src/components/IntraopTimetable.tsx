@@ -18,6 +18,7 @@ import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
+import { columnForWallClock } from "@/components/intraop/rate-change-time"
 import {
   barContinues,
   barEntersRow,
@@ -3632,10 +3633,12 @@ export function IntraopTimetable({
                   <button type="button"
                     disabled={!rateDialog.timeH || !rateDialog.timeM}
                     onClick={() => {
-                      const startMins = timeToMins(floorTo5(startTime || "08:00"))
-                      const changeMins = timeToMins(`${rateDialog.timeH}:${rateDialog.timeM}`)
-                      const diff = (changeMins - startMins + 1440) % 1440
-                      const changeCol = Math.min(Math.floor(diff / INTERVAL), colCount - 1)
+                      const changeCol = columnForWallClock({
+                        time: `${rateDialog.timeH}:${rateDialog.timeM}`,
+                        caseStart: startTime,
+                        intervalMinutes: INTERVAL,
+                        columnCount: colCount,
+                      })
                       applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
                       setRateDialog(null)
                     }}
