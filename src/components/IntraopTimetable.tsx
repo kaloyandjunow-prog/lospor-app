@@ -13,6 +13,7 @@ import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
+import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import {
   barContinues,
   barEntersRow,
@@ -2894,98 +2895,46 @@ export function IntraopTimetable({
     ,
       document.body
     )}
-    {/* ── Event picker portal ─────────────────────────────────────────────── */}
-    {eventPicker && typeof document !== "undefined" && createPortal(
-      (() => {
-        const POP_W = 300
-        const r = eventPicker.rect
-        const spaceBelow = window.innerHeight - r.bottom
-        const showAbove  = spaceBelow < 340
-        const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? r.top - 4 : r.bottom + 4
-        const q = evSearch.toLowerCase().trim()
-        const filtered = q
-          ? CLINICAL_EVENT_CATS.map(c => ({ ...c, events: c.events.filter(event => `${event.label} ${displayEventName(event)}`.toLowerCase().includes(q)) })).filter(c => c.events.length > 0)
-          : CLINICAL_EVENT_CATS
-        const localizedPositions = POSITIONS.map(position => ({
-          ...position,
+    {/* ── Event picker popover ───────────────────────────────────────────────── */}
+    {eventPicker && (
+      <EventPickerPopover
+        anchor={eventPicker.rect}
+        search={evSearch}
+        categories={CLINICAL_EVENT_CATS.map(category => ({
+          cat: category.cat,
+          color: category.color,
+          displayCat: displayGroupName(category.cat),
+          isComplication: category.isComplication ?? false,
+          events: category.events.map(event => ({
+            label: event.label,
+            color: event.color,
+            displayLabel: displayEventName(event),
+          })),
+        }))}
+        positions={POSITIONS.map(position => ({
+          value: position.v,
+          label: position.label,
           displayLabel: displayClinicalCode("option:POSITION", position.v, locale, { label: position.label }),
-        }))
-        const positionOpts = q
-          ? localizedPositions.filter(position => `${position.label} ${position.displayLabel}`.toLowerCase().includes(q))
-          : localizedPositions
-        return (
-          <>
-            <div className="fixed inset-0 z-[9990]" onClick={() => setEventPicker(null)} />
-            <div style={{ position:"fixed", left, top, width:POP_W, zIndex:9991, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}>
-              <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">{t("intraop.timetable.logClinicalEvent")}</p>
-                <input autoFocus type="text" placeholder={t("intraop.timetable.searchEvents")} value={evSearch}
-                  onChange={e => setEvSearch(e.target.value)}
-                  onKeyDown={e => e.key === "Escape" && setEventPicker(null)}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-800 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                />
-              </div>
-              <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
-                {/* Position changes — time-anchored position_change events feeding
-                    the printed record's Position lane. Same emit pattern as
-                    clinical events (ts = now); no other cockpit behavior changes. */}
-                {positionOpts.length > 0 && (
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">{t("intraop.timetable.positionChange")}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {positionOpts.map(pos => (
-                        <button key={pos.v} type="button"
-                          onClick={() => {
-                            setEventPicker(null)
-                            emitLogEvent({ type: "position_change", name: pos.label })
-                          }}
-                          className="text-xs font-medium px-2 py-0.5 rounded-full border border-slate-300 dark:border-[#4a4a4a] bg-slate-100 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 cursor-pointer transition-all hover:opacity-80">
-                          {pos.displayLabel}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {filtered.map(cat => {
-                  const colEvLabels = new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker!.ci).map(e => e.label))
-                  return (
-                    <div key={cat.cat}>
-                      <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: cat.color }}>{displayGroupName(cat.cat)}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {cat.events.map(ev => {
-                          const already = colEvLabels.has(ev.label)
-                          return (
-                            <button key={ev.label} type="button"
-                              onClick={() => {
-                                const ci = eventPicker!.ci
-                                setEventPicker(null)
-                                if (already) removeClinicalEvent(ci, ev.label)
-                                else addClinicalEvent(ci, ev.label, ev.color, cat.isComplication ?? false)
-                              }}
-                              className="text-xs font-medium px-2 py-0.5 rounded-full border cursor-pointer transition-all hover:opacity-80"
-                              style={{
-                                backgroundColor: already ? ev.color : ev.color + "18",
-                                borderColor: ev.color + "88",
-                                color: already ? "white" : ev.color,
-                              }}>
-                              {already && <span className="mr-0.5">✓</span>}{displayEventName(ev)}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-                {filtered.length === 0 && <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">No events found</p>}
-              </div>
-            </div>
-          </>
-        )
-      })(),
-      document.body
+        }))}
+        recordedLabels={new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker.ci).map(e => e.label))}
+        labels={{
+          logClinicalEvent: t("intraop.timetable.logClinicalEvent"),
+          searchEvents: t("intraop.timetable.searchEvents"),
+          positionChange: t("intraop.timetable.positionChange"),
+        }}
+        onSearchChange={setEvSearch}
+        onToggleEvent={(event, category, recorded) => {
+          const ci = eventPicker.ci
+          setEventPicker(null)
+          if (recorded) removeClinicalEvent(ci, event.label)
+          else addClinicalEvent(ci, event.label, event.color, category.isComplication)
+        }}
+        onPositionChange={position => {
+          setEventPicker(null)
+          emitLogEvent({ type: "position_change", name: position.label })
+        }}
+        onDismiss={() => setEventPicker(null)}
+      />
     )}
     {/* -- Drug picker portal -- */}
     {drugPicker && typeof document !== "undefined" && createPortal(
