@@ -1,12 +1,9 @@
 "use client"
 
-/* eslint-disable react-hooks/refs */
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
-import { NumberStepper } from "@/components/NumberStepper"
-import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOption } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
@@ -14,6 +11,8 @@ import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
+import { VitalsPopover } from "@/components/intraop/VitalsPopover"
+import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import {
   barContinues,
   barEntersRow,
@@ -3725,75 +3724,39 @@ export function IntraopTimetable({
       document.body
     )}
     {/* Vitals slider popup */}
-    {vitalsPopup && createPortal(
-      (() => {
-        const currentCellVal = data.vitals[vitalsPopup.col]?.[vitalsPopup.key]
-        function commitAndClose() {
-          // If cell was never touched, persist the displayed value (prev column's value or hardcoded default)
-          if (currentCellVal === undefined) {
-            setVital(vitalsPopup!.col, vitalsPopup!.key, String(vitalsPopup!.defaultVal))
+    {vitalsPopup && (
+      <VitalsPopover
+        anchor={vitalsPopup.rect}
+        label={vitalsPopup.label}
+        unit={vitalsPopup.unit}
+        color={vitalsPopup.color}
+        converts={vitalsPopup.key === "etco2" ? "etco2" : vitalsPopup.key === "temp" ? "temperature" : null}
+        value={data.vitals[vitalsPopup.col]?.[vitalsPopup.key]}
+        fallbackValue={vitalsPopup.defaultVal}
+        min={vitalsPopup.min}
+        max={vitalsPopup.max}
+        step={vitalsPopup.step}
+        onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
+        onCommit={() => {
+          // Never touched: keep what was on screen. Dismissing is how "same as
+          // the last reading" is entered without retyping it.
+          if (data.vitals[vitalsPopup.col]?.[vitalsPopup.key] === undefined) {
+            setVital(vitalsPopup.col, vitalsPopup.key, String(vitalsPopup.defaultVal))
           }
           setVitalsPopup(null)
-        }
-        return (
-          <div className="fixed inset-0 z-50" onClick={commitAndClose}>
-            <div className="absolute bg-white dark:bg-[#2a2a2a] rounded-xl shadow-2xl p-4 w-64 border border-slate-200 dark:border-[#3a3a3a] space-y-3"
-              style={{ top: Math.min(vitalsPopup.rect.bottom + 6, window.innerHeight - 220), left: Math.max(4, Math.min(vitalsPopup.rect.left - 80, window.innerWidth - 280)) }}
-              onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: vitalsPopup.color }} />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{vitalsPopup.label}</span>
-                <span className="text-xs text-slate-400 ml-auto">{vitalsPopup.unit}</span>
-              </div>
-              {vitalsPopup.key === "etco2" || vitalsPopup.key === "temp" ? (
-                <ConvertedStepper
-                  measurement={vitalsPopup.key === "etco2" ? "etco2" : "temperature"}
-                  canonicalValue={currentCellVal ?? vitalsPopup.defaultVal}
-                  onCanonicalChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
-                  canonicalMin={vitalsPopup.min} canonicalMax={vitalsPopup.max} canonicalStep={vitalsPopup.step}
-                  showSlider
-                />
-              ) : (
-                <NumberStepper
-                  value={currentCellVal ?? vitalsPopup.defaultVal}
-                  onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v !== undefined ? String(v) : "")}
-                  min={vitalsPopup.min}
-                  max={vitalsPopup.max}
-                  step={vitalsPopup.step}
-                  unit={vitalsPopup.unit}
-                  showSlider
-                />
-              )}
-              <button type="button" onClick={commitAndClose}
-                className="w-full text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 transition-colors">
-                Done
-              </button>
-            </div>
-          </div>
-        )
-      })(),
-      document.body
+        }}
+      />
     )}
-    {/* Delete infusion prompt (dragged bar off the left edge) */}
-    {deleteInfPrompt && createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-6 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]">
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("intraop.timetable.deleteInfusionConfirm")}</p>
-          <p className="text-xs text-slate-400">{t("intraop.timetable.barDraggedOffTimeline")}</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setDeleteInfPrompt(null)}
-              className="flex-1 text-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors">
-              Cancel
-            </button>
-            <button type="button"
-              onClick={() => { removeInfusion(deleteInfPrompt); setDeleteInfPrompt(null) }}
-              className="flex-1 text-sm font-semibold bg-red-500 hover:bg-red-600 text-white rounded-lg py-2 transition-colors">
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
+    {/* Dragging an infusion bar off the left edge deletes it — easy to do by accident. */}
+    {deleteInfPrompt && (
+      <ConfirmDialog
+        title={t("intraop.timetable.deleteInfusionConfirm")}
+        detail={t("intraop.timetable.barDraggedOffTimeline")}
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        onCancel={() => setDeleteInfPrompt(null)}
+        onConfirm={() => { removeInfusion(deleteInfPrompt); setDeleteInfPrompt(null) }}
+      />
     )}
     {showEndModal && (
       <EndCaseModal

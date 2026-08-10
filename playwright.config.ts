@@ -25,6 +25,9 @@ const e2eDatabaseUrl = process.env.E2E_DATABASE_URL
 
 export default defineConfig({
   testDir: "./e2e",
+  // Reseeds first, which also clears the login rate-limit buckets the suite
+  // would otherwise exhaust on itself. See e2e/global-setup.ts.
+  globalSetup: "./e2e/global-setup.ts",
   timeout: 30_000,
   expect: { timeout: 7_000 },
   // Single worker. Not a hardware limitation any more — measured on a 6-core /
