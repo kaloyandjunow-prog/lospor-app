@@ -12,6 +12,7 @@ import { displayClinicalCode, displayGasMix, displayGasSettings, displayNamedOpt
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
+import { AgentPopover } from "@/components/intraop/AgentPopover"
 import {
   barContinues,
   barEntersRow,
@@ -3098,103 +3099,36 @@ export function IntraopTimetable({
         onConfirmVolume={fluidConflictConfirmVolume}
       />
     )}
-    {/* ── Agent picker portal ────────────────────────────────────────────────── */}
-    {agentPicker !== null && agentPickerRect && typeof document !== "undefined" && createPortal(
-      (() => {
-        const pickerSeg = agents.find(a => a.startCol === agentPicker) ?? null
-        const POP_W = 190
-        const spaceBelow = window.innerHeight - agentPickerRect.bottom
-        const showAbove = spaceBelow < 240
-        const left = Math.max(8, Math.min(agentPickerRect.left, window.innerWidth - POP_W - 8))
-        const top  = showAbove ? agentPickerRect.top - 4 : agentPickerRect.bottom + 4
-        return (
-          <>
-            <div className="fixed inset-0 z-[9998]" onClick={closeAgentPicker} />
-            <div
-              style={{ position:"fixed", left, top, width: POP_W, zIndex: 9999, transform: showAbove ? "translateY(-100%)" : undefined }}
-              className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2"
-              onClick={e => e.stopPropagation()}>
-
-              {!pickerSeg && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.startAgentHere")}</p>}
-              {pickerSeg  && <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Edit: {displayAgentName(pickerSeg.name)}</p>}
-
-              {!pickerSeg && (
-                <div className="space-y-0.5">
-                  {INH_AGENTS.map(agent => (
-                    <button key={agent} type="button"
-                      // Select, don't start. Mobile's AgentSheet sets the agent and its
-                      // default Fi% then waits for confirmation; web used to commit the
-                      // segment on the first click, so the concentration was never actually
-                      // chosen by anyone.
-                      onClick={() => {
-                        setPendingAgentName(agent)
-                        setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)
-                      }}
-                      className={`w-full text-left text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-[#333] ${AGENT_STYLE[agent]?.text ?? ""}`}>
-                      {displayAgentName(agent)}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Fi(agent)% — agents always dose in %, no unit/route rows */}
-              {(pickerSeg || pendingAgentName) && (() => {
-                const agentName = pickerSeg?.name ?? pendingAgentName!
-                const quick = AGENT_QUICK_PERCENTS[agentName] ?? [0.5, 1, 1.5, 2, 3]
-                return (
-                  <div className="border-t border-slate-100 dark:border-[#333] pt-2">
-                    <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mb-1.5">Fi{agentName}</p>
-                    <DoseSelector
-                      accent="purple"
-                      quickValues={quick}
-                      value={String(pickerPercent ?? quick[0])}
-                      onValueChange={v => setPickerPercent(parseFloat(v) || 0)}
-                      min={0} max={10} step={0.1} unitSuffix="%"
-                      confirmLabel={!pickerSeg ? `Start ${agentName}` : undefined}
-                      onConfirm={!pickerSeg ? () => startAgent(agentPicker, agentName) : undefined}
-                    />
-                  </div>
-                )
-              })()}
-
-              <div className="border-t border-slate-100 dark:border-[#333] pt-2 space-y-2">
-                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{t("intraop.timetable.optional")}</p>
-                <button type="button"
-                  onClick={() => setPickerN2o(pickerN2o !== null ? null : 40)}
-                  className={`w-full text-xs font-semibold px-2 py-1 rounded-lg border transition-colors ${
-                    pickerN2o !== null
-                      ? "bg-yellow-400 border-yellow-400 text-white"
-                      : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-yellow-400 hover:text-yellow-600"
-                  }`}>
-                  + N2O
-                </button>
-                {pickerN2o !== null && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-slate-500 font-semibold">FiN2O</span>
-                      <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">{pickerN2o}%</span>
-                    </div>
-                    <input type="range" min={10} max={70} step={5}
-                      value={pickerN2o}
-                      onChange={e => setPickerN2o(parseInt(e.target.value))}
-                      className="w-full h-1.5 accent-yellow-500" />
-                  </div>
-                )}
-              </div>
-
-              {pickerSeg && (
-                <button type="button"
-                  onClick={() => updateAgentExtras(pickerSeg.startCol)}
-                  className="w-full text-xs font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-1.5 transition-colors">
-                  Apply
-                </button>
-              )}
-            </div>
-          </>
-        )
-      })(),
-      document.body
-    )}
+    {/* ── Agent popover ──────────────────────────────────────────────────────── */}
+    {agentPicker !== null && agentPickerRect && (() => {
+      const editing = agents.find(a => a.startCol === agentPicker) ?? null
+      return (
+        <AgentPopover
+          anchor={agentPickerRect}
+          editingName={editing?.name ?? null}
+          pendingName={pendingAgentName}
+          percent={pickerPercent}
+          nitrousPercent={pickerN2o}
+          agentNames={INH_AGENTS}
+          quickPercentsFor={agent => AGENT_QUICK_PERCENTS[agent] ?? []}
+          textClassFor={agent => AGENT_STYLE[agent]?.text ?? ""}
+          displayAgentName={displayAgentName}
+          labels={{
+            startAgentHere: t("intraop.timetable.startAgentHere"),
+            optional: t("intraop.timetable.optional"),
+          }}
+          onSelectAgent={agent => {
+            setPendingAgentName(agent)
+            setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)
+          }}
+          onPercentChange={setPickerPercent}
+          onNitrousChange={setPickerN2o}
+          onStart={agent => startAgent(agentPicker, agent)}
+          onApply={() => editing && updateAgentExtras(editing.startCol)}
+          onDismiss={closeAgentPicker}
+        />
+      )
+    })()}
     {gasPicker !== null && gasPickerRect && (() => {
       const editing = gasSettings.find(g => gasPicker >= g.startCol && gasPicker <= g.endCol) ?? null
       return (
