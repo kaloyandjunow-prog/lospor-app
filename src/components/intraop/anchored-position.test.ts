@@ -70,6 +70,27 @@ describe("positionPopover", () => {
   })
 })
 
+describe("belowGap", () => {
+  const anchor = { top: 200, bottom: 230, left: 100, right: 180, width: 80 }
+  const viewport = { width: 1280, height: 800 }
+
+  it("hangs the panel a few pixels under the anchor by default", () => {
+    expect(positionPopover({ anchor, width: 220, viewport, flipBelowSpace: 260 }).top).toBe(234)
+  })
+
+  it("honours a wider gap when one is asked for", () => {
+    // The dosing flyout sits 6px below rather than 4px; it is the one caller
+    // that differs, and the difference is preserved rather than normalised.
+    expect(positionPopover({ anchor, width: 220, viewport, flipBelowSpace: 260, belowGap: 6 }).top)
+      .toBe(236)
+  })
+
+  it("ignores the gap when the panel flips above", () => {
+    expect(positionPopover({ anchor, width: 220, viewport, flipBelowSpace: 900, belowGap: 6 }).top)
+      .toBe(196)
+  })
+})
+
 describe("fitPopoverWidth", () => {
   it("keeps the preferred width when it fits", () => {
     expect(fitPopoverWidth(300, 1280)).toBe(300)

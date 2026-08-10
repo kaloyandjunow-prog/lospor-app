@@ -39,6 +39,8 @@ export type PositionPopoverInput = {
   flipBelowSpace: number
   /** Centre on the anchor rather than aligning to its left edge. */
   align?: "left" | "center"
+  /** Gap below the anchor when not flipped. */
+  belowGap?: number
 }
 
 export function positionPopover({
@@ -47,6 +49,7 @@ export function positionPopover({
   viewport,
   flipBelowSpace,
   align = "left",
+  belowGap = 4,
 }: PositionPopoverInput): PopoverPlacement {
   const showAbove = viewport.height - anchor.bottom < flipBelowSpace
 
@@ -63,7 +66,7 @@ export function positionPopover({
 
   // Above: `top` is the anchor's top and the panel is translated up from there.
   // Below: it hangs a few pixels under the anchor.
-  const top = showAbove ? anchor.top - 4 : anchor.bottom + 4
+  const top = showAbove ? anchor.top - 4 : anchor.bottom + belowGap
 
   return { left, top, showAbove }
 }

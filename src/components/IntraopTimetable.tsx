@@ -26,6 +26,7 @@ import { InfusionLane, type InfusionBarMove } from "@/components/intraop/Timetab
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
+import { fitPopoverWidth, positionPopover } from "@/components/intraop/anchored-position"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -2230,12 +2231,19 @@ export function IntraopTimetable({
             (fp.fluidEntryModes?.length ?? 0) > 1
             || (fp.fluidConcentrations?.length ?? 0) > 0
           )
-          const targetPopupWidth = hasDetailedBolus || hasDetailedFluid ? 300 : 220
-          const POP_W = Math.min(targetPopupWidth, Math.max(180, window.innerWidth - 16))
-          const spaceBelow = window.innerHeight - fp.anchor.bottom
-          const showAbove = spaceBelow < (hasDetailedBolus || hasDetailedFluid ? 420 : 260)
-          const left = Math.max(8, Math.min(fp.anchor.left + fp.anchor.width / 2 - POP_W / 2, window.innerWidth - POP_W - 8))
-          const top  = showAbove ? fp.anchor.top - 4 : fp.anchor.bottom + 6
+          // A flyout with routes, concentrations or entry modes needs both more
+          // width and more headroom before it is worth opening downwards.
+          const detailed = hasDetailedBolus || hasDetailedFluid
+          const viewport = { width: window.innerWidth, height: window.innerHeight }
+          const POP_W = fitPopoverWidth(detailed ? 300 : 220, viewport.width)
+          const { left, top, showAbove } = positionPopover({
+            anchor: fp.anchor,
+            width: POP_W,
+            viewport,
+            flipBelowSpace: detailed ? 420 : 260,
+            align: "center",
+            belowGap: 6,
+          })
           const br = bolusSurface
             ? { min: bolusSurface.min, max: bolusSurface.max, step: bolusSurface.step }
             : bsurf
