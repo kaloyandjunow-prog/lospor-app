@@ -23,6 +23,8 @@ import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLan
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { FluidLane } from "@/components/intraop/TimetableFluidLane"
 import { InfusionLane, type InfusionBarMove } from "@/components/intraop/TimetableInfusionLane"
+import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
+import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
   DEFAULT_INF,
@@ -1689,76 +1691,36 @@ export function IntraopTimetable({
             <DivChart vitals={data.vitals} colStart={colStart} rowColCount={rowCols.length} activeRows={activeRows} />
           )}
 
-          {/* Vital rows */}
-          {activeRows.length === 0 && rowIdx === 0 && (
-            <div className="flex items-center border-b border-slate-50 dark:border-[#222] py-2">
-              <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-2"} />
-              <span className="text-[10px] text-slate-300 dark:text-[#555] italic px-3">{t("intraop.timetable.selectMonitoringToPopulate")}</span>
-            </div>
-          )}
-          {activeRows.map((row, ri) => (
-            <div key={row.key} className={`flex items-center border-b border-slate-50 dark:border-[#222] ${ri % 2 === 1 ? "bg-slate-50/40 dark:bg-[#1a1a1a]/60" : ""}`}>
-              <div style={{ width: LABEL_W, minWidth: LABEL_W, position: "sticky", left: 0, zIndex: 2, backgroundColor: "inherit", borderLeft: `3px solid ${row.color}` }}
-                className="flex flex-col items-end justify-center pr-2 py-1.5 gap-0 select-none bg-white dark:bg-[#1c1c1c]">
-                <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color: row.color }}>{row.label}</span>
-                <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">({row.unit})</span>
-              </div>
-              {rowCols.map(ci => (
-                <div key={ci} style={{ width: colW, minWidth: colW, borderLeft: `1px solid ${row.color}20` }} className="px-1 py-1.5">
-                  <input type="number" tabIndex={-1} min={row.min} max={row.max} placeholder="."
-                    value={data.vitals[ci]?.[row.key] ?? ""}
-                    onChange={e => setVital(ci, row.key, e.target.value)}
-                    ref={el => { const k = `${ci}-${row.key}`; if (el) vitalsInputRefs.current.set(k, el); else vitalsInputRefs.current.delete(k) }}
-                    onDoubleClick={e => { e.stopPropagation(); setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: lastVitalBefore(ci, row.key) ?? row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() }) }}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        setVitalsPopup({ col: ci, key: row.key, min: row.min, max: row.max, step: row.step, defaultVal: lastVitalBefore(ci, row.key) ?? row.defaultVal, label: row.label, unit: row.unit, color: row.color, rect: e.currentTarget.getBoundingClientRect() })
-                        return
-                      }
-                      if (e.key !== "Tab") return
-                      e.preventDefault()
-                      const ri = activeRows.findIndex(r => r.key === row.key)
-                      if (ri < activeRows.length - 1) {
-                        vitalsInputRefs.current.get(`${ci}-${activeRows[ri + 1].key}`)?.focus()
-                      } else {
-                        const nextCi = ci + 1
-                        if (nextCi < colCount) vitalsInputRefs.current.get(`${nextCi}-${activeRows[0].key}`)?.focus()
-                      }
-                    }}
-                    className={cellCls} />
-                </div>
-              ))}
-            </div>
-          ))}
+          <TimetableVitalsRows
+            rows={activeRows}
+            vitals={data.vitals}
+            rowCols={rowCols}
+            colCount={colCount}
+            colW={colW}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            cellClass={cellCls}
+            emptyLabel={t("intraop.timetable.selectMonitoringToPopulate")}
+            isFirstRow={rowIdx === 0}
+            inputRefs={vitalsInputRefs}
+            setVital={setVital}
+            lastVitalBefore={lastVitalBefore}
+            onOpenStepper={setVitalsPopup}
+          />
 
-          {/* Time header */}
-          <div className="flex border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a]">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="text-[10px] text-slate-300 dark:text-[#555] px-2 py-1.5 text-right">{t("intraop.timetable.time")}</div>
-            {rowCols.map(ci => {
-              const isPostEnd = endCol !== null && ci > endCol
-              return (
-              <div key={ci} style={{ width: colW, minWidth: colW }}
-                onClick={() => { if (!isPostEnd) setSelectedCol(ci) }}
-                className={`relative text-xs font-mono font-semibold text-center py-2 border-l border-slate-100 dark:border-[#2a2a2a] transition-colors select-none ${
-                  isPostEnd
-                    ? "text-slate-300 dark:text-[#444] bg-slate-50 dark:bg-[#111] cursor-default"
-                    : selectedCol === ci
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 cursor-pointer"
-                      : "text-slate-500 dark:text-[#888] hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer"
-                }`}>
-                {times[ci]}
-                {isActiveRow && nowCol === ci && !endTime && (
-                  <span className="absolute top-0.5 right-0.5 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
-                  </span>
-                )}
-                {!isPostEnd && selectedCol === ci && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />}
-              </div>
-              )
-            })}
-          </div>
+          <TimetableTimeHeader
+            label={t("intraop.timetable.time")}
+            labelWidth={LABEL_W}
+            rowCols={rowCols}
+            colW={colW}
+            times={times}
+            selectedCol={selectedCol}
+            onSelectCol={setSelectedCol}
+            endCol={endCol}
+            nowCol={nowCol}
+            isActiveRow={isActiveRow}
+            caseEnded={!!endTime}
+          />
 
           {showAgentRow && (
             <AgentLane
