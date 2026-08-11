@@ -150,9 +150,24 @@ test.describe("appearance", () => {
       await expect(page).toHaveScreenshot("dashboard.png", {
         fullPage: false,
         maxDiffPixelRatio: 0.02,
-        // The case list and the counts above it change with whatever else the
-        // suite has created; the chrome around them is what this guards.
-        mask: [page.locator("main section").last()],
+        // This guards the chrome — theme, layout, typography — not the data.
+        //
+        // Every region below reflects how many cases happen to exist when the
+        // test runs, which depends on what the rest of the suite has created
+        // and on whether the database started clean. That is why the win32
+        // baseline showed two cases while CI, starting empty, showed none.
+        //
+        // This previously masked `main section` last, and claimed in a comment
+        // to cover the case list and its counts. It covered neither: the case
+        // list is a Card, not a section, so the locator matched nothing useful
+        // and every counter stayed visible. Masking by the tour and test hooks
+        // instead, which are stable and exist for this kind of anchoring.
+        mask: [
+          page.getByTestId("ongoing-cases-count"),
+          page.locator("[data-tour='dashboard-stats']"),
+          page.getByTestId("dashboard-scopes"),
+          page.locator("[data-tour='case-list']"),
+        ],
       })
       await expectNoSeriousA11yViolations(page, "dashboard")
     } finally {
