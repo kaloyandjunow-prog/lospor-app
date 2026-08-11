@@ -18,8 +18,26 @@ import { join } from "node:path"
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..")
 const composeFile = join(root, "e2e", "docker-compose.e2e.yaml")
 
+/**
+ * Where the end-to-end database lives.
+ *
+ * This used to be a hard-coded constant while playwright.config.ts read
+ * E2E_DATABASE_URL from the environment. The two therefore disagreed the moment
+ * anyone set it: this script created, migrated and seeded a container on 55433
+ * while Playwright ran against whatever the variable named. CI is exactly that
+ * case — it provisions PostgreSQL on 5432 — so the suite tested an empty
+ * database, or a database nobody had migrated.
+ */
 export const E2E_DATABASE_URL =
-  "postgresql://lospor:lospor-e2e@127.0.0.1:55433/lospor_e2e"
+  process.env.E2E_DATABASE_URL
+  ?? "postgresql://lospor:lospor-e2e@127.0.0.1:55433/lospor_e2e"
+
+/**
+ * An externally supplied URL means "use this database", not "start a container
+ * on this port". Whoever set the variable owns the server's lifecycle, so we
+ * bring the schema and data up to date and never start or destroy it.
+ */
+const externalDatabase = Boolean(process.env.E2E_DATABASE_URL)
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options })
@@ -82,16 +100,26 @@ function seed() {
 const command = process.argv[2] ?? "up"
 
 if (command === "down") {
-  compose("down", "--volumes")
+  if (externalDatabase) {
+    console.log("E2E_DATABASE_URL is set; leaving that database running.")
+  } else {
+    compose("down", "--volumes")
+  }
 } else if (command === "seed") {
   seed()
 } else if (command === "reset" || command === "up") {
-  // reset throws the data away first; up is idempotent on an existing one.
-  if (command === "reset") compose("down", "--volumes")
-  compose("up", "-d")
-  waitForHealthy()
-  migrate()
-  seed()
+  if (externalDatabase) {
+    // Not ours to create or throw away — only to bring up to date.
+    migrate()
+    seed()
+  } else {
+    // reset throws the data away first; up is idempotent on an existing one.
+    if (command === "reset") compose("down", "--volumes")
+    compose("up", "-d")
+    waitForHealthy()
+    migrate()
+    seed()
+  }
   console.log(`\nDatabase ready and seeded at ${E2E_DATABASE_URL}`)
 } else {
   console.error(`Unknown command: ${command}. Use up, reset, seed or down.`)

@@ -51,6 +51,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+      # Playwright and scripts/e2e-db.mjs both read this. Without it they fell
+      # back to 127.0.0.1:55433, the local Docker container, which does not
+      # exist on a runner — so the suite ran against the service on 5432 while
+      # the seeder talked to nothing.
+      E2E_DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       LOSPOR_AUTH_SECRET: ci-only-not-used-for-production
       NEXTAUTH_SECRET: ci-only-not-used-for-production
       NEXTAUTH_URL: http://localhost:3000
@@ -91,13 +96,9 @@ jobs:
         working-directory: lospor-app
         run: npx playwright install --with-deps chromium
 
-      # Creates the cast the specs assume, and — on a database built from
-      # migrations alone — provisions the platform rulesets an administrator
-      # would normally promote after install.
-      - name: Seed the end-to-end accounts
-        working-directory: lospor-app
-        run: npm run e2e:seed
-
+      # No seed step here on purpose. e2e/global-setup.ts runs the same seeder
+      # before every Playwright run, so a step here only made the same work
+      # happen twice and gave two places to keep in step.
       - name: End-to-end suite
         working-directory: lospor-app
         run: npm run e2e
