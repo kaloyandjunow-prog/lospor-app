@@ -1,6 +1,23 @@
-import { test, expect, type Page } from "@playwright/test"
+import { test, expect, type BrowserContext, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { contextFor, JSON_HEADERS, BASE_URL } from "./roles"
+
+/**
+ * A page the onboarding tour will never open on.
+ *
+ * `stabilise()` also sets `tourCompleted`, but it runs after navigation, and the
+ * tour starts on a `setTimeout`. Whether the modal is on screen when the
+ * screenshot fires therefore depends on whether that timer has already elapsed:
+ * two CI runs of identical code produced one dashboard with the tour open over
+ * it and one without. Setting the flag in an init script runs it before any page
+ * script, so the tour never starts and the comparison has one answer.
+ */
+async function tourFreePage(context: BrowserContext): Promise<Page> {
+  await context.addInitScript(() => {
+    try { localStorage.setItem("tourCompleted", "1") } catch { /* private mode */ }
+  })
+  return context.newPage()
+}
 
 // Appearance: visual regression + accessibility over the five screens that
 // matter most.
@@ -104,7 +121,7 @@ async function expectNoSeriousA11yViolations(page: Page, label: string) {
 test.describe("appearance", () => {
   test("the sign-in page", async ({ browser }) => {
     const context = await browser.newContext({ baseURL: BASE_URL })
-    const page = await context.newPage()
+    const page = await tourFreePage(context)
     try {
       await page.goto("/login")
       await page.waitForLoadState("networkidle")
@@ -124,7 +141,7 @@ test.describe("appearance", () => {
     // Signed in on purpose — an anonymous request to an unknown path is sent to
     // /login by the proxy and never reaches the 404 at all.
     const context = await contextFor(browser, "member-a")
-    const page = await context.newPage()
+    const page = await tourFreePage(context)
     try {
       const res = await page.goto("/cases/definitely-not-a-real-case-id/nope")
       expect(res?.status()).toBe(404)
@@ -141,7 +158,7 @@ test.describe("appearance", () => {
 
   test("the dashboard", async ({ browser }) => {
     const context = await contextFor(browser, "member-a")
-    const page = await context.newPage()
+    const page = await tourFreePage(context)
     try {
       await page.goto("/dashboard")
       await page.waitForLoadState("networkidle")
@@ -177,7 +194,7 @@ test.describe("appearance", () => {
 
   test("the preoperative form", async ({ browser }) => {
     const context = await contextFor(browser, "member-a")
-    const page = await context.newPage()
+    const page = await tourFreePage(context)
     try {
       await page.goto("/cases/new")
       await page.waitForLoadState("networkidle")
@@ -192,7 +209,7 @@ test.describe("appearance", () => {
 
   test("the anaesthesia record, with BMI rendered to one decimal", async ({ browser }) => {
     const context = await contextFor(browser, "member-a")
-    const page = await context.newPage()
+    const page = await tourFreePage(context)
     const api = context.request
 
     const created = await api.post("/api/cases", { headers: JSON_HEADERS, data: { preop: PREOP } })
