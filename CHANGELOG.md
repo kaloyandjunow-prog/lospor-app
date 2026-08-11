@@ -1,5 +1,37 @@
 # Changelog - LOSPOR Web App
 
+## [9.0.1] - 2026-08-11
+
+### Fixed
+
+- **Production builds no longer depend on Google serving font files.**
+  `next/font/google` downloads the woff2 files during the build, and Google
+  rotates the hash in those URLs when it reissues a font. A deploy whose build
+  cache still held the older stylesheet requested files that returned 404, and
+  the failure surfaced as 36 `Can't resolve
+  @vercel/turbopack-next/internal/font/google/font` errors — which read as a code
+  defect and are not one. This broke a production deploy and a CI run.
+
+  Roboto and Geist Mono are now served from this repository (90 kB, subsets and
+  unicode-ranges copied from Google's own stylesheet). The build output contains
+  no reference to `fonts.gstatic.com` at all, and the appearance snapshots match
+  unchanged, which is the evidence rendering is identical.
+
+- **The dashboard visual test masked nothing it claimed to.** The locator was
+  `main section` last, and the case list is a Card, not a section, so every case
+  counter stayed in the comparison. That is why the Windows and Linux baselines
+  disagreed about how many cases existed rather than about rendering.
+
+- **The onboarding tour raced the dashboard screenshot.** It starts on a 900ms
+  timer and the suppression flag was set after navigation, too late to stop it.
+  Two CI runs of identical code produced one dashboard with the tour open and one
+  without. Now set before any page script runs.
+
+### Note
+
+No behavioural change for clinicians. Everything here is about builds being
+reproducible and tests being able to fail honestly.
+
 ## [9.0.0] - 2026-08-11
 
 ### Fixed
