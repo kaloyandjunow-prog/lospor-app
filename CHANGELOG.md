@@ -1,5 +1,41 @@
 # Changelog - LOSPOR Web App
 
+## [9.1.0] - 2026-08-16
+
+### Changed
+
+- Clinical yes/no questions are asked with three answers instead of a checkbox:
+  yes, no, and not asked.
+
+  A checkbox cannot say "nobody asked". Unticked meant either a recorded "no" or
+  a field the clinician never reached, and both were saved as a documented
+  negative.
+
+  Converted: seven history rows, the twelve RCRI / Apfel / STOP-BANG criteria,
+  four airway features, three POVOC rows and postoperative nausea. The airway
+  features were toggle pills, where a single toggle could not express three
+  states — a feature nobody looked for rendered identically to one looked for
+  and absent.
+
+  An unanswered row says so, and tapping the chosen side again clears it: without
+  that, the only way back from a mis-tap is to record a different wrong answer.
+  Only a positive finding is coloured, so a recorded "no allergy" does not paint
+  the row like an alarm.
+
+- The preop and postop form schemas and `dbPreopToForm` / `dbPostopToForm` stop
+  coercing null to false. Without that, reopening a saved case and letting it
+  autosave converted every unasked question into a documented no.
+
+- `emergencySurgery`, `highRiskSurgery`, the vitals "unobtainable" ticks and the
+  monitoring and equipment flags stay checkboxes. They are marks a clinician
+  makes, not questions put to a patient. The risk calculators still treat an
+  unasked criterion as absent, since it must not count toward a score.
+
+### Fixed
+
+- `docs/data-model.md` stated the OMOP export `source_version` was 3.5.1. It had
+  been 3.7.0 for some time and is now 3.8.0.
+
 ## [9.0.1] - 2026-08-11
 
 ### Fixed
