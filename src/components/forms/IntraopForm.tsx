@@ -191,8 +191,11 @@ type PreopSummary = {
   neckMobility?: string | null
   mouthOpeningCm?: number | null
   cormackLehane?: string | null
-  difficultAirwayHistory?: boolean
-  allergies?: boolean
+  // Null where the preop question was never asked, which is not the same claim
+  // as a recorded "no". Anything that renders these must say so rather than
+  // reassuring the anaesthetist that the airway history is clear.
+  difficultAirwayHistory?: boolean | null
+  allergies?: boolean | null
   allergyDetails?: { label: string }[]
   comorbidities?: { label: string }[]
   currentMedications?: { label: string; atcCode?: string }[]
