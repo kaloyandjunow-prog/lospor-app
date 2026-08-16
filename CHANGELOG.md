@@ -1,5 +1,13 @@
 # Changelog - LOSPOR Web App
 
+## [9.1.1] - 2026-08-17
+
+### Changed
+
+- Version alignment with the API fix for clinical questions answered "not
+  asked" being rejected at the API boundary and dropped. No web change was
+  needed: the form was sending the right thing, and the API was refusing it.
+
 ## [9.1.0] - 2026-08-16
 
 ### Changed
