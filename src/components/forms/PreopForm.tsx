@@ -16,6 +16,7 @@ import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type Bo
 import { suggestRcriIschemicHeart, suggestRcriCHF, suggestRcriCVD, suggestRcriInsulinDM, suggestRcriCreatinine, suggestStopBangBP } from "@/lib/risk-derivation"
 import { ChevronRight, Lightbulb, X } from "lucide-react"
 import { ClinicalYesNo } from "@/components/ClinicalYesNo"
+import { AirwayFeatures } from "@/components/forms/sections/AirwayFeatures"
 import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
@@ -1068,37 +1069,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </div>
             )} />
           </div>
-          <div className="space-y-2 col-span-2 sm:col-span-3">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("preop.airwayFeatures")}</Label>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { id:"retrognathia",           label:t("preop.retrognathia") },
-                { id:"prominentIncisors",      label:t("preop.prominentIncisors") },
-                { id:"facialHair",             label:t("preop.facialHair") },
-                { id:"difficultAirwayHistory", label:t("preop.difficultAirway") },
-              ] as const).map(item => (
-                // These were single toggle pills, which could only say "present"
-                // or "not present" -- and an airway feature nobody looked for
-                // rendered identically to one that was looked for and absent.
-                // Clearing difficultAirwayNotes is handled by the effect above,
-                // which fires for a recorded "no" and for an unasked question
-                // alike.
-                <Controller key={item.id} name={item.id} control={control} render={({ field }) => (
-                  <ClinicalYesNo
-                    id={item.id}
-                    label={item.label}
-                    value={field.value ?? null}
-                    onChange={field.onChange}
-                    className={`items-center justify-start rounded-full border-2 px-4 py-1.5 transition-all ${
-                      field.value === true
-                        ? "bg-amber-50 border-amber-400 text-amber-800 dark:bg-amber-950/30"
-                        : "border-slate-200 dark:border-[#3a3a3a]"
-                    }`}
-                  />
-                )} />
-              ))}
-            </div>
-          </div>
+          <AirwayFeatures control={control} />
         </div>
         )}
         {!airwayUTO && difficultAirwayHistory && (
