@@ -1,5 +1,38 @@
 # Changelog - LOSPOR Web App
 
+## [9.2.0] - 2026-08-18
+
+### Changed
+
+- **A risk score says how much of it was actually asked.** The calculators treat
+  an unasked criterion as absent — deliberately, and documented: a question
+  nobody put to the patient must not count toward an RCRI, Apfel or STOP-BANG.
+  But the card showed only a number and a colour band, so "RCRI 1 — low" read
+  identically whether five criteria had been answered "no" or never asked at
+  all. The storage layer stopped conflating the two in 9.1.0; the surface a
+  clinician looks at still did.
+
+  Each card now says how many of its criteria were answered, and only when some
+  were not. The score and the band are unchanged: suppressing them would trade
+  one misreading for another, and a partial score is still the best available
+  estimate as long as it says what it rests on.
+
+  Only criteria that can be "not asked" are counted. `highRiskSurgery` and
+  `emergencySurgery` stay binary by design, and BMI, age and sex are derived
+  rather than asked.
+
+- **The AI advisor opt-in is translated.** Both its label and its privacy note
+  were hardcoded English inside a form where everything else is translated, so a
+  Bulgarian-locale clinician met two sentences of English at the one control
+  that decides whether clinical data leaves the installation.
+
+- **An unconfigured AI provider says so.** The advisor reported a 503 as a raw
+  status, which read like a fault. A hospital appliance refuses outright and any
+  installation without a key answers the same way; both now say what happened.
+
+- Pins `@lospor/core` 9.2.0, whose case contract can now express that a risk
+  criterion was never asked.
+
 ## [9.1.1] - 2026-08-17
 
 ### Changed
