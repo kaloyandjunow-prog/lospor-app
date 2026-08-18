@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { calcBMI, calcABW, calcApfel, calcRCRI, calcStopBang, apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
+import { calcBMI, calcABW, calcApfel, calcRCRI, calcStopBang } from "@/lib/scores"
+import { RiskScoreCards } from "@/components/forms/RiskScoreCards"
 import { getBodySystem, suggestASAFromTags, SYSTEM_COLORS, SYSTEM_ORDER, type BodySystem } from "@/lib/icd-categories"
 import { suggestRcriIschemicHeart, suggestRcriCHF, suggestRcriCVD, suggestRcriInsulinDM, suggestRcriCreatinine, suggestStopBangBP } from "@/lib/risk-derivation"
 import { ChevronRight, Lightbulb, X } from "lucide-react"
@@ -1175,56 +1176,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} />
           </div>
         ) : (
-        <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">{t("preop.calculatedRiskScores")}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.rcriShort")}</p>
-              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
-                {rcriScore}
-                <span className="text-base font-normal text-slate-400">/6</span>
-              </p>
-              <p className={`text-xs font-semibold mt-1.5 ${rcriScore >= 3 ? "text-red-500" : rcriScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
-                {rcriRiskLabel(rcriScore)}
-              </p>
-              {rcriAnswered < 5 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
-                  {t("preop.criteriaAnswered", { answered: rcriAnswered, total: 5 })}
-                </p>
-              )}
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.apfelShort")}</p>
-              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
-                {apfelScore}
-                <span className="text-base font-normal text-slate-400">/4</span>
-              </p>
-              <p className={`text-xs font-semibold mt-1.5 ${apfelScore >= 3 ? "text-red-500" : apfelScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
-                {apfelRiskLabel(apfelScore)}
-              </p>
-              {apfelAnswered < 3 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
-                  {t("preop.criteriaAnswered", { answered: apfelAnswered, total: 3 })}
-                </p>
-              )}
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.stopBangShort")}</p>
-              <p className="text-3xl font-bold text-slate-700 dark:text-slate-100">
-                {stopBangScore}
-                <span className="text-base font-normal text-slate-400">/8</span>
-              </p>
-              <p className={`text-xs font-semibold mt-1.5 ${stopBangScore >= 5 ? "text-red-500" : stopBangScore >= 3 ? "text-amber-500" : "text-emerald-600"}`}>
-                {stopBangRiskLabel(stopBangScore)}
-              </p>
-              {stopBangAnswered < 5 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
-                  {t("preop.criteriaAnswered", { answered: stopBangAnswered, total: 5 })}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <RiskScoreCards
+          rcriScore={rcriScore}
+          apfelScore={apfelScore}
+          stopBangScore={stopBangScore}
+          rcriAnswered={rcriAnswered}
+          apfelAnswered={apfelAnswered}
+          stopBangAnswered={stopBangAnswered}
+        />
         )}
 
         {/* Notes */}
