@@ -246,6 +246,26 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     male:         sex === "MALE",
   }), [stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, bmi, ageYearsVal, stopbangNeck, sex])
 
+  // How much of each score was actually asked.
+  //
+  // The calculators treat an unasked criterion as absent -- deliberately, and
+  // documented: a question nobody put to the patient must not count toward a
+  // score. But the card showed only the number and a colour band, so "RCRI 1 —
+  // low" read identically whether five criteria had been answered "no" or never
+  // asked at all. The score stays as it is; what it was computed from is now
+  // visible beside it.
+  const answered = (values: Array<boolean | null | undefined>) =>
+    values.filter(value => value != null).length
+  const rcriAnswered = useMemo(() => answered([
+    rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine,
+  ]), [rcriIschemicHeart, rcriCHF, rcriCVD, rcriInsulinDM, rcriCreatinine])
+  const apfelAnswered = useMemo(() => answered([
+    smoking, apfelPONVHistory, apfelPostopOpioids,
+  ]), [smoking, apfelPONVHistory, apfelPostopOpioids])
+  const stopBangAnswered = useMemo(() => answered([
+    stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, stopbangNeck,
+  ]), [stopbangSnoring, stopbangTired, stopbangObserved, stopbangBP, stopbangNeck])
+
   const rcriScore = useMemo(() => calcRCRI({
     highRiskSurgery:          highRiskSurgery   ?? false,
     ischaemicHeartDisease:    rcriIschemicHeart ?? false,
@@ -1167,6 +1187,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               <p className={`text-xs font-semibold mt-1.5 ${rcriScore >= 3 ? "text-red-500" : rcriScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
                 {rcriRiskLabel(rcriScore)}
               </p>
+              {rcriAnswered < 5 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
+                  {t("preop.criteriaAnswered", { answered: rcriAnswered, total: 5 })}
+                </p>
+              )}
             </div>
             <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.apfelShort")}</p>
@@ -1177,6 +1202,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               <p className={`text-xs font-semibold mt-1.5 ${apfelScore >= 3 ? "text-red-500" : apfelScore === 2 ? "text-amber-500" : "text-emerald-600"}`}>
                 {apfelRiskLabel(apfelScore)}
               </p>
+              {apfelAnswered < 3 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
+                  {t("preop.criteriaAnswered", { answered: apfelAnswered, total: 3 })}
+                </p>
+              )}
             </div>
             <div className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#181818] p-4">
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{t("preop.stopBangShort")}</p>
@@ -1187,6 +1217,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               <p className={`text-xs font-semibold mt-1.5 ${stopBangScore >= 5 ? "text-red-500" : stopBangScore >= 3 ? "text-amber-500" : "text-emerald-600"}`}>
                 {stopBangRiskLabel(stopBangScore)}
               </p>
+              {stopBangAnswered < 5 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1" role="note">
+                  {t("preop.criteriaAnswered", { answered: stopBangAnswered, total: 5 })}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1210,10 +1245,10 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         )} />
         <div>
           <label htmlFor="aiOptIn" className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
-            Enable AI pre-operative advisor for this case
+            {t("preop.aiOptInLabel")}
           </label>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            Optional. The AI receives only structured clinical fields — no names, notes, or free-text.
+            {t("preop.aiOptInHint")}
           </p>
         </div>
       </div>
