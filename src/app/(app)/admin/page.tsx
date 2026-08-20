@@ -356,7 +356,14 @@ type AuditRow = {
   user: { name?: string; firstName?: string; lastName?: string; title?: string }
 }
 
-const ACTION_OPTIONS = ["", "CASE_CREATE", "CASE_UPDATE", "CASE_DELETE", "AI_ADVISE"]
+// The filter is a whitelist, so an action missing here is invisible in the one
+// screen built to show it. Handovers are the reason that matters: who a case
+// belonged to, and who moved it, is the question asked weeks later.
+const ACTION_OPTIONS = [
+  "", "CASE_CREATE", "CASE_UPDATE", "CASE_DELETE", "AI_ADVISE",
+  "CASE_TRANSFER_REQUEST", "CASE_TRANSFER_ACCEPT", "CASE_TRANSFER_DECLINE",
+  "CASE_TRANSFER_CANCEL", "CASE_TRANSFER_ASSIGN",
+]
 
 function AuditLogSection() {
   const t = useTranslations()
@@ -371,6 +378,11 @@ function AuditLogSection() {
     "": t("admin.allActions"), CASE_CREATE: t("admin.actionCaseCreate"),
     CASE_UPDATE: t("admin.actionCaseUpdate"), CASE_DELETE: t("admin.actionCaseDelete"),
     AI_ADVISE: t("admin.actionAiAdvise"),
+    CASE_TRANSFER_REQUEST: t("admin.actionTransferRequest"),
+    CASE_TRANSFER_ACCEPT: t("admin.actionTransferAccept"),
+    CASE_TRANSFER_DECLINE: t("admin.actionTransferDecline"),
+    CASE_TRANSFER_CANCEL: t("admin.actionTransferCancel"),
+    CASE_TRANSFER_ASSIGN: t("admin.actionTransferAssign"),
   }
 
   async function load(p = page, a = action) {
