@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { AUDIT_ACTION_OPTIONS as ACTION_OPTIONS, auditActionLabels } from "@/lib/audit-actions"
 import { useRouter } from "next/navigation"
 import { Shield, Users, Clock, Check, X, ScrollText, ChevronLeft, ChevronRight, Download, Building2 } from "lucide-react"
 import { useTranslations } from "next-intl"
@@ -356,14 +357,6 @@ type AuditRow = {
   user: { name?: string; firstName?: string; lastName?: string; title?: string }
 }
 
-// The filter is a whitelist, so an action missing here is invisible in the one
-// screen built to show it. Handovers are the reason that matters: who a case
-// belonged to, and who moved it, is the question asked weeks later.
-const ACTION_OPTIONS = [
-  "", "CASE_CREATE", "CASE_UPDATE", "CASE_DELETE", "AI_ADVISE",
-  "CASE_TRANSFER_REQUEST", "CASE_TRANSFER_ACCEPT", "CASE_TRANSFER_DECLINE",
-  "CASE_TRANSFER_CANCEL", "CASE_TRANSFER_ASSIGN",
-]
 
 function AuditLogSection() {
   const t = useTranslations()
@@ -374,17 +367,7 @@ function AuditLogSection() {
   const [loading, setLoading] = useState(false)
   const [loaded,  setLoaded]  = useState(false)
 
-  const ACTION_LABELS: Record<string, string> = {
-    "": t("admin.allActions"), CASE_CREATE: t("admin.actionCaseCreate"),
-    CASE_UPDATE: t("admin.actionCaseUpdate"), CASE_DELETE: t("admin.actionCaseDelete"),
-    AI_ADVISE: t("admin.actionAiAdvise"),
-    CASE_TRANSFER_REQUEST: t("admin.actionTransferRequest"),
-    CASE_TRANSFER_ACCEPT: t("admin.actionTransferAccept"),
-    CASE_TRANSFER_DECLINE: t("admin.actionTransferDecline"),
-    CASE_TRANSFER_CANCEL: t("admin.actionTransferCancel"),
-    CASE_TRANSFER_ASSIGN: t("admin.actionTransferAssign"),
-  }
-
+  const ACTION_LABELS = auditActionLabels(t)
   async function load(p = page, a = action) {
     setLoading(true)
     const params = new URLSearchParams({ page: String(p), ...(a ? { action: a } : {}) })
