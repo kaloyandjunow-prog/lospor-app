@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "9.2.0",
+  "version": "9.3.0",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
@@ -17,7 +17,8 @@
     "e2e:db:up": "node scripts/e2e-db.mjs up",
     "e2e:db:reset": "node scripts/e2e-db.mjs reset",
     "e2e:db:down": "node scripts/e2e-db.mjs down",
-    "e2e:seed": "node scripts/e2e-db.mjs seed"
+    "e2e:seed": "node scripts/e2e-db.mjs seed",
+    "e2e:crossapp": "npm --prefix ../lospor-mobile run export:web:e2e && playwright test --config playwright.crossapp.config.ts"
   },
   "overrides": {
     "@hono/node-server": "2.0.12",
