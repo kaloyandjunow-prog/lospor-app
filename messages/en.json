@@ -543,6 +543,7 @@
     "caseNotes": "Case notes",
     "notesNoIdentifiers": "No patient-identifying information should be entered here",
     "closeCaseNotes": "Close case notes",
+    "handedOnReadOnly": "This case has been handed on to another clinician. You can still view and print it, but no longer edit it.",
     "watchingNamed": "{name} is currently editing this case — your changes will not be saved until they finish.",
     "watchingAnonymous": "Another clinician is currently editing this case. Your changes will not be saved until they finish.",
     "takeOverEditing": "Take over editing",

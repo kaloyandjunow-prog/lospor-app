@@ -5,7 +5,10 @@ import type { CaseDetail } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { CaseSummary } from "./CaseSummary"
 
-vi.mock("next-intl", () => ({ useLocale: () => "en" }))
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
+}))
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
 // The chart itself is not what these tests are about, and it is the one part of
@@ -33,6 +36,9 @@ function caseFixture(overrides: Partial<CaseDetail> = {}): CaseDetail {
     createdAt: "2026-08-01T06:00:00.000Z",
     updatedAt: "2026-08-01T06:00:00.000Z",
     institution: { name: "Test Hospital", city: "Sofia" },
+    // These fixtures are about the sheet, not about access: they stand for a
+    // case its current assignee is looking at.
+    capabilities: { canRead: true, canWrite: true, isCreator: true, isAssignee: true },
     preop: {
       ageYears: 42,
       sex: "FEMALE",

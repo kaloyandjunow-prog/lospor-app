@@ -44,10 +44,16 @@ export default async function CasePage({
     } | null
     intraop: { monthYear: string | null } | null
     user: { institution: { name: string } | null }
+    capabilities?: { canWrite?: boolean } | null
   }
 
   const p = record.preop
   const i = record.intraop
+  // The creator of a handed-on case still reads this page and still prints
+  // from it; what they no longer have is write. Anything short of an explicit
+  // `canWrite: true` is read-only, so an API that stops sending the object
+  // cannot quietly hand the notes editor back.
+  const canWrite = record.capabilities?.canWrite === true
 
   return (
     <>
@@ -71,7 +77,7 @@ export default async function CasePage({
           </div>
           <div className="flex flex-col items-end gap-2">
             {record.caseCode && (
-              <CaseMeta caseId={id} caseCode={record.caseCode} initialNotes={record.notes} />
+              <CaseMeta caseId={id} caseCode={record.caseCode} initialNotes={record.notes} canWrite={canWrite} />
             )}
           </div>
         </div>
