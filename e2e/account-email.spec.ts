@@ -1,8 +1,6 @@
 import { test, expect } from "@playwright/test"
 
-// Spelled out rather than imported from @lospor/core/account: the package ships
-// raw TypeScript and Playwright does not transpile node_modules.
-const NO_INSTITUTION_ID = "no-institution"
+import { E2E_INSTITUTION_A } from "./credentials"
 
 const PASSWORD = "Strong1!"
 const NEW_PASSWORD = "NewStrong1!"
@@ -12,6 +10,19 @@ test("register, verify email, reset password, and sign in", async ({ page, reque
   const id = Date.now().toString(36)
   const email = `e2e-account-${id}@lospor.test`
   const testIp = `127.0.${Math.floor(Math.random() * 200) + 1}.${Math.floor(Math.random() * 200) + 1}`
+  const legalResponse = await request.get("/api/legal/documents?locale=bg")
+  expect(legalResponse.ok()).toBe(true)
+  const legalBody = await legalResponse.json() as {
+    documents: Array<Record<"deployment" | "kind" | "version" | "effectiveDate" | "locale" | "contentSha256", string>>
+  }
+  const legalAcceptances = legalBody.documents.map(document => ({
+    deployment: document.deployment,
+    kind: document.kind,
+    version: document.version,
+    effectiveDate: document.effectiveDate,
+    locale: document.locale,
+    contentSha256: document.contentSha256,
+  }))
 
   const register = await request.post("/api/auth/register", {
     headers: { "x-forwarded-for": testIp },
@@ -21,11 +32,12 @@ test("register, verify email, reset password, and sign in", async ({ page, reque
       lastName: "Account",
       email,
       password: PASSWORD,
-      acceptedTerms: true,
-      // Required since 8.3: every account belongs to an institution, chosen at
-      // registration. "Без институция" is the answer for someone none of the
-      // real ones fit, and needs nobody's approval.
-      institutionId: NO_INSTITUTION_ID,
+      locale: "bg",
+      legalAcceptances,
+      // Public registration requires a real institution; the historical
+      // no-institution sentinel is reserved for post-registration account
+      // administration flows.
+      institutionId: E2E_INSTITUTION_A,
     },
   })
   expect(register.status()).toBe(201)
