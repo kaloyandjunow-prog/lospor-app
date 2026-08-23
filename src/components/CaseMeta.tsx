@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
+import { useTranslations } from "next-intl"
 import { StickyNote, X } from "lucide-react"
 
 export function CaseMeta({
@@ -12,6 +13,7 @@ export function CaseMeta({
   caseCode: string
   initialNotes?: string | null
 }) {
+  const t = useTranslations()
   const [open, setOpen]   = useState(false)
   const [notes, setNotes] = useState(initialNotes ?? "")
   const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -48,7 +50,7 @@ export function CaseMeta({
           }`}
         >
           <StickyNote className="h-3.5 w-3.5" />
-          Notes
+          {t("common.notes").replace(/…$/, "")}
           {notes && !open && (
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
           )}
@@ -57,9 +59,10 @@ export function CaseMeta({
         {open && (
           <div className="absolute right-0 top-full mt-1.5 z-50 w-72 rounded-lg border border-amber-200 dark:border-amber-700/40 bg-white dark:bg-[#1e1e1e] shadow-lg">
             <div className="flex items-center justify-between px-3 py-2 border-b border-amber-100 dark:border-amber-700/30">
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Case notes</span>
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">{t("case.caseNotes")}</span>
               <button
                 type="button"
+                aria-label={t("case.closeCaseNotes")}
                 onClick={() => setOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               >
@@ -71,7 +74,7 @@ export function CaseMeta({
               rows={4}
               value={notes}
               onChange={handleChange}
-              placeholder="No patient-identifying information should be entered here"
+              placeholder={t("case.notesNoIdentifiers")}
               className="w-full text-sm bg-transparent px-3 py-2 outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600 text-slate-700 dark:text-slate-300"
             />
           </div>

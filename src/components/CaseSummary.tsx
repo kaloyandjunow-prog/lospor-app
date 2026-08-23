@@ -385,18 +385,18 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                 <div className="flex items-center gap-2 flex-wrap">
                   {status !== "COMPLETE" && (
                     <>
-                      <span className="text-xs text-slate-400">Edit:</span>
+                      <span className="text-xs text-slate-400">{L.edit}</span>
                       <a href={`/cases/new?continue=${caseId}&step=0`}
                         className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
-                        Preop
+                        {L.preopShort}
                       </a>
                       <a href={`/cases/new?continue=${caseId}&step=1`}
                         className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
-                        Intraop
+                        {L.intraopShort}
                       </a>
                       <a href={`/cases/new?continue=${caseId}&step=2`}
                         className="text-xs font-semibold px-2 py-1 rounded border border-current opacity-70 hover:opacity-100 transition-opacity">
-                        Postop
+                        {L.postopShort}
                       </a>
                       <button
                         disabled={finalizing}
@@ -411,17 +411,17 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                             } else {
                               const body = await res.json().catch(() => ({}))
                               const REASON_LABELS: Record<string, string> = {
-                                missing_technique:      "No anaesthesia technique recorded",
-                                missing_postop:         "Post-op record not completed",
-                                missing_aldrete:        "Aldrete score missing",
-                                missing_disposition:    "Patient disposition not recorded",
-                                missing_intraop:        "Intraop record not started",
-                                missing_preop:          "Pre-op assessment missing",
-                                invalid_intraop_times:  "End time is before start time",
+                                missing_technique:      L.finalizeMissingTechnique,
+                                missing_postop:         L.finalizeMissingPostop,
+                                missing_aldrete:        L.finalizeMissingAldrete,
+                                missing_disposition:    L.finalizeMissingDisposition,
+                                missing_intraop:        L.finalizeMissingIntraop,
+                                missing_preop:          L.finalizeMissingPreop,
+                                invalid_intraop_times:  L.finalizeInvalidTimes,
                               }
                               const msg = body?.reason
                                 ? (REASON_LABELS[body.reason] ?? body.reason)
-                                : "Could not finalize — check all required fields are complete."
+                                : L.finalizeFailed
                               alert(msg)
                             }
                           } finally {
@@ -429,7 +429,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                           }
                         }}
                         className="text-xs font-bold px-3 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 transition-colors">
-                        {finalizing ? "Closing…" : "Close Now"}
+                        {finalizing ? L.closing : L.closeNow}
                       </button>
                     </>
                   )}
@@ -452,7 +452,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                         }
                       }}
                       className="text-xs font-semibold px-3 py-1 rounded border border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                      Unfinalize
+                      {L.unfinalize}
                     </button>
                   )}
                   {status === "COMPLETE" && (
@@ -538,8 +538,8 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   </span>
                 )}
                 {kf.map((f, idx) => <span key={idx} className={pill}>{f}</span>)}
-                {activeMonitors.length > 0 && <span className={pill}>Monitoring · {activeMonitors.join(" · ")}</span>}
-                {access && <span className={pill}>IV access {access}</span>}
+                {activeMonitors.length > 0 && <span className={pill}>{L.monitoringShort} · {activeMonitors.join(" · ")}</span>}
+                {access && <span className={pill}>{L.ivAccess} {access}</span>}
               </div>
             )
           })()}
@@ -563,7 +563,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             {(sheet0Panels.length > 1 || sheet0Panels[0].intervalMin > 5) && (
               <p className="text-[7.5px] text-slate-400 px-1.5 pb-0.5 shrink-0">
                 {locale === "bg"
-                  ? `Жизнените показатели в таблицата са през ${sheet0Panels[0].intervalMin} мин · графиката, лекарствата и събитията са в точно записаното време`
+                  ? `Жизнените показатели в таблицата са през ${sheet0Panels[0].intervalMin} мин · графиката, медикаментите и събитията са в точно записаното време`
                   : `Vitals table sampled q${sheet0Panels[0].intervalMin}min · graph, drugs and events at exact recorded times`}
               </p>
             )}
@@ -742,7 +742,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               <F label={L.clGrade}       value={p?.cormackLehane ? displayClinicalCode("option:CORMACK_LEHANE", p.cormackLehane, locale) : null} />
               {p?.difficultAirwayHistory
                 ? <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
-                : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">No difficult-airway history</p>}
+                : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.noDifficultAirway}</p>}
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.anthropometry.toUpperCase()}</p>
               <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
               <F label="BMI"           value={p?.bmi ? `${formatBmi(p.bmi)} kg/m²` : null} />
@@ -765,7 +765,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   {allergyDetailsText && <p className="text-[9.5px] font-bold text-red-700">{allergyDetailsText}</p>}
                   {p?.latexAllergy   && <p className="text-[9px] text-red-600">{L.latexAllergy}</p>}
                 </>
-              ) : <p className="text-[9px] text-slate-500">NKDA</p>}
+              ) : <p className="text-[9px] text-slate-500">{L.nkda}</p>}
               {p?.familyAnesthesiaProblems && (
                 <p className="text-[8.5px] text-amber-700 mt-1.5">{L.familyHistory}</p>
               )}
@@ -864,7 +864,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           <div className="print-only hidden" style={{ display: "none" }}>
             <style>{`@media print { .lospor-print-disclaimer { display: block !important; } }`}</style>
             <p className="lospor-print-disclaimer text-[7px] text-center text-slate-400 mt-2 border-t border-slate-200 pt-1">
-              LOSPOR — Personal anaesthetic case log. Not a clinical record. Patient identifiers must not be added. © 2026 Kaloyan Dzhunov · AGPL-3.0
+              {L.screenDisclaimer}
             </p>
           </div>
         )}
