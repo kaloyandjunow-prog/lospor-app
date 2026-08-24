@@ -170,48 +170,36 @@ test("an offline PWA vital replays once, appears on Web, and keeps mobile proven
   const caseId = await createStartedCase(web)
   const { context: phoneContext, page: phone } = await openPhone(browser, E2E_MEMBER_A_EMAIL)
 
-  const diag = (label: string) => console.log(`[diag] ${new Date().toISOString()} caseId=${caseId} ${label}`)
   try {
-    diag("start")
     await phone.clock.install({ time: SYNTHETIC_END_NOW })
     await openPhoneIntraop(phone, caseId)
-    diag("openPhoneIntraop done")
     await phone.getByText("Timetable", { exact: true }).first().click()
     await phone.getByText("09:00", { exact: true }).first().click()
-    diag("phone timetable+slot clicked")
 
     const webPage = await web.newPage()
     await webPage.clock.install({ time: SYNTHETIC_END_NOW })
     const chart = await openWebChart(webPage, caseId)
-    diag("openWebChart done")
     await expect(chart.locator('[title="123"]')).toHaveCount(0)
-    diag("initial chart assertion done")
 
     await phoneContext.setOffline(true)
     await phone.getByText("Vitals", { exact: true }).first().click()
     await phone.getByPlaceholder("Sys").fill("123")
     await phone.getByPlaceholder("Dia").fill("77")
     await phone.getByText("Save vitals", { exact: true }).click()
-    diag("offline vital save clicked")
 
     await expect(phone.getByText(/1 unsynced/i).first()).toBeVisible({ timeout: 20_000 })
-    diag("1 unsynced visible")
     expect(logOf(await caseBody(web.request, caseId)).some(event =>
       event.type === "vital" && event.systolic === 123 && event.diastolic === 77,
     )).toBe(false)
-    diag("confirmed not yet on server")
 
     await phoneContext.setOffline(false)
-    diag("set online")
     await expect.poll(async () => logOf(await caseBody(web.request, caseId)).filter(event =>
       event.type === "vital" && event.systolic === 123 && event.diastolic === 77,
     ).length, {
       timeout: 60_000,
       message: "the PWA vital did not replay exactly once",
     }).toBe(1)
-    diag("replay confirmed on server")
     await expect(phone.getByText(/1 unsynced/i)).toHaveCount(0, { timeout: 30_000 })
-    diag("phone shows synced")
 
     // The active edit-form route (/cases/new?continue=...) deliberately has
     // no LiveCaseUpdater -- only the read-only case summary route does, so a
@@ -220,17 +208,13 @@ test("an offline PWA vital replays once, appears on Web, and keeps mobile proven
     // replay on its own; reload to see it, same as a real second reviewer
     // opening the chart after the fact would.
     await webPage.reload({ waitUntil: "domcontentloaded" })
-    diag("webPage reloaded")
     const reloadedChart = await openWebChart(webPage, caseId)
-    diag("chart reopened")
     await expect(reloadedChart.locator('[title="123"]').first()).toBeVisible({ timeout: 30_000 })
     await expect(reloadedChart.locator('[title="77"]').first()).toBeVisible()
-    diag("reloaded chart shows replayed vital")
 
     await expect.poll(() => auditSources(admin.request, caseId, "CASE_EVENT_ADD"), {
       timeout: 20_000,
     }).toContain("mobile")
-    diag("audit source confirmed, test body complete")
   } finally {
     await phoneContext.setOffline(false).catch(() => {})
     await phoneContext.close()
