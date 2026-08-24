@@ -1,6 +1,6 @@
 # Changelog - LOSPOR Web App
 
-## [Unreleased] - 1.2.0 public Web/PWA wave
+## [9.3.1] - 2026-08-24 - 1.2.0 public Web/PWA wave
 
 ### Added
 
@@ -223,6 +223,14 @@
   database migration, or exact scenario invocation. Hospital appliance
   execution remains a separate gate after deliberate provenance import; test
   discovery and static checks do not substitute for either execution.
+- Stabilized that scenario against a hydration-triggered autosave race, a
+  fluid-category payload typo, and a false assumption that the active
+  edit-form route live-refreshes (it deliberately does not, so a reviewing
+  client must reload to see another client's write). Set `TZ=Europe/Sofia`
+  for the CI job: the scenario asserts wall-clock labels the app renders in
+  the browser's local timezone against cases carrying Europe/Sofia instants,
+  which only matched by coincidence on a developer machine already set to
+  that zone. Repinned to `@lospor/core` v9.3.1.
 
 ## [9.3.0] - 2026-08-20
 
