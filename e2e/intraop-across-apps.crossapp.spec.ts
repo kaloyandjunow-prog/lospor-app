@@ -12,8 +12,10 @@ import { openPhone, openPhoneIntraop, PWA_BASE } from "./pwa"
 // 120s was tight even before the reload fixes below: each test drives two
 // full apps and, since those fixes, does a real page reload + PWA bundle
 // reinitialization mid-test rather than relying on live polling that doesn't
-// exist on this route.
-test.describe.configure({ timeout: 180_000 })
+// exist on this route. 180s was still not enough on GitHub's shared CI
+// runners, which run these two-app specs measurably slower than a local
+// machine (~80-90s locally vs. hitting the ceiling in CI).
+test.describe.configure({ timeout: 300_000 })
 
 const STARTED_AT = "2026-08-23T05:55:00.000Z" // 08:55 in Europe/Sofia
 const SYNTHETIC_END_NOW = new Date("2026-08-23T10:00:30+03:00")
