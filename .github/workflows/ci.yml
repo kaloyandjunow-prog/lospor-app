@@ -67,6 +67,16 @@ jobs:
       AUTH_EMAIL_TEST_LINKS: "true"
       BREVO_API_KEY: ""
       E2E_DISABLE_MOBILE_REDIRECT: "true"
+      # The crossapp specs assert on wall-clock labels the app renders in the
+      # browser's local timezone (e.g. a "09:00" timetable slot) against cases
+      # whose synthetic times are written as Europe/Sofia instants. That only
+      # ever matched by coincidence on a developer machine already set to that
+      # zone. GitHub's runners default to UTC, so those same instants render
+      # three hours earlier and the expected label never appears. Every
+      # process here -- Node, and the Chromium the crossapp specs drive --
+      # reads TZ, so setting it once covers all of them without threading a
+      # per-context timezoneId through every manually created browser context.
+      TZ: Europe/Sofia
     steps:
       # Checked out as siblings: playwright.config.ts starts the API with
       # `npm --prefix ../lospor-api run dev`, so the layout has to match a
