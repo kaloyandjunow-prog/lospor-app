@@ -92,9 +92,13 @@ export async function openPhoneIntraop(page: Page, caseId: string): Promise<void
     && response.status() === 200,
   )
   await page.goto(phoneIntraopPath(caseId))
-  await hydrated
+  const hydratedResponse = await hydrated
+  const bodyStart = await hydratedResponse.text().then(t => t.slice(0, 200)).catch(e => `<unreadable: ${e}>`)
+  console.log(`[diag] ${new Date().toISOString()} openPhoneIntraop hydrated url=${hydratedResponse.url()} status=${hydratedResponse.status()} contentType=${hydratedResponse.headers()["content-type"]} bodyStart=${bodyStart}`)
   await page.getByText("Intraoperative", { exact: true }).first().waitFor({ state: "visible" })
+  console.log(`[diag] ${new Date().toISOString()} openPhoneIntraop "Intraoperative" heading visible`)
   await page.getByText("Timetable", { exact: true }).first().waitFor({ state: "visible" })
+  console.log(`[diag] ${new Date().toISOString()} openPhoneIntraop "Timetable" tab visible`)
   await page.waitForTimeout(1_200)
 }
 
