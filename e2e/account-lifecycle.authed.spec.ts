@@ -9,7 +9,9 @@ test("a clinician can review their governed profile and active sessions", async 
     await page.goto("/account")
     await expect(page).toHaveURL(/\/account/)
     await expect(page.getByRole("heading", { name: /My account|Моят акаунт/ })).toBeVisible()
-    await expect(page.locator('input[type="email"]')).toHaveValue(E2E_MEMBER_A_EMAIL)
+    // The address is shown read-only — it is governed, not edited here — so it
+    // is a plain field with a stable id rather than a type="email" control.
+    await expect(page.locator("#account-email")).toHaveValue(E2E_MEMBER_A_EMAIL)
     await expect(page.getByText(/This device|Това устройство/)).toBeVisible()
     await expect(page.getByRole("button", { name: /Change password|Смени паролата/ })).toBeVisible()
   } finally {
