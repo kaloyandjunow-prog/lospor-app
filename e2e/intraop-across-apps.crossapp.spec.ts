@@ -176,11 +176,8 @@ test("an offline PWA vital replays once, appears on Web, and keeps mobile proven
     await phone.clock.install({ time: SYNTHETIC_END_NOW })
     await openPhoneIntraop(phone, caseId)
     diag("openPhoneIntraop done")
-    diag(`Timetable tab count=${await phone.getByText("Timetable", { exact: true }).count()}`)
-    await phone.getByText("Timetable", { exact: true }).first().click({ timeout: 15_000 })
-    diag("phone timetable tab clicked")
-    diag(`09:00 slot count=${await phone.getByText("09:00", { exact: true }).count()}`)
-    await phone.getByText("09:00", { exact: true }).first().click({ timeout: 15_000 })
+    await phone.getByText("Timetable", { exact: true }).first().click()
+    await phone.getByText("09:00", { exact: true }).first().click()
     diag("phone timetable+slot clicked")
 
     const webPage = await web.newPage()
