@@ -9,7 +9,11 @@ import { contextFor, JSON_HEADERS } from "./roles"
 import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop, PWA_BASE } from "./pwa"
 
-test.describe.configure({ timeout: 120_000 })
+// 120s was tight even before the reload fixes below: each test drives two
+// full apps and, since those fixes, does a real page reload + PWA bundle
+// reinitialization mid-test rather than relying on live polling that doesn't
+// exist on this route.
+test.describe.configure({ timeout: 180_000 })
 
 const STARTED_AT = "2026-08-23T05:55:00.000Z" // 08:55 in Europe/Sofia
 const SYNTHETIC_END_NOW = new Date("2026-08-23T10:00:30+03:00")
@@ -99,6 +103,35 @@ async function currentRevision(request: APIRequestContext, caseId: string): Prom
   return revision!
 }
 
+/**
+ * The revision after opening a real chart page has stopped moving.
+ *
+ * Opening the chart for a case that already has intraop content legitimately
+ * re-saves it shortly after mount: IntraopForm's hydration-triggered autosave
+ * (src/components/forms/IntraopForm.tsx) only skips the component's very
+ * first paint — not the later render where the server's own data actually
+ * lands in the form — so any real client opening this page bumps
+ * syncRevision on its own, independent of anything this test does. That is
+ * correct product behaviour, not something to work around by disabling it;
+ * the test's job is to observe the settled state a real client would, not to
+ * assume the revision it tracked before a real page was ever opened is still
+ * current.
+ *
+ * Polls until two consecutive reads agree rather than assuming exactly one
+ * autosave fires, so this holds whether the debounce lands zero, one, or (if
+ * the debounce ever changes) more than one time.
+ */
+async function settledRevision(request: APIRequestContext, caseId: string): Promise<number> {
+  let previous: number | null = null
+  await expect(async () => {
+    const current = await currentRevision(request, caseId)
+    const stable = previous === current
+    previous = current
+    expect(stable, "revision is still moving").toBe(true)
+  }).toPass({ timeout: 6_000, intervals: [300] })
+  return previous!
+}
+
 async function auditSources(
   admin: APIRequestContext,
   caseId: string,
@@ -166,10 +199,16 @@ test("an offline PWA vital replays once, appears on Web, and keeps mobile proven
     }).toBe(1)
     await expect(phone.getByText(/1 unsynced/i)).toHaveCount(0, { timeout: 30_000 })
 
-    // Keep the already-open desktop chart in place. Its version poll must
-    // hydrate the PWA replay without a manual navigation or refresh.
-    await expect(chart.locator('[title="123"]').first()).toBeVisible()
-    await expect(chart.locator('[title="77"]').first()).toBeVisible()
+    // The active edit-form route (/cases/new?continue=...) deliberately has
+    // no LiveCaseUpdater -- only the read-only case summary route does, so a
+    // clinician's in-progress typing there is never clobbered by a background
+    // refresh. So the already-open desktop chart will not pick up the PWA
+    // replay on its own; reload to see it, same as a real second reviewer
+    // opening the chart after the fact would.
+    await webPage.reload({ waitUntil: "domcontentloaded" })
+    const reloadedChart = await openWebChart(webPage, caseId)
+    await expect(reloadedChart.locator('[title="123"]').first()).toBeVisible({ timeout: 30_000 })
+    await expect(reloadedChart.locator('[title="77"]').first()).toBeVisible()
 
     await expect.poll(() => auditSources(admin.request, caseId, "CASE_EVENT_ADD"), {
       timeout: 20_000,
@@ -266,6 +305,12 @@ test("Web and PWA alternate across an hour boundary with conflict, retry, correc
     const liveChart = await openWebChart(webPage, caseId)
     await expect(liveChart.locator('[title="121"]').first()).toBeVisible()
 
+    // The chart page just legitimately re-saved on its own (see
+    // settledRevision's doc comment) — fetch the revision that actually
+    // resulted, the way a real second client would, rather than reusing what
+    // this test tracked from before that page existed.
+    revision = await settledRevision(web.request, caseId)
+
     const correctedDrug = await web.request.put(`/api/cases/${caseId}/events/${drugId}`, {
       headers: {
         ...JSON_HEADERS,
@@ -295,7 +340,11 @@ test("Web and PWA alternate across an hour boundary with conflict, retry, correc
         name: "Ringer lactate",
         volume: 500,
         unit: "mL",
-        category: "CRYSTALLOID",
+        // The three category strings calculateFluidTotals recognises are
+        // exact literals ("Crystalloids" | "Colloids" | "Blood products",
+        // see lospor-core/src/intraop-totals.ts) — anything else is silently
+        // excluded from the total rather than rejected.
+        category: "Crystalloids",
       },
     })
     expect(phoneFluid.status(), await phoneFluid.text()).toBe(200)
@@ -404,8 +453,21 @@ test("Web and PWA alternate across an hour boundary with conflict, retry, correc
     expect(Date.parse(log.at(-1)!.ts!) - Date.parse(log[0]!.ts!)).toBe(60 * 60 * 1_000)
 
     // The desktop chart was opened before the PWA wrote the remainder of the
-    // hour. Seeing the final observation proves its live version refresh path.
-    await expect(liveChart.locator('[title="175"]').first()).toBeVisible({ timeout: 30_000 })
+    // hour, and this route (the active edit form) has no background poll for
+    // another client's writes — deliberately: silently rewriting the chart
+    // under a clinician's cursor while they are mid-entry would risk losing
+    // whatever they are typing. LiveCaseUpdater's live refresh is wired into
+    // the read-only case summary (src/app/(app)/cases/[id]/page.tsx), not
+    // this one. A real second clinician sees a colleague's update on this
+    // screen by reloading it, same as here.
+    await webPage.reload({ waitUntil: "domcontentloaded" })
+    const reloadedChart = await openWebChart(webPage, caseId)
+    await expect(reloadedChart.locator('[title="175"]').first()).toBeVisible({ timeout: 30_000 })
+
+    // The reload just mounted the form again, which re-triggers the same
+    // hydration-autosave settledRevision documents above. Re-settle before
+    // any later request trusts `revision`.
+    revision = await settledRevision(web.request, caseId)
 
     await expect.poll(() => auditSources(admin.request, caseId, "CASE_EVENT_ADD"), {
       timeout: 20_000,
@@ -432,6 +494,13 @@ test("Web and PWA alternate across an hour boundary with conflict, retry, correc
       airwayDevices: ["ORAL_ETT"],
       etco2Monitor: true,
     })
+
+    // The reloaded chart is still mounted, and a good deal of real time has
+    // passed since it last settled — the polls above alone can run up to 40s.
+    // Settling once right after the reload isn't enough for a page that
+    // stays open this long; settle again immediately before the write that
+    // actually depends on it.
+    revision = await settledRevision(web.request, caseId)
 
     const completeSections = await web.request.patch(`/api/cases/${caseId}`, {
       headers: {
