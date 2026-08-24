@@ -296,7 +296,7 @@ test("Web and PWA alternate across an hour boundary with conflict, retry, correc
       },
     })
     const stalePhoneVitalText = await stalePhoneVital.text()
-    console.log(`[diag] ${new Date().toISOString()} stalePhoneVital sentRevision=${revision - 1} status=${stalePhoneVital.status()} url=${stalePhoneVital.url()} headers=${JSON.stringify(stalePhoneVital.headers())} bodyStart=${stalePhoneVitalText.slice(0, 200)}`)
+    console.log(`[diag] ${new Date().toISOString()} stalePhoneVital sentRevision=${revision - 1} status=${stalePhoneVital.status()} body=${stalePhoneVitalText}`)
     expect(stalePhoneVital.status()).toBe(409)
     await expect(stalePhoneVital.json()).resolves.toMatchObject({
       error: "conflict",
