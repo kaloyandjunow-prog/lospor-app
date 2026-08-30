@@ -45,6 +45,7 @@ import {
   RejectionNote,
   SectionCard,
 } from "@/components/forms/PreopFormPresentational"
+import { LabResultsSection } from "@/components/forms/sections/LabResultsSection"
 
 export type { PreopData } from "@/components/forms/preopSchema"
 
@@ -1083,15 +1084,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       {/* ── Risk & ASA tab ────────────────────────────────────────── */}
       <div className={layoutMode === "tabs" && activeTab !== "risk" ? "hidden" : "space-y-6"}>
       {/* Lab Results */}
-      <SectionCard title={t("preop.labSection")}>
-        <Controller name="labResults" control={control} render={({ field }) => (
-          <LabResults
-            value={(field.value ?? []) as LabResult[]}
-            onChange={field.onChange}
-            aiOptIn={!!watch("aiOptIn")}
-          />
-        )} />
-      </SectionCard>
+      <LabResultsSection control={control} aiOptIn={!!watch("aiOptIn")} />
 
       {/* ASA */}
       <div ref={el => { refMap.current.asa = el }} data-tour="preop-scores">
