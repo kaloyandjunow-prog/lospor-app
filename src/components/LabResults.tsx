@@ -49,9 +49,15 @@ function sourceDiffers(row: LabResult): boolean {
 export function LabResults({
   value = [],
   onChange,
+  // Scanning a lab report sends a photograph of it — patient name and EGN in
+  // the header included — to an external provider. Nothing can redact text in
+  // an image, so this control belongs behind the same consent as the rest of
+  // the AI features, and the server refuses the call without it.
+  aiOptIn = false,
 }: {
   value?: LabResult[]
   onChange: (v: LabResult[]) => void
+  aiOptIn?: boolean
 }) {
   const locale = useLocale()
   const t = useTranslations()
@@ -83,7 +89,7 @@ export function LabResults({
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!clinicalAi.labImageExtraction.enabled) return
+    if (!clinicalAi.labImageExtraction.enabled || !aiOptIn) return
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ""
@@ -95,7 +101,7 @@ export function LabResults({
       const res = await fetch("/api/ai/read-labs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mimeType: file.type }),
+        body: JSON.stringify({ imageBase64, mimeType: file.type, aiOptIn }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -142,7 +148,7 @@ export function LabResults({
 
   return (
     <div className="space-y-4">
-      {clinicalAi.labImageExtraction.enabled ? (
+      {clinicalAi.labImageExtraction.enabled && aiOptIn ? (
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1.5">
@@ -174,9 +180,16 @@ export function LabResults({
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
       </div>
-      ) : (
+      ) : !clinicalAi.labImageExtraction.enabled ? (
         <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(capabilityMessageKey(clinicalAi.labImageExtraction.reason))}
+        </p>
+      ) : (
+        // Deployment allows lab-image extraction, but this case has not
+        // consented. Say so rather than silently omitting the control, so the
+        // clinician knows the feature exists and what enables it.
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {t("intraop.lab.scanNeedsAiOptIn")}
         </p>
       )}
 

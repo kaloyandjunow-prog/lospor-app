@@ -1088,6 +1088,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <LabResults
             value={(field.value ?? []) as LabResult[]}
             onChange={field.onChange}
+            aiOptIn={!!watch("aiOptIn")}
           />
         )} />
       </SectionCard>
