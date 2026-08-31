@@ -1,5 +1,30 @@
 # Changelog - LOSPOR Web App
 
+## [Unreleased]
+
+### Fixed
+
+- **The lab-report scanner was offered regardless of AI consent.** Scanning
+  sends a photograph of the report to the configured AI provider, and a lab
+  printout carries the patient's name and EGN in its header — text no
+  redaction can reach, because it is an image. The control sat outside the
+  `aiOptIn` gate that hides the AI advisor, so a clinician who deliberately
+  left the AI tickbox unticked could still send an identifying document
+  off-appliance, while the hint beside that tickbox reads "The AI receives only
+  structured clinical fields — no names, notes, or free text."
+  `LabResults` now takes `aiOptIn`, refuses to act without it, and sends it to
+  the server, which independently requires it. Where the deployment allows
+  scanning but the case has not consented, the control is replaced by an
+  explanation rather than silently omitted, so the feature stays discoverable
+  and it is clear what enables it. Manual entry is unaffected by either gate.
+
+### Tests
+
+- `LabResults.capabilities.test.tsx` now separates the two independent gates —
+  whether the deployment permits lab-image extraction, and whether this case
+  consented — and asserts that no capture path is rendered when consent is
+  absent even where the deployment allows it.
+
 ## [9.4.0] - 2026-08-29
 
 ### Fixed

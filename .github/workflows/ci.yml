@@ -21,6 +21,17 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Advisory only. Nothing upstream of the appliance audited its own
+      # dependencies -- lospor-hospital gates `npm audit`, but only over its own
+      # seven packages, so an advisory reaching a vendored app stayed invisible
+      # until someone looked by hand. A scan today reports a high-severity
+      # production advisory here (nanoid <3.3.18, via next -> postcss).
+      #
+      # Non-blocking for now: the fix means rewriting a lockfile, which is a
+      # deliberate change rather than something to force on the next push.
+      - name: Dependency advisories (advisory, non-blocking)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
 
   # The end-to-end suite covers both role workflows and the two-client clinical
   # path. The latter alternates Web and the exported phone PWA across a complete
