@@ -13,7 +13,7 @@ import {
   searchLabs,
   type LabTest,
 } from "@/lib/labs"
-import { capabilityMessageKey, useClinicalAiCapabilities } from "@/lib/deployment-capabilities"
+import { useClinicalAiCapabilities } from "@/lib/deployment-capabilities"
 import { CanonicalUnit, RefBadge } from "@/components/LabResultBadges"
 
 export type LabResult = { test: string; value: string; unit: string }
@@ -55,10 +55,14 @@ export function LabResults({
   // an image, so this control belongs behind the same consent as the rest of
   // the AI features, and the server refuses the call without it.
   aiOptIn = false,
+  // Scanning is case-scoped so the server reads consent from the record rather
+  // than the request. Null until autosave has created the case.
+  caseId = null,
 }: {
   value?: LabResult[]
   onChange: (v: LabResult[]) => void
   aiOptIn?: boolean
+  caseId?: string | null
 }) {
   const locale = useLocale()
   const t = useTranslations()
@@ -88,7 +92,7 @@ export function LabResults({
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!clinicalAi.labImageExtraction.enabled || !aiOptIn) return
+    if (!clinicalAi.labImageExtraction.enabled || !aiOptIn || !caseId) return
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ""
@@ -97,10 +101,10 @@ export function LabResults({
     setAiError(null)
     try {
       const imageBase64 = await toBase64(file)
-      const res = await fetch("/api/ai/read-labs", {
+      const res = await fetch(`/api/cases/${caseId}/ai/read-labs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mimeType: file.type, aiOptIn }),
+        body: JSON.stringify({ imageBase64, mimeType: file.type }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -147,20 +151,14 @@ export function LabResults({
 
   return (
     <div className="space-y-4">
-      {clinicalAi.labImageExtraction.enabled && aiOptIn ? (
-      <LabScanControls loading={aiLoading} error={aiError} onFileSelected={handleFileSelect} />
-      ) : !clinicalAi.labImageExtraction.enabled ? (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {t(capabilityMessageKey(clinicalAi.labImageExtraction.reason))}
-        </p>
-      ) : (
-        // Deployment allows lab-image extraction, but this case has not
-        // consented. Say so rather than silently omitting the control, so the
-        // clinician knows the feature exists and what enables it.
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {t("intraop.lab.scanNeedsAiOptIn")}
-        </p>
-      )}
+      <LabScanControls
+        loading={aiLoading}
+        error={aiError}
+        onFileSelected={handleFileSelect}
+        capability={clinicalAi.labImageExtraction}
+        aiOptIn={aiOptIn}
+        caseId={caseId}
+      />
 
       {clinicalAi.labImageExtraction.enabled && aiPreview && (
         <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 overflow-hidden">
