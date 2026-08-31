@@ -28,13 +28,15 @@ vi.mock("@/lib/deployment-capabilities", () => ({
 
 import { LabResults } from "./LabResults"
 
-// Two independent gates govern these controls: whether the deployment allows
-// lab-image extraction at all, and whether this case consented to AI. This
-// suite covers the deployment axis, so consent defaults to given.
-function renderLabs(aiOptIn = true) {
+// Three independent gates govern these controls: whether the deployment allows
+// lab-image extraction at all, whether this case consented to AI, and whether
+// the case has been saved -- scanning is case-scoped so the server can read
+// consent from the record instead of trusting the request. This suite covers the
+// deployment axis, so the other two default to satisfied.
+function renderLabs(aiOptIn = true, caseId: string | null = "case-1") {
   return render(
     <NextIntlClientProvider locale="en" messages={enMessages}>
-      <LabResults value={[]} onChange={() => undefined} aiOptIn={aiOptIn} />
+      <LabResults value={[]} onChange={() => undefined} aiOptIn={aiOptIn} caseId={caseId} />
     </NextIntlClientProvider>,
   )
 }
@@ -82,7 +84,23 @@ describe("LabResults deployment capability boundary", () => {
     expect(screen.getByText(
       "Scanning a lab report sends the image to the AI provider. Enable AI assistance for this case to use it.",
     )).toBeTruthy()
-    // Manual entry is unaffected by either gate.
+    // Manual entry is unaffected by any gate.
+    expect(screen.getByText("Add tests manually")).toBeTruthy()
+  })
+
+  // An unsaved draft has no row for the server to read consent from, so the
+  // route it would call does not exist yet. Offering the control here would
+  // produce a 404 the clinician cannot act on.
+  it("offers no capture path until the case has been saved", () => {
+    mocks.capability.enabled = true
+    mocks.capability.reason = "ENABLED"
+    const { container } = renderLabs(true, null)
+
+    expect(screen.queryByRole("button", { name: "Scan lab report" })).toBeNull()
+    expect(container.querySelector('input[type="file"]')).toBeNull()
+    expect(screen.getByText(
+      "Scanning reads consent from the saved case. Save this case first, then scan the report.",
+    )).toBeTruthy()
     expect(screen.getByText("Add tests manually")).toBeTruthy()
   })
 })

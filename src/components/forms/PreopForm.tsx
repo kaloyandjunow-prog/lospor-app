@@ -21,7 +21,6 @@ import { TagInput, type Tag } from "@/components/TagInput"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { AIAdvisor } from "@/components/AIAdvisor"
-import { LabResults, type LabResult } from "@/components/LabResults"
 import GuardedTextarea from "@/components/GuardedTextarea"
 import { useOptionLibrary, useRange } from "@/hooks/useOptionLibrary"
 import { displayOption, resolveDisplayOption } from "@/lib/clinical-display"
@@ -1084,7 +1083,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       {/* ── Risk & ASA tab ────────────────────────────────────────── */}
       <div className={layoutMode === "tabs" && activeTab !== "risk" ? "hidden" : "space-y-6"}>
       {/* Lab Results */}
-      <LabResultsSection control={control} aiOptIn={!!watch("aiOptIn")} />
+      <LabResultsSection control={control} aiOptIn={!!watch("aiOptIn")} caseId={caseId} />
 
       {/* ASA */}
       <div ref={el => { refMap.current.asa = el }} data-tour="preop-scores">

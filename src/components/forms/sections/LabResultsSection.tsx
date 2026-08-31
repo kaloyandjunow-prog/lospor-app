@@ -18,11 +18,15 @@ import type { PreopData } from "@/components/forms/preopSchema"
 export function LabResultsSection({
   control,
   aiOptIn,
+  caseId,
 }: {
   // The concrete form type, not Control<any>: react-hook-form's Control is
   // invariant, so a widened parameter will not accept the caller's control.
   control: Control<PreopData>
   aiOptIn: boolean
+  // Scanning is case-scoped, so the server can read consent from the record
+  // rather than trusting the request. Null until autosave has created the case.
+  caseId?: string | null
 }) {
   const t = useTranslations()
   return (
@@ -32,6 +36,7 @@ export function LabResultsSection({
           value={(field.value ?? []) as LabResult[]}
           onChange={field.onChange}
           aiOptIn={aiOptIn}
+          caseId={caseId}
         />
       )} />
     </SectionCard>

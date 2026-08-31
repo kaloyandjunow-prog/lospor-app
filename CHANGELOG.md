@@ -1,6 +1,23 @@
 # Changelog - LOSPOR Web App
 
-## [Unreleased]
+## [9.6.0] - 2026-08-31
+
+### Changed
+
+- **Lab scanning calls the case-scoped route and no longer asserts its own
+  consent.** The request went to `/api/ai/read-labs` carrying `aiOptIn`, which
+  the server trusted; it now goes to `/api/cases/{id}/ai/read-labs`, where
+  consent is read from the saved case. A photograph of a lab report carries the
+  patient's name and EGN and cannot be redacted, so the server checks the record
+  rather than the request.
+
+  The capture control therefore needs a saved case. When there is none yet it
+  says so, in the same place and style as the existing "enable AI assistance for
+  this case" message, rather than silently disappearing — autosave creates the
+  case, and the control appears. All three reasons the control can be
+  unavailable now live together in `LabScanControls`.
+
+## [9.5.0] - 2026-08-31
 
 ### Fixed
 
