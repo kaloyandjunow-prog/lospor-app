@@ -479,7 +479,6 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   </div>
                 ))}
               </div>
-              {i?.bloodProductsNote && <p className="text-[8px] text-slate-500 italic mt-1">{i.bloodProductsNote}</p>}
             </div>
             {/* Numbered log — the ① ② … pins on the chart resolve here */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
