@@ -96,9 +96,9 @@ export const schema = z.object({
   })).default([]),
 
   // Vitals
-  bpSystolic: z.coerce.number().optional(), bpDiastolic: z.coerce.number().optional(),
-  heartRate:  z.coerce.number().optional(), spO2: z.coerce.number().optional(),
-  temperature: z.coerce.number().optional(), respiratoryRate: z.coerce.number().optional(),
+  bpSystolic: z.coerce.number().nullable().optional(), bpDiastolic: z.coerce.number().nullable().optional(),
+  heartRate:  z.coerce.number().nullable().optional(), spO2: z.coerce.number().nullable().optional(),
+  temperature: z.coerce.number().nullable().optional(), respiratoryRate: z.coerce.number().nullable().optional(),
   heartArrhythmia: z.boolean().nullable().default(null),
   bpUnobtainable:          z.boolean().default(false),
   heartRateUnobtainable:   z.boolean().default(false),
@@ -108,8 +108,8 @@ export const schema = z.object({
 
   // Airway
   mallampati:             z.enum(["I","II","III","IV"]).optional(),
-  mouthOpeningCm:         z.coerce.number().optional(),
-  thyromental:            z.coerce.number().optional(),
+  mouthOpeningCm:         z.coerce.number().nullable().optional(),
+  thyromental:            z.coerce.number().nullable().optional(),
   neckMobility:           z.enum(["FULL","LIMITED","FIXED"]).optional(),
   upperLipBiteTest:       z.enum(["CLASS_I","CLASS_II","CLASS_III"]).optional(),
   retrognathia:           z.boolean().nullable().default(null),
