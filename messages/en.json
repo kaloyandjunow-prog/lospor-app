@@ -293,6 +293,7 @@
     "queuedSaves": "{count, plural, one {# save waiting} other {# saves waiting}}",
     "queuedSavesTitle": "Saves made without a connection — they sync automatically when you're back online.",
     "signOutQueuedWarning": "{count, plural, one {# save hasn't} other {# saves haven't}} synced to the server yet. Signing out discards them from this device. To keep them, cancel, reconnect, and wait for the badge to clear. Sign out anyway?",
+    "saveDiscarded": "{count, plural, one {# queued save was} other {# queued saves were}} discarded — the case was deleted or you no longer have access. Nothing was sent.",
     "footerTerms": "Terms",
     "footerPrivacy": "Privacy",
     "footerDocs": "Documentation",
