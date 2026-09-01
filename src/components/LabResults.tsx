@@ -16,7 +16,17 @@ import {
 import { useClinicalAiCapabilities } from "@/lib/deployment-capabilities"
 import { CanonicalUnit, RefBadge } from "@/components/LabResultBadges"
 
-export type LabResult = { test: string; value: string; unit: string }
+// `source` records how this row entered the record — typed in, read off a
+// scanned report by AI, or imported — so the API can persist provenance per
+// item instead of stamping the whole case with one origin. `takenAt` is the
+// draw time for the lab, distinct from when it was entered into the form.
+export type LabResult = {
+  test: string
+  value: string
+  unit: string
+  source?: "manual" | "ai-scan" | "import"
+  takenAt?: string
+}
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -79,7 +89,7 @@ export function LabResults({
 
   function addTest(test: LabTest) {
     if (value.some(row => row.test === test.name)) return
-    onChange([...value, { test: test.name, value: "", unit: test.unit }])
+    onChange([...value, { test: test.name, value: "", unit: test.unit, source: "manual" }])
     setSearch("")
   }
 
@@ -135,6 +145,10 @@ export function LabResults({
     const toAdd = aiPreview
       .filter((_, i) => aiSelected.has(i))
       .filter(row => !value.some(existing => existing.test.toLowerCase() === row.test.toLowerCase()))
+      // These rows were read off a photograph by AI, not typed in — tag them
+      // so the API stores real per-item provenance instead of defaulting the
+      // whole case to "manual".
+      .map(row => ({ ...row, source: "ai-scan" as const }))
     onChange([...value, ...toAdd])
     setAiPreview(null)
     setAiSelected(new Set())

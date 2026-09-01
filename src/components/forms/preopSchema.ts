@@ -1,7 +1,10 @@
 import { z } from "zod"
 
 const tagSchema = z.object({ label: z.string(), sub: z.string().optional() }).passthrough()
-const drugTagSchema = z.object({ label: z.string(), sub: z.string().optional(), inn: z.string().optional(), atcCode: z.string().optional() })
+// .passthrough() so `source` ("manual" | "ai-scan" | "import") rides through
+// with the tag instead of being stripped before the request is built — see
+// the sibling tagSchema, which needed the same fix.
+const drugTagSchema = z.object({ label: z.string(), sub: z.string().optional(), inn: z.string().optional(), atcCode: z.string().optional() }).passthrough()
 
 export const schema = z.object({
   // For printed protocol only
@@ -127,7 +130,16 @@ export const schema = z.object({
   physicalExamReport: z.string().max(500).optional(),
   notes:              z.string().optional(),
 
-  labResults: z.array(z.object({ test: z.string(), value: z.string(), unit: z.string() })).default([]),
+  // `source` and `takenAt` are per-item provenance: which lab in the array was
+  // typed in versus read off a photograph by AI, and when it was drawn. Both
+  // are optional here because older/queued patches predate the fields.
+  labResults: z.array(z.object({
+    test: z.string(),
+    value: z.string(),
+    unit: z.string(),
+    source: z.enum(["manual", "ai-scan", "import"]).optional(),
+    takenAt: z.string().datetime().optional(),
+  })).default([]),
 })
 
 export type PreopData = z.infer<typeof schema>
