@@ -146,6 +146,12 @@ const schema = z.object({
   bloodMl:           z.coerce.number().optional(),
   bloodProductsNote: z.string().optional(),
   urineMl:           z.coerce.number().optional(),
+  // nullable, not merely optional — the same reason ageYears is. Blood loss is
+  // clinician-entered, and "not recorded" must stay distinct from a recorded
+  // 0 mL, so an explicit clear has to survive as null into the patch rather
+  // than becoming undefined (dropped, stored value kept) or 0 (a measurement
+  // nobody made).
+  bloodLossMl:       z.coerce.number().min(0).max(20000).nullable().optional(),
 
   complications: z.string().optional(),
 })

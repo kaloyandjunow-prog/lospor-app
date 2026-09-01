@@ -471,6 +471,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   { label: "Colloid",     value: i?.colloidsMl },
                   { label: "Blood",       value: i?.bloodMl },
                   { label: "Urine",       value: i?.urineMl },
+                  { label: "Blood loss",  value: i?.bloodLossMl },
                 ].map(({ label, value }) => (
                   <div key={label} className="border border-slate-200 rounded-md text-center py-1">
                     <p className="text-[13px] font-extrabold text-slate-900 leading-tight">{value ?? "—"}</p>

@@ -1318,6 +1318,7 @@
     "colloids": "Colloids (mL)",
     "bloodTransfusion": "Blood products transfusion (mL)",
     "urineOutput": "Urine output (mL)",
+    "bloodLoss": "Estimated blood loss (mL)",
     "bloodProducts": "Blood products / notes",
     "complicationsSection": "Complications & Event Log",
     "complicationsPlaceholder": "No patient-identifying information — additional notes…",
