@@ -38,7 +38,12 @@ const schema = z.object({
   painScoreNRS:       z.coerce.number().min(0).max(10).optional(),
   pediatricPainScale: z.enum(["FLACC", "FPS_R", "NRS"]).optional(),
   pediatricPainScore: z.coerce.number().min(0).max(10).optional(),
-  paedScore:          z.coerce.number().min(0).max(20).optional(),
+  // nullable because this one is stepper-backed, and the stepper clears with
+  // null. Without it Number(null) === 0 would record PAED 0 — "no emergence
+  // delirium", a real finding — for a score nobody assessed. The Aldrete
+  // components and the pain scores beside it are button- and slider-backed and
+  // can never emit a clear, which is why they are not.
+  paedScore:          z.coerce.number().min(0).max(20).nullable().optional(),
   ponv:               z.boolean().nullable().default(null),
   temperatureCelsius: z.coerce.number().nullable().optional(),
   recoveryBpUnobtainable:          z.boolean().default(false),
