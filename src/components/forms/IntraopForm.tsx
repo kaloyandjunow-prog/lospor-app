@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useLocale, useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
 import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
+import { calculateDrugTotals } from "@lospor/core/intraop-summary"
+import { infusionLocalAnaestheticMg } from "@lospor/core/intraop-totals"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
@@ -59,12 +61,6 @@ import {
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { INTRAOP_ISSUE_KEYS } from "./intraop-issue-copy"
-
-// ── Drug total helpers ────────────────────────────────────────────────────────
-function parseLAConc(name: string): number | null {
-  const m = name.match(/(\d+(?:\.\d+)?)%/)
-  return m ? parseFloat(m[1]) : null
-}
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 const vitalsRowSchema = z.object({
@@ -333,28 +329,24 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcTbw = preop?.weightKg ?? null
 
   const liveDrugTotals = useMemo(() => {
-    const bolusTotals: Record<string, { total: number; unit: string; count: number }> = {}
-    for (const d of timetable.drugs ?? []) {
-      const key = `${d.name}__${d.unit}`
-      const n   = parseFloat(d.dose) || 0
-      if (!bolusTotals[key]) bolusTotals[key] = { total: 0, unit: d.unit, count: 0 }
-      bolusTotals[key].total += n
-      bolusTotals[key].count++
-    }
-    const bolusList = Object.entries(bolusTotals).map(([key, v]) => ({
-      name:    key.split("__")[0],
-      total:   Math.round(v.total * 100) / 100,
-      unit:    v.unit,
-      count:   v.count,
+    // Bolus totals come from Core, not a local aggregation. The inline version
+    // this replaced rounded to two decimals while Core rounds to three, so the
+    // same case could show different totals on the web form and at the bedside.
+    const bolusList = calculateDrugTotals({ drugs: timetable.drugs }).map(row => ({
+      ...row,
       mgTotal: null as number | null,
     }))
 
     const infusionList = (timetable.infusions ?? []).map(inf => {
       const { amount, unit, weightUsed, weightBasis } = calcInfusionTotal(inf, calcIbw, calcTbw, infusionWeightBasis)
-      const isML    = unit.toLowerCase() === "ml"
-      const laConc  = isML ? parseLAConc(inf.name) : null
-      const mgTotal = laConc !== null ? Math.round(amount * laConc * 10 * 100) / 100 : null
-      return { name: inf.name, total: amount, unit, mgTotal, weightUsed, weightBasis }
+      return {
+        name: inf.name,
+        total: amount,
+        unit,
+        mgTotal: infusionLocalAnaestheticMg(inf.name, amount, unit),
+        weightUsed,
+        weightBasis,
+      }
     })
 
     // If any infusion used a weight-adjusted calculation, build a footnote
