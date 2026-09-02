@@ -1571,6 +1571,7 @@
     "modeBlockedTitle": "Switch to paediatric mode first",
     "modeBlockedMsg": "This age is paediatric but the case is in adult mode. Switching mode clears the adult risk scores and recorded vitals, so LOSPOR will not do it for you. Change the mode yourself, then this age can be added.",
     "takenAt": "Taken",
+    "goToMode": "Go to mode setting",
     "provenance": "Reported by the hospital system, not by the patient"
   }
 }

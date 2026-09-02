@@ -22,6 +22,7 @@ function review(
   handlers: Partial<{
     onAccept: (patch: Record<string, unknown>, appliedKeys: string[]) => void
     onDecline: (itemKey: string) => void
+    onRequestModeChange: () => void
   }> = {},
 ) {
   const { canonical } = normalizeEhrImport({ identifierType: "IZ", identifier: "42", fields })
@@ -31,9 +32,11 @@ function review(
     <EhrImportReview
       plan={plan}
       current={current}
+      currentClinicalMode={rest.currentClinicalMode}
       labelFor={field => field}
       onAccept={handlers.onAccept ?? (() => {})}
       onDecline={handlers.onDecline ?? (() => {})}
+      onRequestModeChange={handlers.onRequestModeChange}
       onClose={() => {}}
     />,
   )
@@ -68,6 +71,32 @@ describe("an age needing a mode change cannot be accepted here", () => {
   it("still shows the age the hospital sent", () => {
     review({ ageYears: 7 }, { currentClinicalMode: "ADULT" })
     expect(screen.getByText("7")).toBeTruthy()
+  })
+
+  it("offers a way to the mode control instead of being a dead end", () => {
+    // Telling someone to switch mode without a route to the switch is the loop
+    // this guards. It matters most on mobile, where the review covers the
+    // screen entirely, but a long preop form can bury the toggle here too.
+    const onRequestModeChange = vi.fn()
+    review({ ageYears: 7 }, { currentClinicalMode: "ADULT" }, { onRequestModeChange })
+
+    fireEvent.click(screen.getByRole("button", { name: "goToMode" }))
+
+    expect(onRequestModeChange).toHaveBeenCalled()
+  })
+
+  it("writes the paediatric pair once the mode has been switched", () => {
+    // The server's preciseAge reads only ageValue/ageUnit, so an age accepted
+    // as ageYears alone would save and leave the field blank.
+    const onAccept = vi.fn()
+    review({ ageYears: 7 }, { currentClinicalMode: "PEDIATRIC" }, { onAccept })
+
+    fireEvent.click(acceptButton())
+
+    expect(onAccept).toHaveBeenCalledWith(
+      expect.objectContaining({ ageValue: 7, ageUnit: "YEARS" }),
+      ["ageYears"],
+    )
   })
 })
 

@@ -9,6 +9,7 @@ import {
   type EhrReviewPlan,
 } from "@lospor/core/ehr-import-review"
 import type { EhrLabValue, EhrTagValue } from "@lospor/core/ehr-import"
+import type { ClinicalMode } from "@lospor/core/pediatric"
 
 /**
  * Review what the hospital system sent, before any of it is written.
@@ -27,19 +28,31 @@ import type { EhrLabValue, EhrTagValue } from "@lospor/core/ehr-import"
 export function EhrImportReview({
   plan,
   current,
+  currentClinicalMode,
   labelFor,
   onAccept,
   onDecline,
+  onRequestModeChange,
   onClose,
 }: {
   plan: EhrReviewPlan
   /** The case as it stands, by canonical field name. */
   current: Record<string, unknown>
+  /** Decides which fields an accepted age is written into. */
+  currentClinicalMode?: ClinicalMode | null
   /** Field labels come from wherever the form already keeps them. */
   labelFor: (field: string) => string
   onAccept: (patch: Record<string, unknown>, appliedKeys: string[]) => void
   /** Remembered by the server so the item is never offered again. */
   onDecline: (itemKey: string) => void
+  /**
+   * Take the clinician to the mode control.
+   *
+   * Less urgent here than on mobile, where the review covers the screen and a
+   * blocked age would otherwise be a dead end — but a long preop form can put
+   * the toggle well off-screen, so the row offers the same way out.
+   */
+  onRequestModeChange?: () => void
   onClose: () => void
 }) {
   const t = useTranslations("ehr")
@@ -152,10 +165,19 @@ export function EhrImportReview({
                 ) : null}
 
                 {blocked ? (
-                  <p className="mt-2 text-xs font-medium leading-relaxed text-amber-800 dark:text-amber-300">
+                  <div className="mt-2 text-xs font-medium leading-relaxed text-amber-800 dark:text-amber-300">
                     <strong className="block">{t("modeBlockedTitle")}</strong>
-                    {t("modeBlockedMsg")}
-                  </p>
+                    <p>{t("modeBlockedMsg")}</p>
+                    {onRequestModeChange ? (
+                      <button
+                        type="button"
+                        onClick={onRequestModeChange}
+                        className="mt-2 rounded-lg border border-amber-400 px-3 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-500/60 dark:hover:bg-amber-500/20"
+                      >
+                        {t("goToMode")}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <button
@@ -194,7 +216,9 @@ export function EhrImportReview({
         type="button"
         disabled={selected.size === 0}
         onClick={() => {
-          const result = applyEhrSelections({ plan, selectedKeys: selected, current })
+          const result = applyEhrSelections({
+            plan, selectedKeys: selected, current, currentClinicalMode,
+          })
           onAccept(result.patch, result.appliedKeys)
         }}
         className="mt-4 w-full rounded-xl bg-sky-600 py-2.5 text-sm font-semibold text-white disabled:bg-slate-200 disabled:text-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
