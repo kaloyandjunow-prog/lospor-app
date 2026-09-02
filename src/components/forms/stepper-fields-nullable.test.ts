@@ -21,7 +21,7 @@ const FORMS = [
   "sections/DrugsFluidTotalsSection.tsx",
 ]
 
-const SCHEMAS = ["preopSchema.ts", "IntraopForm.tsx", "PostopForm.tsx"]
+const SCHEMAS = ["preopSchema.ts", "IntraopForm.tsx", "postopSchema.ts"]
 
 function read(relative: string): string {
   return readFileSync(join(__dirname, relative), "utf8")

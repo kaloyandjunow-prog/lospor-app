@@ -16,29 +16,11 @@ import {
 import { useClinicalAiCapabilities } from "@/lib/deployment-capabilities"
 import { CanonicalUnit, RefBadge } from "@/components/LabResultBadges"
 
-// `source` records how this row entered the record — typed in, read off a
-// scanned report by AI, or imported — so the API can persist provenance per
-// item instead of stamping the whole case with one origin. `takenAt` is the
-// draw time for the lab, distinct from when it was entered into the form.
-export type LabResult = {
-  test: string
-  value: string
-  unit: string
-  source?: "manual" | "ai-scan" | "import"
-  takenAt?: string
-}
-
-function toBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(",")[1] ?? "")
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
+// Re-exported rather than redeclared: mobile needs the identical shape, and
+// maintaining it separately is how the two drift.
+import type { LabResult } from "@lospor/core/labs"
+import { fileToBase64 } from "@/lib/file-to-base64"
+export type { LabResult }
 
 /**
  * A scanned row carries what the report printed alongside the converted value,
@@ -110,7 +92,7 @@ export function LabResults({
     setAiPreview(null)
     setAiError(null)
     try {
-      const imageBase64 = await toBase64(file)
+      const imageBase64 = await fileToBase64(file)
       const res = await fetch(`/api/cases/${caseId}/ai/read-labs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
