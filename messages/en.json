@@ -1558,5 +1558,19 @@
       "sbpMmHg": "SBP (mmHg)",
       "hrBpm": "HR (bpm)"
     }
+  },
+  "ehr": {
+    "title": "From the hospital system",
+    "subtitle": "Nothing here is in the record yet. Check each value, then add the ones you accept.",
+    "nothingToReview": "Nothing new to review.",
+    "accept": "Add selected",
+    "decline": "Don’t offer again",
+    "currentValue": "You entered",
+    "conflictNote": "Selecting this replaces your value with the hospital’s.",
+    "earlierResults": "earlier results",
+    "modeBlockedTitle": "Switch to paediatric mode first",
+    "modeBlockedMsg": "This age is paediatric but the case is in adult mode. Switching mode clears the adult risk scores and recorded vitals, so LOSPOR will not do it for you. Change the mode yourself, then this age can be added.",
+    "takenAt": "Taken",
+    "provenance": "Reported by the hospital system, not by the patient"
   }
 }
