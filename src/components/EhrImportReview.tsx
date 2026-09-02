@@ -116,7 +116,7 @@ export function EhrImportReview({
           {shown.map(item => {
             const isSelected = selected.has(item.itemKey)
             const blocked = item.state === "needs-mode-decision"
-            const { title, detail } = describe(item)
+            const { title, detail } = describe(item, t("undated"), t("takenAt"))
             return (
               <li
                 key={item.itemKey}
@@ -229,12 +229,24 @@ export function EhrImportReview({
   )
 }
 
-function describe(item: EhrReviewItem): { title: string; detail?: string } {
+function describe(
+  item: EhrReviewItem,
+  undatedLabel: string,
+  takenLabel: string,
+): { title: string; detail?: string } {
   const proposed = item.proposed
   if (proposed && typeof proposed === "object") {
     if ("takenAt" in (proposed as object)) {
       const lab = proposed as EhrLabValue
-      return { title: `${lab.test} ${lab.value}${lab.unit ? ` ${lab.unit}` : ""}` }
+      return {
+        title: `${lab.test} ${lab.value}${lab.unit ? ` ${lab.unit}` : ""}`,
+        // Never silent. An undated result beside dated ones would otherwise
+        // read as current, and a preoperative haemoglobin is only worth
+        // anything if you know how old it is.
+        detail: lab.takenAt === null
+          ? undatedLabel
+          : `${takenLabel} ${lab.takenAt.slice(0, 10)}`,
+      }
     }
     const tag = proposed as EhrTagValue
     const parts = [tag.dose, tag.route, tag.frequency].filter(Boolean)

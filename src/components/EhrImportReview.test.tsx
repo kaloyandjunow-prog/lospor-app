@@ -145,6 +145,37 @@ describe("older results stay out of the way until asked for", () => {
   })
 })
 
+describe("an undated result says so", () => {
+  it("labels it and leaves it unticked", () => {
+    // Beside dated results it would otherwise read as current, and a
+    // preoperative haemoglobin is only worth anything if you know its age.
+    review({ labResults: [{ test: "Hb", value: "89" }] })
+
+    expect(screen.getByText("undated")).toBeTruthy()
+    expect(boxes()[0].checked).toBe(false)
+  })
+
+  it("shows the draw date when there is one", () => {
+    review({ labResults: [{ test: "Hb", value: "89", takenAt: "2026-09-01T08:00:00Z" }] })
+
+    expect(screen.getByText(/2026-09-01/)).toBeTruthy()
+    expect(boxes()[0].checked).toBe(true)
+  })
+
+  it("can still be taken, once the clinician has read that it is undated", () => {
+    const onAccept = vi.fn()
+    review({ labResults: [{ test: "Hb", value: "89" }] }, {}, { onAccept })
+
+    fireEvent.click(boxes()[0])
+    fireEvent.click(acceptButton())
+
+    expect(onAccept).toHaveBeenCalledWith(
+      { labResults: [expect.objectContaining({ test: "Hb", takenAt: null })] },
+      [expect.any(String)],
+    )
+  })
+})
+
 describe("nothing is written without a deliberate act", () => {
   it("offers only what Core preselected", () => {
     const onAccept = vi.fn()
