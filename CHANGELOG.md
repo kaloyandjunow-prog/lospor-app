@@ -1,5 +1,33 @@
 # Changelog - LOSPOR Web App
 
+## [9.7.1] - 2026-09-03
+
+### Fixed
+
+- **The app told the server it was version 8.0.0.** It is sent as
+  `x-lospor-client-version` on proxied requests and on the live session, and the
+  server refuses paediatric case writes with 426
+  `PEDIATRIC_CLIENT_UPDATE_REQUIRED` when it is below
+  `PEDIATRIC_MIN_CLIENT_VERSION`.
+
+  Frozen at 8.0.0 through nine releases, it was saved from doing harm only
+  because the minimum happened to still be 8.0.0 as well. Raising that minimum —
+  the ordinary way to require a fix — would have disabled paediatric dosing on
+  every browser that already carried the fix, and told the clinician to update
+  an app that was already current.
+
+  A test now fails when it drifts from `package.json`, because nothing else
+  will: a stale version string breaks nothing on the day it goes stale.
+
+- An unused `zod` import in the postoperative form, which had left lint at one
+  warning.
+
+## [9.7.0] - 2026-09-02
+
+### Added
+
+- The EHR import review screen, and fixes for clearing numeric fields.
+
 ## [9.6.0] - 2026-08-31
 
 ### Changed
