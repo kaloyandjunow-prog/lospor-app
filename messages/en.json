@@ -293,6 +293,7 @@
     "queuedSaves": "{count, plural, one {# save waiting} other {# saves waiting}}",
     "queuedSavesTitle": "Saves made without a connection — they sync automatically when you're back online.",
     "signOutQueuedWarning": "{count, plural, one {# save hasn't} other {# saves haven't}} synced to the server yet. Signing out discards them from this device. To keep them, cancel, reconnect, and wait for the badge to clear. Sign out anyway?",
+    "saveDiscarded": "{count, plural, one {# queued save was} other {# queued saves were}} discarded — the case was deleted or you no longer have access. Nothing was sent.",
     "footerTerms": "Terms",
     "footerPrivacy": "Privacy",
     "footerDocs": "Documentation",
@@ -1317,7 +1318,7 @@
     "colloids": "Colloids (mL)",
     "bloodTransfusion": "Blood products transfusion (mL)",
     "urineOutput": "Urine output (mL)",
-    "bloodProducts": "Blood products / notes",
+    "bloodLoss": "Estimated blood loss (mL)",
     "complicationsSection": "Complications & Event Log",
     "complicationsPlaceholder": "No patient-identifying information — additional notes…",
     "continuePostop": "Continue to Postoperative",
@@ -1557,5 +1558,21 @@
       "sbpMmHg": "SBP (mmHg)",
       "hrBpm": "HR (bpm)"
     }
+  },
+  "ehr": {
+    "title": "From the hospital system",
+    "subtitle": "Nothing here is in the record yet. Check each value, then add the ones you accept.",
+    "nothingToReview": "Nothing new to review.",
+    "accept": "Add selected",
+    "decline": "Don’t offer again",
+    "currentValue": "You entered",
+    "conflictNote": "Selecting this replaces your value with the hospital’s.",
+    "earlierResults": "earlier results",
+    "modeBlockedTitle": "Switch to paediatric mode first",
+    "modeBlockedMsg": "This age is paediatric but the case is in adult mode. Switching mode clears the adult risk scores and recorded vitals, so LOSPOR will not do it for you. Change the mode yourself, then this age can be added.",
+    "takenAt": "Taken",
+    "goToMode": "Go to mode setting",
+    "undated": "No date given by the hospital",
+    "provenance": "Reported by the hospital system, not by the patient"
   }
 }
