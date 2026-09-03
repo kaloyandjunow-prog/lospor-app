@@ -632,9 +632,25 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               <F label={L.neckMobility}  value={p?.neckMobility ? displayClinicalCode("option:NECK_MOBILITY", p.neckMobility, locale) : null} />
               <F label="ULBT"            value={p?.upperLipBiteTest ? displayClinicalCode("option:UPPER_LIP_BITE", p.upperLipBiteTest, locale) : null} />
               <F label={L.clGrade}       value={p?.cormackLehane ? displayClinicalCode("option:CORMACK_LEHANE", p.cormackLehane, locale) : null} />
-              {p?.difficultAirwayHistory
-                ? <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
-                : <p className="text-[8.5px] font-medium text-green-700 bg-green-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.noDifficultAirway}</p>}
+              {/* Findings only.
+                *
+                * There used to be a green "No difficult-airway history" box on
+                * the else branch, and these questions are tri-state: null is
+                * falsy, so a case where nobody asked printed the reassurance in
+                * the reassuring colour. The sheet is the end of the case and it
+                * is read by people who were not there, so it states what was
+                * found and stays silent about what was not.
+                *
+                * A documented "no" is still worth having and is still in the
+                * database and the export — it is just not something the paper
+                * asserts, because on paper it is indistinguishable from the
+                * question never having been put. */}
+              {p?.difficultAirwayHistory === true && (
+                <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.difficultAirway}{p.difficultAirwayNotes ? ": " + p.difficultAirwayNotes : ""}</p>
+              )}
+              {p?.anticipatedDifficultAirway === true && (
+                <p className="text-[8.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5 mt-1.5 inline-block">{L.anticipatedDifficultAirway}</p>
+              )}
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.anthropometry.toUpperCase()}</p>
               <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
               <F label="BMI"           value={p?.bmi ? `${formatBmi(p.bmi)} kg/m²` : null} />
@@ -658,14 +674,30 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   {p?.latexAllergy   && <p className="text-[9px] text-red-600">{L.latexAllergy}</p>}
                 </>
               ) : <p className="text-[9px] text-slate-500">{L.nkda}</p>}
-              {p?.familyAnesthesiaProblems && (
-                <p className="text-[8.5px] text-amber-700 mt-1.5">{L.familyHistory}</p>
-              )}
-              {Boolean(p?.malignantHyperthermiaHistory) && (
-                <p className="text-[8.5px] font-bold text-red-700 mt-1.5">{L.malignantHyperthermia}</p>
-              )}
-              {Boolean(p?.unexplainedAnaesthesiaComplications) && (
-                <p className="text-[8.5px] text-amber-700 mt-1.5">{L.unexplainedAnaesthesiaComplications}</p>
+              {/* Under a heading of its own. These three lines used to trail
+                * the allergy list with nothing between them and it, so a bold
+                * red "Malignant hyperthermia history" sat directly beneath
+                * "NKDA" and read, at a glance on paper, as an allergy entry.
+                *
+                * The heading appears only when there is something under it —
+                * an empty "Anaesthetic history" would say the history was taken
+                * and unremarkable, which is the assertion this box has just
+                * stopped making. */}
+              {(p?.familyAnesthesiaProblems === true
+                || p?.malignantHyperthermiaHistory === true
+                || p?.unexplainedAnaesthesiaComplications === true) && (
+                <>
+                  <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-0.5 mt-1.5">{L.anaestheticHistory.toUpperCase()}</p>
+                  {p?.malignantHyperthermiaHistory === true && (
+                    <p className="text-[8.5px] font-bold text-red-700">{L.malignantHyperthermia}</p>
+                  )}
+                  {p?.unexplainedAnaesthesiaComplications === true && (
+                    <p className="text-[8.5px] text-amber-700 mt-0.5">{L.unexplainedAnaesthesiaComplications}</p>
+                  )}
+                  {p?.familyAnesthesiaProblems === true && (
+                    <p className="text-[8.5px] text-amber-700 mt-0.5">{L.familyHistory}</p>
+                  )}
+                </>
               )}
             </div>
             {/* Investigations */}
