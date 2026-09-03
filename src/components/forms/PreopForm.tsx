@@ -767,6 +767,20 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             </>
           )}
           <Separator />
+          {/* Personal anaesthetic history — the patient, not the family */}
+          <div className="flex items-center gap-2">
+            <Controller name="unexplainedAnaesthesiaComplications" control={control} render={({ field }) => (
+              <ClinicalYesNo id="unexplainedAnaesthesiaComplications" value={field.value ?? null} tone="danger" onChange={field.onChange} />
+            )} />
+            <Label htmlFor="unexplainedAnaesthesiaComplications" className="font-normal cursor-pointer">{t("preop.unexplainedAnaesthesiaComplications")}</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Controller name="malignantHyperthermiaHistory" control={control} render={({ field }) => (
+              <ClinicalYesNo id="malignantHyperthermiaHistory" value={field.value ?? null} tone="danger" onChange={field.onChange} />
+            )} />
+            <Label htmlFor="malignantHyperthermiaHistory" className="font-normal cursor-pointer">{t("preop.malignantHyperthermiaHistory")}</Label>
+          </div>
+          <Separator />
           {/* Dental */}
           <div className="flex items-center gap-2">
             <Controller name="dentalProsthetics" control={control} render={({ field }) => (
@@ -1064,6 +1078,22 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             )} />
           </div>
           <AirwayFeatures control={control} />
+          {/*
+            The conclusion the section builds to, kept as its own row rather
+            than another pill among the bedside tests: this is the
+            anaesthetist's overall judgement, which is what makes an
+            unanticipated difficult airway — predicted easy, found grade III or
+            IV — findable later. It is deliberately not derived from the
+            predictors above.
+          */}
+          <div className="space-y-2 col-span-2 sm:col-span-3 border-t border-slate-100 dark:border-[#2a2a2a] pt-3">
+            <div className="flex items-center gap-2">
+              <Controller name="anticipatedDifficultAirway" control={control} render={({ field }) => (
+                <ClinicalYesNo id="anticipatedDifficultAirway" value={field.value ?? null} tone="danger" onChange={field.onChange} />
+              )} />
+              <Label htmlFor="anticipatedDifficultAirway" className="font-normal cursor-pointer">{t("preop.anticipatedDifficultAirway")}</Label>
+            </div>
+          </div>
         </div>
         )}
         {!airwayUTO && difficultAirwayHistory && (

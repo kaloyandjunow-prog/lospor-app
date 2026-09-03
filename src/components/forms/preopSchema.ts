@@ -46,6 +46,12 @@ export const schema = z.object({
   currentMedications:      z.array(drugTagSchema).default([]),
   familyAnesthesiaProblems: z.boolean().nullable().default(null),
   familyAnesthesiaDetails:  z.string().max(500).optional(),
+  // The patient's own anaesthetic history, beside the family history above.
+  unexplainedAnaesthesiaComplications: z.boolean().nullable().default(null),
+  malignantHyperthermiaHistory:        z.boolean().nullable().default(null),
+  // The anaesthetist's overall airway judgement, recorded so prediction can be
+  // paired against the Cormack-Lehane grade actually found. Not derived.
+  anticipatedDifficultAirway: z.boolean().nullable().default(null),
   dentalProsthetics:       z.boolean().nullable().default(null),
   looseTeeth:              z.boolean().nullable().default(null),
   smoking:                 z.boolean().nullable().default(null),

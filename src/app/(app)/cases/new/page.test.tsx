@@ -197,6 +197,7 @@ const MATRIX: Record<string, RoundTrip> = {
   ...flags(
     "highRiskSurgery", "elective", "emergencySurgery", "aiOptIn",
     "allergies", "latexAllergy", "familyAnesthesiaProblems",
+    "unexplainedAnaesthesiaComplications", "malignantHyperthermiaHistory",
     "dentalProsthetics", "looseTeeth", "smoking", "substanceAbuse",
     // Score inputs — the boxes the clinician ticked, not the derived totals
     "apfelPONVHistory", "apfelPostopOpioids",
@@ -205,6 +206,7 @@ const MATRIX: Record<string, RoundTrip> = {
     "povocSurgeryAtLeast30Minutes", "povocStrabismusSurgery", "povocHistory",
     "coldsApplicable", "heartArrhythmia",
     "retrognathia", "prominentIncisors", "facialHair", "difficultAirwayHistory",
+    "anticipatedDifficultAirway",
     // "Unable to obtain" — a recorded refusal to record
     "bpUnobtainable", "heartRateUnobtainable", "spO2Unobtainable",
     "temperatureUnobtainable", "respiratoryRateUnobtainable", "airwayUnobtainable",

@@ -661,6 +661,12 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               {p?.familyAnesthesiaProblems && (
                 <p className="text-[8.5px] text-amber-700 mt-1.5">{L.familyHistory}</p>
               )}
+              {Boolean(p?.malignantHyperthermiaHistory) && (
+                <p className="text-[8.5px] font-bold text-red-700 mt-1.5">{L.malignantHyperthermia}</p>
+              )}
+              {Boolean(p?.unexplainedAnaesthesiaComplications) && (
+                <p className="text-[8.5px] text-amber-700 mt-1.5">{L.unexplainedAnaesthesiaComplications}</p>
+              )}
             </div>
             {/* Investigations */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
