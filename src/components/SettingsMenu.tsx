@@ -170,6 +170,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   const [weightUnit, setWeightUnitState]           = useState<"kg" | "lb">("kg")
   const [temperatureUnit, setTemperatureUnitState] = useState<"C" | "F">("C")
   const [etco2Unit, setEtco2UnitState]             = useState<"mmHg" | "kPa">("mmHg")
+  const [cvpUnit, setCvpUnitState]                 = useState<"cmH2O" | "mmHg">("cmH2O")
   const [roleReq, setRoleReq]       = useState<RoleReq | undefined>(undefined)
   const [reqLoading, setReqLoading] = useState(false)
   const router   = useRouter()
@@ -215,7 +216,9 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
     const tu = localStorage.getItem("temperatureUnit")
     if (tu === "C" || tu === "F") setTemperatureUnitState(tu)
     const eu = localStorage.getItem("etco2Unit")
+    const cu = localStorage.getItem("cvpUnit")
     if (eu === "mmHg" || eu === "kPa") setEtco2UnitState(eu)
+    if (cu === "cmH2O" || cu === "mmHg") setCvpUnitState(cu)
 
     void syncWebClinicalPreferences().then(preferences => {
       setDefMon(preferences.defaultMonitoring)
@@ -226,6 +229,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
       setWeightUnitState(preferences.units.weight)
       setTemperatureUnitState(preferences.units.temperature)
       setEtco2UnitState(preferences.units.etco2)
+      setCvpUnitState(preferences.units.cvp)
       setFavDrugs(preferences.intraopFavouriteDrugs)
       setFavInfusions(preferences.intraopFavouriteInfusions)
     }).catch(() => {})
@@ -302,6 +306,14 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   function applyEtco2Unit(u: "mmHg" | "kPa") {
     setEtco2UnitState(u)
     void patchWebClinicalPreferences({ units: { etco2: u } })
+  }
+
+  // Display only. Central venous pressure is stored and exported in mmHg
+  // whatever is chosen here, so switching re-renders existing cases rather
+  // than altering them.
+  function applyCvpUnit(u: "cmH2O" | "mmHg") {
+    setCvpUnitState(u)
+    void patchWebClinicalPreferences({ units: { cvp: u } })
   }
 
   const isMember = role === "MEMBER" || role === "CLINICIAN" || role === "RESEARCHER"
@@ -628,6 +640,13 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                         options={[
                           { value: "mmHg", label: "mmHg" },
                           { value: "kPa",  label: "kPa" },
+                        ]} />
+                    </SettingRow>
+                    <SettingRow label="CVP">
+                      <PillGroup value={cvpUnit} onChange={v => applyCvpUnit(v as "cmH2O" | "mmHg")}
+                        options={[
+                          { value: "cmH2O", label: "cmH₂O" },
+                          { value: "mmHg",  label: "mmHg" },
                         ]} />
                     </SettingRow>
                   </>

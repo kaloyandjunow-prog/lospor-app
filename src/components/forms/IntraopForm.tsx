@@ -130,6 +130,15 @@ const schema = z.object({
   bis: z.boolean().default(false), entropyMonitor: z.boolean().default(false),
   nirsMonitor: z.boolean().default(false), evokedPotentials: z.boolean().default(false),
   tofMonitor: z.boolean().default(false),
+
+  // What the monitor read, for the three modalities that carry a number.
+  // Nullable, never defaulted to 0: a BIS of 0 is an isoelectric EEG, and a
+  // train-of-four of 0 is a fully paralysed patient. Both are real readings, so
+  // "not recorded" has to be a third state rather than a zero.
+  bisValue: z.coerce.number().int().min(0).max(100).nullable().optional(),
+  tofRatio: z.coerce.number().min(0).max(1).nullable().optional(),
+  // Always mmHg. The clinician may type cmH2O; the form converts before this.
+  cvpMmHg: z.coerce.number().min(0.1).max(50).nullable().optional(),
   bglMonitor: z.boolean().default(false), bloodGasMonitor: z.boolean().default(false),
   urinaryCatheter: z.boolean().default(false), stomachTube: z.boolean().default(false),
   neuroMonitor: z.boolean().default(false),
