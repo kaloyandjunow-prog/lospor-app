@@ -26,6 +26,7 @@ import {
 } from "@lospor/core/intraop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
+import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
@@ -154,6 +155,18 @@ const schema = z.object({
   // nobody made).
   bloodLossMl:       z.coerce.number().min(0).max(20000).nullable().optional(),
 
+  // Laboratory draws taken during the case. The same shape preop holds, and
+  // for the same reason -- a result is a result; only when it was drawn
+  // differs. Each entry carries its own takenAt, which is what makes two
+  // haemoglobins an hour apart a trend rather than one that looks corrected.
+  labResults: z.array(z.object({
+    test:  z.string(),
+    value: z.string(),
+    unit:  z.string().optional(),
+    source: z.enum(["manual", "ai-scan", "import"]).optional(),
+    takenAt: z.string().optional(),
+  }).passthrough()).catch([]).default([]),
+
   complications: z.string().optional(),
 })
 
@@ -172,7 +185,16 @@ export type IntraopData = IntraopFormFields & { timetableData?: TimetableData }
 
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
-export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onDeleteEvent, onLogEvent, onLogEventDelete }: {
+export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onDeleteEvent, onLogEvent, onLogEventDelete, caseId = null, aiOptIn = false }: {
+  /**
+   * The saved case, once autosave has created one.
+   *
+   * Needed by the intraoperative lab scan: the server reads AI consent from the
+   * stored case and ignores anything the client claims, because a photographed
+   * report carries the patient's name and no redaction is possible on an image.
+   */
+  caseId?: string | null
+  aiOptIn?: boolean
   defaultValues?: Partial<IntraopData>
   defaultTimetable?: TimetableData
   preop?: PreopSummary | null
@@ -203,7 +225,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       monthYear: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` })(),
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
-      presentsIntubated: false, airwayNotApplicable: false,
+      presentsIntubated: false, airwayNotApplicable: false, labResults: [],
       nbpMonitor: true, spO2Monitor: true, ecg: true,
       ...defaultValues,
     },
@@ -427,6 +449,12 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const _wVM = useWatch({ control, name: "ventilationModes" })
   const _wAT = useWatch({ control, name: "airwayTools" })
   const _wPS = useWatch({ control, name: "positions" })
+  const watchedLabResults = useWatch({ control, name: "labResults" })
+  // Which draw the dialog is editing. null takenAt with open true is the
+  // read-across view of every draw.
+  const [labsDialog, setLabsDialog] = useState<{ open: boolean; takenAt: string | null }>(
+    { open: false, takenAt: null },
+  )
   // Watch airway sub-option fields for auto-collapse logic
   const _wLmaSize       = useWatch({ control, name: "lmaSize" })
   const _wOralTubeSize  = useWatch({ control, name: "oralTubeSize" })
@@ -792,7 +820,19 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Intraoperative timetable */}
       <div data-tour="intraop-timetable">
       <SectionCard title={t("intraop.vitalsSection")}>
+        <IntraopLabsDialog
+          open={labsDialog.open}
+          takenAt={labsDialog.takenAt}
+          value={(watchedLabResults ?? []) as never}
+          onChange={rows => setValue("labResults", rows as never, { shouldDirty: true })}
+          onClose={() => setLabsDialog({ open: false, takenAt: null })}
+          caseId={caseId ?? null}
+          aiOptIn={aiOptIn}
+        />
         <IntraopTimetable
+          labResults={(watchedLabResults ?? []) as never}
+          onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
+          onOpenAllLabs={() => setLabsDialog({ open: true, takenAt: null })}
           clinicalMode={preop?.clinicalMode ?? "ADULT"}
           prospectiveGuidanceEnabled={prospectiveGuidanceEnabled}
           pediatricAgeValue={preop?.ageValue ?? preop?.ageYears ?? null}
