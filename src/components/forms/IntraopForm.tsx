@@ -96,6 +96,11 @@ const schema = z.object({
 
   techniques:      z.array(z.string()).catch([]).default([]),
   airwayDevices:   z.array(z.string()).catch([]).default([]),
+  // Why this case has no airway device of its own. Both were useState here and
+  // nowhere else: they relaxed the finalisation gate and were then thrown away,
+  // so the saved record showed no airway device and no reason for it.
+  presentsIntubated:   z.boolean().catch(false).default(false),
+  airwayNotApplicable: z.boolean().catch(false).default(false),
   tubeSize:        z.coerce.number().nullable().optional(),
   cuffed:          z.boolean().optional(),
   lmaSize:         z.coerce.number().nullable().optional(),
@@ -197,6 +202,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       monthYear: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` })(),
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
+      presentsIntubated: false, airwayNotApplicable: false,
       nbpMonitor: true, spO2Monitor: true, ecg: true,
       ...defaultValues,
     },
@@ -452,8 +458,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       if (pendingSaveRef.current) pendingSaveRef.current()
     }
   }, [])
-  const [presentsIntubated,    setPresentsIntubated]    = useState(false)
-  const [airwayNA,             setAirwayNA]             = useState(false)
+  // Form fields, not component state. These are clinical facts -- "arrived
+  // intubated" and "no airway intervention" -- and holding them in useState
+  // meant they relaxed the finalisation gate, were never saved, and vanished on
+  // reload, leaving a record with no airway device and no reason for it.
+  const presentsIntubated = useWatch({ control, name: "presentsIntubated" }) ?? false
+  const airwayNA = useWatch({ control, name: "airwayNotApplicable" }) ?? false
+  const setPresentsIntubated = (updater: (v: boolean) => boolean) =>
+    setValue("presentsIntubated", updater(presentsIntubated), { shouldDirty: true })
+  const setAirwayNA = (updater: (v: boolean) => boolean) =>
+    setValue("airwayNotApplicable", updater(airwayNA), { shouldDirty: true })
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
   const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)
