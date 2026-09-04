@@ -10,15 +10,19 @@ import { abnormalSummary, type LabResult } from "@lospor/core/labs"
  * intraoperative labs and a permanently open lane would cost every case the
  * vertical space that the vitals and drugs actually need.
  *
- * Expanded, it does one of two things. With nothing recorded it offers a `+`
- * per column, exactly like the medication lane, so entering a draw is the same
- * gesture as entering a drug. With results recorded it shows *only what is out
- * of range on the newest draw*, capped, worst first — the summary Core builds.
+ * Expanded, it offers a `+` per column exactly like the medication lane, so
+ * entering a draw is the same gesture as entering a drug.
  *
- * That last part is the whole design. Fifteen results rendered inline in a
- * timetable is a wall rather than information, and at 2am what a clinician
- * needs off a glance is "the potassium is 2.1", not a table. Everything else
- * is one click away.
+ * The summary is at most three results from the newest draw: whatever is out of
+ * range, worst first, and when nothing is out of range the first few anyway. An
+ * empty row would be ambiguous — it reads the same whether the panel was normal
+ * or whether nobody has looked — and "Na 140, K 4.2" says plainly that somebody
+ * drew bloods and they were fine.
+ *
+ * The cap is the design rather than a detail. Fifteen results rendered inline in
+ * a timetable is a wall, not information, and at 2am what a clinician needs off
+ * a glance is that the potassium is 2.1. Each chip opens the draw it came from;
+ * everything else is one click further.
  */
 
 type Draw = { colIdx: number; takenAt: string; results: LabResult[] }
@@ -39,6 +43,8 @@ export type TimetableLabsLaneProps = {
   onOpenDraw: (col: number) => void
   /** Open the full list of everything recorded. */
   onOpenAll: () => void
+  /** Open the draw a summarised result came from, at its own time cell. */
+  onOpenDrawAt?: (takenAt: string) => void
   labels: { expand: string; more: string; viewAll: string }
 }
 
@@ -49,6 +55,9 @@ const SEVERITY_STYLE = {
   critical: { bg: "#dc262622", fg: "#dc2626", border: "#dc262688", weight: "font-black" },
   high: { bg: "#f59e0b1a", fg: "#b45309", border: "#f59e0b55", weight: "font-bold" },
   low: { bg: "#3b82f61a", fg: "#1d4ed8", border: "#3b82f655", weight: "font-bold" },
+  // A normal result is shown when nothing is abnormal, so the row still says a
+  // draw happened. Deliberately quiet: it is context, not a finding.
+  normal: { bg: "transparent", fg: "#64748b", border: "#cbd5e133", weight: "font-medium" },
 } as const
 
 export function TimetableLabsLane({
@@ -63,6 +72,7 @@ export function TimetableLabsLane({
   onToggleExpanded,
   onOpenDraw,
   onOpenAll,
+  onOpenDrawAt,
   labels,
 }: TimetableLabsLaneProps) {
   const { shown, hiddenCount } = abnormalSummary(results)
@@ -158,7 +168,14 @@ export function TimetableLabsLane({
               <button
                 key={`${item.result.test}-${item.result.takenAt ?? ""}`}
                 type="button"
-                onClick={onOpenAll}
+                // Opens the draw this result came from, at its own time cell,
+                // rather than the whole list: the question a clinician has
+                // after reading "K 2.1" is what else was on that gas.
+                onClick={() => {
+                  const takenAt = item.result.takenAt
+                  if (takenAt && onOpenDrawAt) onOpenDrawAt(takenAt)
+                  else onOpenAll()
+                }}
                 className={`text-[9px] ${style.weight} rounded px-1.5 py-0.5 cursor-pointer hover:opacity-75 transition-opacity`}
                 style={{ backgroundColor: style.bg, color: style.fg, border: `1px solid ${style.border}` }}
               >

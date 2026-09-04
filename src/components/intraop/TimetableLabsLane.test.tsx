@@ -83,3 +83,23 @@ describe("the arrow", () => {
     expect(onToggleExpanded).toHaveBeenCalled()
   })
 })
+
+describe("a normal panel still says something", () => {
+  it("lists the first results rather than rendering an empty row", () => {
+    // An empty row is ambiguous: it reads the same whether the panel was normal
+    // or whether nobody has looked.
+    lane([at("Sodium (Na⁺)", "140"), at("Potassium (K⁺)", "4.2")])
+    expect(screen.getByText(/Sodium/)).toBeTruthy()
+    expect(screen.getByText(/Potassium/)).toBeTruthy()
+  })
+
+  it("opens the draw a chip came from, not the whole list", () => {
+    // The question after reading "K 2.1" is what else was on that gas.
+    const onOpenDrawAt = vi.fn()
+    const onOpenAll = vi.fn()
+    lane([at("Potassium (K⁺)", "2.1")], { expanded: true, onOpenDrawAt, onOpenAll })
+    fireEvent.click(screen.getAllByRole("button", { name: /Potassium/ })[0])
+    expect(onOpenDrawAt).toHaveBeenCalledWith("2026-06-01T09:00:00Z")
+    expect(onOpenAll).not.toHaveBeenCalled()
+  })
+})
