@@ -53,7 +53,6 @@ import {
   vitalsToAutoFillLog,
 } from "@/lib/intraop-autofill-vitals"
 import { gridOriginMs, secondsFromGridOrigin } from "@/lib/intraop-clock"
-import { POSITIONS } from "@lospor/core/catalog"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
   LogEvent as IntraopLogEvent,
@@ -2038,16 +2037,10 @@ export function IntraopTimetable({
             displayLabel: displayEventName(event),
           })),
         }))}
-        positions={POSITIONS.map(position => ({
-          value: position.v,
-          label: position.label,
-          displayLabel: displayClinicalCode("option:POSITION", position.v, locale, { label: position.label }),
-        }))}
         recordedLabels={new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker.ci).map(e => e.label))}
         labels={{
           logClinicalEvent: t("intraop.timetable.logClinicalEvent"),
           searchEvents: t("intraop.timetable.searchEvents"),
-          positionChange: t("intraop.timetable.positionChange"),
         }}
         onSearchChange={setEvSearch}
         onToggleEvent={(event, category, recorded) => {
@@ -2055,10 +2048,6 @@ export function IntraopTimetable({
           setEventPicker(null)
           if (recorded) removeClinicalEvent(ci, event.label)
           else addClinicalEvent(ci, event.label, event.color, category.isComplication)
-        }}
-        onPositionChange={position => {
-          setEventPicker(null)
-          emitLogEvent({ type: "position_change", name: position.label })
         }}
         onDismiss={() => setEventPicker(null)}
       />
