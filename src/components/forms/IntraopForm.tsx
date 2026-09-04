@@ -22,6 +22,7 @@ import {
   requiredMonitoringFieldsForTechniques,
   syncAirwayDeviceSelection,
   type AirwayDeviceWithProfile,
+  airwayAbsentReason,
 } from "@lospor/core/intraop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
@@ -464,10 +465,20 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // reload, leaving a record with no airway device and no reason for it.
   const presentsIntubated = useWatch({ control, name: "presentsIntubated" }) ?? false
   const airwayNA = useWatch({ control, name: "airwayNotApplicable" }) ?? false
-  const setPresentsIntubated = (updater: (v: boolean) => boolean) =>
-    setValue("presentsIntubated", updater(presentsIntubated), { shouldDirty: true })
-  const setAirwayNA = (updater: (v: boolean) => boolean) =>
-    setValue("airwayNotApplicable", updater(airwayNA), { shouldDirty: true })
+  // The exclusivity rule lives in core. Web used to let both be true at once
+  // while mobile made them exclusive, and neither could see the other's rule:
+  // a patient cannot both have arrived intubated and have had no airway
+  // intervention, because arriving with a tube is one.
+  const applyAirwayAbsentReason = (which: "presentsIntubated" | "airwayNotApplicable") => {
+    const next = airwayAbsentReason(which, {
+      presentsIntubated,
+      airwayNotApplicable: airwayNA,
+    })
+    setValue("presentsIntubated", next.presentsIntubated, { shouldDirty: true })
+    setValue("airwayNotApplicable", next.airwayNotApplicable, { shouldDirty: true })
+  }
+  const setPresentsIntubated = () => applyAirwayAbsentReason("presentsIntubated")
+  const setAirwayNA = () => applyAirwayAbsentReason("airwayNotApplicable")
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
   const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)

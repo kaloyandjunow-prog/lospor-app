@@ -44,7 +44,7 @@ export function AirwaySection({
   airwayOverride: boolean
   setAirwayOverride: (v: boolean) => void
   airwayNA: boolean
-  setAirwayNA: (updater: (v: boolean) => boolean) => void
+  setAirwayNA: () => void
   airwayExpandedDevice: string | null
   setAirwayExpandedDevice: (v: string | null) => void
   expandAirwayDevice: (v: string) => void
@@ -71,7 +71,7 @@ export function AirwaySection({
       {/* N/A toggle */}
       <div className="flex items-center gap-2">
         <button type="button"
-          onClick={() => setAirwayNA(v => !v)}
+          onClick={() => setAirwayNA()}
           className={`text-xs font-semibold px-3 py-1 rounded-full border-2 transition-all ${
             airwayNA
               ? "bg-slate-400 border-slate-400 text-white"
