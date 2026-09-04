@@ -465,10 +465,9 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // reload, leaving a record with no airway device and no reason for it.
   const presentsIntubated = useWatch({ control, name: "presentsIntubated" }) ?? false
   const airwayNA = useWatch({ control, name: "airwayNotApplicable" }) ?? false
-  // The exclusivity rule lives in core. Web used to let both be true at once
-  // while mobile made them exclusive, and neither could see the other's rule:
-  // a patient cannot both have arrived intubated and have had no airway
-  // intervention, because arriving with a tube is one.
+  // Both toggles go through core, so web and mobile cannot drift apart on
+  // them. They are independent: a patient can arrive from the ICU already
+  // intubated AND have no airway intervention here, which is both at once.
   const applyAirwayAbsentReason = (which: "presentsIntubated" | "airwayNotApplicable") => {
     const next = airwayAbsentReason(which, {
       presentsIntubated,
