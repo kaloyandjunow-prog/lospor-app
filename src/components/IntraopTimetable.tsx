@@ -53,6 +53,8 @@ import {
   vitalsToAutoFillLog,
 } from "@/lib/intraop-autofill-vitals"
 import { gridOriginMs, secondsFromGridOrigin } from "@/lib/intraop-clock"
+import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
+import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
   LogEvent as IntraopLogEvent,
@@ -163,6 +165,19 @@ interface Props {
   onLogEvent?: (event: IntraopLogEvent) => void
   onLogEventDelete?: (match: { infId?: string; fluidId?: string }) => void
 
+  /**
+   * Laboratory draws taken during the case.
+   *
+   * A prop rather than part of TimetableData, because TimetableData is a
+   * projection of the event stream and these are a field on the record. The
+   * lane renders them; it does not own them.
+   */
+  labResults?: LabResult[]
+  /** Open the draw at this instant -- an existing one, or a new one. */
+  onOpenLabDraw?: (takenAt: string) => void
+  /** Open the full list of everything recorded. */
+  onOpenAllLabs?: () => void
+
   clinicalMode?: "ADULT" | "PEDIATRIC"
   prospectiveGuidanceEnabled: boolean
   pediatricAgeValue?: number | null
@@ -218,6 +233,9 @@ export function IntraopTimetable({
   onComplicationAdded,
   onLogEvent,
   onLogEventDelete,
+  labResults = [],
+  onOpenLabDraw,
+  onOpenAllLabs,
 }: Props) {
   const t = useTranslations()
   const locale = useLocale()
@@ -237,6 +255,25 @@ export function IntraopTimetable({
   }, [startedAt])
   /** Column 0's own start — see gridOriginMs for why this is not the raw start. */
   const gridStartMs = useMemo(() => gridOriginMs(trustedStartMs), [trustedStartMs])
+
+  // Laboratory draws, placed on the grid by when the specimen was taken.
+  // Collapsed by default: most cases have none, and a lane that is always open
+  // costs every case the vertical space the vitals and drugs need.
+  const [labsExpanded, setLabsExpanded] = useState(false)
+  const labDraws = useMemo(() => {
+    if (gridStartMs == null) return []
+    return groupLabsByDraw(labResults)
+      .filter((draw): draw is { takenAt: string; results: LabResult[] } => draw.takenAt !== null)
+      .map(draw => ({
+        // Floored to the column the draw falls in. An undated draw is dropped
+        // rather than parked at column zero, where it would read as having been
+        // taken at induction.
+        colIdx: Math.floor((Date.parse(draw.takenAt) - gridStartMs) / (INTERVAL * 60_000)),
+        takenAt: draw.takenAt,
+        results: draw.results,
+      }))
+      .filter(draw => draw.colIdx >= 0)
+  }, [gridStartMs, labResults])
   const tsForCol = useCallback((col: number): string | null => {
     if (trustedStartMs === null) return null
     return new Date(trustedStartMs + col * INTERVAL * 60_000).toISOString()
@@ -1758,6 +1795,35 @@ export function IntraopTimetable({
               stopGas={stopGas}
             />
           )}
+
+          {/* Under Events, because a draw is a thing that happened at a time
+              like an event is -- and above Drugs, so the abnormal summary sits
+              near the top of the lanes a clinician scans rather than buried
+              under however many infusions this case has. */}
+          <TimetableLabsLane
+            label={t("intraop.timetable.labs")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            results={labResults}
+            draws={labDraws}
+            expanded={labsExpanded}
+            onToggleExpanded={() => setLabsExpanded(open => !open)}
+            onOpenDraw={col => {
+              // No trusted start means no grid to place a draw on. The lane
+              // still renders, so the arrow and any summary stay readable, but
+              // there is no honest instant to stamp a new draw with.
+              if (gridStartMs == null) return
+              onOpenLabDraw?.(new Date(gridStartMs + col * INTERVAL * 60_000).toISOString())
+            }}
+            onOpenAll={() => onOpenAllLabs?.()}
+            labels={{
+              expand: t("intraop.timetable.labs"),
+              more: t("intraop.timetable.labsMore"),
+              viewAll: t("intraop.timetable.labsViewAll"),
+            }}
+          />
 
           <ClinicalEventsLane
             label={t("intraop.timetable.events")}
