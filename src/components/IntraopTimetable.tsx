@@ -81,6 +81,8 @@ import { useFluidHandlers } from "@/hooks/useFluidHandlers"
 import { useAgentHandlers } from "@/hooks/useAgentHandlers"
 import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
 import { DivChart, VITAL_ROW_DEFS } from "@/components/intraop/TimetableVitalsChart"
+import { cvpDisplayRange, cvpToCanonical, cvpToDisplay } from "@lospor/core/monitoring-values"
+import { useUnitPreferences } from "@/hooks/useUnitPreferences"
 import {
   activeTimetableColumnForTimestamp,
   latestVitalColumn,
@@ -908,6 +910,14 @@ export function IntraopTimetable({
   }
 
   // ── Vitals ──────────────────────────────────────────────────────────────────
+  // Display only, and only CVP uses it. Storage stays mmHg.
+  const { cvpUnit } = useUnitPreferences()
+  /** A stored vital as the clinician sees it. Only CVP is ever converted. */
+  const vitalToDisplay = useCallback(
+    (key: keyof VitalsEntry, stored: number) =>
+      key === "cvp" && cvpUnit === "cmH2O" ? cvpToDisplay(stored, "cmH2O") : stored,
+    [cvpUnit],
+  )
   const { setVital: setVitalCell, lastVitalBefore } = useVitalsHandlers(dataRef, rawOnChangeRef)
 
   // Vitals persist as `vital` events (one per 5-minute column; the event
@@ -956,9 +966,21 @@ export function IntraopTimetable({
   }, [flushVitalEvents])
 
   const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
+    // CVP is the one vital whose entry unit is a preference, and it is stored
+    // in mmHg regardless. Converting here, at the single write, keeps every
+    // other path -- autosave, the event stream, the export -- working in the
+    // canonical unit without knowing the preference exists.
+    if (key === "cvp" && cvpUnit === "cmH2O" && raw !== "") {
+      const typed = Number(raw)
+      if (Number.isFinite(typed)) {
+        setVitalCell(col, key, String(cvpToCanonical(typed, "cmH2O")))
+        markVitalColDirty(col)
+        return
+      }
+    }
     setVitalCell(col, key, raw)
     markVitalColDirty(col)
-  }, [setVitalCell, markVitalColDirty])
+  }, [setVitalCell, markVitalColDirty, cvpUnit])
 
   // Keyboard navigation on selected items
   useEffect(() => {
@@ -1092,7 +1114,13 @@ export function IntraopTimetable({
       }
       if (e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowDown") {
         e.preventDefault(); e.stopPropagation()
-        const cur = dataRef.current.vitals[popup.col]?.[popup.key] ?? popup.defaultVal
+        // Step in the unit on screen, not the unit stored. popup.min/max/step
+        // and defaultVal all describe the displayed scale, so a stored mmHg CVP
+        // has to be converted up before stepping and is converted back by
+        // setVital -- mixing the two would move the value a little further
+        // wrong on every keypress.
+        const stored = dataRef.current.vitals[popup.col]?.[popup.key]
+        const cur = stored == null ? popup.defaultVal : vitalToDisplay(popup.key, stored)
         const delta = (e.key === "ArrowRight" || e.key === "ArrowUp") ? popup.step : -popup.step
         const next  = Math.min(popup.max, Math.max(popup.min, cur + delta))
         setVital(popup.col, popup.key, String(next))
@@ -1100,7 +1128,7 @@ export function IntraopTimetable({
     }
     window.addEventListener("keydown", handleKey, true) // capture phase — beats input handlers
     return () => window.removeEventListener("keydown", handleKey, true)
-  }, [vitalsPopup, setVital])
+  }, [vitalsPopup, setVital, vitalToDisplay])
 
   // Undo / redo
   useEffect(() => {
@@ -1289,9 +1317,22 @@ export function IntraopTimetable({
   const times  = Array.from({ length: colCount }, (_, i) => addMinutes(roundedStart, i * INTERVAL))
 
   // Show only rows whose monitor is active; fall back to all rows if no monitoring passed
-  const activeRows = monitoring
+  //
+  // CVP is the one row whose scale follows a preference. It is stored in mmHg
+  // and may be entered in cmH2O, so the row's unit, bounds and step are
+  // restated here rather than in the shared table -- the table is a module
+  // constant and cannot see a per-user setting. The step tightens below the
+  // equivalent of 10 mmHg, so the granularity is the same clinical range in
+  // either unit.
+  const activeRows = (monitoring
     ? VITAL_ROW_DEFS.filter(row => row.monitors.some(m => monitoring[m]))
     : VITAL_ROW_DEFS
+  ).map(row => {
+    if (row.key !== "cvp" || cvpUnit !== "cmH2O") return row
+    const range = cvpDisplayRange("cmH2O")
+    return { ...row, unit: "cmH₂O", min: range.min, max: range.max, step: 0.1,
+             defaultVal: cvpToDisplay(8, "cmH2O") }
+  })
 
   // Find segment that covers column ci (strict range check)
   function segmentAt(ci: number): AgentSegment | null {
@@ -2333,8 +2374,16 @@ export function IntraopTimetable({
         label={vitalsPopup.label}
         unit={vitalsPopup.unit}
         color={vitalsPopup.color}
+        // CVP is deliberately not routed through ConvertedStepper, which
+        // expects canonical bounds. This popup's min/max/step come from the
+        // lane row, which is already in the unit on screen -- handing those to
+        // a converter would convert the scale a second time. So CVP arrives
+        // here already displayed, and setVital converts it back on the way out.
         converts={vitalsPopup.key === "etco2" ? "etco2" : vitalsPopup.key === "temp" ? "temperature" : null}
-        value={data.vitals[vitalsPopup.col]?.[vitalsPopup.key]}
+        value={(() => {
+          const stored = data.vitals[vitalsPopup.col]?.[vitalsPopup.key]
+          return stored == null ? stored : vitalToDisplay(vitalsPopup.key, stored)
+        })()}
         fallbackValue={vitalsPopup.defaultVal}
         min={vitalsPopup.min}
         max={vitalsPopup.max}
