@@ -82,6 +82,7 @@ import { useAgentHandlers } from "@/hooks/useAgentHandlers"
 import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
 import { DivChart, VITAL_ROW_DEFS } from "@/components/intraop/TimetableVitalsChart"
 import { cvpDisplayRange, cvpToCanonical, cvpToDisplay } from "@lospor/core/monitoring-values"
+import { mayCommitVitalDefault } from "@lospor/core/monitoring-values"
 import { useUnitPreferences } from "@/hooks/useUnitPreferences"
 import {
   activeTimetableColumnForTimestamp,
@@ -200,6 +201,7 @@ interface Props {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
+
 export function IntraopTimetable({
   clinicalMode = "ADULT",
   prospectiveGuidanceEnabled,
@@ -588,6 +590,7 @@ export function IntraopTimetable({
   const [vitalsPopup, setVitalsPopup] = useState<{
     col: number; key: keyof VitalsEntry
     min: number; max: number; step: number; defaultVal: number
+    defaultIsPriorReading: boolean
     label: string; unit: string; color: string
     rect: DOMRect
   } | null>(null)
@@ -1108,7 +1111,9 @@ export function IntraopTimetable({
       if (e.key === "Enter") {
         e.preventDefault(); e.stopPropagation()
         const cur = dataRef.current.vitals[popup.col]?.[popup.key]
-        if (cur === undefined) setVital(popup.col, popup.key, String(popup.defaultVal))
+        if (cur === undefined && mayCommitVitalDefault(popup.key, popup.defaultIsPriorReading)) {
+          setVital(popup.col, popup.key, String(popup.defaultVal))
+        }
         setVitalsPopup(null)
         return
       }
@@ -2391,8 +2396,10 @@ export function IntraopTimetable({
         onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v != null ? String(v) : "")}
         onCommit={() => {
           // Never touched: keep what was on screen. Dismissing is how "same as
-          // the last reading" is entered without retyping it.
-          if (data.vitals[vitalsPopup.col]?.[vitalsPopup.key] === undefined) {
+          // the last reading" is entered without retyping it -- but only when
+          // there is a last reading to carry forward.
+          if (data.vitals[vitalsPopup.col]?.[vitalsPopup.key] === undefined
+            && mayCommitVitalDefault(vitalsPopup.key, vitalsPopup.defaultIsPriorReading)) {
             setVital(vitalsPopup.col, vitalsPopup.key, String(vitalsPopup.defaultVal))
           }
           setVitalsPopup(null)

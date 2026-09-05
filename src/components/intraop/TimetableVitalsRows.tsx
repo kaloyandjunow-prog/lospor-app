@@ -50,6 +50,16 @@ export type VitalsPopupRequest = {
   max: number
   step: number
   defaultVal: number
+  /**
+   * Whether defaultVal is the previous reading in this case or a population
+   * figure nobody has observed.
+   *
+   * Dismissing the stepper commits defaultVal, which is deliberate when it
+   * carries the last reading forward -- that is how "unchanged" is charted
+   * without retyping. It is not defensible when there is no previous reading,
+   * because then the committed value was never measured.
+   */
+  defaultIsPriorReading: boolean
   label: string
   unit: string
   color: string
@@ -113,6 +123,7 @@ export function TimetableVitalsRows({
           // Most entries are a small change from the last one, so the stepper
           // opens there rather than at a population default.
           defaultVal: lastVitalBefore(col, row.key) ?? row.defaultVal,
+          defaultIsPriorReading: lastVitalBefore(col, row.key) != null,
           label: row.label,
           unit: row.unit,
           color: row.color,
