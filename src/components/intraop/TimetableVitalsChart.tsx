@@ -37,7 +37,6 @@ export const VITAL_ROW_DEFS: {
   { key:"bis",       label:"BIS",     unit:"",      color:"#e879f9", min:0,  max:100, step:1,   defaultVal:50,  monitors:["bis"]                     },
   { key:"tofRatio",  label:"TOF",     unit:"ratio", color:"#fb923c", min:0,  max:1,   step:0.1, defaultVal:0.9, monitors:["tofMonitor"]              },
   { key:"cvp",       label:"CVP",     unit:"mmHg",  color:"#38bdf8", min:0.1,max:50,  step:0.1, defaultVal:8,   monitors:["cvpMonitor"]              },
-  { key:"bgl",       label:"Serum/peripheral glucose", unit:"mmol/L",color:"#34d399", min:0,  max:30,  step:0.1, defaultVal:5.5, monitors:["bglMonitor"]              },
 ]
 
 // ── Div-based chart ───────────────────────────────────────────────────────────

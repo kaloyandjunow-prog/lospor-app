@@ -73,7 +73,6 @@ const vitalsRowSchema = z.object({
   spO2:      z.coerce.number().nullable().optional(),
   etco2:     z.coerce.number().nullable().optional(),
   temp:      z.coerce.number().nullable().optional(),
-  bgl:       z.coerce.number().nullable().optional(),
   // The monitors that read a number, timed like every other vital here.
   bis:       z.coerce.number().nullable().optional(),
   tofRatio:  z.coerce.number().nullable().optional(),
@@ -135,7 +134,6 @@ const schema = z.object({
   bis: z.boolean().default(false), entropyMonitor: z.boolean().default(false),
   nirsMonitor: z.boolean().default(false), evokedPotentials: z.boolean().default(false),
   tofMonitor: z.boolean().default(false),
-  bglMonitor: z.boolean().default(false), bloodGasMonitor: z.boolean().default(false),
   urinaryCatheter: z.boolean().default(false), stomachTube: z.boolean().default(false),
   neuroMonitor: z.boolean().default(false),
   vascularAccesses: z.array(z.object({ site: z.string(), siteLabel: z.string(), sizeUnit: z.string(), size: z.string(), depthCm: z.string() }).passthrough()).catch([]).default([]),
@@ -566,7 +564,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const watchedSpO2Monitor = useWatch({ control, name: "spO2Monitor" })
   const watchedEtco2Monitor = useWatch({ control, name: "etco2Monitor" })
   const watchedTempMonitor = useWatch({ control, name: "tempMonitor" })
-  const watchedBglMonitor = useWatch({ control, name: "bglMonitor" })
   const startTime  = watchedStartTime || "08:00"
   const showAirway   = techniqueIsGeneral(techniques)
   const showGases    = techniqueUsesGas(techniques)
@@ -579,7 +576,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     spO2Monitor:   !!watchedSpO2Monitor,
     etco2Monitor:  !!watchedEtco2Monitor,
     tempMonitor:   !!watchedTempMonitor,
-    bglMonitor:    !!watchedBglMonitor,
   }
 
   function addMinutes(hhmm: string, minutes: number): string {

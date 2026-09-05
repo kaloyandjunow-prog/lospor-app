@@ -66,8 +66,6 @@ const MON: { f: keyof CaseDetailIntraop; l: string }[] = [
   { f: "nirsMonitor",      l: "NIRS"     },
   { f: "evokedPotentials", l: "SSEP/MEP" },
   { f: "tofMonitor",       l: "TOF/NMT"  },
-  { f: "bglMonitor",       l: "Serum/peripheral glucose" },
-  { f: "bloodGasMonitor",  l: "ABG"      },
   { f: "urinaryCatheter",  l: "Urine"    },
   { f: "stomachTube",      l: "NGT"      },
 ]
