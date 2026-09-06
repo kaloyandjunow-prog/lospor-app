@@ -55,15 +55,14 @@ import {
   useWebAutoFillPreferences,
   vitalsToAutoFillLog,
 } from "@/lib/intraop-autofill-vitals"
-import { gridOriginMs, secondsFromGridOrigin } from "@/lib/intraop-clock"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
+import { gridOriginMs } from "@/lib/intraop-clock"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
   LogEvent as IntraopLogEvent,
 } from "@/types/timetable"
 import { EndCaseModal } from "@/components/intraop/EndCaseModal"
-import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import {
   MedicationPickerPortals,
@@ -93,19 +92,10 @@ import {
   planAutoFillVitalEvents,
 } from "@lospor/core/intraop-vitals"
 import {
-  baseProfilesMap,
-  concentrationsMap,
-  defaultConcentrationMap,
-  doseCalcMap,
   groupClinicalEvents,
   optionStyleMap,
   quickNumberMap,
-  routeProfilesMap,
-  routesMap,
-  strictRangeMap,
-  weightBasisMap,
 } from "@lospor/core/option-library"
-import { metadataNumber, metadataString } from "@lospor/core/option-contracts"
 import {
 } from "@/lib/drug-selector-surface"
 import {

@@ -13,9 +13,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useLocale, useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
-import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
-import { calculateDrugTotals } from "@lospor/core/intraop-summary"
-import { infusionLocalAnaestheticMg } from "@lospor/core/intraop-totals"
+import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
@@ -27,7 +25,6 @@ import {
   type AirwayDeviceWithProfile,
   airwayAbsentReason,
 } from "@lospor/core/intraop"
-import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"

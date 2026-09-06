@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { usePreopAutosave } from "@/lib/use-preop-autosave"
 import { missingPreopFields } from "@/lib/preop-validation"
 import { useForm, Controller, type Resolver } from "react-hook-form"
@@ -32,7 +32,6 @@ import {
   PediatricRiskAndCalculators,
   PediatricVitalReferenceNote,
 } from "@/components/forms/PediatricPreopSections"
-import { validateClinicalModeAge } from "@lospor/core/pediatric"
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { metadataString } from "@lospor/core/option-contracts"
 import {
@@ -758,6 +757,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               { id:"rcriCreatinine",    label:"Creatinine > 177 µmol/L (> 2.0 mg/dL)" },
             ] as const).map(item => {
               const suggested = rcriSuggested[item.id as keyof typeof rcriSuggested]
+              // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() cannot be memoized; the row re-reads on every change.
               const checked = !!watch(item.id)
               return (
                 <div key={item.id} className="flex items-start gap-2">

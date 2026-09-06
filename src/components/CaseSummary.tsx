@@ -19,7 +19,6 @@ import {
   fitLabDraws,
   groupLabDraws,
   splitDrugLog,
-  type LabResultItem,
 } from "@/components/case-summary/investigations"
 import { LABELS } from "@/components/case-summary/labels"
 import { ReviewBar } from "@/components/case-summary/ReviewBar"
