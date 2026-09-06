@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
-import { apfelRiskLabel, rcriRiskLabel, stopBangRiskLabel } from "@/lib/scores"
+import { displayApfelRisk, displayRcriRisk, displayStopBangRisk } from "@lospor/core/risk-band-display"
 import { useLocale } from "next-intl"
 import { aldreteBand, handoverGroups } from "@lospor/core/postop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
-import { displayClinicalCode, displayOptionEntry } from "@/lib/clinical-display"
+import { displayClinicalCode, displayOptionEntry, toClinicalLocale } from "@/lib/clinical-display"
 import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
@@ -114,7 +114,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
 }) {
   const locale = useLocale()
   const isPrint = mode === "print"
-  const L = locale === "bg" ? LABELS.bg : LABELS.en
+  const L = locale === "bg" ? LABELS.bg : LABELS.en, bandLocale = toClinicalLocale(locale)
   const handoverLookup = (() => {
     const groups = handoverGroups(locale === "bg" ? "bg" : "en")
     const map: Record<string, string> = {}
@@ -650,9 +650,9 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.riskScores.toUpperCase()}</p>
               <F label="ASA"       value={p?.asaScore ? `Class ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null} />
-              {p?.rcriScore  != null && <F label="RCRI"      value={`${p.rcriScore} / 6 — ${rcriRiskLabel(p.rcriScore)}`} />}
-              {p?.apfelScore != null && <F label="Apfel"     value={`${p.apfelScore} / 4 — ${apfelRiskLabel(p.apfelScore)}`} />}
-              {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore} / 8 — ${stopBangRiskLabel(p.stopBangScore)}`} />}
+              {p?.rcriScore  != null && <F label="RCRI"      value={`${p.rcriScore} / 6 — ${displayRcriRisk(p.rcriScore, bandLocale).label}`} />}
+              {p?.apfelScore != null && <F label="Apfel"     value={`${p.apfelScore} / 4 — ${displayApfelRisk(p.apfelScore, bandLocale).label}`} />}
+              {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore} / 8 — ${displayStopBangRisk(p.stopBangScore, bandLocale).label}`} />}
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-2">{L.preVitals.toUpperCase()}</p>
               <F label={L.bp}   value={p?.bpSystolic && p?.bpDiastolic ? `${p.bpSystolic} / ${p.bpDiastolic} mmHg` : null} />
               <F label={L.hr}   value={p?.heartRate ? `${p.heartRate} bpm` : null} />

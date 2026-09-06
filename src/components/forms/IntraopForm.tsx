@@ -1,13 +1,11 @@
 "use client"
 
 import { useForm, useWatch, type Resolver } from "react-hook-form"
-import { premedicationCategories } from "@/lib/premedication-groups"
 import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
 import { buildIntraopSubmission, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -20,7 +18,8 @@ import { getMedicationWarnings } from "@/lib/risk-derivation"
 import {
   AIRWAY_DEVICE_REQUIRED_FIELDS,
   isAirwayDeviceComplete,
-  requiredMonitoringFieldsForTechniques,
+  monitoringPatchForTechniques,
+  monthYearForDate,
   syncAirwayDeviceSelection,
   type AirwayDeviceWithProfile,
   airwayAbsentReason,
@@ -42,7 +41,6 @@ import { AirwaySection } from "@/components/forms/sections/AirwaySection"
 import { TechniqueSection } from "@/components/forms/sections/TechniqueSection"
 import {
   mapPremedicationCategories,
-  premedicationDoseMap,
   weightBasisMap,
 } from "@lospor/core/option-library"
 import {
@@ -63,121 +61,10 @@ import {
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { INTRAOP_ISSUE_KEYS } from "./intraop-issue-copy"
+import { schema, type IntraopData, type IntraopFormFields } from "./intraopSchema"
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-const vitalsRowSchema = z.object({
-  time:      z.string().optional(),
-  systolic:  z.coerce.number().nullable().optional(),
-  diastolic: z.coerce.number().nullable().optional(),
-  heartRate: z.coerce.number().nullable().optional(),
-  spO2:      z.coerce.number().nullable().optional(),
-  etco2:     z.coerce.number().nullable().optional(),
-  temp:      z.coerce.number().nullable().optional(),
-  // The monitors that read a number, timed like every other vital here.
-  bis:       z.coerce.number().nullable().optional(),
-  tofRatio:  z.coerce.number().nullable().optional(),
-  // Always mmHg; the entry control converts if the clinician works in cmH2O.
-  cvp:       z.coerce.number().nullable().optional(),
-  note:      z.string().optional(),
-})
+export type { IntraopFormFields, IntraopData } from "./intraopSchema"
 
-const drugSchema = z.object({
-  name:  z.string().min(1),
-  dose:  z.string(),
-  unit:  z.string().default("mg"),
-  route: z.string().default("IV"),
-  time:  z.string().optional(),
-})
-
-const schema = z.object({
-  monthYear:      z.string().optional(),
-  startTime:      z.string().optional(),
-  endTime:        z.string().optional(),
-  endTimeNextDay: z.boolean().default(false),
-  startedAt:      z.string().nullable().optional(),
-  endedAt:        z.string().nullable().optional(),
-  timezone:       z.string().nullable().optional(),
-
-  positions: z.array(z.string()).catch([]).default([]),
-
-  techniques:      z.array(z.string()).catch([]).default([]),
-  airwayDevices:   z.array(z.string()).catch([]).default([]),
-  // Why this case has no airway device of its own. Both were useState here and
-  // nowhere else: they relaxed the finalisation gate and were then thrown away,
-  // so the saved record showed no airway device and no reason for it.
-  presentsIntubated:   z.boolean().catch(false).default(false),
-  airwayNotApplicable: z.boolean().catch(false).default(false),
-  tubeSize:        z.coerce.number().nullable().optional(),
-  cuffed:          z.boolean().optional(),
-  lmaSize:         z.coerce.number().nullable().optional(),
-  oralTubeSize:    z.coerce.number().nullable().optional(),
-  oralCuffed:      z.boolean().optional(),
-  nasalTubeSize:   z.coerce.number().nullable().optional(),
-  nasalCuffed:     z.boolean().optional(),
-  peepCmH2O:       z.coerce.number().nullable().optional(),
-  ventilationModes:z.array(z.string()).catch([]).default([]),
-  airwayTools:     z.array(z.string()).catch([]).default([]),
-  airwayNotes:     z.string().optional(),
-  cormackLehane:   z.enum(["I","IIa","IIb","III","IV"]).optional(),
-  dltType:         z.string().optional(),
-  dltSide:         z.string().optional(),
-  dltSize:         z.coerce.number().nullable().optional(),
-  endobronchialSize: z.coerce.number().nullable().optional(),
-
-  volatileAgent:   z.enum(["SEVOFLURANE","DESFLURANE","ISOFLURANE"]).optional(),
-
-  ecg: z.boolean().default(true), spO2Monitor: z.boolean().default(true),
-  nbpMonitor: z.boolean().default(true),
-  etco2Monitor: z.boolean().default(false), tempMonitor: z.boolean().default(false),
-  invasiveBP: z.boolean().default(false), cvpMonitor: z.boolean().default(false),
-  paCatheter: z.boolean().default(false), tee: z.boolean().default(false),
-  bis: z.boolean().default(false), entropyMonitor: z.boolean().default(false),
-  nirsMonitor: z.boolean().default(false), evokedPotentials: z.boolean().default(false),
-  tofMonitor: z.boolean().default(false),
-  urinaryCatheter: z.boolean().default(false), stomachTube: z.boolean().default(false),
-  neuroMonitor: z.boolean().default(false),
-  vascularAccesses: z.array(z.object({ site: z.string(), siteLabel: z.string(), sizeUnit: z.string(), size: z.string(), depthCm: z.string() }).passthrough()).catch([]).default([]),
-
-  premedicationEvening: z.string().optional(),
-  premedicationMorning: z.string().optional(),
-
-  drugsAdministered: z.array(drugSchema).default([]),
-  vitals:            z.array(vitalsRowSchema).default([]),
-
-  crystalloidsMl:    z.coerce.number().nullable().optional(),
-  colloidsMl:        z.coerce.number().nullable().optional(),
-  bloodMl:           z.coerce.number().nullable().optional(),
-  urineMl:           z.coerce.number().nullable().optional(),
-  // nullable, not merely optional — the same reason ageYears is. Blood loss is
-  // clinician-entered, and "not recorded" must stay distinct from a recorded
-  // 0 mL, so an explicit clear has to survive as null into the patch rather
-  // than becoming undefined (dropped, stored value kept) or 0 (a measurement
-  // nobody made).
-  bloodLossMl:       z.coerce.number().min(0).max(20000).nullable().optional(),
-
-  // Laboratory draws taken during the case. The same shape preop holds, and
-  // for the same reason -- a result is a result; only when it was drawn
-  // differs. Each entry carries its own takenAt, which is what makes two
-  // haemoglobins an hour apart a trend rather than one that looks corrected.
-  labResults: z.array(z.object({
-    test:  z.string(),
-    value: z.string(),
-    unit:  z.string().optional(),
-    source: z.enum(["manual", "ai-scan", "import"]).optional(),
-    takenAt: z.string().optional(),
-  }).passthrough()).catch([]).default([]),
-
-  complications: z.string().optional(),
-})
-
-// IntraopFormFields is the exact shape useForm<T>() is parameterized with —
-// every field react-hook-form actually registers/validates. IntraopData adds
-// timetableData on top for onSubmit/onAutoSave payloads only: the timetable
-// is its own separate component state (see `timetable`/`setTimetable` below),
-// attached via spread at the call sites, never a registered RHF field. Mixing
-// the two into one type previously broke RHF's resolver/Control generics.
-export type IntraopFormFields = z.infer<typeof schema>
-export type IntraopData = IntraopFormFields & { timetableData?: TimetableData }
 
 // Position, airway management, and monitoring option lists now live in the
 // OptionLibrary table (POSITION / AIRWAY_MANAGEMENT / MONITORING categories)
@@ -222,7 +109,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     // something this cast is hiding a real mismatch behind.
     resolver: zodResolver(schema) as Resolver<IntraopFormFields>,
     defaultValues: {
-      monthYear: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` })(),
+      monthYear: monthYearForDate(new Date()),
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
       presentsIntubated: false, airwayNotApplicable: false, labResults: [],
@@ -275,19 +162,22 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     [isPediatric, premedOptions, premedPatient],
   )
 
-  // Two shapes of the same list, reconciled in @/lib/premedication-groups.
+  // One list, in core's shape, whether or not this is a child: the paediatric
+  // rebuild returns the same categories with the doses recomputed. The picker
+  // and the dose map are then two views of that one structure rather than two
+  // passes over the option table, which is how the list and its dosing came to
+  // be built by different code.
   const premedCategories = useMemo<PremedCat[]>(
-    () => premedicationCategories(premedOptions, premedPediatric),
+    () => premedPediatric ?? mapPremedicationCategories(premedOptions),
     [premedOptions, premedPediatric])
 
   const premedDoses = useMemo<Record<string, PremDoseCfg>>(() => {
-    if (!premedPediatric) return premedicationDoseMap(premedOptions)
     const map: Record<string, PremDoseCfg> = {}
-    for (const category of premedPediatric) {
+    for (const category of premedCategories) {
       for (const { name, pediatric: _annotation, ...cfg } of category.drugs) map[name] = cfg
     }
     return map
-  }, [premedOptions, premedPediatric])
+  }, [premedCategories])
 
   /** Provenance and withheld reasons, keyed by drug, empty outside paediatric mode. */
   const premedAnnotations = useMemo<Record<string, PediatricPremedAnnotation>>(() => {
@@ -384,18 +274,12 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const techniques = useMemo(() => watchedTechniques ?? [], [watchedTechniques])
 
   useEffect(() => {
-    const techs = techniques
-    if (!techs.length) return
-
-    const setMissing = (field: keyof IntraopFormFields) => {
-      if (!getValues(field)) setValue(field, true)
+    if (!techniques.length) return
+    const patch = monitoringPatchForTechniques(techniques, getValues() as Record<string, unknown>)
+    for (const [field, value] of Object.entries(patch)) {
+      setValue(field as keyof IntraopFormFields, value)
     }
-    for (const field of requiredMonitoringFieldsForTechniques(techs, {
-      emergency: preop?.emergencySurgery ?? false,
-    })) {
-      setMissing(field as keyof IntraopFormFields)
-    }
-  }, [getValues, preop?.emergencySurgery, setValue, techniques])
+  }, [getValues, setValue, techniques])
 
   // Debounced auto-save — skip on initial mount so loading a case never overwrites DB with form defaults
   const mountedRef   = useRef(false)

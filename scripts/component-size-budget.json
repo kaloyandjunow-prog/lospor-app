@@ -3,7 +3,7 @@
   "src/components/forms/PreopForm.tsx": 1185,
   "src/app/(app)/clinical-rules/page.tsx": 1084,
   "src/app/(app)/cases/new/page.tsx": 896,
-  "src/components/forms/IntraopForm.tsx": 932,
+  "src/components/forms/IntraopForm.tsx": 816,
   "src/components/CaseSummary.tsx": 757,
   "src/components/SettingsMenu.tsx": 841,
   "src/components/clinical-rules/DoseProfileEditor.tsx": 662,
@@ -14,5 +14,5 @@
   "src/components/forms/PostopForm.tsx": 482,
   "src/components/case-summary/PrintTimetable.tsx": 462,
   "src/app/(app)/clinical-rules/page.test.tsx": 471,
-  "src/components/LabResults.tsx": 365
+  "src/components/LabResults.tsx": 364
 }
