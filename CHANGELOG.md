@@ -1,5 +1,39 @@
 # Changelog - LOSPOR Web App
 
+## [9.8.0] - 2026-09-06
+
+### Changed
+
+- **Investigations on the printed record is intraoperative now.** The
+  preoperative panel is the hospital's own — it came from their laboratory and
+  it is in their record. What is not in their record is the gas taken at
+  induction and the one after transfusion, which existed here and reached no
+  surface at all. Grouped by draw, because `takenAt` is recorded per draw on
+  purpose and a merged list cannot tell two readings of a changing patient from
+  one contradictory set.
+
+- **Depends on Core 9.8.0** and no longer on a local path.
+
+### Fixed
+
+- **The printed record clipped rather than continuing.** Both A4 pages are a
+  fixed box with `overflow: hidden`, so anything past the bottom edge was cut
+  off and never printed, with nothing on the paper to say so. Measured through
+  a browser against the compiled stylesheet: 120 laboratory results silently
+  lost 28, and a hundred drug-log entries lost six — the six nearest handover.
+
+  Laboratory results now cap at 48 and print how many earlier ones are absent.
+  The drug log continues onto its own sheets instead, because a result not
+  shown can be looked up and a dose nobody recorded on paper cannot. Page
+  numbering counts those sheets.
+
+- **The EHR import review says what it does not know:** when a patient was
+  matched on the record number alone, and which groups the hospital system
+  could not be read for. An empty allergy list reads as reassurance, and it
+  must not be the same empty list a failed fetch produces.
+
+- Two dependency advisories (`fast-uri`, `qs`) via `overrides`.
+
 ## [9.7.1] - 2026-09-03
 
 ### Fixed
