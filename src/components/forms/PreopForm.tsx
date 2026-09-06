@@ -162,7 +162,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
   const apfelScore = useMemo(() => calcApfel({
     female:         sex === "FEMALE",
-    nonSmoker:      !smoking,
+    // Answered `false` only -- `!smoking` mapped an unanswered `null` to `true`.
+    nonSmoker:      smoking === false,
     ponvHistory:    apfelPONVHistory  ?? false,
     opioidsPlanned: apfelPostopOpioids ?? false,
   }), [sex, smoking, apfelPONVHistory, apfelPostopOpioids])

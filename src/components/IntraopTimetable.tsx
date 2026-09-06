@@ -103,6 +103,7 @@ import {
   applyPediatricDrugProfilesToOptions,
   applyPediatricInfusionProfilesToOptions,
   isClinicalRuleHidden,
+  synthesizePediatricDrugOptions,
   visibleClinicalOptions,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
@@ -283,12 +284,13 @@ export function IntraopTimetable({
   const { options: eventLibOpts } = useOptionLibrary("INTRAOP_EVENT")
   const { options: baseInfusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
   const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
-  // Web and mobile share one overlay so the dosing surface stays identical in
-  // both apps: adult profiles first, then the pediatric band for this patient.
+  const drugOptionsWithPediatricRules = useMemo(() =>
+    synthesizePediatricDrugOptions(baseDrugLibOpts, isPediatric ? pediatricDrugProfiles : []),
+  [baseDrugLibOpts, isPediatric, pediatricDrugProfiles])
   const drugLibOpts = useMemo(
     () => applyPediatricDrugProfilesToOptions(
       applyAdultDoseProfilesToOptions(
-        baseDrugLibOpts,
+        drugOptionsWithPediatricRules,
         adultDoseProfiles,
         "ADULT_DRUG_PROFILE",
       ),
@@ -296,7 +298,7 @@ export function IntraopTimetable({
       isPediatric ? pediatricAge : null,
       tbw,
     ),
-    [adultDoseProfiles, baseDrugLibOpts, isPediatric, pediatricAge, pediatricDrugProfiles, tbw],
+    [adultDoseProfiles, drugOptionsWithPediatricRules, isPediatric, pediatricAge, pediatricDrugProfiles, tbw],
   )
   const infusionLibOpts = useMemo(
     () => applyPediatricInfusionProfilesToOptions(

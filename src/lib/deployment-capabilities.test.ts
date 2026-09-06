@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { parsePediatricModeCapability } from "@lospor/core/deployment-capabilities"
 import {
   capabilityMessageKey,
+  clearClinicalAiCapabilitiesCache,
   clearPediatricModeCapabilityCache,
+  loadClinicalAiCapabilities,
   loadPediatricModeCapability,
   pediatricCapabilityMessageKey,
 } from "./deployment-capabilities"
@@ -30,6 +32,7 @@ function capability(over: Record<string, unknown> = {}) {
 describe("what this app says about an unavailable capability", () => {
   afterEach(() => {
     clearPediatricModeCapabilityCache()
+    clearClinicalAiCapabilitiesCache()
     vi.restoreAllMocks()
   })
 
@@ -81,5 +84,59 @@ describe("what this app says about an unavailable capability", () => {
       enabled: false,
       reason: "INVALID_CONTRACT",
     })
+  })
+})
+
+/**
+ * This capability used to load once on mount and cache forever -- an
+ * administrator disabling it in Status took effect on the phone within 15
+ * seconds and on an open web tab only at the next reload. It now shares
+ * pediatric mode's own freshness window instead of a separate, unbounded one.
+ */
+describe("AI capability shares pediatric mode's freshness window", () => {
+  afterEach(() => {
+    clearClinicalAiCapabilitiesCache()
+    vi.restoreAllMocks()
+  })
+
+  function aiResponse(enabled: boolean): Response {
+    const reason = enabled ? "ENABLED" : "PROVIDER_NOT_CONFIGURED"
+    return new Response(JSON.stringify({
+      features: { clinicalAi: {
+        clinicalAdvice: { enabled, reason },
+        labImageExtraction: { enabled, reason },
+        monitorOcr: { enabled, reason },
+      } },
+    }), { status: 200 })
+  }
+
+  it("serves a fresh cached answer without asking again", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(aiResponse(true))
+    await loadClinicalAiCapabilities()
+    await loadClinicalAiCapabilities()
+    expect(fetchSpy).toHaveBeenCalledOnce()
+  })
+
+  it("asks again once the cached answer has gone stale", async () => {
+    vi.useFakeTimers()
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(aiResponse(true))
+    await loadClinicalAiCapabilities()
+    vi.advanceTimersByTime(15_001)
+    await loadClinicalAiCapabilities()
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
+
+  it("asks again immediately when forced, regardless of freshness", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(aiResponse(true))
+    await loadClinicalAiCapabilities()
+    await loadClinicalAiCapabilities(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it("fails closed when the capability endpoint is unavailable", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"))
+    const capabilities = await loadClinicalAiCapabilities()
+    expect(Object.values(capabilities).every(item => !item.enabled)).toBe(true)
   })
 })

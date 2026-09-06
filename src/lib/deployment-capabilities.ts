@@ -84,11 +84,24 @@ function requestCapabilities(): Promise<Response> {
   })
 }
 
+/**
+ * How stale a cached capability answer may be before a mounted hook asks
+ * again. Shared by AI and pediatric mode so an administrator's change in
+ * Status reaches a mounted screen on the same schedule regardless of which
+ * capability it touched -- AI capability used to load once on mount and never
+ * refresh, so disabling it in Status took effect on the phone within 15
+ * seconds and on an open web tab only at the next reload.
+ */
+const CAPABILITY_REFRESH_MS = 15_000
+
 let cached: ClinicalAiCapabilities | null = null
+let cachedAt = 0
 let loading: Promise<ClinicalAiCapabilities> | null = null
 
-export function loadClinicalAiCapabilities(): Promise<ClinicalAiCapabilities> {
-  if (cached) return Promise.resolve(cached)
+export function loadClinicalAiCapabilities(force = false): Promise<ClinicalAiCapabilities> {
+  if (!force && cached && Date.now() - cachedAt < CAPABILITY_REFRESH_MS) {
+    return Promise.resolve(cached)
+  }
   if (loading) return loading
   loading = requestCapabilities()
     .then(async response => {
@@ -98,6 +111,7 @@ export function loadClinicalAiCapabilities(): Promise<ClinicalAiCapabilities> {
     .catch(() => safeClinicalAiCapabilities())
     .then(result => {
       cached = result
+      cachedAt = Date.now()
       return result
     })
     .finally(() => { loading = null })
@@ -106,6 +120,7 @@ export function loadClinicalAiCapabilities(): Promise<ClinicalAiCapabilities> {
 
 export function clearClinicalAiCapabilitiesCache(): void {
   cached = null
+  cachedAt = 0
   loading = null
 }
 
@@ -115,10 +130,23 @@ export function useClinicalAiCapabilities(): ClinicalAiCapabilities {
   )
   useEffect(() => {
     let active = true
-    void loadClinicalAiCapabilities().then(value => {
+    const refresh = (force = false) => void loadClinicalAiCapabilities(force).then(value => {
       if (active) setCapabilities(value)
     })
-    return () => { active = false }
+    refresh()
+    const interval = window.setInterval(() => refresh(true), CAPABILITY_REFRESH_MS)
+    const onFocus = () => refresh(true)
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh(true)
+    }
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
   }, [])
   return capabilities
 }
@@ -126,7 +154,6 @@ export function useClinicalAiCapabilities(): ClinicalAiCapabilities {
 let cachedPediatricMode: PediatricModeCapability | null = null
 let cachedPediatricModeAt = 0
 let loadingPediatricMode: Promise<PediatricModeCapability> | null = null
-const PEDIATRIC_CAPABILITY_REFRESH_MS = 15_000
 
 export function loadPediatricModeCapability(
   force = false,
@@ -134,7 +161,7 @@ export function loadPediatricModeCapability(
   if (
     !force
     && cachedPediatricMode
-    && Date.now() - cachedPediatricModeAt < PEDIATRIC_CAPABILITY_REFRESH_MS
+    && Date.now() - cachedPediatricModeAt < CAPABILITY_REFRESH_MS
   ) return Promise.resolve(cachedPediatricMode)
   if (loadingPediatricMode) return loadingPediatricMode
   loadingPediatricMode = requestCapabilities()
@@ -172,7 +199,7 @@ export function usePediatricModeCapability(): PediatricModeCapability {
     refresh()
     const interval = window.setInterval(
       () => refresh(true),
-      PEDIATRIC_CAPABILITY_REFRESH_MS,
+      CAPABILITY_REFRESH_MS,
     )
     const onFocus = () => refresh(true)
     const onVisibility = () => {
