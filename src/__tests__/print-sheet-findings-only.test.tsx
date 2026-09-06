@@ -121,3 +121,96 @@ describe("the printed sheet prints findings, not silence", () => {
     expect(text).not.toContain("без анамнеза за труден дихателен път")
   })
 })
+
+/**
+ * Investigations carries the anaesthetic's own results, and admits when it
+ * could not carry all of them.
+ *
+ * The box used to hold the preoperative panel, which is the one thing on the
+ * sheet the hospital already has -- it came from their laboratory and it is in
+ * their record. What is not in their record is the gas taken at induction and
+ * the one after transfusion.
+ *
+ * The page is a fixed A4 box with `overflow: hidden`, so anything past the
+ * bottom edge is cut off and never printed rather than continued. Measured
+ * with the real stylesheet: at 120 results the old flat list silently lost 28.
+ */
+const labsAt = (times: string[], perDraw: number) =>
+  times.flatMap(at => Array.from({ length: perDraw }, (_, n) => ({
+    test: ["pH", "pCO2", "pO2", "Base excess", "Lactate", "Glucose",
+           "Haemoglobin (Hb)", "Potassium (K+)", "Sodium (Na+)",
+           "Chloride", "Bicarbonate", "Creatinine"][n % 12],
+    value: 20 + n, unit: "mmol/L", takenAt: at,
+  })))
+
+const investigations = (intraopLabs: unknown[], preopLabs: unknown[] = []) => {
+  cleanup()
+  const data = {
+    id: "case-1", caseCode: "2026-0001", status: "FINALIZED",
+    preop: { ageYears: 66, asaScore: "II", labResults: preopLabs },
+    intraop: { startTime: "2026-09-04T07:00:00.000Z", keyEvents: { vitals: [] }, labResults: intraopLabs },
+    postop: null,
+    institution: { name: "Test Hospital" },
+  }
+  const { container } = render(
+    <CaseSummary caseId="case-1" mode="print" initialData={data as never} />,
+  )
+  expect(container.textContent).toContain("Class II")
+  return container
+}
+
+describe("the investigations box", () => {
+  it("prints the results this anaesthetic produced", () => {
+    const el = investigations(labsAt(["2026-09-04T07:20:00.000Z"], 6))
+    expect(el.textContent).toContain("pH")
+    expect(el.querySelectorAll(".lab-entry").length).toBe(6)
+  })
+
+  // The hospital's own panel is in the hospital's own record.
+  it("does not reprint the preoperative panel", () => {
+    const el = investigations([], labsAt(["2026-09-03T07:10:00.000Z"], 6))
+    expect(el.querySelectorAll(".lab-entry").length).toBe(0)
+  })
+
+  /**
+   * A gas at induction and one after transfusion are two readings of a
+   * changing patient. Merged into one list they read as a single
+   * contradictory set, which is why takenAt is recorded per draw.
+   */
+  it("keeps the draws apart and heads each with its time", () => {
+    const el = investigations(labsAt([
+      "2026-09-04T07:20:00.000Z", "2026-09-04T08:40:00.000Z",
+    ], 4))
+    const headings = [...el.querySelectorAll("p")]
+      .map(p => (p.textContent ?? "").trim())
+      .filter(t => /^\d\d:\d\d$/.test(t))
+    expect(headings.length).toBe(2)
+  })
+
+  /**
+   * The cap is 48, measured against the real stylesheet rather than chosen:
+   * sixty still drew ten items past the bottom edge once the per-draw headings
+   * were counted.
+   */
+  it("caps what it prints and says how much it left behind", () => {
+    const times = Array.from({ length: 10 }, (_, n) =>
+      new Date(Date.parse("2026-09-04T07:20:00.000Z") + n * 20 * 60000).toISOString())
+    const el = investigations(labsAt(times, 12))
+
+    expect(el.querySelectorAll(".lab-entry").length).toBe(48)
+    // Not silent about it. A short record is fine; a short record that looks
+    // complete is not.
+    expect(el.textContent).toContain("+72 earlier results")
+  })
+
+  /**
+   * A single panel larger than the cap used to be dropped whole, taking the
+   * box from full to empty -- and the empty branch printed a dash, so the
+   * sheet said no investigations were done on a patient who had ten gases.
+   */
+  it("shows part of an oversized draw rather than none of it", () => {
+    const el = investigations(labsAt(["2026-09-04T07:20:00.000Z"], 60))
+    expect(el.querySelectorAll(".lab-entry").length).toBe(48)
+    expect(el.textContent).toContain("+12 earlier results")
+  })
+})

@@ -11,6 +11,13 @@ export const LABELS = {
     intraopTt: "INTRAOPERATIVE TIMETABLE", preopAssessment: "PREOPERATIVE ASSESSMENT", postopRecoveryLbl: "POSTOPERATIVE RECOVERY",
     patientName: "Patient name", idFile: "ID / File №", nameSig: "name & signature",
     histCom: "History & comorbidities", investigations: "Investigations", airwayAssessment: "Airway assessment", anthropometry: "Anthropometry",
+    // A draw with no recorded time. Its own group rather than folded into the
+    // first dated one -- when it was taken is the point of grouping at all.
+    undatedDraw: "Time not recorded",
+    // The page is a fixed A4 box that clips rather than continuing, so a sheet
+    // that could not fit everything says how much it left behind.
+    labsOmitted: (results: number, draws: number) =>
+      `+${results} earlier result${results === 1 ? "" : "s"} from ${draws} earlier draw${draws === 1 ? "" : "s"} — see the record`,
     aldreteTotalLbl: "Aldrete total", readyDischarge: "Ready for discharge", recoveryObs: "Recovery observations",
     footerLine: "LOSPOR personal case log · Not a clinical record · No patient identifiers stored — identity fields filled by hand after printing",
     generatedLbl: "Generated",
@@ -72,6 +79,9 @@ export const LABELS = {
     intraopTt: "ИНТРАОПЕРАТИВНА ТАБЛИЦА", preopAssessment: "ПРЕДОПЕРАТИВНА ОЦЕНКА", postopRecoveryLbl: "ПОСТОПЕРАТИВНО ВЪЗСТАНОВЯВАНЕ",
     patientName: "Име на пациента", idFile: "ИЗ / Номер", nameSig: "име и подпис",
     histCom: "Анамнеза и придружаващи заболявания", investigations: "Изследвания", airwayAssessment: "Оценка на дихателния път", anthropometry: "Антропометрия",
+    undatedDraw: "Часът не е записан",
+    labsOmitted: (results: number, draws: number) =>
+      `+${results} по-ранни резултата от ${draws} по-ранни вземания — вижте записа`,
     aldreteTotalLbl: "Общо Aldrete", readyDischarge: "Готов за извеждане", recoveryObs: "Наблюдения при възстановяване",
     footerLine: "LOSPOR личен журнал на случаи · Не е клиничен документ · Не се съхраняват лични данни — полетата за самоличност се попълват на ръка след печат",
     generatedLbl: "Генериран",

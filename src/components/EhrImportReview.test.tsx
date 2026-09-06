@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { normalizeEhrImport } from "@lospor/core/ehr-import"
 import { buildEhrReviewPlan, type EhrReviewInput } from "@lospor/core/ehr-import-review"
+import type { EhrUnreadSource } from "@lospor/core/ehr-import-transport"
 import { EhrImportReview } from "./EhrImportReview"
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }))
@@ -38,6 +39,8 @@ function review(
     onDecline: (itemKey: string) => void
     onRequestModeChange: () => void
   }> = {},
+  identityUnverified?: boolean,
+  unreadSources?: EhrUnreadSource[],
 ) {
   const { canonical } = normalizeEhrImport({ identifierType: "IZ", identifier: "42", fields })
   const current = rest.current ?? {}
@@ -45,6 +48,8 @@ function review(
   return render(
     <EhrImportReview
       plan={plan}
+      identityUnverified={identityUnverified}
+      unreadSources={unreadSources}
       current={current}
       currentClinicalMode={rest.currentClinicalMode}
       labelFor={field => field}
@@ -220,5 +225,49 @@ describe("nothing is written without a deliberate act", () => {
     fireEvent.click(screen.getByRole("button", { name: "decline" }))
 
     expect(onDecline).toHaveBeenCalledWith("diagnoses|k35")
+  })
+})
+
+/**
+ * The one thing on this screen that is not about a value.
+ *
+ * A hospital numbers the same person several ways, and until a site says
+ * which numbering its record numbers use, a single clean match can belong to
+ * a different one. The appliance still offers the import -- a site has to be
+ * able to work before it has configured that -- so the only thing standing
+ * between a stranger's allergy list and this case is the clinician reading
+ * this sentence.
+ */
+describe("an identity nothing could verify", () => {
+  it("says so, above the values it qualifies", () => {
+    review({ allergies: ["Penicillin"] }, {}, {}, true)
+    expect(screen.getByRole("note").textContent).toBe("identityUnverified")
+  })
+
+  it("says nothing when the match was checked against a configured system", () => {
+    review({ allergies: ["Penicillin"] })
+    expect(screen.queryByRole("note")).toBeNull()
+  })
+})
+
+/**
+ * The warning that matters more than the values.
+ *
+ * An allergy fetch that failed produces the same empty list as a patient with
+ * no allergies -- and an empty allergy list reads as reassurance. Without
+ * this the screen invites somebody to choose a drug on the strength of a
+ * question nobody managed to ask.
+ */
+describe("groups the hospital system could not be read for", () => {
+  it("names them", () => {
+    review({ allergies: ["Penicillin"] }, {}, {}, undefined, [
+      { group: "allergies", errorCode: "HTTP_503" },
+    ])
+    expect(screen.getByRole("alert").textContent).toContain("unreadSources")
+  })
+
+  it("says nothing when everything was read", () => {
+    review({ allergies: ["Penicillin"] })
+    expect(screen.queryByRole("alert")).toBeNull()
   })
 })

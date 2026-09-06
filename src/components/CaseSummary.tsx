@@ -184,7 +184,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const ventModes:     string[] = Array.isArray(i?.ventilationModes) ? i.ventilationModes : []
   const airwayTools:   string[] = Array.isArray(i?.airwayTools)      ? i.airwayTools      : []
   type VascularAccessItem = { site?: string; siteLabel?: string; size?: string; sizeUnit?: string }
-  type LabResultItem = { test?: string; value?: string; unit?: string }
+  type LabResultItem = { test?: string; value?: string; unit?: string; takenAt?: string | null }
   const vascular:      VascularAccessItem[] = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
   const comorbidities: Tag[]                = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
   const currentMedicationsText = (() => {
@@ -223,7 +223,89 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
     }
     return raw
   })()
-  const labResults:    LabResultItem[]      = Array.isArray(p?.labResults)       ? (p.labResults as LabResultItem[]).filter(l => l.value) : []
+  /**
+   * The laboratory results this anaesthetic produced, grouped by draw.
+   *
+   * **Intraoperative only.** The preoperative panel used to be what this box
+   * held, and it is the one thing on the sheet the hospital already has: it
+   * came from their laboratory and it is in their record. What is not in their
+   * record is the gas taken at induction and the one after transfusion, which
+   * exist here and nowhere else. The sheet is the anaesthetic record, so it
+   * carries what the anaesthetist did rather than reprinting the hospital's
+   * own results back at it.
+   *
+   * Grouped rather than flattened, because `takenAt` is recorded per draw on
+   * purpose: a blood gas at induction and another after transfusion are two
+   * draws, not an edit of one, and a merged list cannot tell them apart.
+   */
+  const labDraws: { at: string | null; label: string; results: LabResultItem[] }[] = (() => {
+    const rows = Array.isArray(i?.labResults) ? (i.labResults as LabResultItem[]) : []
+    const withValue = rows.filter(l => l.value !== null && l.value !== undefined && l.value !== "")
+    const byDraw = new Map<string, LabResultItem[]>()
+    for (const row of withValue) {
+      // An undated result is its own group rather than being folded into the
+      // first dated one: saying when it was taken is the whole point, and
+      // guessing would put a result under a time it does not belong to.
+      const key = typeof row.takenAt === "string" ? row.takenAt : ""
+      ;(byDraw.get(key) ?? byDraw.set(key, []).get(key)!).push(row)
+    }
+    return [...byDraw.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([at, results]) => ({
+        at: at || null,
+        label: at ? format(new Date(at), "HH:mm") : L.undatedDraw,
+        results,
+      }))
+  })()
+
+  /**
+   * What fits on the paper, and what is left over.
+   *
+   * The page is a fixed A4 box with `overflow: hidden`, so anything past the
+   * bottom edge is not carried to another sheet -- it is cut off and never
+   * printed, with nothing on the paper to say so. Measured with the real
+   * stylesheet: the box holds about 84 results before the first one is lost,
+   * and ten blood gases at twelve analytes each loses twenty-eight.
+   *
+   * Forty-eight, measured rather than chosen: sixty still lost ten items once
+   * the per-draw headings are counted, and the flat list this replaced held
+   * eighty-four without them. So it caps deliberately and says that it has. The most recent draws are
+   * kept, because a sheet read at handover is read for the latest picture, and
+   * the line below names how many earlier results are not on the page. A record
+   * that is short is fine; one that is short and silent about it is not.
+   */
+  const LAB_PRINT_LIMIT = 48
+  const { shownDraws, omittedResults, omittedDraws } = (() => {
+    const total = labDraws.reduce((sum, d) => sum + d.results.length, 0)
+    if (total <= LAB_PRINT_LIMIT) {
+      return { shownDraws: labDraws, omittedResults: 0, omittedDraws: 0 }
+    }
+
+    // Newest first, because a sheet read at handover is read for the latest
+    // picture. The draw that straddles the limit is shown in part rather than
+    // dropped whole: a single large panel would otherwise take the box from
+    // full to empty, and an empty box on a patient who had ten gases is the
+    // worst of the available outcomes.
+    const shown: typeof labDraws = []
+    let budget = LAB_PRINT_LIMIT
+    let omitted = 0
+    for (const draw of [...labDraws].reverse()) {
+      if (budget <= 0) { omitted += draw.results.length; continue }
+      if (draw.results.length <= budget) {
+        budget -= draw.results.length
+        shown.unshift(draw)
+        continue
+      }
+      shown.unshift({ ...draw, results: draw.results.slice(-budget) })
+      omitted += draw.results.length - budget
+      budget = 0
+    }
+    return {
+      shownDraws: shown,
+      omittedResults: omitted,
+      omittedDraws: labDraws.length - shown.length,
+    }
+  })()
   const handoverItems: string[] = Array.isArray(o?.handoverItems)    ? o.handoverItems    : []
   const timetable = ((i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}) as import("@/types/timetable").LegacyKeyEvents
 
@@ -239,7 +321,6 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
     if (pl.sheet === 0) continue
     ;(contSheets[pl.sheet - 1] ??= []).push(pl)
   }
-  const pageTotal = contSheets.length + 2
   const contWord = locale === "bg" ? "ПРОДЪЛЖЕНИЕ" : "CONTINUED"
   const panelView = (pl: PanelPlan, withCaption: boolean) => ({
     c0: pl.startCol,
@@ -263,6 +344,35 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const drugTotals     = calcDrugTotals(timetable)
   const infTotals      = calcInfTotals(timetable)
   const drugLog        = buildDrugLog(timetable, i?.startTime)
+
+  /**
+   * The drug log, split across sheets rather than clipped.
+   *
+   * Every page here is a fixed A4 box with `overflow: hidden`, so a log longer
+   * than the box does not flow onto another sheet -- it is cut off and never
+   * printed. Measured with the real stylesheet: the panel on sheet 1 holds
+   * about 94 entries, and a hundred loses six of them silently. A long case
+   * with frequent boluses reaches that, and the entries it loses are the late
+   * ones, which are the ones nearest handover.
+   *
+   * Unlike the laboratory box this continues rather than capping. A drug given
+   * is a fact about what was done to the patient and the record has to carry
+   * all of them; a result not shown can be looked up, a dose nobody recorded
+   * on paper cannot. The timetable already paginates this way for long cases,
+   * so the mechanism and the page furniture exist.
+   */
+  const DRUG_LOG_SHEET_LIMIT = 80
+  const DRUG_LOG_CONT_LIMIT = 160
+  const drugLogFirst = drugLog.slice(0, DRUG_LOG_SHEET_LIMIT)
+  const drugLogCont: typeof drugLog[] = []
+  for (let at = DRUG_LOG_SHEET_LIMIT; at < drugLog.length; at += DRUG_LOG_CONT_LIMIT) {
+    drugLogCont.push(drugLog.slice(at, at + DRUG_LOG_CONT_LIMIT))
+  }
+
+  // Drug-log continuations count too: a footer that says "Page 2 of 3" while
+  // handing somebody four sheets is how a page goes missing without anyone
+  // noticing it has.
+  const pageTotal = contSheets.length + drugLogCont.length + 2
   const ageSuffix  = locale === "bg" ? "г." : "y"
   const sexLabel   = (s: string) => locale === "bg" ? (s === "MALE" ? "М" : s === "FEMALE" ? "Ж" : "") : (s === "MALE" ? "M" : s === "FEMALE" ? "F" : "")
   // `!= null`, not truthiness: a neonate's age in years is legitimately 0, and
@@ -483,7 +593,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.drugLog.toUpperCase()}</p>
               {drugLog.length === 0 && <p className="text-[10px] text-slate-400">{L.noDrugs}</p>}
               <div className="grid grid-cols-2 gap-x-3">
-                {drugLog.map(d => (
+                {drugLogFirst.map(d => (
                   <div key={d.n} className="flex items-center gap-1.5 text-[8.5px] leading-[12px] min-w-0">
                     <span className="inline-flex items-center justify-center w-[11px] h-[11px] rounded-full border text-[6.8px] font-bold shrink-0"
                       style={{ color: d.color, borderColor: d.color }}>{d.n}</span>
@@ -572,6 +682,61 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
               <span>{L.footerLine}</span>
               <span>{k < contSheets.length - 1 ? (locale === "bg" ? `Продължава на лист ${k + 3} · ` : `Continues on Sheet ${k + 3} · `) : ""}{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
+            </div>
+          </div>
+        ))}
+
+        {/* ═══════════════════════════════════════════════════════
+            DRUG LOG CONTINUATION — a long case, not a long operation
+
+            Separate from the timetable continuations above, which exist only
+            for cases past about a day. A three-hour case with frequent
+            boluses overruns the log panel without ever needing a second
+            chart, so the two cannot share a trigger.
+        ════════════════════════════════════════════════════════ */}
+        {drugLogCont.map((entries, k) => (
+          <div key={`drugcont-${k}`} className="page-intraop border border-slate-200 rounded-xl bg-white p-3 flex flex-col gap-2 min-h-[520px]">
+            <div className="flex items-center justify-between border-b-2 border-blue-900 dark:border-blue-500 pb-1.5 gap-3">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-[13px] font-black tracking-tight text-slate-900">LOSPOR</span>
+                <span className="text-[9.5px] font-bold tracking-[0.14em] text-blue-900 dark:text-blue-300">{L.drugLog.toUpperCase()} · {contWord}</span>
+                <span className="text-[9px] text-slate-500 truncate">
+                  {[patientLine,
+                    locale === "bg" ? "самоличността — на лист 1" : "identity fields on Sheet 1",
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+              <div className="text-right text-[9px] text-slate-500 shrink-0">
+                <span className="font-bold text-slate-800">{entries[0].time} – {entries[entries.length - 1].time}</span>
+                {" · "}{data.caseCode ? `Case ${data.caseCode} · ` : ""}
+                {locale === "bg"
+                  ? `Стр. ${contSheets.length + k + 2} от ${pageTotal}`
+                  : `Page ${contSheets.length + k + 2} of ${pageTotal}`}
+              </div>
+            </div>
+
+            {/* Four columns rather than sheet 1's two: this page has nothing
+              * else on it, so the entries can be narrower and there can be
+              * far more of them before another sheet is needed. */}
+            <div className="border border-slate-200 rounded-lg bg-white flex-1 min-h-0 overflow-hidden p-2">
+              <div className="grid grid-cols-4 gap-x-3">
+                {entries.map(d => (
+                  <div key={d.n} className="flex items-center gap-1.5 text-[8.5px] leading-[12px] min-w-0">
+                    <span className="inline-flex items-center justify-center w-[11px] h-[11px] rounded-full border text-[6.8px] font-bold shrink-0"
+                      style={{ color: d.color, borderColor: d.color }}>{d.n}</span>
+                    <span className="font-bold text-slate-500 text-[8px]" style={{ fontFamily: "Consolas, monospace" }}>{d.time}</span>
+                    <span className="text-slate-700 truncate flex-1">{displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })}</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap" style={{ fontFamily: "Consolas, monospace" }}>{d.dose}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
+              <span>{L.footerLine}</span>
+              <span>{k < drugLogCont.length - 1
+                ? (locale === "bg" ? `Продължава на лист ${contSheets.length + k + 3} · ` : `Continues on Sheet ${contSheets.length + k + 3} · `)
+                : ""}{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
             </div>
           </div>
         ))}
@@ -701,17 +866,32 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             {/* Investigations */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.investigations.toUpperCase()}</p>
-              {labResults.length > 0 ? (
+              {shownDraws.length > 0 ? (
                 <div
-                  className={labResults.length >= 12 ? "lab-compact" : ""}
-                  style={{ columns: labResults.length >= 24 ? 2 : 1, columnGap: "0.5rem" }}
+                  className={shownDraws.reduce((n, d) => n + d.results.length, 0) >= 12 ? "lab-compact" : ""}
+                  style={{ columns: shownDraws.reduce((n, d) => n + d.results.length, 0) >= 24 ? 2 : 1, columnGap: "0.5rem" }}
                 >
-                  {labResults.map((l, idx) => (
-                    <div key={idx} className="lab-entry" style={{ breakInside: "avoid" }}>
-                      <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
+                  {shownDraws.map((draw, drawIdx) => (
+                    <div key={drawIdx} style={{ breakInside: "avoid" }}>
+                      {/* The draw time is the heading. Two gases an hour apart
+                        * are two readings of a changing patient, and without it
+                        * they read as one contradictory set. */}
+                      <p className="text-[8px] font-bold text-slate-500 tracking-wide mt-1 first:mt-0">{draw.label}</p>
+                      {draw.results.map((l, idx) => (
+                        <div key={idx} className="lab-entry">
+                          <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
+                        </div>
+                      ))}
                     </div>
                   ))}
+                  {omittedResults > 0 && (
+                    <p className="text-[7.5px] text-slate-500 border-t border-slate-100 mt-1 pt-0.5">
+                      {L.labsOmitted(omittedResults, omittedDraws)}
+                    </p>
+                  )}
                 </div>
+              ) : omittedResults > 0 ? (
+                <p className="text-[7.5px] text-slate-500">{L.labsOmitted(omittedResults, omittedDraws)}</p>
               ) : <p className="text-[9px] text-slate-400">—</p>}
             </div>
           </div>
