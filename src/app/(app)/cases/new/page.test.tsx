@@ -131,120 +131,9 @@ async function openDraft(record: CaseDetail, params: Record<string, string>) {
 // all invisible to a green test suite.
 //
 // A field may only be listed as never-persisted with a reason.
-const NEVER_PERSISTED: Record<string, string> = {
-  patientFirstName: "GDPR: identity is printed by hand, never stored",
-  patientLastName:  "GDPR: identity is printed by hand, never stored",
-  patientId:        "GDPR: identity is printed by hand, never stored",
-}
-
-type RoundTrip = {
-  /** Columns on the stored preop record. */
-  db?: Record<string, unknown>
-  /** Fields carried on the case record rather than the preop record. */
-  record?: Partial<CaseDetail>
-  /** The value the form must receive, and hand back on the next save. */
-  form: unknown
-}
-
-const FASTING_ROW = {
-  category: "CLEAR_FLUIDS",
-  lastIntakeAt: "2026-08-01T04:00:00.000Z",
-  status: "MET",
-  requiredHours: 2,
-  policyId: "esaic-2022",
-  policyVersion: "1",
-}
-
-// Every field carries a distinct value so a mis-wired mapping cannot pass by
-// coincidence, and every boolean is `true` so a dropped one reads back false.
-// Clinical coherence is deliberately not the point: this is one synthetic
-// record that exercises every column at once.
-
-/** Fields stored and restored under the same name, unchanged. */
-function rows(spec: Record<string, unknown>): Record<string, RoundTrip> {
-  return Object.fromEntries(
-    Object.entries(spec).map(([field, value]) => [field, { db: { [field]: value }, form: value }]),
-  )
-}
-const flags = (...fields: string[]) =>
-  rows(Object.fromEntries(fields.map(field => [field, true])))
-
-const MATRIX: Record<string, RoundTrip> = {
-  clinicalMode: { record: { clinicalMode: "PEDIATRIC" }, form: "PEDIATRIC" },
-
-  // ageYears is 0 on purpose — a neonate is 0 years old.
-  ...rows({
-    ageYears: 0, ageValue: 9, ageUnit: "MONTHS", sex: "FEMALE",
-    heightCm: 71.5, weightKg: 8.4, bloodType: "AB", rhFactor: "NEGATIVE",
-    teamNotes: "Two surgeons scrubbed",
-    comorbidities: [{ label: "Asthma" }],
-    familyAnesthesiaDetails: "Aunt — suspected MH",
-    rcriScore: 3, apfelScore: 2, stopBangScore: 5,
-    coldsCurrentSymptoms: "MILD", coldsOnset: "TWO_TO_4_WEEKS",
-    coldsLungDisease: "MODERATE_OR_SEVERE", coldsAirwayDevice: "SUPRAGLOTTIC",
-    coldsSurgery: "MINOR_AIRWAY", pediatricFasting: [FASTING_ROW],
-    bpSystolic: 96, bpDiastolic: 54, heartRate: 128, spO2: 97,
-    temperature: 36.8, respiratoryRate: 24,
-    mallampati: "III", mouthOpeningCm: 2.5, thyromental: 5.5,
-    neckMobility: "LIMITED", upperLipBiteTest: "CLASS_II",
-    difficultAirwayNotes: "Grade III at last GA", cormackLehane: "IIb",
-    asaScore: "III",
-    physicalExamReport: "Chest clear, no added sounds",
-    notes: "Parents consented in writing",
-    labResults: [{ test: "Hb", value: "11.2", unit: "g/dL" }],
-  }),
-
-  ...flags(
-    "highRiskSurgery", "elective", "emergencySurgery", "aiOptIn",
-    "allergies", "latexAllergy", "familyAnesthesiaProblems",
-    "unexplainedAnaesthesiaComplications", "malignantHyperthermiaHistory",
-    "dentalProsthetics", "looseTeeth", "smoking", "substanceAbuse",
-    // Score inputs — the boxes the clinician ticked, not the derived totals
-    "apfelPONVHistory", "apfelPostopOpioids",
-    "stopbangSnoring", "stopbangTired", "stopbangObserved", "stopbangBP", "stopbangNeck",
-    "rcriIschemicHeart", "rcriCHF", "rcriCVD", "rcriInsulinDM", "rcriCreatinine",
-    "povocSurgeryAtLeast30Minutes", "povocStrabismusSurgery", "povocHistory",
-    "coldsApplicable", "heartArrhythmia",
-    "retrognathia", "prominentIncisors", "facialHair", "difficultAirwayHistory",
-    "anticipatedDifficultAirway",
-    // "Unable to obtain" — a recorded refusal to record
-    "bpUnobtainable", "heartRateUnobtainable", "spO2Unobtainable",
-    "temperatureUnobtainable", "respiratoryRateUnobtainable", "airwayUnobtainable",
-  ),
-
-  // Renamed or reshaped between the record and the form
-  diagnoses: {
-    db: { diagnosesJson: [{ label: "Acute appendicitis" }], diagnosis: "Acute appendicitis" },
-    form: [{ label: "Acute appendicitis" }],
-  },
-  procedures: {
-    db: { proceduresJson: [{ label: "Appendectomy" }], plannedProcedure: "Appendectomy" },
-    form: [{ label: "Appendectomy" }],
-  },
-  allergyDetails: {
-    db: { allergyDetails: JSON.stringify([{ label: "Penicillin" }]) },
-    form: [{ label: "Penicillin" }],
-  },
-  currentMedications: {
-    db: { currentMedications: JSON.stringify([{ label: "Salbutamol" }]) },
-    form: [{ label: "Salbutamol" }],
-  },
-}
-
-function matrixRecord(): CaseDetail {
-  const preop: Record<string, unknown> = {
-    id: "preop-1",
-    caseId: "case-1",
-    updatedAt: "2026-08-01T06:00:00.000Z",
-    syncRevision: 4,
-  }
-  let record = baseRecord()
-  for (const entry of Object.values(MATRIX)) {
-    Object.assign(preop, entry.db ?? {})
-    record = { ...record, ...(entry.record ?? {}) }
-  }
-  return { ...record, preop: preop as unknown as CaseDetail["preop"] }
-}
+// The matrix itself is a hundred lines of table; it lives next door so the
+// test that walks it stays readable.
+import { MATRIX, NEVER_PERSISTED, matrixRecord } from "./preop-round-trip-matrix"
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -276,7 +165,7 @@ describe("reopening a draft — preop field matrix", () => {
   })
 
   it("gives the form back every field that was saved", async () => {
-    await openDraft(matrixRecord(), {})
+    await openDraft(matrixRecord(baseRecord), {})
 
     const defaults = hoisted.captured.preop?.defaultValues as Record<string, unknown>
     expect(defaults).toBeTruthy()
@@ -293,7 +182,7 @@ describe("reopening a draft — preop field matrix", () => {
   })
 
   it("sends every restored field back to the server on the next save", async () => {
-    await openDraft(matrixRecord(), {})
+    await openDraft(matrixRecord(baseRecord), {})
 
     const defaults = hoisted.captured.preop?.defaultValues as PreopData
     await act(async () => { hoisted.captured.preop?.onAutoSave?.(defaults) })
@@ -313,7 +202,7 @@ describe("reopening a draft — preop field matrix", () => {
   })
 
   it("never restores the identity fields that are not stored", async () => {
-    await openDraft(matrixRecord(), {})
+    await openDraft(matrixRecord(baseRecord), {})
 
     const defaults = hoisted.captured.preop?.defaultValues as Record<string, unknown>
     for (const field of Object.keys(NEVER_PERSISTED)) {

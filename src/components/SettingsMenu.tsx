@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
+import { downloadPersonalExport, requestRole } from "@/lib/account-actions"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -321,37 +322,18 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
 
   async function submitRoleRequest() {
     setReqLoading(true)
-    try {
-      const res  = await fetch("/api/role-request", { method: "POST" })
-      const text = await res.text()
-      const data = text ? JSON.parse(text) : null
-      if (res.ok && data) setRoleReq(data)
-    } catch (e) {
-      console.error("Role request error:", e)
-    } finally {
-      setReqLoading(false)
-    }
+    const granted = await requestRole<typeof roleReq>()
+    if (granted) setRoleReq(granted)
+    setReqLoading(false)
   }
 
-  async function downloadPersonalExport() {
+  // The request, the filename and the anchor-click dance live in
+  // @/lib/personal-export; what stays here is the spinner and the error line.
+  async function runPersonalExport() {
     setExporting(true)
     setExportError("")
     try {
-      const response = await fetch("/api/user/export", { cache: "no-store" })
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as { error?: string }
-        throw new Error(body.error || t("settings.exportDataError"))
-      }
-      const disposition = response.headers.get("content-disposition") ?? ""
-      const filename = disposition.match(/filename="?([^"]+)"?/i)?.[1] ?? "lospor-export.zip"
-      const url = URL.createObjectURL(await response.blob())
-      const link = document.createElement("a")
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      URL.revokeObjectURL(url)
+      await downloadPersonalExport(t("settings.exportDataError"))
     } catch (error) {
       setExportError(error instanceof Error ? error.message : t("settings.exportDataError"))
     } finally {
@@ -377,7 +359,6 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
     caseOutbox.summary().then(s => setQueuedSaves(s.count)).catch(() => setQueuedSaves(null))
   }, [modalOpen, category])
 
-  // Load the saved favourites when the automation tab is actually opened —
   return (
     <>
       <div className="relative" ref={menuRef}>
@@ -788,7 +769,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                         {t("settings.exportDataDesc")}
                       </p>
                       <button type="button"
-                        onClick={downloadPersonalExport}
+                        onClick={runPersonalExport}
                         disabled={exporting}
                         className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] transition-colors disabled:opacity-60">
                         {exporting ? t("settings.exportingData") : t("settings.downloadData")}

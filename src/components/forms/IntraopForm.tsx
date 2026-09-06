@@ -1,6 +1,9 @@
 "use client"
 
 import { useForm, useWatch, type Resolver } from "react-hook-form"
+import { premedicationCategories } from "@/lib/premedication-groups"
+import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
+import { buildIntraopSubmission, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -275,21 +278,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     [isPediatric, premedOptions, premedPatient],
   )
 
-  const premedCategories = useMemo<PremedCat[]>(() => {
-    if (premedPediatric) {
-      return premedPediatric.map(category => ({
-        cat: category.category,
-        drugs: category.drugs.map(drug => drug.name),
-      }))
-    }
-    const byGroup = new Map<string, string[]>()
-    for (const o of premedOptions) {
-      const group = o.group ?? "Other"
-      if (!byGroup.has(group)) byGroup.set(group, [])
-      byGroup.get(group)!.push(o.label)
-    }
-    return Array.from(byGroup, ([cat, drugs]) => ({ cat, drugs }))
-  }, [premedOptions, premedPediatric])
+  // Two shapes of the same list, reconciled in @/lib/premedication-groups.
+  const premedCategories = useMemo<PremedCat[]>(
+    () => premedicationCategories(premedOptions, premedPediatric),
+    [premedOptions, premedPediatric])
 
   const premedDoses = useMemo<Record<string, PremDoseCfg>>(() => {
     if (!premedPediatric) return premedicationDoseMap(premedOptions)
@@ -356,40 +348,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcIbw = ibwResolution.available ? ibwResolution.kilograms : null
   const calcTbw = preop?.weightKg ?? null
 
-  const liveDrugTotals = useMemo(() => {
-    // Bolus totals come from Core, not a local aggregation. The inline version
-    // this replaced rounded to two decimals while Core rounds to three, so the
-    // same case could show different totals on the web form and at the bedside.
-    const bolusList = calculateDrugTotals({ drugs: timetable.drugs }).map(row => ({
-      ...row,
-      mgTotal: null as number | null,
-    }))
-
-    const infusionList = (timetable.infusions ?? []).map(inf => {
-      const { amount, unit, weightUsed, weightBasis } = calcInfusionTotal(inf, calcIbw, calcTbw, infusionWeightBasis)
-      return {
-        name: inf.name,
-        total: amount,
-        unit,
-        mgTotal: infusionLocalAnaestheticMg(inf.name, amount, unit),
-        weightUsed,
-        weightBasis,
-      }
-    })
-
-    // If any infusion used a weight-adjusted calculation, build a footnote
-    const weightedEntries = infusionList.filter(r => r.weightUsed != null)
-    const weightNote = weightedEntries.length > 0 ? (() => {
-      const ibwUsed = weightedEntries.some(r => r.weightBasis === "IBW") ? calcIbw : null
-      const tbwUsed = weightedEntries.some(r => r.weightBasis === "TBW") ? calcTbw : null
-      const parts: string[] = []
-      if (ibwUsed) parts.push(`IBW ${Math.round(ibwUsed * 10) / 10} kg`)
-      if (tbwUsed) parts.push(`TBW ${Math.round((tbwUsed ?? 0) * 10) / 10} kg`)
-      return parts.length ? `† Weight-adjusted totals use ${parts.join(" / ")}` : null
-    })() : null
-
-    return { bolusList, infusionList, weightNote }
-  }, [calcIbw, calcTbw, infusionWeightBasis, timetable.drugs, timetable.infusions])
+  // Arithmetic, not interface — see @/lib/intraop-drug-totals.
+  const liveDrugTotals = useMemo(
+    () => computeLiveDrugTotals(timetable, calcIbw, calcTbw, infusionWeightBasis),
+    [calcIbw, calcTbw, infusionWeightBasis, timetable])
 
   // Auto-calculate fluid totals from the one canonical delivered-volume path.
   // Running rate entries advance against the real clock; bag entries retain
@@ -578,11 +540,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     tempMonitor:   !!watchedTempMonitor,
   }
 
-  function addMinutes(hhmm: string, minutes: number): string {
-    const [h, m] = (hhmm || "00:00").split(":").map(Number)
-    const total  = (h * 60 + m + minutes + 1440) % 1440
-    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
-  }
 
   function handleContinue() {
     const vals = getValues()
@@ -595,11 +552,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       timetableData: timetable,
       keyEvents: eventLog,
     } as Record<string, unknown>)
-    const blockerCodes = new Set(readiness.blockers.map(issue => issue.code))
-    const errs = {
-      startTime: blockerCodes.has("missing_start_time") || blockerCodes.has("invalid_intraop_times"),
-      endTime: blockerCodes.has("missing_end_time") || blockerCodes.has("invalid_intraop_times"),
-    }
+    const errs = intraopTimeErrors(readiness.blockers.map(issue => issue.code))
     setTimeErrors(errs)
 
     if (readiness.blockers.length > 0) {
@@ -638,26 +591,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }
 
   function handleSubmitWithTimetable(formData: IntraopData) {
-    const vitals = (timetable.vitals ?? [])
-      .map((v, i) => ({ ...v, time: addMinutes(startTime, i * INTRAOP_COLUMN_MINUTES) }))
-      .filter(v => Object.values(v).some(x => x != null && x !== v.time))
-
-    const infusionEntries = (timetable.infusions ?? []).map(inf => ({
-      name:  inf.name,
-      dose:  String(inf.rate),
-      unit:  inf.unit,
-      route: "Infusion",
-      time:  addMinutes(startTime, inf.startCol * INTRAOP_COLUMN_MINUTES),
-    }))
-    const bolusDrugs = (timetable.drugs ?? []).map(d => ({
-      name:  d.name,
-      dose:  d.dose,
-      unit:  d.unit,
-      route: "IV",
-      time:  addMinutes(startTime, d.colIdx * INTRAOP_COLUMN_MINUTES),
-    }))
-
-    onSubmit({ ...formData, vitals, drugsAdministered: [...bolusDrugs, ...infusionEntries], timetableData: timetable })
+    // Columns are chart positions; the API stores wall-clock times. The
+    // conversion lives in @/lib/intraop-submit, where it has a test.
+    const { vitals, drugsAdministered } = buildIntraopSubmission(timetable, startTime)
+    onSubmit({ ...formData, vitals, drugsAdministered, timetableData: timetable })
   }
 
   return (

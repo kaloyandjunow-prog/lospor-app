@@ -11,6 +11,16 @@ import type { Tag } from "@/components/TagInput"
 import type { CaseDetail, CaseDetailIntraop } from "@/types/case-detail"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { PrintTimetable, calcDrugTotals, calcInfTotals, naturalMaxCols, buildDrugLog } from "@/components/case-summary/PrintTimetable"
+import { DrugLogContinuationSheet } from "@/components/case-summary/DrugLogContinuationSheet"
+import { InvestigationsBox } from "@/components/case-summary/InvestigationsBox"
+import { HistoryAndAllergiesBox } from "@/components/case-summary/HistoryAndAllergiesBox"
+import { PostopRecoverySection } from "@/components/case-summary/PostopRecoverySection"
+import {
+  fitLabDraws,
+  groupLabDraws,
+  splitDrugLog,
+  type LabResultItem,
+} from "@/components/case-summary/investigations"
 import { LABELS } from "@/components/case-summary/labels"
 import { ReviewBar } from "@/components/case-summary/ReviewBar"
 import { caseIsWritable } from "@/lib/case-capabilities"
@@ -184,7 +194,6 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const ventModes:     string[] = Array.isArray(i?.ventilationModes) ? i.ventilationModes : []
   const airwayTools:   string[] = Array.isArray(i?.airwayTools)      ? i.airwayTools      : []
   type VascularAccessItem = { site?: string; siteLabel?: string; size?: string; sizeUnit?: string }
-  type LabResultItem = { test?: string; value?: string; unit?: string; takenAt?: string | null }
   const vascular:      VascularAccessItem[] = Array.isArray(i?.vascularAccesses) ? i.vascularAccesses : []
   const comorbidities: Tag[]                = Array.isArray(p?.comorbidities)    ? p.comorbidities    : []
   const currentMedicationsText = (() => {
@@ -223,89 +232,11 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
     }
     return raw
   })()
-  /**
-   * The laboratory results this anaesthetic produced, grouped by draw.
-   *
-   * **Intraoperative only.** The preoperative panel used to be what this box
-   * held, and it is the one thing on the sheet the hospital already has: it
-   * came from their laboratory and it is in their record. What is not in their
-   * record is the gas taken at induction and the one after transfusion, which
-   * exist here and nowhere else. The sheet is the anaesthetic record, so it
-   * carries what the anaesthetist did rather than reprinting the hospital's
-   * own results back at it.
-   *
-   * Grouped rather than flattened, because `takenAt` is recorded per draw on
-   * purpose: a blood gas at induction and another after transfusion are two
-   * draws, not an edit of one, and a merged list cannot tell them apart.
-   */
-  const labDraws: { at: string | null; label: string; results: LabResultItem[] }[] = (() => {
-    const rows = Array.isArray(i?.labResults) ? (i.labResults as LabResultItem[]) : []
-    const withValue = rows.filter(l => l.value !== null && l.value !== undefined && l.value !== "")
-    const byDraw = new Map<string, LabResultItem[]>()
-    for (const row of withValue) {
-      // An undated result is its own group rather than being folded into the
-      // first dated one: saying when it was taken is the whole point, and
-      // guessing would put a result under a time it does not belong to.
-      const key = typeof row.takenAt === "string" ? row.takenAt : ""
-      ;(byDraw.get(key) ?? byDraw.set(key, []).get(key)!).push(row)
-    }
-    return [...byDraw.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([at, results]) => ({
-        at: at || null,
-        label: at ? format(new Date(at), "HH:mm") : L.undatedDraw,
-        results,
-      }))
-  })()
-
-  /**
-   * What fits on the paper, and what is left over.
-   *
-   * The page is a fixed A4 box with `overflow: hidden`, so anything past the
-   * bottom edge is not carried to another sheet -- it is cut off and never
-   * printed, with nothing on the paper to say so. Measured with the real
-   * stylesheet: the box holds about 84 results before the first one is lost,
-   * and ten blood gases at twelve analytes each loses twenty-eight.
-   *
-   * Forty-eight, measured rather than chosen: sixty still lost ten items once
-   * the per-draw headings are counted, and the flat list this replaced held
-   * eighty-four without them. So it caps deliberately and says that it has. The most recent draws are
-   * kept, because a sheet read at handover is read for the latest picture, and
-   * the line below names how many earlier results are not on the page. A record
-   * that is short is fine; one that is short and silent about it is not.
-   */
-  const LAB_PRINT_LIMIT = 48
-  const { shownDraws, omittedResults, omittedDraws } = (() => {
-    const total = labDraws.reduce((sum, d) => sum + d.results.length, 0)
-    if (total <= LAB_PRINT_LIMIT) {
-      return { shownDraws: labDraws, omittedResults: 0, omittedDraws: 0 }
-    }
-
-    // Newest first, because a sheet read at handover is read for the latest
-    // picture. The draw that straddles the limit is shown in part rather than
-    // dropped whole: a single large panel would otherwise take the box from
-    // full to empty, and an empty box on a patient who had ten gases is the
-    // worst of the available outcomes.
-    const shown: typeof labDraws = []
-    let budget = LAB_PRINT_LIMIT
-    let omitted = 0
-    for (const draw of [...labDraws].reverse()) {
-      if (budget <= 0) { omitted += draw.results.length; continue }
-      if (draw.results.length <= budget) {
-        budget -= draw.results.length
-        shown.unshift(draw)
-        continue
-      }
-      shown.unshift({ ...draw, results: draw.results.slice(-budget) })
-      omitted += draw.results.length - budget
-      budget = 0
-    }
-    return {
-      shownDraws: shown,
-      omittedResults: omitted,
-      omittedDraws: labDraws.length - shown.length,
-    }
-  })()
+  // Grouping, ordering and the page budget all live in
+  // ./case-summary/investigations, which is decision logic rather than markup
+  // and is testable there in a way it was not inside this component.
+  const labDraws = groupLabDraws(i?.labResults, L.undatedDraw, at => format(new Date(at), "HH:mm"))
+  const { shownDraws, omittedResults, omittedDraws } = fitLabDraws(labDraws)
   const handoverItems: string[] = Array.isArray(o?.handoverItems)    ? o.handoverItems    : []
   const timetable = ((i?.keyEvents && typeof i.keyEvents === "object" && !Array.isArray(i.keyEvents)) ? i.keyEvents : {}) as import("@/types/timetable").LegacyKeyEvents
 
@@ -345,29 +276,9 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const infTotals      = calcInfTotals(timetable)
   const drugLog        = buildDrugLog(timetable, i?.startTime)
 
-  /**
-   * The drug log, split across sheets rather than clipped.
-   *
-   * Every page here is a fixed A4 box with `overflow: hidden`, so a log longer
-   * than the box does not flow onto another sheet -- it is cut off and never
-   * printed. Measured with the real stylesheet: the panel on sheet 1 holds
-   * about 94 entries, and a hundred loses six of them silently. A long case
-   * with frequent boluses reaches that, and the entries it loses are the late
-   * ones, which are the ones nearest handover.
-   *
-   * Unlike the laboratory box this continues rather than capping. A drug given
-   * is a fact about what was done to the patient and the record has to carry
-   * all of them; a result not shown can be looked up, a dose nobody recorded
-   * on paper cannot. The timetable already paginates this way for long cases,
-   * so the mechanism and the page furniture exist.
-   */
-  const DRUG_LOG_SHEET_LIMIT = 80
-  const DRUG_LOG_CONT_LIMIT = 160
-  const drugLogFirst = drugLog.slice(0, DRUG_LOG_SHEET_LIMIT)
-  const drugLogCont: typeof drugLog[] = []
-  for (let at = DRUG_LOG_SHEET_LIMIT; at < drugLog.length; at += DRUG_LOG_CONT_LIMIT) {
-    drugLogCont.push(drugLog.slice(at, at + DRUG_LOG_CONT_LIMIT))
-  }
+  // Continues onto its own sheets rather than capping: a result not shown can
+  // be looked up, a dose nobody recorded on paper cannot.
+  const { first: drugLogFirst, continued: drugLogCont } = splitDrugLog(drugLog)
 
   // Drug-log continuations count too: a footer that says "Page 2 of 3" while
   // handing somebody four sheets is how a page goes missing without anyone
@@ -686,59 +597,23 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           </div>
         ))}
 
-        {/* ═══════════════════════════════════════════════════════
-            DRUG LOG CONTINUATION — a long case, not a long operation
-
-            Separate from the timetable continuations above, which exist only
-            for cases past about a day. A three-hour case with frequent
-            boluses overruns the log panel without ever needing a second
-            chart, so the two cannot share a trigger.
-        ════════════════════════════════════════════════════════ */}
+        {/* The drug log's overflow, on its own sheets. Separate from the
+          * timetable continuations above: a three-hour case with frequent
+          * boluses overruns the log without ever needing a second chart. */}
         {drugLogCont.map((entries, k) => (
-          <div key={`drugcont-${k}`} className="page-intraop border border-slate-200 rounded-xl bg-white p-3 flex flex-col gap-2 min-h-[520px]">
-            <div className="flex items-center justify-between border-b-2 border-blue-900 dark:border-blue-500 pb-1.5 gap-3">
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className="text-[13px] font-black tracking-tight text-slate-900">LOSPOR</span>
-                <span className="text-[9.5px] font-bold tracking-[0.14em] text-blue-900 dark:text-blue-300">{L.drugLog.toUpperCase()} · {contWord}</span>
-                <span className="text-[9px] text-slate-500 truncate">
-                  {[patientLine,
-                    locale === "bg" ? "самоличността — на лист 1" : "identity fields on Sheet 1",
-                  ].filter(Boolean).join(" · ")}
-                </span>
-              </div>
-              <div className="text-right text-[9px] text-slate-500 shrink-0">
-                <span className="font-bold text-slate-800">{entries[0].time} – {entries[entries.length - 1].time}</span>
-                {" · "}{data.caseCode ? `Case ${data.caseCode} · ` : ""}
-                {locale === "bg"
-                  ? `Стр. ${contSheets.length + k + 2} от ${pageTotal}`
-                  : `Page ${contSheets.length + k + 2} of ${pageTotal}`}
-              </div>
-            </div>
-
-            {/* Four columns rather than sheet 1's two: this page has nothing
-              * else on it, so the entries can be narrower and there can be
-              * far more of them before another sheet is needed. */}
-            <div className="border border-slate-200 rounded-lg bg-white flex-1 min-h-0 overflow-hidden p-2">
-              <div className="grid grid-cols-4 gap-x-3">
-                {entries.map(d => (
-                  <div key={d.n} className="flex items-center gap-1.5 text-[8.5px] leading-[12px] min-w-0">
-                    <span className="inline-flex items-center justify-center w-[11px] h-[11px] rounded-full border text-[6.8px] font-bold shrink-0"
-                      style={{ color: d.color, borderColor: d.color }}>{d.n}</span>
-                    <span className="font-bold text-slate-500 text-[8px]" style={{ fontFamily: "Consolas, monospace" }}>{d.time}</span>
-                    <span className="text-slate-700 truncate flex-1">{displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })}</span>
-                    <span className="font-bold text-slate-900 whitespace-nowrap" style={{ fontFamily: "Consolas, monospace" }}>{d.dose}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
-              <span>{L.footerLine}</span>
-              <span>{k < drugLogCont.length - 1
-                ? (locale === "bg" ? `Продължава на лист ${contSheets.length + k + 3} · ` : `Continues on Sheet ${contSheets.length + k + 3} · `)
-                : ""}{L.generatedLbl} {format(new Date(), "dd MMM yyyy")}</span>
-            </div>
-          </div>
+          <DrugLogContinuationSheet
+            key={`drugcont-${k}`}
+            entries={entries}
+            sheetNumber={contSheets.length + k + 2}
+            sheetCount={pageTotal}
+            hasNext={k < drugLogCont.length - 1}
+            nextSheetNumber={contSheets.length + k + 3}
+            locale={locale}
+            labels={L}
+            patientLine={patientLine}
+            caseCode={data.caseCode}
+            continuedWord={contWord}
+          />
         ))}
 
         {/* ═══════════════════════════════════════════════════════
@@ -818,140 +693,40 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
               <F label={L.heightWeight} value={p?.heightCm && p?.weightKg ? `${p.heightCm} cm / ${p.weightKg} kg` : null} />
               <F label="BMI"           value={p?.bmi ? `${formatBmi(p.bmi)} kg/m²` : null} />
             </div>
-            {/* History & comorbidities + meds + allergies */}
-            <div className="border border-slate-200 rounded-lg p-2 bg-white">
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.histCom.toUpperCase()}</p>
-              {comorbidities.length > 0 && (
-                <div className="flex flex-wrap mb-1">{comorbidities.map((c, idx) => <Chip key={idx} color="amber">{c.label ?? String(c)}</Chip>)}</div>
-              )}
-              {currentMedicationsText && (
-                <>
-                  <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1 mt-1.5">{L.medications.toUpperCase()}</p>
-                  <p className="text-[9.5px] text-slate-700 leading-snug">{currentMedicationsText}</p>
-                </>
-              )}
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-red-800 mb-0.5 mt-1.5">{L.allergies.toUpperCase()}</p>
-              {(p?.allergies || p?.latexAllergy) ? (
-                <>
-                  {allergyDetailsText && <p className="text-[9.5px] font-bold text-red-700">{allergyDetailsText}</p>}
-                  {p?.latexAllergy   && <p className="text-[9px] text-red-600">{L.latexAllergy}</p>}
-                </>
-              ) : <p className="text-[9px] text-slate-500">{L.nkda}</p>}
-              {/* Under a heading of its own. These three lines used to trail
-                * the allergy list with nothing between them and it, so a bold
-                * red "Malignant hyperthermia history" sat directly beneath
-                * "NKDA" and read, at a glance on paper, as an allergy entry.
-                *
-                * The heading appears only when there is something under it —
-                * an empty "Anaesthetic history" would say the history was taken
-                * and unremarkable, which is the assertion this box has just
-                * stopped making. */}
-              {(p?.familyAnesthesiaProblems === true
-                || p?.malignantHyperthermiaHistory === true
-                || p?.unexplainedAnaesthesiaComplications === true) && (
-                <>
-                  <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-0.5 mt-1.5">{L.anaestheticHistory.toUpperCase()}</p>
-                  {p?.malignantHyperthermiaHistory === true && (
-                    <p className="text-[8.5px] font-bold text-red-700">{L.malignantHyperthermia}</p>
-                  )}
-                  {p?.unexplainedAnaesthesiaComplications === true && (
-                    <p className="text-[8.5px] text-amber-700 mt-0.5">{L.unexplainedAnaesthesiaComplications}</p>
-                  )}
-                  {p?.familyAnesthesiaProblems === true && (
-                    <p className="text-[8.5px] text-amber-700 mt-0.5">{L.familyHistory}</p>
-                  )}
-                </>
-              )}
-            </div>
-            {/* Investigations */}
-            <div className="border border-slate-200 rounded-lg p-2 bg-white">
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.investigations.toUpperCase()}</p>
-              {shownDraws.length > 0 ? (
-                <div
-                  className={shownDraws.reduce((n, d) => n + d.results.length, 0) >= 12 ? "lab-compact" : ""}
-                  style={{ columns: shownDraws.reduce((n, d) => n + d.results.length, 0) >= 24 ? 2 : 1, columnGap: "0.5rem" }}
-                >
-                  {shownDraws.map((draw, drawIdx) => (
-                    <div key={drawIdx} style={{ breakInside: "avoid" }}>
-                      {/* The draw time is the heading. Two gases an hour apart
-                        * are two readings of a changing patient, and without it
-                        * they read as one contradictory set. */}
-                      <p className="text-[8px] font-bold text-slate-500 tracking-wide mt-1 first:mt-0">{draw.label}</p>
-                      {draw.results.map((l, idx) => (
-                        <div key={idx} className="lab-entry">
-                          <F label={l.test ?? ""} value={`${l.value}${l.unit ? " " + l.unit : ""}`} />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                  {omittedResults > 0 && (
-                    <p className="text-[7.5px] text-slate-500 border-t border-slate-100 mt-1 pt-0.5">
-                      {L.labsOmitted(omittedResults, omittedDraws)}
-                    </p>
-                  )}
-                </div>
-              ) : omittedResults > 0 ? (
-                <p className="text-[7.5px] text-slate-500">{L.labsOmitted(omittedResults, omittedDraws)}</p>
-              ) : <p className="text-[9px] text-slate-400">—</p>}
-            </div>
+            {/* What this patient already has, is already taking, and what has
+              * gone wrong before — read together, so kept together. */}
+            <HistoryAndAllergiesBox
+              preop={p}
+              labels={L as unknown as Record<string, string>}
+              comorbidities={comorbidities}
+              currentMedicationsText={currentMedicationsText}
+              allergyDetailsText={allergyDetailsText}
+              Chip={Chip}
+            />
+            {/* Intraoperative results, grouped by draw and capped at what the
+              * page holds — see ./case-summary/investigations for both. */}
+            <InvestigationsBox
+              shownDraws={shownDraws}
+              omittedResults={omittedResults}
+              omittedDraws={omittedDraws}
+              title={L.investigations}
+              omittedLabel={L.labsOmitted}
+              Field={F}
+            />
           </div>
 
-          {/* POSTOPERATIVE RECOVERY */}
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] font-bold tracking-[0.12em] text-blue-900 dark:text-blue-300">{L.postopRecoveryLbl}</span>
-            <div className="flex-1 h-px bg-blue-100 dark:bg-blue-900/60" />
-          </div>
-          <div className="grid grid-cols-6 gap-2">
-            {[
-              ["Activity",      o?.aldreteActivity],
-              ["Respiration",   o?.aldreteRespiration],
-              ["Circulation",   o?.aldreteCirculation],
-              ["Consciousness", o?.aldreteConsciousness],
-              ["SpO₂",          o?.aldreteSpO2],
-            ].map(([lbl, val]) => (
-              <div key={lbl as string} className="border border-slate-200 rounded-lg text-center py-1.5 bg-white">
-                <p className="text-[8px] text-slate-500">{lbl as string}</p>
-                <p className="text-[15px] font-extrabold text-slate-900 leading-tight">{val ?? "—"}</p>
-              </div>
-            ))}
-            <div className={`border rounded-lg text-center py-1.5 ${aldreteBg}`}>
-              <p className="text-[8px] font-medium">{L.aldreteTotalLbl}</p>
-              <p className="text-[15px] font-extrabold leading-tight">{o?.aldreteTotal ?? "—"} / 10</p>
-              <p className="text-[7px]">{aldreteStatus === "ready" ? L.readyDischarge : aldreteStatus === "observe" ? L.monitor : aldreteStatus === "not_ready" ? L.continueStr : "—"}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-            <div className="border border-slate-200 rounded-lg p-2 bg-white">
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.recoveryObs.toUpperCase()}</p>
-              <F label={L.bp} value={o?.recoveryBpSystolic != null && o?.recoveryBpDiastolic != null ? `${o.recoveryBpSystolic} / ${o.recoveryBpDiastolic} mmHg` : null} />
-              <F label={L.hr} value={o?.recoveryHeartRate != null ? `${o.recoveryHeartRate} bpm` : null} />
-              <F label="SpO₂" value={o?.recoverySpO2 != null ? `${o.recoverySpO2} %` : null} />
-              <F label={L.temperature} value={o?.temperatureCelsius ? `${o.temperatureCelsius} °C` : null} />
-              <F label={L.painNRS}     value={o?.painScoreNRS != null ? `${o.painScoreNRS} / 10` : null} />
-              <F label={L.ponv}        value={o?.ponv ? "Yes" : o?.ponv === false ? "None" : null} />
-            </div>
-            <div className="border border-slate-200 rounded-lg p-2 bg-white">
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.disposition.toUpperCase()}</p>
-              {o?.disposition && (
-                <span className={`inline-block text-[11px] font-extrabold px-3 py-0.5 rounded-md border mb-1.5 ${
-                  o.disposition === "WARD" ? "bg-green-100 text-green-800 border-green-300" :
-                  o.disposition === "PACU" ? "bg-amber-100 text-amber-800 border-amber-300" :
-                  "bg-red-100 text-red-800 border-red-300"
-                }`}>{displayClinicalCode("option:DISPOSITION", o.disposition, locale)}</span>
-              )}
-              {o?.dispositionNotes && <p className="text-[9.5px] text-slate-700 leading-snug">{o.dispositionNotes}</p>}
-            </div>
-            <div className="border border-slate-200 rounded-lg p-2 bg-white">
-              <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1.5">{L.handover.toUpperCase()}</p>
-              <div className="flex flex-wrap gap-1">
-                {handoverItems.length > 0 ? handoverItems.map((code: string, idx: number) => (
-                  <span key={idx} className="text-[8.5px] text-green-800 bg-green-50 border border-green-200 rounded px-1.5 py-[1.5px]">
-                    ✓ {handoverLookup[code] ?? code.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                  </span>
-                )) : <p className="text-[9px] text-slate-400">—</p>}
-              </div>
-            </div>
-          </div>
+          {/* What happened after theatre, read by whoever takes the patient
+            * next. Its own section because it is one clinical unit. */}
+          <PostopRecoverySection
+            postop={o}
+            labels={L as unknown as Record<string, string>}
+            aldreteBg={aldreteBg}
+            aldreteStatus={aldreteStatus}
+            handoverItems={handoverItems}
+            handoverLookup={handoverLookup}
+            Field={F}
+            locale={locale}
+          />
 
           {/* Signatures */}
           <div className="grid grid-cols-3 gap-8 mt-1">

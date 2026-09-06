@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useIntraopLibraryConfig } from "@/lib/use-intraop-library-config"
+import { nowMarkerGeometry } from "@/lib/timetable-clock"
+import { clinicalProvenance } from "@/lib/intraop-provenance"
 import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
@@ -357,78 +360,16 @@ export function IntraopTimetable({
     [infusionLibOpts],
   )
 
-  const { QUICK_DRUGS, HIDDEN_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS, LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES, BOLUS_ROUTE_PROFILES } = useMemo(() => {
-    const byGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string }[] }>()
-    const hiddenByGroup = new Map<string, { cat: string; color: string; drugs: { name: string; unit: string; manualEntryOnly: true }[] }>()
-    // Only the picker hides ruleset-hidden drugs; the maps below stay complete so
-    // a drug already recorded on the case keeps its units, codes and colour.
-    for (const o of visibleClinicalOptions(drugLibOpts)) {
-      const cat = o.group ?? "Other"
-      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", drugs: [] })
-      byGroup.get(cat)!.drugs.push({
-        name: o.label,
-        unit: metadataString(o.metadata, "unit") ?? "mg",
-      })
-    }
-    // A hidden canonical drug is absent from routine scenarios, favourites and
-    // browse lists, but exact search must still let a clinician document it.
-    for (const o of drugLibOpts.filter(isClinicalRuleHidden)) {
-      const cat = o.group ?? "Other"
-      if (!hiddenByGroup.has(cat)) hiddenByGroup.set(cat, { cat, color: o.color ?? "", drugs: [] })
-      hiddenByGroup.get(cat)!.drugs.push({
-        name: o.label,
-        unit: metadataString(o.metadata, "unit") ?? "mg",
-        manualEntryOnly: true,
-      })
-    }
-    return {
-      QUICK_DRUGS: [...byGroup.values()],
-      HIDDEN_DRUGS: [...hiddenByGroup.values()],
-      BOLUS_DOSES: doseCalcMap(drugLibOpts),
-      BOLUS_CONFIGS: strictRangeMap(drugLibOpts),
-      LA_CONCENTRATIONS: concentrationsMap(drugLibOpts),
-      DRUG_ROUTES: routesMap(drugLibOpts),
-      QUICK_DOSES: quickNumberMap(drugLibOpts),
-      BOLUS_ROUTE_PROFILES: routeProfilesMap(drugLibOpts),
-    }
-  }, [drugLibOpts])
-
+  // Options in, configuration out — see @/lib/use-intraop-library-config.
   const {
-    QUICK_FLUIDS,
-    FLUID_QUICK_VOLUMES,
-    FLUID_ROUTES,
-    FLUID_CONCENTRATIONS,
-    FLUID_DEFAULT_CONCENTRATIONS,
-    FLUID_CONFIGS,
-  } = useMemo(() => {
-    const byGroup = new Map<string, { cat: string; color: string; fluids: { name: string }[] }>()
-    const profiles = baseProfilesMap(fluidLibOpts)
-    // As with drugs above: only the picker hides ruleset-hidden fluids, while
-    // the maps below stay complete so a fluid already recorded on the case
-    // keeps its volumes, routes and concentrations.
-    for (const o of visibleClinicalOptions(fluidLibOpts)) {
-      const cat = o.group ?? "Other"
-      if (!byGroup.has(cat)) byGroup.set(cat, { cat, color: o.color ?? "", fluids: [] })
-      byGroup.get(cat)!.fluids.push({ name: o.label })
-    }
-    return {
-      QUICK_FLUIDS: [...byGroup.values()],
-      FLUID_QUICK_VOLUMES: quickNumberMap(fluidLibOpts),
-      FLUID_ROUTES: routesMap(fluidLibOpts),
-      FLUID_CONCENTRATIONS: concentrationsMap(fluidLibOpts),
-      FLUID_DEFAULT_CONCENTRATIONS: defaultConcentrationMap(fluidLibOpts),
-      FLUID_CONFIGS: Object.fromEntries(fluidLibOpts.map(option => {
-        const profile = profiles[option.label]
-        return [option.label, {
-          min: profile?.min ?? 0,
-          max: profile?.max ?? 2000,
-          step: profile?.step ?? 50,
-          unit: profile?.unit ?? "mL",
-          suggestedVolume: metadataNumber(option.metadata, "suggestedVolume"),
-        }]
-      })),
-    }
-  }, [fluidLibOpts])
+    QUICK_DRUGS, HIDDEN_DRUGS, BOLUS_DOSES, BOLUS_CONFIGS,
+    LA_CONCENTRATIONS, DRUG_ROUTES, QUICK_DOSES, BOLUS_ROUTE_PROFILES,
+    QUICK_FLUIDS, FLUID_QUICK_VOLUMES, FLUID_ROUTES, FLUID_CONCENTRATIONS,
+    FLUID_DEFAULT_CONCENTRATIONS, FLUID_CONFIGS,
+    INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES,
+    INFUSION_ROUTE_PROFILES,
+  } = useIntraopLibraryConfig({ drugLibOpts, fluidLibOpts, infusionLibOpts })
+
 
   const getFluidColor = useCallback((name: string) => fluidColor(name, QUICK_FLUIDS), [QUICK_FLUIDS])
   const getFluidCategory = useCallback((name: string) => fluidCategory(name, QUICK_FLUIDS), [QUICK_FLUIDS])
@@ -438,34 +379,6 @@ export function IntraopTimetable({
     return groupClinicalEvents(eventLibOpts)
   }, [eventLibOpts])
 
-  const { INFUSION_CONFIGS, INFUSION_WEIGHT_BASIS, INFUSION_ROUTES, QUICK_RATES, INFUSION_ROUTE_PROFILES } = useMemo(() => {
-    const configs: Record<string, { units: string[]; min: number; max: number; step: number; color: string; suggestedRate?: number }> = {}
-    const profiles = baseProfilesMap(infusionLibOpts)
-    for (const o of infusionLibOpts) {
-      const profile = profiles[o.label]
-      configs[o.label] = {
-        units: [profile?.unit ?? "mg/hr"],
-        min: profile?.min ?? 0,
-        max: profile?.max ?? 100,
-        step: profile?.step ?? 1,
-        color: o.color ?? "#64748b",
-        suggestedRate: profile?.suggestedRate,
-      }
-    }
-    const infusionWeightBasis: WeightBasisMap = Object.fromEntries(
-      Object.entries(weightBasisMap(infusionLibOpts)).map(([name, basis]) => [
-        name,
-        basis === "IBW" || basis === "TBW" ? basis : "none",
-      ]),
-    )
-    return {
-      INFUSION_CONFIGS: configs,
-      INFUSION_WEIGHT_BASIS: infusionWeightBasis,
-      INFUSION_ROUTES: routesMap(infusionLibOpts),
-      QUICK_RATES: quickNumberMap(infusionLibOpts),
-      INFUSION_ROUTE_PROFILES: routeProfilesMap(infusionLibOpts),
-    }
-  }, [infusionLibOpts])
 
   const { INH_AGENTS, AGENT_STYLE, AGENT_QUICK_PERCENTS } = useMemo(() => {
     return {
@@ -801,12 +714,7 @@ export function IntraopTimetable({
       ...(pending.bagVolumeMl != null ? { bagVolumeMl: pending.bagVolumeMl } : {}),
       ...(pending.rate != null ? { rate: pending.rate, unit: pending.unit ?? "mL/h" } : {}),
       ...(pending.concentration ? { concentration: pending.concentration } : {}),
-      clinicalRuleKey: pending.clinicalRuleKey,
-      clinicalRuleVersion: pending.clinicalRuleVersion,
-      clinicalRuleSourceIds: pending.clinicalRuleSourceIds,
-      clinicalPresetId: pending.clinicalPresetId,
-      clinicalPresetVersion: pending.clinicalPresetVersion,
-      clinicalPresetScope: pending.clinicalPresetScope,
+      ...clinicalProvenance(pending),
     }
   }
 
@@ -824,12 +732,7 @@ export function IntraopTimetable({
       rate: fluid.rate == null ? undefined : String(fluid.rate),
       unit: fluid.unit,
       concentration: fluid.concentration,
-      clinicalRuleKey: fluid.clinicalRuleKey,
-      clinicalRuleVersion: fluid.clinicalRuleVersion,
-      clinicalRuleSourceIds: fluid.clinicalRuleSourceIds,
-      clinicalPresetId: fluid.clinicalPresetId,
-      clinicalPresetVersion: fluid.clinicalPresetVersion,
-      clinicalPresetScope: fluid.clinicalPresetScope,
+      ...clinicalProvenance(fluid),
     })
   }
 
@@ -880,12 +783,7 @@ export function IntraopTimetable({
         ? { bagVolumeMl: Number(fp.dose) || 0 }
         : { rate: parsedRate, unit: "mL/h" as const }),
       ...(fp.concentration ? { concentration: fp.concentration } : {}),
-      clinicalRuleKey: fp.clinicalRuleKey,
-      clinicalRuleVersion: fp.clinicalRuleVersion,
-      clinicalRuleSourceIds: fp.clinicalRuleSourceIds,
-      clinicalPresetId: fp.clinicalPresetId,
-      clinicalPresetVersion: fp.clinicalPresetVersion,
-      clinicalPresetScope: fp.clinicalPresetScope,
+      ...clinicalProvenance(fp),
     }
     const anchor = fp.anchor
     const conflict = checkFluidConflict(pending, fp.col, anchor)
@@ -900,12 +798,7 @@ export function IntraopTimetable({
     const id   = `${fp.name}-${fp.col}-${uid()}`
     const lib = infusionLibOpts.find(o => o.label === fp.name)
     const ruleAudit = {
-      clinicalRuleKey: fp.clinicalRuleKey,
-      clinicalRuleVersion: fp.clinicalRuleVersion,
-      clinicalRuleSourceIds: fp.clinicalRuleSourceIds,
-      clinicalPresetId: fp.clinicalPresetId,
-      clinicalPresetVersion: fp.clinicalPresetVersion,
-      clinicalPresetScope: fp.clinicalPresetScope,
+      ...clinicalProvenance(fp),
     }
     onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:fp.rate, unit:fp.rateUnit, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, formulation: fp.formulation, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit }] })
     emitLogEvent({ type: "infusion_start", infId: id, name: displayName, rate: String(fp.rate), unit: fp.rateUnit, color: cfg.color, concentration: fp.concentration, formulation: fp.formulation, drugRoute: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit })
@@ -1058,12 +951,7 @@ export function IntraopTimetable({
             calculationBasis: last.calculationBasis,
             calculationWeightKg: last.calculationWeightKg,
             calculationMethod: last.calculationMethod,
-            clinicalRuleKey: last.clinicalRuleKey,
-            clinicalRuleVersion: last.clinicalRuleVersion,
-            clinicalRuleSourceIds: last.clinicalRuleSourceIds,
-            clinicalPresetId: last.clinicalPresetId,
-            clinicalPresetVersion: last.clinicalPresetVersion,
-            clinicalPresetScope: last.clinicalPresetScope,
+            ...clinicalProvenance(last),
           })
           setSel({type:"drug", idx:newDrugs.length-1})
         }
@@ -1233,20 +1121,23 @@ export function IntraopTimetable({
       const now = new Date()
       // Measured from the grid origin (column 0's own start), so the marker lands
       // on the wall clock instead of sitting up to 4:59 to the left of it.
-      const diffSecs = secondsFromGridOrigin(gridStartMs, now)
-      // Start time is in the future — the case hasn't begun. Park the clock:
-      // no now-marker, no table growth, no auto-extend of live bars.
-      if (diffSecs === null || diffSecs < 0) { setNowOffsetPx(null); prevColRef.current = null; return }
+      // Where the marker goes and how wide the table needs to be is arithmetic,
+      // and lives in @/lib/timetable-clock where it has a test. Everything that
+      // follows — the setters, the auto-extend, the back-fill — stays here.
+      const geometry = nowMarkerGeometry({
+        gridStartMs,
+        now,
+        intervalMinutes: INTERVAL,
+        columnWidthPx: COL_W,
+        colCount: colCountRef.current,
+        layout: layoutRef.current,
+        rowCols: ROW_COLS,
+      })
+      if (geometry.offsetPx === null) { setNowOffsetPx(null); prevColRef.current = null; return }
       {
-        const px  = diffSecs / (INTERVAL * 60) * COL_W
-        // Size off the true elapsed column, not the clamped one: clamping to
-        // colCount-1 made the grow-check below always true, so the table crept
-        // outward one row per tick instead of sizing to the clock in one go.
-        const trueCol = Math.floor(diffSecs / (INTERVAL * 60))
-        if (trueCol + 1 >= colCountRef.current)
-          setColCount(layoutRef.current === "scroll" ? trueCol + 2 : Math.ceil((trueCol + 2) / ROW_COLS) * ROW_COLS)
-        const col = Math.min(trueCol, colCountRef.current - 1)
-        setNowOffsetPx(Math.min(px, colCountRef.current * COL_W))
+        const { trueCol, col } = geometry
+        if (geometry.requiredColCount !== null) setColCount(geometry.requiredColCount)
+        setNowOffsetPx(geometry.offsetPx)
         setSelectedCol(col)
 
         // Auto-extend live bars to current column (any bar behind current that isn't stopped)
@@ -1411,12 +1302,7 @@ export function IntraopTimetable({
       rate: String(rate),
       unit: "mL/h",
       color: fluid.color,
-      clinicalRuleKey: fluid.clinicalRuleKey,
-      clinicalRuleVersion: fluid.clinicalRuleVersion,
-      clinicalRuleSourceIds: fluid.clinicalRuleSourceIds,
-      clinicalPresetId: fluid.clinicalPresetId,
-      clinicalPresetVersion: fluid.clinicalPresetVersion,
-      clinicalPresetScope: fluid.clinicalPresetScope,
+      ...clinicalProvenance(fluid),
     })
   }
 
@@ -1449,12 +1335,7 @@ export function IntraopTimetable({
       fluidEntryMode: fluid.fluidEntryMode,
       administeredVolumeMl: actualVolumeMl,
       volume: String(actualVolumeMl),
-      clinicalRuleKey: fluid.clinicalRuleKey,
-      clinicalRuleVersion: fluid.clinicalRuleVersion,
-      clinicalRuleSourceIds: fluid.clinicalRuleSourceIds,
-      clinicalPresetId: fluid.clinicalPresetId,
-      clinicalPresetVersion: fluid.clinicalPresetVersion,
-      clinicalPresetScope: fluid.clinicalPresetScope,
+      ...clinicalProvenance(fluid),
     })
   }
 
