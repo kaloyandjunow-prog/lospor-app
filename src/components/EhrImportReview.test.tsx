@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { normalizeEhrImport } from "@lospor/core/ehr-import"
 import { buildEhrReviewPlan, type EhrReviewInput } from "@lospor/core/ehr-import-review"
+import type { EhrUnreadSource } from "@lospor/core/ehr-import-transport"
 import { EhrImportReview } from "./EhrImportReview"
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }))
@@ -16,6 +17,20 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }))
  * with worse consequences, and only a paired test catches it.
  */
 
+/**
+ * A test name the catalogue actually holds, with its canonical unit.
+ *
+ * These fixtures used the shorthand "Hb" and no unit, which passed when any
+ * name flowed through untouched. Core now resolves an incoming result against
+ * the catalogue and refuses one it has no field for -- an unrecognised name is
+ * `unsupported-test` and an unconvertible unit is `unconverted`, neither of
+ * which is offered pre-ticked. That is the point of the check: a hospital's own
+ * code reaches a LOSPOR field only once a site has mapped it. So the fixture
+ * has to name a real test, or it exercises the refusal path rather than the
+ * freshness ranking these tests are about.
+ */
+const HB = "Haemoglobin (Hb)"
+
 function review(
   fields: Record<string, unknown>,
   rest: Partial<Omit<EhrReviewInput, "canonical">> = {},
@@ -24,6 +39,8 @@ function review(
     onDecline: (itemKey: string) => void
     onRequestModeChange: () => void
   }> = {},
+  identityUnverified?: boolean,
+  unreadSources?: EhrUnreadSource[],
 ) {
   const { canonical } = normalizeEhrImport({ identifierType: "IZ", identifier: "42", fields })
   const current = rest.current ?? {}
@@ -31,6 +48,8 @@ function review(
   return render(
     <EhrImportReview
       plan={plan}
+      identityUnverified={identityUnverified}
+      unreadSources={unreadSources}
       current={current}
       currentClinicalMode={rest.currentClinicalMode}
       labelFor={field => field}
@@ -123,16 +142,16 @@ describe("what the clinician already wrote stays on screen", () => {
 describe("older results stay out of the way until asked for", () => {
   const twoHaemoglobins = {
     labResults: [
-      { test: "Hb", value: "120", takenAt: "2026-08-29T08:00:00Z" },
-      { test: "Hb", value: "89", takenAt: "2026-09-01T08:00:00Z" },
+      { test: HB, value: "120", unit: "g/L", takenAt: "2026-08-29T08:00:00Z" },
+      { test: HB, value: "89", unit: "g/L", takenAt: "2026-09-01T08:00:00Z" },
     ],
   }
 
   it("shows the newest and collapses the earlier one behind a count", () => {
     review(twoHaemoglobins)
 
-    expect(screen.getByText("Hb 89")).toBeTruthy()
-    expect(screen.queryByText("Hb 120")).toBeNull()
+    expect(screen.getByText(`${HB} 89 g/L`)).toBeTruthy()
+    expect(screen.queryByText(`${HB} 120 g/L`)).toBeNull()
     expect(screen.getByRole("button", { name: /earlierResults/ })).toBeTruthy()
   })
 
@@ -141,7 +160,7 @@ describe("older results stay out of the way until asked for", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /earlierResults/ }))
 
-    expect(screen.getByText("Hb 120")).toBeTruthy()
+    expect(screen.getByText(`${HB} 120 g/L`)).toBeTruthy()
   })
 })
 
@@ -149,14 +168,14 @@ describe("an undated result says so", () => {
   it("labels it and leaves it unticked", () => {
     // Beside dated results it would otherwise read as current, and a
     // preoperative haemoglobin is only worth anything if you know its age.
-    review({ labResults: [{ test: "Hb", value: "89" }] })
+    review({ labResults: [{ test: HB, value: "89", unit: "g/L" }] })
 
     expect(screen.getByText("undated")).toBeTruthy()
     expect(boxes()[0].checked).toBe(false)
   })
 
   it("shows the draw date when there is one", () => {
-    review({ labResults: [{ test: "Hb", value: "89", takenAt: "2026-09-01T08:00:00Z" }] })
+    review({ labResults: [{ test: HB, value: "89", unit: "g/L", takenAt: "2026-09-01T08:00:00Z" }] })
 
     expect(screen.getByText(/2026-09-01/)).toBeTruthy()
     expect(boxes()[0].checked).toBe(true)
@@ -164,13 +183,13 @@ describe("an undated result says so", () => {
 
   it("can still be taken, once the clinician has read that it is undated", () => {
     const onAccept = vi.fn()
-    review({ labResults: [{ test: "Hb", value: "89" }] }, {}, { onAccept })
+    review({ labResults: [{ test: HB, value: "89", unit: "g/L" }] }, {}, { onAccept })
 
     fireEvent.click(boxes()[0])
     fireEvent.click(acceptButton())
 
     expect(onAccept).toHaveBeenCalledWith(
-      { labResults: [expect.objectContaining({ test: "Hb", takenAt: null })] },
+      { labResults: [expect.objectContaining({ test: HB, takenAt: null })] },
       [expect.any(String)],
     )
   })
@@ -206,5 +225,49 @@ describe("nothing is written without a deliberate act", () => {
     fireEvent.click(screen.getByRole("button", { name: "decline" }))
 
     expect(onDecline).toHaveBeenCalledWith("diagnoses|k35")
+  })
+})
+
+/**
+ * The one thing on this screen that is not about a value.
+ *
+ * A hospital numbers the same person several ways, and until a site says
+ * which numbering its record numbers use, a single clean match can belong to
+ * a different one. The appliance still offers the import -- a site has to be
+ * able to work before it has configured that -- so the only thing standing
+ * between a stranger's allergy list and this case is the clinician reading
+ * this sentence.
+ */
+describe("an identity nothing could verify", () => {
+  it("says so, above the values it qualifies", () => {
+    review({ allergies: ["Penicillin"] }, {}, {}, true)
+    expect(screen.getByRole("note").textContent).toBe("identityUnverified")
+  })
+
+  it("says nothing when the match was checked against a configured system", () => {
+    review({ allergies: ["Penicillin"] })
+    expect(screen.queryByRole("note")).toBeNull()
+  })
+})
+
+/**
+ * The warning that matters more than the values.
+ *
+ * An allergy fetch that failed produces the same empty list as a patient with
+ * no allergies -- and an empty allergy list reads as reassurance. Without
+ * this the screen invites somebody to choose a drug on the strength of a
+ * question nobody managed to ask.
+ */
+describe("groups the hospital system could not be read for", () => {
+  it("names them", () => {
+    review({ allergies: ["Penicillin"] }, {}, {}, undefined, [
+      { group: "allergies", errorCode: "HTTP_503" },
+    ])
+    expect(screen.getByRole("alert").textContent).toContain("unreadSources")
+  })
+
+  it("says nothing when everything was read", () => {
+    review({ allergies: ["Penicillin"] })
+    expect(screen.queryByRole("alert")).toBeNull()
   })
 })

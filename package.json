@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "9.7.1",
+  "version": "9.8.0",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
@@ -29,13 +29,15 @@
     "sharp": "0.35.3",
     "serialize-javascript": "^7.0.6",
     "minimatch": "10.2.6",
-    "nanoid": "^3.3.18"
+    "nanoid": "^3.3.18",
+    "fast-uri": "^3.1.7",
+    "qs": "^6.15.4"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.2.2",
-    "@lospor/core": "github:kaloyandjunow-prog/lospor-core#v9.6.1",
+    "@lospor/core": "github:kaloyandjunow-prog/lospor-core#v9.8.0",
     "@sentry/nextjs": "^10.57.0",
     "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",

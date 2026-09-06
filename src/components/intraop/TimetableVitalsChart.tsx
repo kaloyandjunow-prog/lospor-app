@@ -26,7 +26,17 @@ export const VITAL_ROW_DEFS: {
   { key:"spO2",      label:"SpO₂",   unit:"%",     color:"#06b6d4", min:50, max:100, step:1,   defaultVal:98,  monitors:["spO2Monitor"]             },
   { key:"etco2",     label:"EtCO₂",  unit:"mmHg",  color:"#f59e0b", min:0,  max:80,  step:1,   defaultVal:35,  monitors:["etco2Monitor"]            },
   { key:"temp",      label:"Temp",    unit:"°C",    color:"#a78bfa", min:30, max:42,  step:0.1, defaultVal:36.5,monitors:["tempMonitor"]             },
-  { key:"bgl",       label:"Serum/peripheral glucose", unit:"mmol/L",color:"#34d399", min:0,  max:30,  step:0.1, defaultVal:5.5, monitors:["bglMonitor"]              },
+  // The monitors that read a number. Each row appears only while its own
+  // modality is selected, which is what the `monitors` gate already does for
+  // every row above -- selection controls whether the lane is shown, not
+  // whether the readings exist, so unticking mid-case keeps what was charted.
+  //
+  // defaultVal is where the stepper opens, not a value anything stores. 50 is
+  // mid-range surgical anaesthesia for BIS and 0.9 is the threshold for
+  // adequate reversal, so both open where a clinician is most often heading.
+  { key:"bis",       label:"BIS",     unit:"",      color:"#e879f9", min:0,  max:100, step:1,   defaultVal:50,  monitors:["bis"]                     },
+  { key:"tofRatio",  label:"TOF",     unit:"ratio", color:"#fb923c", min:0,  max:1,   step:0.1, defaultVal:0.9, monitors:["tofMonitor"]              },
+  { key:"cvp",       label:"CVP",     unit:"mmHg",  color:"#38bdf8", min:0.1,max:50,  step:0.1, defaultVal:8,   monitors:["cvpMonitor"]              },
 ]
 
 // ── Div-based chart ───────────────────────────────────────────────────────────

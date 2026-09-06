@@ -1,6 +1,9 @@
 "use client"
 
 import { useForm, useWatch, type Resolver } from "react-hook-form"
+import { premedicationCategories } from "@/lib/premedication-groups"
+import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
+import { buildIntraopSubmission, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,9 +25,11 @@ import {
   requiredMonitoringFieldsForTechniques,
   syncAirwayDeviceSelection,
   type AirwayDeviceWithProfile,
+  airwayAbsentReason,
 } from "@lospor/core/intraop"
 import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
+import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
@@ -71,7 +76,11 @@ const vitalsRowSchema = z.object({
   spO2:      z.coerce.number().nullable().optional(),
   etco2:     z.coerce.number().nullable().optional(),
   temp:      z.coerce.number().nullable().optional(),
-  bgl:       z.coerce.number().nullable().optional(),
+  // The monitors that read a number, timed like every other vital here.
+  bis:       z.coerce.number().nullable().optional(),
+  tofRatio:  z.coerce.number().nullable().optional(),
+  // Always mmHg; the entry control converts if the clinician works in cmH2O.
+  cvp:       z.coerce.number().nullable().optional(),
   note:      z.string().optional(),
 })
 
@@ -96,6 +105,11 @@ const schema = z.object({
 
   techniques:      z.array(z.string()).catch([]).default([]),
   airwayDevices:   z.array(z.string()).catch([]).default([]),
+  // Why this case has no airway device of its own. Both were useState here and
+  // nowhere else: they relaxed the finalisation gate and were then thrown away,
+  // so the saved record showed no airway device and no reason for it.
+  presentsIntubated:   z.boolean().catch(false).default(false),
+  airwayNotApplicable: z.boolean().catch(false).default(false),
   tubeSize:        z.coerce.number().nullable().optional(),
   cuffed:          z.boolean().optional(),
   lmaSize:         z.coerce.number().nullable().optional(),
@@ -114,9 +128,6 @@ const schema = z.object({
   endobronchialSize: z.coerce.number().nullable().optional(),
 
   volatileAgent:   z.enum(["SEVOFLURANE","DESFLURANE","ISOFLURANE"]).optional(),
-  plexusBlock:      z.enum(["AXILLARY","INTERSCALENE","SUPRACLAVICULAR","INFRACLAVICULAR","FEMORAL","SCIATIC","POPLITEAL","TAP","ERECTOR_SPINAE"]).optional(),
-  cvkSite:          z.enum(["INTERNAL_JUGULAR","EXTERNAL_JUGULAR","SUBCLAVIAN","FEMORAL"]).optional(),
-  arterialLineSite: z.enum(["RADIAL","DORSALIS_PEDIS","FEMORAL","BRACHIAL"]).optional(),
 
   ecg: z.boolean().default(true), spO2Monitor: z.boolean().default(true),
   nbpMonitor: z.boolean().default(true),
@@ -126,7 +137,6 @@ const schema = z.object({
   bis: z.boolean().default(false), entropyMonitor: z.boolean().default(false),
   nirsMonitor: z.boolean().default(false), evokedPotentials: z.boolean().default(false),
   tofMonitor: z.boolean().default(false),
-  bglMonitor: z.boolean().default(false), bloodGasMonitor: z.boolean().default(false),
   urinaryCatheter: z.boolean().default(false), stomachTube: z.boolean().default(false),
   neuroMonitor: z.boolean().default(false),
   vascularAccesses: z.array(z.object({ site: z.string(), siteLabel: z.string(), sizeUnit: z.string(), size: z.string(), depthCm: z.string() }).passthrough()).catch([]).default([]),
@@ -148,6 +158,18 @@ const schema = z.object({
   // nobody made).
   bloodLossMl:       z.coerce.number().min(0).max(20000).nullable().optional(),
 
+  // Laboratory draws taken during the case. The same shape preop holds, and
+  // for the same reason -- a result is a result; only when it was drawn
+  // differs. Each entry carries its own takenAt, which is what makes two
+  // haemoglobins an hour apart a trend rather than one that looks corrected.
+  labResults: z.array(z.object({
+    test:  z.string(),
+    value: z.string(),
+    unit:  z.string().optional(),
+    source: z.enum(["manual", "ai-scan", "import"]).optional(),
+    takenAt: z.string().optional(),
+  }).passthrough()).catch([]).default([]),
+
   complications: z.string().optional(),
 })
 
@@ -166,7 +188,16 @@ export type IntraopData = IntraopFormFields & { timetableData?: TimetableData }
 
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
-export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onDeleteEvent, onLogEvent, onLogEventDelete }: {
+export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onDeleteEvent, onLogEvent, onLogEventDelete, caseId = null, aiOptIn = false }: {
+  /**
+   * The saved case, once autosave has created one.
+   *
+   * Needed by the intraoperative lab scan: the server reads AI consent from the
+   * stored case and ignores anything the client claims, because a photographed
+   * report carries the patient's name and no redaction is possible on an image.
+   */
+  caseId?: string | null
+  aiOptIn?: boolean
   defaultValues?: Partial<IntraopData>
   defaultTimetable?: TimetableData
   preop?: PreopSummary | null
@@ -197,6 +228,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       monthYear: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` })(),
       drugsAdministered: [], vitals: [], positions: [], techniques: [],
       airwayDevices: [], ventilationModes: [], airwayTools: [],
+      presentsIntubated: false, airwayNotApplicable: false, labResults: [],
       nbpMonitor: true, spO2Monitor: true, ecg: true,
       ...defaultValues,
     },
@@ -246,21 +278,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     [isPediatric, premedOptions, premedPatient],
   )
 
-  const premedCategories = useMemo<PremedCat[]>(() => {
-    if (premedPediatric) {
-      return premedPediatric.map(category => ({
-        cat: category.category,
-        drugs: category.drugs.map(drug => drug.name),
-      }))
-    }
-    const byGroup = new Map<string, string[]>()
-    for (const o of premedOptions) {
-      const group = o.group ?? "Other"
-      if (!byGroup.has(group)) byGroup.set(group, [])
-      byGroup.get(group)!.push(o.label)
-    }
-    return Array.from(byGroup, ([cat, drugs]) => ({ cat, drugs }))
-  }, [premedOptions, premedPediatric])
+  // Two shapes of the same list, reconciled in @/lib/premedication-groups.
+  const premedCategories = useMemo<PremedCat[]>(
+    () => premedicationCategories(premedOptions, premedPediatric),
+    [premedOptions, premedPediatric])
 
   const premedDoses = useMemo<Record<string, PremDoseCfg>>(() => {
     if (!premedPediatric) return premedicationDoseMap(premedOptions)
@@ -327,40 +348,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcIbw = ibwResolution.available ? ibwResolution.kilograms : null
   const calcTbw = preop?.weightKg ?? null
 
-  const liveDrugTotals = useMemo(() => {
-    // Bolus totals come from Core, not a local aggregation. The inline version
-    // this replaced rounded to two decimals while Core rounds to three, so the
-    // same case could show different totals on the web form and at the bedside.
-    const bolusList = calculateDrugTotals({ drugs: timetable.drugs }).map(row => ({
-      ...row,
-      mgTotal: null as number | null,
-    }))
-
-    const infusionList = (timetable.infusions ?? []).map(inf => {
-      const { amount, unit, weightUsed, weightBasis } = calcInfusionTotal(inf, calcIbw, calcTbw, infusionWeightBasis)
-      return {
-        name: inf.name,
-        total: amount,
-        unit,
-        mgTotal: infusionLocalAnaestheticMg(inf.name, amount, unit),
-        weightUsed,
-        weightBasis,
-      }
-    })
-
-    // If any infusion used a weight-adjusted calculation, build a footnote
-    const weightedEntries = infusionList.filter(r => r.weightUsed != null)
-    const weightNote = weightedEntries.length > 0 ? (() => {
-      const ibwUsed = weightedEntries.some(r => r.weightBasis === "IBW") ? calcIbw : null
-      const tbwUsed = weightedEntries.some(r => r.weightBasis === "TBW") ? calcTbw : null
-      const parts: string[] = []
-      if (ibwUsed) parts.push(`IBW ${Math.round(ibwUsed * 10) / 10} kg`)
-      if (tbwUsed) parts.push(`TBW ${Math.round((tbwUsed ?? 0) * 10) / 10} kg`)
-      return parts.length ? `† Weight-adjusted totals use ${parts.join(" / ")}` : null
-    })() : null
-
-    return { bolusList, infusionList, weightNote }
-  }, [calcIbw, calcTbw, infusionWeightBasis, timetable.drugs, timetable.infusions])
+  // Arithmetic, not interface — see @/lib/intraop-drug-totals.
+  const liveDrugTotals = useMemo(
+    () => computeLiveDrugTotals(timetable, calcIbw, calcTbw, infusionWeightBasis),
+    [calcIbw, calcTbw, infusionWeightBasis, timetable])
 
   // Auto-calculate fluid totals from the one canonical delivered-volume path.
   // Running rate entries advance against the real clock; bag entries retain
@@ -420,6 +411,12 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const _wVM = useWatch({ control, name: "ventilationModes" })
   const _wAT = useWatch({ control, name: "airwayTools" })
   const _wPS = useWatch({ control, name: "positions" })
+  const watchedLabResults = useWatch({ control, name: "labResults" })
+  // Which draw the dialog is editing. null takenAt with open true is the
+  // read-across view of every draw.
+  const [labsDialog, setLabsDialog] = useState<{ open: boolean; takenAt: string | null }>(
+    { open: false, takenAt: null },
+  )
   // Watch airway sub-option fields for auto-collapse logic
   const _wLmaSize       = useWatch({ control, name: "lmaSize" })
   const _wOralTubeSize  = useWatch({ control, name: "oralTubeSize" })
@@ -452,8 +449,25 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       if (pendingSaveRef.current) pendingSaveRef.current()
     }
   }, [])
-  const [presentsIntubated,    setPresentsIntubated]    = useState(false)
-  const [airwayNA,             setAirwayNA]             = useState(false)
+  // Form fields, not component state. These are clinical facts -- "arrived
+  // intubated" and "no airway intervention" -- and holding them in useState
+  // meant they relaxed the finalisation gate, were never saved, and vanished on
+  // reload, leaving a record with no airway device and no reason for it.
+  const presentsIntubated = useWatch({ control, name: "presentsIntubated" }) ?? false
+  const airwayNA = useWatch({ control, name: "airwayNotApplicable" }) ?? false
+  // Both toggles go through core, so web and mobile cannot drift apart on
+  // them. They are independent: a patient can arrive from the ICU already
+  // intubated AND have no airway intervention here, which is both at once.
+  const applyAirwayAbsentReason = (which: "presentsIntubated" | "airwayNotApplicable") => {
+    const next = airwayAbsentReason(which, {
+      presentsIntubated,
+      airwayNotApplicable: airwayNA,
+    })
+    setValue("presentsIntubated", next.presentsIntubated, { shouldDirty: true })
+    setValue("airwayNotApplicable", next.airwayNotApplicable, { shouldDirty: true })
+  }
+  const setPresentsIntubated = () => applyAirwayAbsentReason("presentsIntubated")
+  const setAirwayNA = () => applyAirwayAbsentReason("airwayNotApplicable")
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
   const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)
@@ -512,7 +526,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const watchedSpO2Monitor = useWatch({ control, name: "spO2Monitor" })
   const watchedEtco2Monitor = useWatch({ control, name: "etco2Monitor" })
   const watchedTempMonitor = useWatch({ control, name: "tempMonitor" })
-  const watchedBglMonitor = useWatch({ control, name: "bglMonitor" })
   const startTime  = watchedStartTime || "08:00"
   const showAirway   = techniqueIsGeneral(techniques)
   const showGases    = techniqueUsesGas(techniques)
@@ -525,14 +538,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     spO2Monitor:   !!watchedSpO2Monitor,
     etco2Monitor:  !!watchedEtco2Monitor,
     tempMonitor:   !!watchedTempMonitor,
-    bglMonitor:    !!watchedBglMonitor,
   }
 
-  function addMinutes(hhmm: string, minutes: number): string {
-    const [h, m] = (hhmm || "00:00").split(":").map(Number)
-    const total  = (h * 60 + m + minutes + 1440) % 1440
-    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
-  }
 
   function handleContinue() {
     const vals = getValues()
@@ -545,11 +552,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       timetableData: timetable,
       keyEvents: eventLog,
     } as Record<string, unknown>)
-    const blockerCodes = new Set(readiness.blockers.map(issue => issue.code))
-    const errs = {
-      startTime: blockerCodes.has("missing_start_time") || blockerCodes.has("invalid_intraop_times"),
-      endTime: blockerCodes.has("missing_end_time") || blockerCodes.has("invalid_intraop_times"),
-    }
+    const errs = intraopTimeErrors(readiness.blockers.map(issue => issue.code))
     setTimeErrors(errs)
 
     if (readiness.blockers.length > 0) {
@@ -588,26 +591,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }
 
   function handleSubmitWithTimetable(formData: IntraopData) {
-    const vitals = (timetable.vitals ?? [])
-      .map((v, i) => ({ ...v, time: addMinutes(startTime, i * INTRAOP_COLUMN_MINUTES) }))
-      .filter(v => Object.values(v).some(x => x != null && x !== v.time))
-
-    const infusionEntries = (timetable.infusions ?? []).map(inf => ({
-      name:  inf.name,
-      dose:  String(inf.rate),
-      unit:  inf.unit,
-      route: "Infusion",
-      time:  addMinutes(startTime, inf.startCol * INTRAOP_COLUMN_MINUTES),
-    }))
-    const bolusDrugs = (timetable.drugs ?? []).map(d => ({
-      name:  d.name,
-      dose:  d.dose,
-      unit:  d.unit,
-      route: "IV",
-      time:  addMinutes(startTime, d.colIdx * INTRAOP_COLUMN_MINUTES),
-    }))
-
-    onSubmit({ ...formData, vitals, drugsAdministered: [...bolusDrugs, ...infusionEntries], timetableData: timetable })
+    // Columns are chart positions; the API stores wall-clock times. The
+    // conversion lives in @/lib/intraop-submit, where it has a test.
+    const { vitals, drugsAdministered } = buildIntraopSubmission(timetable, startTime)
+    onSubmit({ ...formData, vitals, drugsAdministered, timetableData: timetable })
   }
 
   return (
@@ -768,7 +755,19 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Intraoperative timetable */}
       <div data-tour="intraop-timetable">
       <SectionCard title={t("intraop.vitalsSection")}>
+        <IntraopLabsDialog
+          open={labsDialog.open}
+          takenAt={labsDialog.takenAt}
+          value={(watchedLabResults ?? []) as never}
+          onChange={rows => setValue("labResults", rows as never, { shouldDirty: true })}
+          onClose={() => setLabsDialog({ open: false, takenAt: null })}
+          caseId={caseId ?? null}
+          aiOptIn={aiOptIn}
+        />
         <IntraopTimetable
+          labResults={(watchedLabResults ?? []) as never}
+          onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
+          onOpenAllLabs={() => setLabsDialog({ open: true, takenAt: null })}
           clinicalMode={preop?.clinicalMode ?? "ADULT"}
           prospectiveGuidanceEnabled={prospectiveGuidanceEnabled}
           pediatricAgeValue={preop?.ageValue ?? preop?.ageYears ?? null}
