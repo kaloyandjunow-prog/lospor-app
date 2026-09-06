@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { displayClinicalCode } from "@/lib/clinical-display"
 import {
   getLabByName,
-  getLabFlag,
+  getLabSeverity,
+  parseLabValue,
+  suppliedRange,
   LAB_CATEGORIES,
   searchLabs,
   type LabTest,
@@ -244,8 +246,19 @@ export function LabResults({
             <tbody className="divide-y divide-slate-100 dark:divide-[#2a2a2a]">
               {value.map((row, idx) => {
                 const test = getLabByName(row.test)
-                const numeric = Number.parseFloat(row.value.replace(",", "."))
-                const flag = test && Number.isFinite(numeric) ? getLabFlag(test, numeric) : null
+                // Strict, unlike the parseFloat this replaces: that read
+                // "5.2 (H)" as 5.2 and judged it, and read "<0.01" as 0.01 --
+                // a result reported as below the limit of detection treated as
+                // a number near it.
+                const numeric = parseLabValue(row.value)
+                // The laboratory's own range where it sent one. Judging
+                // against the bundled catalogue while the summary and the
+                // export judge against the supplied range is how the same
+                // result reads high on one screen and normal on another.
+                const supplied = suppliedRange(row)
+                const flag = test && numeric !== null
+                  ? getLabSeverity(test, numeric, supplied)
+                  : null
                 return (
                   <tr key={idx} className="group align-middle">
                     <td className="px-3 py-2">
@@ -263,7 +276,7 @@ export function LabResults({
                       <CanonicalUnit unit={row.unit} unitless={t("intraop.lab.unitless")} />
                     </td>
                     <td className="px-3 py-2">
-                      {test && flag ? <RefBadge test={test} flag={flag} /> : null}
+                      {test && flag ? <RefBadge test={test} flag={flag} supplied={supplied} /> : null}
                     </td>
                     <td className="px-2 py-2 text-right">
                       <button
