@@ -1,5 +1,15 @@
 # Changelog - LOSPOR Web App
 
+## [9.9.1] - 2026-09-07
+
+### Fixed
+
+- **Depends on Core 9.9.1** (unused-import cleanup, no behavioral change).
+- Removed an unused import in `rule-display.ts` and a now-unnecessary
+  `eslint-disable` in `usePendingCloseCountdown.ts`, found by running
+  `eslint --max-warnings 0` for the first time against this repo. No
+  behavioral change. `LOSPOR_WEB_CLIENT_VERSION` bumped to 9.9.1.
+
 ## [9.9.0] - 2026-09-07
 
 ### Changed
