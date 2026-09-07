@@ -104,44 +104,94 @@
         {
           "title": "2. What we process",
           "bullets": [
-            { "label": "Account data", "text": "name, email address, title, institution, registration date, last login time, role, interface preferences, and legal acceptance records." },
-            { "label": "Case data", "text": "structured perioperative fields, normalised research rows, append-only intraoperative events, timestamps, institution linkage, and audit metadata. Direct identifiers are not intended to be collected. Case data is pseudonymised, not anonymous, and can remain personal data under the GDPR." },
-            { "label": "Audit log", "text": "case creation, update, deletion, AI use, export, and account events." },
-            { "label": "Session data", "text": "short-lived HttpOnly Web and PWA session cookies and revocable native-Mobile bearer tokens. Browser session cookies are not available to browser scripts." },
-            { "label": "PWA device data", "text": "interface preferences, offline drafts, queued saves, and queued intraoperative events may remain in browser storage until logout or successful synchronisation." },
-            { "label": "Account emails", "text": "the email address is used for verification and password-reset links. Their tokens are stored hashed, expire, and are single-use." }
+            {
+              "label": "Account data",
+              "text": "name, email address, title, institution, registration date, last login time, role, interface preferences, and legal acceptance records."
+            },
+            {
+              "label": "Case data",
+              "text": "structured perioperative fields, normalised research rows, append-only intraoperative events, timestamps, institution linkage, and audit metadata. Direct identifiers are not intended to be collected. Case data is pseudonymised, not anonymous, and can remain personal data under the GDPR."
+            },
+            {
+              "label": "Audit log",
+              "text": "case creation, update, deletion, AI use, export, and account events."
+            },
+            {
+              "label": "Session data",
+              "text": "short-lived HttpOnly Web and PWA session cookies and revocable native-Mobile bearer tokens. Browser session cookies are not available to browser scripts."
+            },
+            {
+              "label": "PWA device data",
+              "text": "interface preferences, offline drafts, queued saves, and queued intraoperative events may remain in browser storage until logout or successful synchronisation."
+            },
+            {
+              "label": "Account emails",
+              "text": "the email address is used for verification and password-reset links. Their tokens are stored hashed, expire, and are single-use."
+            }
           ]
         },
         {
           "title": "3. Legal basis",
           "bullets": [
-            { "label": "Account data", "text": "the legal basis depends on the deployment and may include performance of a service, legitimate interests, or consent where appropriate." },
-            { "label": "Case data", "text": "the deploying controller must identify and document the applicable Articles 6 and 9 bases before clinical use." }
+            {
+              "label": "Account data",
+              "text": "the legal basis depends on the deployment and may include performance of a service, legitimate interests, or consent where appropriate."
+            },
+            {
+              "label": "Case data",
+              "text": "the deploying controller must identify and document the applicable Articles 6 and 9 bases before clinical use."
+            }
           ]
         },
         {
           "title": "4. Sub-processors for the cloud demo",
           "bullets": [
-            { "label": "Supabase", "text": "PostgreSQL database hosting." },
-            { "label": "Vercel", "text": "application hosting and server functions." },
-            { "label": "Mistral AI", "text": "opt-in image and structured-advisor inference. Remove identifiers before any image upload." },
-            { "label": "Brevo", "text": "transactional account email delivery; only the required name and email data are shared for delivery." }
+            {
+              "label": "Supabase",
+              "text": "PostgreSQL database hosting."
+            },
+            {
+              "label": "Vercel",
+              "text": "application hosting and server functions."
+            },
+            {
+              "label": "Mistral AI",
+              "text": "opt-in image and structured-advisor inference. Remove identifiers before any image upload."
+            },
+            {
+              "label": "Brevo",
+              "text": "transactional account email delivery; only the required name and email data are shared for delivery."
+            }
           ]
         },
         {
           "title": "5. Retention",
           "bullets": [
-            { "text": "Case data is retained while the account is active and then handled under the applicable institutional or research retention policy." },
-            { "text": "Audit records are retained for security, integrity, and medico-legal traceability under the applicable policy." },
-            { "text": "Account deletion disables access immediately. Further deletion or anonymisation follows the applicable retention policy." }
+            {
+              "text": "Case data is retained while the account is active and then handled under the applicable institutional or research retention policy."
+            },
+            {
+              "text": "Audit records are retained for security, integrity, and medico-legal traceability under the applicable policy."
+            },
+            {
+              "text": "Account deletion disables access immediately. Further deletion or anonymisation follows the applicable retention policy."
+            }
           ]
         },
         {
           "title": "6. Your rights",
           "bullets": [
-            { "label": "Access", "text": "download the personal account and case archive from Settings — Privacy & Data." },
-            { "label": "Deletion", "text": "request account deletion from Settings — Privacy & Data." },
-            { "text": "For other requests, contact kaloyandjunow@gmail.com or the controller identified by the deploying institution." }
+            {
+              "label": "Access",
+              "text": "download the personal account and case archive from Settings — Privacy & Data."
+            },
+            {
+              "label": "Deletion",
+              "text": "request account deletion from Settings — Privacy & Data."
+            },
+            {
+              "text": "For other requests, contact kaloyandjunow@gmail.com or the controller identified by the deploying institution."
+            }
           ]
         },
         {
@@ -575,27 +625,61 @@
       "count": "{count, plural, one {# conflicting field} other {# conflicting fields}} · choices apply on save",
       "saveResolved": "Save resolved version",
       "fields": {
-        "ageYears": "Age (years)", "sex": "Sex", "heightCm": "Height (cm)", "weightKg": "Weight (kg)",
-        "bloodType": "Blood type", "rhFactor": "Rh factor", "diagnosis": "Diagnosis", "plannedProcedure": "Planned procedure",
-        "teamNotes": "Team notes", "highRiskSurgery": "High-risk surgery", "emergencySurgery": "Emergency surgery",
-        "allergies": "Allergies", "allergyDetails": "Allergy details", "latexAllergy": "Latex allergy",
-        "currentMedications": "Current medications", "familyAnesthesiaProblems": "Family anaesthesia history",
+        "ageYears": "Age (years)",
+        "sex": "Sex",
+        "heightCm": "Height (cm)",
+        "weightKg": "Weight (kg)",
+        "bloodType": "Blood type",
+        "rhFactor": "Rh factor",
+        "diagnosis": "Diagnosis",
+        "plannedProcedure": "Planned procedure",
+        "teamNotes": "Team notes",
+        "highRiskSurgery": "High-risk surgery",
+        "emergencySurgery": "Emergency surgery",
+        "allergies": "Allergies",
+        "allergyDetails": "Allergy details",
+        "latexAllergy": "Latex allergy",
+        "currentMedications": "Current medications",
+        "familyAnesthesiaProblems": "Family anaesthesia history",
         "familyAnesthesiaDetails": "Family details",
         "unexplainedAnaesthesiaComplications": "Unexplainable complications during anaesthesia",
         "malignantHyperthermiaHistory": "History of malignant hyperthermia",
-        "dentalProsthetics": "Dental prosthetics", "looseTeeth": "Loose teeth",
-        "smoking": "Smoking", "substanceAbuse": "Substance abuse", "bpSystolic": "BP systolic (mmHg)",
-        "bpDiastolic": "BP diastolic (mmHg)", "heartRate": "Heart rate (bpm)", "heartArrhythmia": "Arrhythmia",
-        "spO2": "SpO₂ (%)", "temperature": "Temperature (°C)", "respiratoryRate": "Respiratory rate (/min)",
-        "mallampati": "Mallampati", "mouthOpeningCm": "Mouth opening (cm)", "thyromental": "Thyromental distance (cm)",
-        "neckMobility": "Neck mobility", "upperLipBiteTest": "Upper lip bite test", "retrognathia": "Retrognathia",
-        "prominentIncisors": "Prominent incisors", "facialHair": "Facial hair", "difficultAirwayHistory": "Difficult airway history",
+        "dentalProsthetics": "Dental prosthetics",
+        "looseTeeth": "Loose teeth",
+        "smoking": "Smoking",
+        "substanceAbuse": "Substance abuse",
+        "bpSystolic": "BP systolic (mmHg)",
+        "bpDiastolic": "BP diastolic (mmHg)",
+        "heartRate": "Heart rate (bpm)",
+        "heartArrhythmia": "Arrhythmia",
+        "spO2": "SpO₂ (%)",
+        "temperature": "Temperature (°C)",
+        "respiratoryRate": "Respiratory rate (/min)",
+        "mallampati": "Mallampati",
+        "mouthOpeningCm": "Mouth opening (cm)",
+        "thyromental": "Thyromental distance (cm)",
+        "neckMobility": "Neck mobility",
+        "upperLipBiteTest": "Upper lip bite test",
+        "retrognathia": "Retrognathia",
+        "prominentIncisors": "Prominent incisors",
+        "facialHair": "Facial hair",
+        "difficultAirwayHistory": "Difficult airway history",
         "anticipatedDifficultAirway": "Anticipated difficult airway",
-        "difficultAirwayNotes": "Difficult airway notes", "cormackLehane": "Cormack–Lehane grade", "asaScore": "ASA class",
-        "physicalExamReport": "Physical exam report", "notes": "Notes", "aldreteActivity": "Aldrete: Activity",
-        "aldreteRespiration": "Aldrete: Respiration", "aldreteCirculation": "Aldrete: Circulation",
-        "aldreteConsciousness": "Aldrete: Consciousness", "aldreteSpO2": "Aldrete: SpO₂", "painScoreNRS": "Pain score (NRS)",
-        "ponv": "PONV", "temperatureCelsius": "Temperature (°C)", "disposition": "Disposition", "dispositionNotes": "Disposition notes"
+        "difficultAirwayNotes": "Difficult airway notes",
+        "cormackLehane": "Cormack–Lehane grade",
+        "asaScore": "ASA class",
+        "physicalExamReport": "Physical exam report",
+        "notes": "Notes",
+        "aldreteActivity": "Aldrete: Activity",
+        "aldreteRespiration": "Aldrete: Respiration",
+        "aldreteCirculation": "Aldrete: Circulation",
+        "aldreteConsciousness": "Aldrete: Consciousness",
+        "aldreteSpO2": "Aldrete: SpO₂",
+        "painScoreNRS": "Pain score (NRS)",
+        "ponv": "PONV",
+        "temperatureCelsius": "Temperature (°C)",
+        "disposition": "Disposition",
+        "dispositionNotes": "Disposition notes"
       }
     },
     "steps": {
@@ -610,7 +694,9 @@
     "piiLongNumber": "{field} may contain a long identifying number. Remove it to save.",
     "piiDate": "{field} may contain a full date that could identify a patient. Remove it to save.",
     "piiEmail": "{field} may contain an email address. Remove it to save.",
-    "piiGeneric": "{field} contains identifying information and was not saved."
+    "piiGeneric": "{field} contains identifying information and was not saved.",
+    "submitForReviewBlocked": "This case is not complete enough to close yet. Check the preoperative, intraoperative and postoperative records, then submit again.",
+    "submitForReviewUnreachable": "The case could not be submitted for review. It is still in progress — try again when you are back online."
   },
   "transfer": {
     "awaitingAcceptance": "Awaiting acceptance",
@@ -1120,21 +1206,49 @@
       "title": "Suggested equipment & sizes",
       "basedOn": "Based on {details}",
       "categories": {
-        "Airway": "Airway", "Ventilation": "Ventilation", "Fluids": "Fluids", "Catheters": "Catheters",
-        "Monitoring": "Monitoring", "Difficult Airway": "Difficult airway"
+        "Airway": "Airway",
+        "Ventilation": "Ventilation",
+        "Fluids": "Fluids",
+        "Catheters": "Catheters",
+        "Monitoring": "Monitoring",
+        "Difficult Airway": "Difficult airway"
       },
       "labels": {
-        "ETT size": "ETT size", "ETT depth (lip)": "ETT depth (lip)", "LMA size": "LMA size", "Laryngoscope": "Laryngoscope",
-        "Guedel OPA": "Guedel OPA", "Suction catheter": "Suction catheter", "Tidal volume": "Tidal volume", "Rate": "Rate",
-        "PEEP": "PEEP", "I:E ratio": "I:E ratio", "Maintenance": "Maintenance", "Urinary catheter": "Urinary catheter",
-        "NGT": "NGT", "BP cuff": "BP cuff", "Defibrillator": "Defibrillator", "Video laryngoscope": "Video laryngoscope",
-        "Bougie / stylet": "Bougie / stylet", "Backup ETT": "Backup ETT", "Difficult airway trolley": "Difficult airway trolley"
+        "ETT size": "ETT size",
+        "ETT depth (lip)": "ETT depth (lip)",
+        "LMA size": "LMA size",
+        "Laryngoscope": "Laryngoscope",
+        "Guedel OPA": "Guedel OPA",
+        "Suction catheter": "Suction catheter",
+        "Tidal volume": "Tidal volume",
+        "Rate": "Rate",
+        "PEEP": "PEEP",
+        "I:E ratio": "I:E ratio",
+        "Maintenance": "Maintenance",
+        "Urinary catheter": "Urinary catheter",
+        "NGT": "NGT",
+        "BP cuff": "BP cuff",
+        "Defibrillator": "Defibrillator",
+        "Video laryngoscope": "Video laryngoscope",
+        "Bougie / stylet": "Bougie / stylet",
+        "Backup ETT": "Backup ETT",
+        "Difficult airway trolley": "Difficult airway trolley"
       },
       "text": {
-        "cuffed": "cuffed", "haveAvailable": "Have available", "fromAirwayExam": "from today's airway exam", "confirmLocation": "Confirm location",
-        "weightRequired": "Weight required", "ageRequired": "Age required", "manualSelection": "Manual selection", "ibwUnavailable": "IBW unavailable",
-        "measureManually": "Measure manually", "selectManually": "Select manually", "selectAndMeasureManually": "Select and measure manually",
-        "calculateFromEtt": "Calculate manually from actual ETT ID", "fourTwoOne": "4-2-1 rule", "startingSuggestion": "Starting suggestion; adjust clinically",
+        "cuffed": "cuffed",
+        "haveAvailable": "Have available",
+        "fromAirwayExam": "from today's airway exam",
+        "confirmLocation": "Confirm location",
+        "weightRequired": "Weight required",
+        "ageRequired": "Age required",
+        "manualSelection": "Manual selection",
+        "ibwUnavailable": "IBW unavailable",
+        "measureManually": "Measure manually",
+        "selectManually": "Select manually",
+        "selectAndMeasureManually": "Select and measure manually",
+        "calculateFromEtt": "Calculate manually from actual ETT ID",
+        "fourTwoOne": "4-2-1 rule",
+        "startingSuggestion": "Starting suggestion; adjust clinically",
         "manufacturerBands": "Use the selected manufacturer's weight bands and verify the current product IFU",
         "manufacturerStart": "Manufacturer weight-band starting point; verify the actual product and current IFU",
         "startingEtt": "Starting estimate; prepare planned ID ±0.5 mm and confirm patient/product factors",
@@ -1150,15 +1264,25 @@
         "pediatricAedNote": "Pediatric pads may be anterolateral only if they do not touch; verify device IFU; no energy shown here",
         "adultAed": "Standard adult AED mode; anterolateral or anteroposterior pads",
         "adultAedNote": "Avoid pad contact and breast tissue; verify device IFU; no energy shown here",
-        "ageBlade": "Age required; choose exact blade manually", "straightBlade": "Prepare a straight blade; choose exact size manually",
-        "curvedBlade": "Prepare a curved blade; choose exact size manually", "bladeOverride": "Anatomy, operator and available direct/video system override",
+        "ageBlade": "Age required; choose exact blade manually",
+        "straightBlade": "Prepare a straight blade; choose exact size manually",
+        "curvedBlade": "Prepare a curved blade; choose exact size manually",
+        "bladeOverride": "Anatomy, operator and available direct/video system override",
         "guedelMeasure": "Measure from the centre of the incisors to the angle of the mandible; verify product markings",
         "catheterFraction": "Catheter occlusion should remain below the applicable fraction of the ETT lumen",
-        "urinarySelection": "Base selection on anatomy, indication and local product range", "ngtConfirm": "Confirm size and insertion depth clinically",
-        "measureArm": "Measure mid-upper-arm circumference", "cuffRange": "Select the smallest compatible cuff whose printed range includes the measurement",
-        "adultPads": "Adult pads", "largeThigh": "Large adult / Thigh cuff", "largeAdult": "Large adult (15–20 cm)", "adultCuff": "Adult (12–15 cm)",
-        "sizeValue": "Size {value}", "insertionDepth": "~{value} cm insertion depth", "cuffedPair": "{cuffed} cuffed / {uncuffed} uncuffed",
-        "smallerCuffed": "{value} cuffed (0.5 mm smaller)", "prepareSmaller": "Prepare 0.5 mm smaller than the clinically planned ETT"
+        "urinarySelection": "Base selection on anatomy, indication and local product range",
+        "ngtConfirm": "Confirm size and insertion depth clinically",
+        "measureArm": "Measure mid-upper-arm circumference",
+        "cuffRange": "Select the smallest compatible cuff whose printed range includes the measurement",
+        "adultPads": "Adult pads",
+        "largeThigh": "Large adult / Thigh cuff",
+        "largeAdult": "Large adult (15–20 cm)",
+        "adultCuff": "Adult (12–15 cm)",
+        "sizeValue": "Size {value}",
+        "insertionDepth": "~{value} cm insertion depth",
+        "cuffedPair": "{cuffed} cuffed / {uncuffed} uncuffed",
+        "smallerCuffed": "{value} cuffed (0.5 mm smaller)",
+        "prepareSmaller": "Prepare 0.5 mm smaller than the clinically planned ETT"
       }
     },
     "emergencyBadge": "EMERGENCY",
@@ -1579,7 +1703,7 @@
   },
   "ehr": {
     "identityUnverified": "This patient was matched on the record number alone — nothing confirmed it is the right kind of number for this hospital. Check the values below against the patient in front of you before accepting any of them.",
-    "unreadSources": "The hospital system could not be read for: {groups}. Anything from those is missing here \u2014 an empty list below does not mean the patient has none. Check them yourself before relying on this.",
+    "unreadSources": "The hospital system could not be read for: {groups}. Anything from those is missing here — an empty list below does not mean the patient has none. Check them yourself before relying on this.",
     "sourceGroup": {
       "labs": "laboratory results",
       "diagnoses": "diagnoses",

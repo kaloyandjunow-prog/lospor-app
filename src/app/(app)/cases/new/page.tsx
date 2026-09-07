@@ -532,7 +532,18 @@ export default function NewCasePage() {
       setPostopData(postopData)
       // See submit-case-for-review.ts for why this, not postop completeness
       // alone, is what starts the closure countdown.
-      setAwaitingReviewAt(await submitCaseForReview(caseIdRef.current))
+      //
+      // A refusal keeps the clinician on the form. Advancing anyway showed a
+      // summary for a case that was still IN_PROGRESS with no countdown
+      // running, which reads as "submitted" and is not.
+      const submitted = await submitCaseForReview(caseIdRef.current)
+      if (!submitted.ok) {
+        toast.error(submitted.reason === "blocked"
+          ? t("case.submitForReviewBlocked")
+          : t("case.submitForReviewUnreachable"))
+        return
+      }
+      setAwaitingReviewAt(submitted.awaitingReviewAt)
       setStep(3); window.scrollTo(0, 0)
     } catch {
       toast.error(t("case.saveFailed"))
