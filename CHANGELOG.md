@@ -1,5 +1,15 @@
 # Changelog - LOSPOR Web App
 
+## [9.9.5] - 2026-09-07
+
+### Changed
+
+- Follows the set. No change in this repository: the API, web and PWA are
+  released together and share request contracts, and the appliance's
+  `verify:version-defaults` requires the three vendored versions to match.
+  9.9.5 exists to publish an API fix — the case-closure cron froze hosted
+  deployment at 9.8.0 — and this repository moves with it.
+
 ## [9.9.4] - 2026-09-07
 
 ### Fixed
