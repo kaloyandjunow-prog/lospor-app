@@ -5,7 +5,6 @@ import type {
   ClinicalRulePayload,
 } from "@lospor/core/clinical-rules"
 import { CLINICAL_RULES_PAGE_COPY as COPY } from "@/components/clinical-rules/page-copy"
-import { isEquipmentRule } from "@/lib/clinical-preset-scope"
 
 /**
  * How a clinical ruleset reads on the workbench: the words for a scope or a

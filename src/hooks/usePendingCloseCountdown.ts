@@ -23,7 +23,6 @@ export function usePendingCloseCountdown(
     // Syncing local render state from a value computed off an external clock
     // (the server timestamp vs. wall time), not from other React state --
     // there is nothing to read this from except by computing it here.
-    /* eslint-disable react-hooks/set-state-in-effect */
     const tick = () => {
       if (!awaitingReviewAt || finalizedAt) {
         setSecsLeft(null)
@@ -45,7 +44,6 @@ export function usePendingCloseCountdown(
     if (!tick()) return
     const id = setInterval(() => { if (!tick()) clearInterval(id) }, 1000)
     return () => clearInterval(id)
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [awaitingReviewAt, finalizedAt])
 
   return secsLeft
