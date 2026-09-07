@@ -1,55 +1,40 @@
-import { validateClinicalModeAge } from "@lospor/core/pediatric"
+import { evaluatePreopReadiness } from "@lospor/core/clinical-validation"
 
 import type { PreopData } from "@/components/forms/preopSchema"
 
 /**
  * Which required preoperative fields are still missing.
  *
- * Returns field names rather than messages: the form decides how to say it and
- * in which language, and this decides what is incomplete. Out of the component
- * because it is a clinical rule about what a preoperative assessment must
- * contain, and because a rule buried in a 1,200-line form is a rule nobody can
- * check.
+ * What a preoperative assessment must contain is one clinical rule and lives in
+ * core, shared with mobile. This app's part is two things core cannot know:
+ * the unobtainable markers, which are live form state rather than saved record
+ * fields, and the field names this form's own error display uses.
  *
- * `vitalsUTO` and `airwayUTO` are the unobtainable markers. A vital somebody
- * documented as unobtainable is answered, not missing — that distinction is
- * the whole reason those markers exist, and dropping it here would demand a
- * number nobody can produce.
+ * `vitalsUTO` and `airwayUTO` are those markers. A vital somebody documented as
+ * unobtainable is answered, not missing -- that distinction is the whole reason
+ * the markers exist, and dropping it would demand a number nobody can produce.
  */
+
+/** Core names the field it is unhappy about; the form knows it by another name. */
+const FORM_FIELD: Readonly<Record<string, string>> = {
+  bpSystolic: "bp",
+  mallampati: "airway",
+}
+
 export function missingPreopFields(
   data: PreopData,
   vitalsUTO: Set<string>,
   airwayUTO: boolean,
 ): string[] {
-  const errs: string[] = []
-  if (data.clinicalMode === "PEDIATRIC") {
-    if (data.ageValue == null || !data.ageUnit) {
-      errs.push("ageValue")
-    } else if (!validateClinicalModeAge("PEDIATRIC", {
-      value: data.ageValue,
-      unit: data.ageUnit,
-    }).valid) {
-      errs.push("ageValue")
-    }
-  } else if (data.ageYears == null || !validateClinicalModeAge("ADULT", {
-    value: data.ageYears,
-    unit: "YEARS",
-  }).valid) {
-    errs.push("ageYears")
-  }
-  // UNKNOWN is a truthy string, so `!data.sex` would let it through. It means
-  // "nobody recorded this yet" and must block submission exactly like a blank.
-  if (!data.sex || data.sex === "UNKNOWN") errs.push("sex")
-  if (!data.heightCm)             errs.push("heightCm")
-  if (!data.weightKg)             errs.push("weightKg")
-  if (!data.diagnoses?.length)    errs.push("diagnoses")
-  if (!data.procedures?.length)   errs.push("procedures")
-  if (!vitalsUTO.has("bp") && (!data.bpSystolic || !data.bpDiastolic)) errs.push("bp")
-  if (!vitalsUTO.has("heartRate") && !data.heartRate)                  errs.push("heartRate")
-  if (!vitalsUTO.has("respiratoryRate") && !data.respiratoryRate)      errs.push("respiratoryRate")
-  if (!airwayUTO && !data.mallampati)  errs.push("airway")
-  if (!data.asaScore)                  errs.push("asaScore")
-  return errs
-
-  return errs
+  const readiness = evaluatePreopReadiness({
+    ...data,
+    bpUnobtainable: vitalsUTO.has("bp"),
+    heartRateUnobtainable: vitalsUTO.has("heartRate"),
+    respiratoryRateUnobtainable: vitalsUTO.has("respiratoryRate"),
+    airwayUnobtainable: airwayUTO,
+  })
+  return readiness.issues.flatMap(item => {
+    const field = item.path[item.path.length - 1]
+    return field ? [FORM_FIELD[field] ?? field] : []
+  })
 }

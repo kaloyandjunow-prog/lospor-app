@@ -20,6 +20,7 @@ import {
   ENDOBRONCHIAL_SIZES,
   ETT_SIZES,
   LMA_SIZES,
+  airwayDeviceSummary,
   type AirwayDeviceWithProfile,
 } from "@lospor/core/intraop"
 
@@ -205,14 +206,12 @@ export function AirwaySection({
             : displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale)
         }
 
-        // Summary labels for devices with sub-options when collapsed (confirmed)
-        const deviceSummary: Record<string, string | null> = {
-          LMA:               lmaSize != null ? `${deviceName("LMA")} ${lmaSize}` : null,
-          ORAL_ETT:          oralTubeSize != null && oralCuffed != null ? `${deviceName("ORAL_ETT")} ${oralTubeSize} ${displayClinicalCode("clinicalAttribute", oralCuffed ? "cuffed" : "uncuffed", locale)}` : null,
-          NASAL_ETT:         nasalTubeSize != null && nasalCuffed != null ? `${deviceName("NASAL_ETT")} ${nasalTubeSize} ${displayClinicalCode("clinicalAttribute", nasalCuffed ? "cuffed" : "uncuffed", locale)}` : null,
-          DOUBLE_LUMEN_TUBE: (dltType || dltSide || dltSize != null) ? `${deviceName("DOUBLE_LUMEN_TUBE")}${dltType ? " " + dltType : ""}${dltSide ? " " + displayClinicalCode("clinicalAttribute", dltSide.toLowerCase(), locale) : ""}${dltSize != null ? " " + dltSize + "Fr" : ""}` : null,
-          ENDOBRONCHIAL_TUBE:ebSize != null ? `${deviceName("ENDOBRONCHIAL_TUBE")} ${ebSize}mm` : null,
-        }
+        // Collapsed summary for a confirmed device. Composition is core's, shared with mobile; the words are this app's.
+        const airwayValues = { lmaSize, oralTubeSize, oralCuffed, nasalTubeSize, nasalCuffed, dltType, dltSide, dltSize, endobronchialSize: ebSize }
+        const airwayWords = { device: deviceName, attribute: (c: string) => displayClinicalCode("clinicalAttribute", c, locale) }
+        const deviceSummary: Record<string, string | null> = Object.fromEntries(
+          AIRWAY_DEVICES_WITH_SUBOPTIONS.map(c => [c, airwayDeviceSummary(c, airwayValues, airwayWords)]),
+        )
         const HAS_SUBOPTIONS: readonly string[] = AIRWAY_DEVICES_WITH_SUBOPTIONS
 
         const DEVICES: { v: string; label: string }[] = airwayDeviceOptions.map(option => ({ v: option.value, label: displayOption("AIRWAY_MANAGEMENT", option, locale) }))

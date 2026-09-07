@@ -53,6 +53,19 @@ describe("the monitors that read a number have their own lanes", () => {
     expect(cvpToCanonical(7.4, "mmHg")).toBe(7.4)
   })
 
+  /**
+   * TOF ratio shares the chart's single 0-220 axis with BP and heart rate, so a
+   * real 0.9 plots at 0.4% of chart height -- indistinguishable from 0, while
+   * BIS and CVP already read clearly on the same axis. Only the plotted height
+   * changes; the stored ratio, the grid cell and the tooltip stay 0.9.
+   */
+  it("plots TOF as a percentage of the shared axis, without touching what is stored", () => {
+    expect(byKey.tofRatio?.toPlotValue?.(0.9)).toBe(90)
+    expect(byKey.tofRatio?.toPlotValue?.(0)).toBe(0)
+    expect(byKey.bis?.toPlotValue).toBeUndefined()
+    expect(byKey.cvp?.toPlotValue).toBeUndefined()
+  })
+
   it("opens the steppers where a clinician is usually heading", () => {
     // defaultVal is only where the control opens; nothing stores it. 50 is
     // mid-range surgical anaesthesia and 0.9 is the threshold for adequate

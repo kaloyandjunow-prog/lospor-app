@@ -103,11 +103,20 @@ function baseRecord(overrides: Partial<CaseDetail> = {}): CaseDetail {
 }
 
 function stubFetch(record: CaseDetail) {
-  vi.stubGlobal("fetch", vi.fn(async () => ({
-    ok: true,
-    status: 200,
-    json: async () => record,
-  })))
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+    if (url.includes("/submit-for-review")) {
+      // "Now", not a fixed past date -- a stamp already outside the 30-minute
+      // window would read as already-expired and finalize the case on its
+      // own, which is a different test than the one this stub is for.
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "AWAITING_REVIEW", awaitingReviewAt: new Date().toISOString() }),
+      }
+    }
+    return { ok: true, status: 200, json: async () => record }
+  }))
 }
 
 async function openDraft(record: CaseDetail, params: Record<string, string>) {
@@ -277,13 +286,43 @@ describe("a blocked postop save", () => {
   it("does not start the countdown that finalises the case", async () => {
     await submitPostop({ result: "blocked", blocked })
 
-    expect(localStorage.getItem("summaryOpenedAt_case-1")).toBeNull()
+    expect(document.body.textContent).not.toContain("case.pendingClose")
   })
 
   it("still advances when the save is accepted", async () => {
     await submitPostop({ result: "saved" })
 
     expect(screen.getByTestId("case-summary")).toBeTruthy()
-    expect(localStorage.getItem("summaryOpenedAt_case-1")).not.toBeNull()
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("case.pendingClose")
+    })
+  })
+
+  // A saved postop and a server that agrees the case is now ready for review
+  // are two different facts. submit-for-review re-runs the same completeness
+  // check finalize() applies; if it refuses (a rare disagreement with the
+  // form's own validation, not something this suite otherwise exercises),
+  // the summary still shows -- the save genuinely succeeded -- but no
+  // countdown starts, because the case never actually left IN_PROGRESS.
+  it("reaches the summary without starting the countdown when the server refuses submit-for-review", async () => {
+    hoisted.autosave.saveSection.mockResolvedValue({ result: "saved" })
+    await openDraft(
+      baseRecord({
+        preop:  { id: "preop-1", caseId: "case-1" } as unknown as CaseDetail["preop"],
+        postop: { id: "postop-1", caseId: "case-1" } as unknown as CaseDetail["postop"],
+      }),
+      { step: "2" },
+    )
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 422,
+      json: async () => ({ error: "postop incomplete", blockers: [] }),
+    })))
+    await act(async () => {
+      hoisted.captured.postop?.onSubmit?.({ disposition: "WARD" })
+    })
+
+    expect(screen.getByTestId("case-summary")).toBeTruthy()
+    expect(document.body.textContent).not.toContain("case.pendingClose")
   })
 })

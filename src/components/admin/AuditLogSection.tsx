@@ -7,7 +7,7 @@ import {
   auditActionLabel,
   parseAuditActionDefinitions,
   type AuditActionDefinition,
-} from "@/lib/audit-actions"
+} from "@lospor/core/audit-actions"
 
 type AuditRow = {
   id: string; createdAt: string; action: string; entityId: string; detail: unknown

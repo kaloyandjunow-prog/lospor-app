@@ -55,15 +55,14 @@ import {
   useWebAutoFillPreferences,
   vitalsToAutoFillLog,
 } from "@/lib/intraop-autofill-vitals"
-import { gridOriginMs, secondsFromGridOrigin } from "@/lib/intraop-clock"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
+import { gridOriginMs } from "@/lib/intraop-clock"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
   VitalsEntry, AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
   LogEvent as IntraopLogEvent,
 } from "@/types/timetable"
 import { EndCaseModal } from "@/components/intraop/EndCaseModal"
-import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import {
   MedicationPickerPortals,
@@ -93,19 +92,10 @@ import {
   planAutoFillVitalEvents,
 } from "@lospor/core/intraop-vitals"
 import {
-  baseProfilesMap,
-  concentrationsMap,
-  defaultConcentrationMap,
-  doseCalcMap,
   groupClinicalEvents,
   optionStyleMap,
   quickNumberMap,
-  routeProfilesMap,
-  routesMap,
-  strictRangeMap,
-  weightBasisMap,
 } from "@lospor/core/option-library"
-import { metadataNumber, metadataString } from "@lospor/core/option-contracts"
 import {
 } from "@/lib/drug-selector-surface"
 import {
@@ -113,6 +103,7 @@ import {
   applyPediatricDrugProfilesToOptions,
   applyPediatricInfusionProfilesToOptions,
   isClinicalRuleHidden,
+  synthesizePediatricDrugOptions,
   visibleClinicalOptions,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
@@ -293,12 +284,13 @@ export function IntraopTimetable({
   const { options: eventLibOpts } = useOptionLibrary("INTRAOP_EVENT")
   const { options: baseInfusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
   const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
-  // Web and mobile share one overlay so the dosing surface stays identical in
-  // both apps: adult profiles first, then the pediatric band for this patient.
+  const drugOptionsWithPediatricRules = useMemo(() =>
+    synthesizePediatricDrugOptions(baseDrugLibOpts, isPediatric ? pediatricDrugProfiles : []),
+  [baseDrugLibOpts, isPediatric, pediatricDrugProfiles])
   const drugLibOpts = useMemo(
     () => applyPediatricDrugProfilesToOptions(
       applyAdultDoseProfilesToOptions(
-        baseDrugLibOpts,
+        drugOptionsWithPediatricRules,
         adultDoseProfiles,
         "ADULT_DRUG_PROFILE",
       ),
@@ -306,7 +298,7 @@ export function IntraopTimetable({
       isPediatric ? pediatricAge : null,
       tbw,
     ),
-    [adultDoseProfiles, baseDrugLibOpts, isPediatric, pediatricAge, pediatricDrugProfiles, tbw],
+    [adultDoseProfiles, drugOptionsWithPediatricRules, isPediatric, pediatricAge, pediatricDrugProfiles, tbw],
   )
   const infusionLibOpts = useMemo(
     () => applyPediatricInfusionProfilesToOptions(

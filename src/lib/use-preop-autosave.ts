@@ -83,7 +83,6 @@ export function usePreopAutosave({
 
   useEffect(() => {
     if (!onAutoSave || disabled) return
-    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values, { name }) => {
       if (!worthAutosaving(values as Parameters<typeof worthAutosaving>[0])) return
       if (timerRef.current) clearTimeout(timerRef.current)

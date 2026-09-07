@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useMemo } from "react"
 import {
   baseProfilesMap,
   concentrationsMap,

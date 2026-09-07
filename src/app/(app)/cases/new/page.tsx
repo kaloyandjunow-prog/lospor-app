@@ -33,9 +33,11 @@ import {
 } from "@lospor/core/sync"
 import { onOutboxChange } from "@/lib/case-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
-import { blockedSaveMessage } from "@/lib/blocked-save-message"
+import { blockedSaveMessage, withBlockedPreopRejection } from "@/lib/blocked-save-message"
 import { randomId } from "@/lib/random-id"
-import { INTRAOP_RESUME_WINDOW_SECONDS } from "@lospor/core/intraop-engine"
+import { canProgressAfterSave, type SaveOutcomeKind } from "@lospor/core/save-progression"
+import { usePendingCloseCountdown } from "@/hooks/usePendingCloseCountdown"
+import { submitCaseForReview, refetchAwaitingReviewAt } from "@/lib/submit-case-for-review"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
 
@@ -126,9 +128,12 @@ export default function NewCasePage() {
   const [continuedPostopItems, setContinuedPostopItems] = useState<string[]>([])
   const [layoutMode, setLayoutMode]   = useState<"tabs" | "scroll">("scroll")
   const [preopLayout, setPreopLayout] = useState<"tabs" | "scroll">("scroll")
-  // 30-minute graceful close window (seconds remaining; null = not started)
-  const [closeSecsLeft, setCloseSecsLeft] = useState<number | null>(null)
-  const closeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // 30-minute graceful close window, anchored to the server's awaitingReviewAt
+  // (set once, the moment the case reaches AWAITING_REVIEW) rather than a
+  // per-browser localStorage timestamp, so this and the case-detail route
+  // agree on the same remaining time for the same case.
+  const [awaitingReviewAt, setAwaitingReviewAt] = useState<string | null>(null)
+  const closeSecsLeft = usePendingCloseCountdown(awaitingReviewAt, null, finaliseCase)
 
   useEffect(() => {
     // One-time mount sync from localStorage (can't read it during SSR), plus
@@ -213,7 +218,6 @@ export default function NewCasePage() {
   // One idempotency key per form session: a create retried after a network
   // blip (autosave re-fires while caseIdRef is still null) can't double-create.
   const createDraftIdRef = useRef(`web-${randomId()}`)
-  const startCloseCountdownRef = useRef<() => void>(() => {})
 
   // Load existing draft when -continue=<id> is in the URL
   useEffect(() => {
@@ -314,10 +318,7 @@ export default function NewCasePage() {
           ? Math.max(0, Math.min(3, requestedStep))
           : derivedStep
         setStep(target)
-        // Re-enter the 30-min window when reopening a case that had postop but isn't finalised
-        if (target === 3) {
-          startCloseCountdownRef.current()
-        }
+        if (record.status === "AWAITING_REVIEW") setAwaitingReviewAt(record.awaitingReviewAt ?? null)
       })
       .catch((error: Error & { status?: number }) => {
         caseIdRef.current = null
@@ -339,7 +340,6 @@ export default function NewCasePage() {
   }, [step, caseId, router])
 
   // Cleanup countdowns on unmount
-  useEffect(() => () => { if (closeTimerRef.current) clearInterval(closeTimerRef.current) }, [])
   useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
 
   const saveSectionInner = useCallback(async (
@@ -482,23 +482,39 @@ export default function NewCasePage() {
     }
   }, [saveSection])
 
-  // ── Manual submit handlers - step advances regardless of save result ─────────
+  /** `saveSection`'s own ad hoc result shape, read as what the shared decision expects. */
+  function saveOutcomeKind(saved: Awaited<ReturnType<typeof saveSection>>): SaveOutcomeKind {
+    if (saved === true) return "saved"
+    if (saved === "queued" || saved === "blocked") return saved
+    return "failed"
+  }
+
+  // ── Manual submit handlers ────────────────────────────────────────────────
+  // The step advances only once the shared decision says the save was good
+  // enough to build on. It used to advance unconditionally, before the save
+  // had even resolved: a clinician who submitted preop while offline for the
+  // very first time reached the intraop screen with no case underneath it,
+  // and intraop's own guard (`if (!caseIdRef.current) return`) already ran
+  // after that same jump -- so the save silently did nothing and the
+  // clinician kept documenting a case that was never created.
   async function handlePreopSubmit(data: PreopData) {
     setPreopData(data)
-    setStep(1); window.scrollTo(0, 0)
-    // Save in background - don't block navigation on success/failure
     setSubmitting(true)
-    await saveSection("preop", data, { showToast: true })
+    const caseExistedBeforeSave = !!caseIdRef.current
+    const saved = await saveSection("preop", data, { showToast: true })
     setSubmitting(false)
+    const decision = canProgressAfterSave(saveOutcomeKind(saved), { caseExistedBeforeSave })
+    if (decision.canProgress) { setStep(1); window.scrollTo(0, 0) }
   }
 
   async function handleIntraopSubmit(data: IntraopData) {
     setIntraopData(data)
-    setStep(2); window.scrollTo(0, 0)
     if (!caseIdRef.current) return
     setSubmitting(true)
-    await saveSection("intraop", data, { showToast: true })
+    const saved = await saveSection("intraop", data, { showToast: true })
     setSubmitting(false)
+    const decision = canProgressAfterSave(saveOutcomeKind(saved), { caseExistedBeforeSave: true })
+    if (decision.canProgress) { setStep(2); window.scrollTo(0, 0) }
   }
 
   async function handlePostopSubmit(postopData: PostopData) {
@@ -514,8 +530,9 @@ export default function NewCasePage() {
       if (saved === "blocked") return
       if (!saved || saved === "queued") throw new Error()
       setPostopData(postopData)
-      // Start 30-minute graceful close countdown before finalising
-      startCloseCountdown()
+      // See submit-case-for-review.ts for why this, not postop completeness
+      // alone, is what starts the closure countdown.
+      setAwaitingReviewAt(await submitCaseForReview(caseIdRef.current))
       setStep(3); window.scrollTo(0, 0)
     } catch {
       toast.error(t("case.saveFailed"))
@@ -524,43 +541,9 @@ export default function NewCasePage() {
     }
   }
 
-  function startCloseCountdown() {
-    const id = caseIdRef.current
-    if (!id) return
-    if (closeTimerRef.current) clearInterval(closeTimerRef.current)
-
-    const storageKey = `summaryOpenedAt_${id}`
-    const stored = localStorage.getItem(storageKey)
-    const openedAt = stored ? parseInt(stored, 10) : Date.now()
-    if (!stored) localStorage.setItem(storageKey, String(openedAt))
-
-    const remaining = Math.max(
-      0,
-      INTRAOP_RESUME_WINDOW_SECONDS - Math.floor((Date.now() - openedAt) / 1000),
-    )
-    if (remaining === 0) { finaliseCase(); return }
-
-    setCloseSecsLeft(remaining)
-    closeTimerRef.current = setInterval(() => {
-      setCloseSecsLeft(s => {
-        if (s === null || s <= 1) {
-          clearInterval(closeTimerRef.current!)
-          closeTimerRef.current = null
-          localStorage.removeItem(`summaryOpenedAt_${id}`)
-          finaliseCase()
-          return null
-        }
-        return s - 1
-      })
-    }, 1000)
-  }
-  startCloseCountdownRef.current = startCloseCountdown
-
   async function finaliseCase() {
     const id = caseIdRef.current
     if (!id) return
-    if (closeTimerRef.current) { clearInterval(closeTimerRef.current); closeTimerRef.current = null }
-    localStorage.removeItem(`summaryOpenedAt_${id}`)
     try {
       await autosaveManager.flushCase(id)
       await autosaveManager.waitForCase(id)
@@ -572,6 +555,10 @@ export default function NewCasePage() {
         headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
+      // Cleared only now the server has confirmed finalization -- clearing it
+      // on the request instead of the response hid the countdown even when
+      // the request then failed and the case was still AWAITING_REVIEW.
+      setAwaitingReviewAt(null)
       // Use server finalizedAt if available, otherwise use current timestamp
       let serverFinalizedAt: number = Date.now()
       try {
@@ -627,26 +614,20 @@ export default function NewCasePage() {
       setFinalizedCaseId(null)
       setUndoExpired(false)
       toast.success(t("case.finalizationUndone"))
-      // Re-enter the close countdown for the restored case
-      startCloseCountdown()
+      // Unfinalize reverts to IN_PROGRESS and clears awaitingReviewAt server-
+      // side; it must not be reinstated from a manufactured client timestamp
+      // here. Resending postop re-submits through the real readiness check,
+      // and the re-fetch below reads back whatever the server decided.
+      if (postopData && caseIdRef.current) {
+        await saveSection("postop", postopData, {})
+        setAwaitingReviewAt(await refetchAwaitingReviewAt(id))
+      }
     } catch {
       toast.error(t("case.undoFinalizationFailed"))
     }
   }
 
-  const visiblePreopRejections = new Map(rejections.preop ?? [])
-  if (blockedIssue) {
-    const field =
-      blockedIssue.field === "diagnosis" ? "diagnoses"
-      : blockedIssue.field === "plannedProcedure" ? "procedures"
-      : blockedIssue.field
-    const preopFields = new Set([
-      "diagnoses", "procedures", "comorbidities", "teamNotes",
-      "allergyDetails", "currentMedications", "familyAnesthesiaDetails",
-      "difficultAirwayNotes", "physicalExamReport", "preopNotes",
-    ])
-    if (preopFields.has(field)) visiblePreopRejections.set(field, blockedMessage(blockedIssue))
-  }
+  const visiblePreopRejections = withBlockedPreopRejection(new Map(rejections.preop ?? []), blockedIssue, blockedMessage)
 
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
@@ -866,7 +847,7 @@ export default function NewCasePage() {
                 <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(0)}>{t("case.steps.preop")}</Button>
                 <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(1)}>{t("case.steps.intraop")}</Button>
                 <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40" onClick={() => setStep(2)}>{t("case.steps.postop")}</Button>
-                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setCloseSecsLeft(null); finaliseCase() }}>
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => finaliseCase()}>
                   {t("case.closeNow")}
                 </Button>
               </div>

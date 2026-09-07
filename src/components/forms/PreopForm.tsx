@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { usePreopAutosave } from "@/lib/use-preop-autosave"
 import { missingPreopFields } from "@/lib/preop-validation"
 import { useForm, Controller, type Resolver } from "react-hook-form"
@@ -32,7 +32,6 @@ import {
   PediatricRiskAndCalculators,
   PediatricVitalReferenceNote,
 } from "@/components/forms/PediatricPreopSections"
-import { validateClinicalModeAge } from "@lospor/core/pediatric"
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { metadataString } from "@lospor/core/option-contracts"
 import {
@@ -163,7 +162,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
   const apfelScore = useMemo(() => calcApfel({
     female:         sex === "FEMALE",
-    nonSmoker:      !smoking,
+    // Answered `false` only -- `!smoking` mapped an unanswered `null` to `true`.
+    nonSmoker:      smoking === false,
     ponvHistory:    apfelPONVHistory  ?? false,
     opioidsPlanned: apfelPostopOpioids ?? false,
   }), [sex, smoking, apfelPONVHistory, apfelPostopOpioids])
@@ -272,6 +272,15 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   // without a form around it.
   const validate = (data: PreopData) => missingPreopFields(data, vitalsUTO, airwayUTO)
 
+  /** Same mapping @/lib/preop-validation uses for the readiness check's own field names. */
+  const ZOD_ERROR_FIELD: Readonly<Record<string, string>> = {
+    bpSystolic: "bp",
+    bpDiastolic: "bp",
+    mallampati: "airway",
+    mouthOpeningCm: "airway",
+    thyromental: "airway",
+  }
+
   const TABS = [
     { value: "patient", label: "Patient"   },
     { value: "case",    label: "Case"      },
@@ -291,32 +300,37 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     }
   }
 
+  /** Highlights the given (abstracted) field keys and jumps to wherever the first one lives. */
+  function reportFieldErrorsAndJump(errs: string[]) {
+    const errSet = new Set(errs)
+    setFieldErrors(errSet)
+    if (layoutMode === "tabs") {
+      const firstErr = errs[0]
+      const tab: "patient" | "case" | "exam" | "risk" =
+        firstErr === "ageYears"  || firstErr === "ageValue" || firstErr === "sex" ? "patient" :
+        firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
+        firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
+        "risk"
+      setActiveTab(tab)
+    } else {
+      const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
+      const firstErr = sectionOrder.find(e => errSet.has(e))
+      if (firstErr) {
+        const sectionKey =
+          firstErr === "patientName" || firstErr === "patientId" ? "patient" :
+          firstErr === "ageYears"   || firstErr === "ageValue" || firstErr === "sex" ? "demographics" :
+          firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
+          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
+          firstErr === "airway" ? "airway" : "asa"
+        setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
+      }
+    }
+  }
+
   function handleValidatedSubmit(data: PreopData) {
     const errs = validate(data)
     if (errs.length > 0) {
-      const errSet = new Set(errs)
-      setFieldErrors(errSet)
-      if (layoutMode === "tabs") {
-        const firstErr = errs[0]
-        const tab: "patient" | "case" | "exam" | "risk" =
-          firstErr === "ageYears"  || firstErr === "ageValue" || firstErr === "sex" ? "patient" :
-          firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
-          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
-          "risk"
-        setActiveTab(tab)
-      } else {
-        const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
-        const firstErr = sectionOrder.find(e => errSet.has(e))
-        if (firstErr) {
-          const sectionKey =
-            firstErr === "patientName" || firstErr === "patientId" ? "patient" :
-            firstErr === "ageYears"   || firstErr === "ageValue" || firstErr === "sex" ? "demographics" :
-            firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
-            firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
-            firstErr === "airway" ? "airway" : "asa"
-          setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
-        }
-      }
+      reportFieldErrorsAndJump(errs)
       return
     }
     setFieldErrors(new Set())
@@ -332,11 +346,27 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     )
   }
 
+  /**
+   * react-hook-form's own zod resolver rejected the data -- a bad type, a
+   * value outside the shared clinical-number range (`preopNumber` in
+   * preopSchema.ts exists specifically to keep e.g. a systolic of 4000 from
+   * reaching the wire), a malformed date. This used to retry through
+   * `handleValidatedSubmit(getValues())` regardless, which only checks
+   * clinical *readiness* (is the field filled in), not the type/range
+   * validity zod just refused -- so exactly the value zod rejected could
+   * still reach `onSubmit`. Report it the same way a missing field is
+   * reported, and stop.
+   */
+  function handleInvalidSubmit(errors: Record<string, unknown>) {
+    const errs = Object.keys(errors).map(key => ZOD_ERROR_FIELD[key] ?? key)
+    reportFieldErrorsAndJump(errs)
+  }
+
   return (
     <form
       onSubmit={pediatricRecordReadOnly
         ? event => event.preventDefault()
-        : handleSubmit(handleValidatedSubmit, () => handleValidatedSubmit(getValues() as PreopData))}
+        : handleSubmit(handleValidatedSubmit, handleInvalidSubmit)}
       className="space-y-6"
     >
 
@@ -758,6 +788,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               { id:"rcriCreatinine",    label:"Creatinine > 177 µmol/L (> 2.0 mg/dL)" },
             ] as const).map(item => {
               const suggested = rcriSuggested[item.id as keyof typeof rcriSuggested]
+              // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() cannot be memoized; the row re-reads on every change.
               const checked = !!watch(item.id)
               return (
                 <div key={item.id} className="flex items-start gap-2">

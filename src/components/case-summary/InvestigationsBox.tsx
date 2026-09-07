@@ -17,7 +17,6 @@ export function InvestigationsBox({
   omittedLabel: (results: number, draws: number) => string
   Field: (props: { label: string; value: string | null }) => React.ReactElement | null
 }) {
-  const shownCount = shownDraws.reduce((n, d) => n + d.results.length, 0)
   const L = { investigations: title, labsOmitted: omittedLabel }
   const F = Field
   return (
