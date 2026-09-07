@@ -1,5 +1,31 @@
 # Changelog - LOSPOR Web App
 
+## [9.9.4] - 2026-09-07
+
+### Fixed
+
+- **A failed submit-for-review looked exactly like a successful one.** The
+  helper collapsed every refusal and every network failure to `null`, and the
+  case wizard advanced to the summary regardless. A case still `IN_PROGRESS`
+  with no closure countdown running was then indistinguishable, on the screen
+  whose whole job is to say the case is finished, from one that had been
+  submitted — and nothing would tell the clinician later either. It returns a
+  typed result now; a refusal keeps them on the postop form and says why.
+
+- **A case inside its closure window was labelled "Awaiting postop".** The
+  dashboard badge never checked `AWAITING_REVIEW` and tested `intraop.endTime`
+  first, so a case in review — which by definition has a finished intraop and a
+  complete postop — was shown in the state it had just left, on the one status
+  that is time-critical. A case created directly in review has no intraop
+  record at all and fell through to "Awaiting allocation".
+
+### Changed
+
+- Allocation readiness now comes from `@lospor/core`'s
+  `preopReadyForAllocation`, shared with mobile, rather than a local rule the
+  two clients had let drift apart. This client previously required a diagnosis
+  and ignored age and sex; it now requires all five.
+
 ## [9.9.3] - 2026-09-07
 
 ### Changed
