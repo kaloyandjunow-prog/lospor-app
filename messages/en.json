@@ -34,7 +34,8 @@
       "cloudDemo": "Cloud demo",
       "backToLogin": "Back to sign in",
       "termsLink": "Terms of Use",
-      "privacyLink": "Privacy Policy"
+      "privacyLink": "Privacy Policy",
+      "publisher": "A PeriOp Laboratories product"
     },
     "terms": {
       "title": "Terms of Use",
@@ -498,7 +499,16 @@
     "noSearchMatches": "No cases match your search",
     "noCasesHere": "No cases here",
     "untitled": "Untitled",
-    "printCase": "Print case"
+    "printCase": "Print case",
+    "filterAll": "All",
+    "filterToday": "Today",
+    "filterMonth": "Month",
+    "filterActive": "Active",
+    "filterDrafts": "Drafts",
+    "filterAwaitingPostop": "Awaiting postop",
+    "filterComplete": "Complete",
+    "filterHandovers": "Handovers",
+    "loadMore": "Load more"
   },
   "status": {
     "draft": "Draft",

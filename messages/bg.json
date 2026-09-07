@@ -34,7 +34,8 @@
       "cloudDemo": "Облачна демонстрационна среда",
       "backToLogin": "Обратно към вход",
       "termsLink": "Условия за ползване",
-      "privacyLink": "Политика за поверителност"
+      "privacyLink": "Политика за поверителност",
+      "publisher": "Продукт на PeriOp Laboratories"
     },
     "terms": {
       "title": "Условия за ползване",
@@ -498,7 +499,16 @@
     "noSearchMatches": "Няма случаи, отговарящи на търсенето",
     "noCasesHere": "Тук няма случаи",
     "untitled": "Без заглавие",
-    "printCase": "Печат на случая"
+    "printCase": "Печат на случая",
+    "filterAll": "Всички",
+    "filterToday": "Днес",
+    "filterMonth": "Месец",
+    "filterActive": "Активни",
+    "filterDrafts": "Чернови",
+    "filterAwaitingPostop": "Изчакват следоперативен преглед",
+    "filterComplete": "Приключени",
+    "filterHandovers": "Предавания",
+    "loadMore": "Зареди още"
   },
   "status": {
     "draft": "Чернова",

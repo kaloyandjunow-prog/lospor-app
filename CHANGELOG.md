@@ -1,5 +1,64 @@
 # Changelog - LOSPOR Web App
 
+## [9.9.0] - 2026-09-07
+
+### Changed
+
+- **Depends on Core 9.9.0.**
+
+- **Reaching the case summary from postop is now the action that starts the
+  30-minute closure countdown**, not whichever autosave happened to complete
+  the last required field. The postop form's "continue to summary" button
+  now calls the new `POST /v1/cases/:id/submit-for-review` before advancing;
+  the displayed countdown always comes from that response's server
+  timestamp, never from this device's own clock (a stale/skewed local clock
+  used to make the on-screen countdown disagree with what the server was
+  actually doing).
+- **The countdown is no longer hidden before finalization is confirmed.**
+  Both the automatic finalize path and the "Close Now" button used to clear
+  the on-screen countdown the moment the action was triggered, before the
+  server had confirmed anything — a failed request (a dropped connection, a
+  server error) left the screen showing no countdown and no retry
+  affordance for a case the server still considered awaiting review. It is
+  now cleared only once the server response confirms finalization actually
+  succeeded.
+- **Dashboard case list now shows the PeriOp Laboratories mark** alongside
+  the LOSPOR product logo on the Terms and Privacy pages, since a legal
+  document is about the publishing entity as much as the product.
+- **Dashboard stat tiles and filter counts read the server's true counts**
+  (`/v1/cases`'s new `counts`), not counts derived from whatever page of
+  cases happened to be loaded — a clinic with more cases than the loaded
+  page previously saw understated numbers on every tile.
+- **"Handovers" means awaiting action by me**, matching the server's
+  definition, not "any pending transfer on a visible case" (which could
+  include one this person sent and is waiting on someone else to accept, or
+  — for an admin/HOD — a handover between two other people entirely).
+- **A "Load more" control** fetches the next 200-row page from the server
+  and appends it, in the server's own priority order, instead of hard-
+  capping the dashboard at the first page. Search and the scope filters
+  still only see what has been loaded.
+- **Case rows route to the read-only summary, not the edit wizard, for a
+  case this reader cannot write to** (`caseIsWritable`, from core) — a case
+  handed to a colleague no longer offers Delete or opens an editor the
+  server would refuse to save from.
+- **A patient's age displays even when it is zero** — the case list used a
+  truthy check (`ageYears ? ... : ""`), which hid every neonate's age
+  outright; a precisely-recorded age (days/months) now displays via core's
+  `displayPediatricAge` instead of always assuming whole years.
+- **"Today" and "this month" read the same Europe/Sofia calendar day/month
+  everywhere** (`@lospor/core/dashboard-date-scope`) — previously computed
+  in whatever timezone the server process happened to be running in, which
+  could disagree with the phone app's local-time answer near midnight.
+- **Dashboard filter-chip labels are translated** (`en`/`bg`) instead of a
+  few of them being hardcoded English text alongside otherwise-translated
+  labels.
+
+### Fixed
+
+- `/v1/cases`'s ordering fix (server-side, see the API changelog) means an
+  AWAITING_REVIEW case can no longer be pushed off the loaded page by a pile
+  of drafts or older finished cases.
+
 ## [9.8.0] - 2026-09-06
 
 ### Changed

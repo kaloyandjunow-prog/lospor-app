@@ -272,6 +272,15 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   // without a form around it.
   const validate = (data: PreopData) => missingPreopFields(data, vitalsUTO, airwayUTO)
 
+  /** Same mapping @/lib/preop-validation uses for the readiness check's own field names. */
+  const ZOD_ERROR_FIELD: Readonly<Record<string, string>> = {
+    bpSystolic: "bp",
+    bpDiastolic: "bp",
+    mallampati: "airway",
+    mouthOpeningCm: "airway",
+    thyromental: "airway",
+  }
+
   const TABS = [
     { value: "patient", label: "Patient"   },
     { value: "case",    label: "Case"      },
@@ -291,32 +300,37 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     }
   }
 
+  /** Highlights the given (abstracted) field keys and jumps to wherever the first one lives. */
+  function reportFieldErrorsAndJump(errs: string[]) {
+    const errSet = new Set(errs)
+    setFieldErrors(errSet)
+    if (layoutMode === "tabs") {
+      const firstErr = errs[0]
+      const tab: "patient" | "case" | "exam" | "risk" =
+        firstErr === "ageYears"  || firstErr === "ageValue" || firstErr === "sex" ? "patient" :
+        firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
+        firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
+        "risk"
+      setActiveTab(tab)
+    } else {
+      const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
+      const firstErr = sectionOrder.find(e => errSet.has(e))
+      if (firstErr) {
+        const sectionKey =
+          firstErr === "patientName" || firstErr === "patientId" ? "patient" :
+          firstErr === "ageYears"   || firstErr === "ageValue" || firstErr === "sex" ? "demographics" :
+          firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
+          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
+          firstErr === "airway" ? "airway" : "asa"
+        setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
+      }
+    }
+  }
+
   function handleValidatedSubmit(data: PreopData) {
     const errs = validate(data)
     if (errs.length > 0) {
-      const errSet = new Set(errs)
-      setFieldErrors(errSet)
-      if (layoutMode === "tabs") {
-        const firstErr = errs[0]
-        const tab: "patient" | "case" | "exam" | "risk" =
-          firstErr === "ageYears"  || firstErr === "ageValue" || firstErr === "sex" ? "patient" :
-          firstErr === "diagnoses" || firstErr === "procedures" ? "case" :
-          firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" || firstErr === "airway" ? "exam" :
-          "risk"
-        setActiveTab(tab)
-      } else {
-        const sectionOrder = ["ageYears","sex","diagnoses","procedures","bp","heartRate","respiratoryRate","airway","asaScore"]
-        const firstErr = sectionOrder.find(e => errSet.has(e))
-        if (firstErr) {
-          const sectionKey =
-            firstErr === "patientName" || firstErr === "patientId" ? "patient" :
-            firstErr === "ageYears"   || firstErr === "ageValue" || firstErr === "sex" ? "demographics" :
-            firstErr === "diagnoses"  || firstErr === "procedures" ? "case" :
-            firstErr === "bp" || firstErr === "heartRate" || firstErr === "respiratoryRate" ? "vitals" :
-            firstErr === "airway" ? "airway" : "asa"
-          setTimeout(() => refMap.current[sectionKey]?.scrollIntoView({ behavior: "smooth", block: "center" }), 0)
-        }
-      }
+      reportFieldErrorsAndJump(errs)
       return
     }
     setFieldErrors(new Set())
@@ -332,11 +346,27 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     )
   }
 
+  /**
+   * react-hook-form's own zod resolver rejected the data -- a bad type, a
+   * value outside the shared clinical-number range (`preopNumber` in
+   * preopSchema.ts exists specifically to keep e.g. a systolic of 4000 from
+   * reaching the wire), a malformed date. This used to retry through
+   * `handleValidatedSubmit(getValues())` regardless, which only checks
+   * clinical *readiness* (is the field filled in), not the type/range
+   * validity zod just refused -- so exactly the value zod rejected could
+   * still reach `onSubmit`. Report it the same way a missing field is
+   * reported, and stop.
+   */
+  function handleInvalidSubmit(errors: Record<string, unknown>) {
+    const errs = Object.keys(errors).map(key => ZOD_ERROR_FIELD[key] ?? key)
+    reportFieldErrorsAndJump(errs)
+  }
+
   return (
     <form
       onSubmit={pediatricRecordReadOnly
         ? event => event.preventDefault()
-        : handleSubmit(handleValidatedSubmit, () => handleValidatedSubmit(getValues() as PreopData))}
+        : handleSubmit(handleValidatedSubmit, handleInvalidSubmit)}
       className="space-y-6"
     >
 

@@ -369,6 +369,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             caseId={caseId}
             status={data.status}
             canWrite={canWrite}
+            awaitingReviewAt={data.awaitingReviewAt ?? null}
             finalizedAtMs={finalizedAtMs}
             now={now}
             labels={L}
