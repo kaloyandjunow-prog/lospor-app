@@ -46,6 +46,16 @@ export async function submitCaseForReview(caseId: string): Promise<SubmitForRevi
   return { ok: false, reason: "unreachable" }
 }
 
+/**
+ * What to tell the clinician about a refusal. Here rather than at the call
+ * site so the two reasons stay beside the code that distinguishes them.
+ */
+export function submitForReviewMessage(result: SubmitForReviewResult & { ok: false }): string {
+  return result.reason === "blocked"
+    ? "case.submitForReviewBlocked"
+    : "case.submitForReviewUnreachable"
+}
+
 /** Reads back whatever the server decided after an undo re-submits postop -- see handleUndo. */
 export async function refetchAwaitingReviewAt(caseId: string): Promise<string | null> {
   try {
