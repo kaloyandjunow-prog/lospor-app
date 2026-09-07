@@ -33,10 +33,11 @@ import {
 } from "@lospor/core/sync"
 import { onOutboxChange } from "@/lib/case-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
-import { blockedSaveMessage } from "@/lib/blocked-save-message"
+import { blockedSaveMessage, withBlockedPreopRejection } from "@/lib/blocked-save-message"
 import { randomId } from "@/lib/random-id"
 import { canProgressAfterSave, type SaveOutcomeKind } from "@lospor/core/save-progression"
 import { usePendingCloseCountdown } from "@/hooks/usePendingCloseCountdown"
+import { submitCaseForReview, refetchAwaitingReviewAt } from "@/lib/submit-case-for-review"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
 
@@ -529,27 +530,9 @@ export default function NewCasePage() {
       if (saved === "blocked") return
       if (!saved || saved === "queued") throw new Error()
       setPostopData(postopData)
-      // Reaching the summary is the clinician's deliberate "I'm done with
-      // postop" action, and is what starts the closure countdown -- not
-      // whichever autosave happened to complete the last field (that used to
-      // promote the case automatically, before the postop form's own
-      // validation had any say in it). The server re-runs the same
-      // completeness check finalize() applies and is the one to say whether
-      // the case is actually AWAITING_REVIEW now; a genuinely incomplete
-      // postop leaves the case IN_PROGRESS with no countdown, even though the
-      // save above already succeeded. awaitingReviewAt always comes from this
-      // response, never from this device's own clock, so the countdown shown
-      // here can never disagree with the server's.
-      const id = caseIdRef.current
-      try {
-        const submitRes = await fetch(`/api/cases/${id}/submit-for-review`, { method: "POST" })
-        const submitBody = submitRes.ok ? await submitRes.json().catch(() => null) : null
-        setAwaitingReviewAt(
-          submitBody?.status === "AWAITING_REVIEW" ? (submitBody.awaitingReviewAt ?? null) : null,
-        )
-      } catch {
-        setAwaitingReviewAt(null)
-      }
+      // See submit-case-for-review.ts for why this, not postop completeness
+      // alone, is what starts the closure countdown.
+      setAwaitingReviewAt(await submitCaseForReview(caseIdRef.current))
       setStep(3); window.scrollTo(0, 0)
     } catch {
       toast.error(t("case.saveFailed"))
@@ -572,12 +555,9 @@ export default function NewCasePage() {
         headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
-      // Only now, with the server having actually confirmed finalization, is
-      // the countdown cleared. Clearing it before this point (as this used
-      // to) hid the countdown and the retry affordance the moment the button
-      // was pressed, whether or not the request that followed succeeded -- a
-      // failed request (a dropped connection, a server error) left the case
-      // still genuinely AWAITING_REVIEW with nothing on screen to show it.
+      // Cleared only now the server has confirmed finalization -- clearing it
+      // on the request instead of the response hid the countdown even when
+      // the request then failed and the case was still AWAITING_REVIEW.
       setAwaitingReviewAt(null)
       // Use server finalizedAt if available, otherwise use current timestamp
       let serverFinalizedAt: number = Date.now()
@@ -634,49 +614,20 @@ export default function NewCasePage() {
       setFinalizedCaseId(null)
       setUndoExpired(false)
       toast.success(t("case.finalizationUndone"))
-      // Unfinalize reverts status to IN_PROGRESS and clears the server's own
-      // awaitingReviewAt (see unfinalize/route.ts) -- it does not, and must
-      // not, put the case back into AWAITING_REVIEW itself. This used to
-      // manufacture a fresh client-side timestamp here and restart the
-      // countdown unconditionally, which meant this tab would silently call
-      // finalize() again after undo with no further action from the
-      // clinician, regardless of what the server's actual status said.
-      //
-      // Postop itself is untouched by undo, so resending it is a genuine
-      // re-submission through the same path handlePostopSubmit uses, not a
-      // workaround: the server re-runs the real postop-readiness check and
-      // decides for itself whether the case re-qualifies for AWAITING_REVIEW,
-      // stamping its own fresh awaitingReviewAt if so. Re-fetching afterward
-      // reads back whatever the server actually decided, the same way
-      // reopening this case from a fresh page load already does.
+      // Unfinalize reverts to IN_PROGRESS and clears awaitingReviewAt server-
+      // side; it must not be reinstated from a manufactured client timestamp
+      // here. Resending postop re-submits through the real readiness check,
+      // and the re-fetch below reads back whatever the server decided.
       if (postopData && caseIdRef.current) {
         await saveSection("postop", postopData, {})
-        try {
-          const refreshed = await fetch(`/api/cases/${id}`)
-          if (refreshed.ok) {
-            const record = await refreshed.json() as CaseDetail
-            setAwaitingReviewAt(record.status === "AWAITING_REVIEW" ? (record.awaitingReviewAt ?? null) : null)
-          }
-        } catch {}
+        setAwaitingReviewAt(await refetchAwaitingReviewAt(id))
       }
     } catch {
       toast.error(t("case.undoFinalizationFailed"))
     }
   }
 
-  const visiblePreopRejections = new Map(rejections.preop ?? [])
-  if (blockedIssue) {
-    const field =
-      blockedIssue.field === "diagnosis" ? "diagnoses"
-      : blockedIssue.field === "plannedProcedure" ? "procedures"
-      : blockedIssue.field
-    const preopFields = new Set([
-      "diagnoses", "procedures", "comorbidities", "teamNotes",
-      "allergyDetails", "currentMedications", "familyAnesthesiaDetails",
-      "difficultAirwayNotes", "physicalExamReport", "preopNotes",
-    ])
-    if (preopFields.has(field)) visiblePreopRejections.set(field, blockedMessage(blockedIssue))
-  }
+  const visiblePreopRejections = withBlockedPreopRejection(new Map(rejections.preop ?? []), blockedIssue, blockedMessage)
 
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>

@@ -54,3 +54,24 @@ export function blockedSaveMessage(
   const field = copy.label ? translate(FIELD_LABEL[copy.label]) : copy.field
   return translate(copy.reason ? PII_COPY[copy.reason] : "case.piiGeneric", { field })
 }
+
+const PREOP_REJECTION_FIELDS = new Set([
+  "diagnoses", "procedures", "comorbidities", "teamNotes",
+  "allergyDetails", "currentMedications", "familyAnesthesiaDetails",
+  "difficultAirwayNotes", "physicalExamReport", "preopNotes",
+])
+
+/** Folds a blocked-save refusal into the preop rejection map shown inline on that field, if it names one. */
+export function withBlockedPreopRejection(
+  rejections: Map<string, string>,
+  blockedIssue: BlockedSaveIssue | null,
+  message: (issue: BlockedSaveIssue) => string,
+): Map<string, string> {
+  if (!blockedIssue) return rejections
+  const field =
+    blockedIssue.field === "diagnosis" ? "diagnoses"
+    : blockedIssue.field === "plannedProcedure" ? "procedures"
+    : blockedIssue.field
+  if (PREOP_REJECTION_FIELDS.has(field)) rejections.set(field, message(blockedIssue))
+  return rejections
+}
