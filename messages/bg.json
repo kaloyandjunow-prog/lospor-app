@@ -1027,6 +1027,8 @@
     "procedure": "Планирана интервенция",
     "procedurePlaceholder": "Без лични данни — наименование на интервенцията…",
     "procedureNoExact": "точната операция не е избрана",
+    "procedureFromHospital": "Код от болницата",
+    "procedureSuggested": "съответства на кода от болницата",
     "procedureSpecifyExact": "Изберете точна операция",
     "procedureChangeExact": "Промяна",
     "procedureGroupOnly": "Само групата",

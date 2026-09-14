@@ -1027,6 +1027,8 @@
     "procedure": "Planned procedure",
     "procedurePlaceholder": "No patient-identifying information — procedure name…",
     "procedureNoExact": "exact operation not chosen",
+    "procedureFromHospital": "Hospital code",
+    "procedureSuggested": "matches the hospital code",
     "procedureSpecifyExact": "Choose exact operation",
     "procedureChangeExact": "Change",
     "procedureGroupOnly": "Group only",
