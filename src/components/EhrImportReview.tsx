@@ -293,9 +293,13 @@ function describe(
           : `${takenLabel} ${lab.takenAt.slice(0, 10)}`,
       }
     }
-    const tag = proposed as EhrTagValue
+    // `sourceLabel` is the hospital's own wording when the label is a LOSPOR
+    // term proposed for it (a Bulgarian procedure name under a procedure
+    // group), so the clinician checks the proposal against what arrived.
+    const tag = proposed as EhrTagValue & { sourceLabel?: string }
     const parts = [tag.dose, tag.route, tag.frequency].filter(Boolean)
-    return { title: tag.label, detail: parts.length ? parts.join(" · ") : tag.code }
+    const source = [tag.code, tag.sourceLabel].filter(Boolean).join(" · ")
+    return { title: tag.label, detail: parts.length ? parts.join(" · ") : source || undefined }
   }
   return { title: proposed === null ? "—" : String(proposed) }
 }
