@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { applyEhrSelections } from "@lospor/core/ehr-import-apply"
+import { importedProcedureOf, isExactProcedure, procedureDisplayText } from "@lospor/core/procedure-codes"
 import {
   visibleReviewItems,
   type EhrReviewItem,
@@ -298,8 +299,13 @@ function describe(
     // group), so the clinician checks the proposal against what arrived.
     const tag = proposed as EhrTagValue & { sourceLabel?: string }
     const parts = [tag.dose, tag.route, tag.frequency].filter(Boolean)
-    const source = [tag.code, tag.sourceLabel].filter(Boolean).join(" · ")
-    return { title: tag.label, detail: parts.length ? parts.join(" · ") : source || undefined }
+    // An exact operation proposed for a hospital code reads as the operation,
+    // with the code and wording the hospital actually sent beneath it.
+    const exact = isExactProcedure(tag as unknown as Record<string, unknown>)
+    const imported = exact ? importedProcedureOf(tag as unknown as Record<string, unknown>) : undefined
+    const source = (imported ? [imported.code, imported.sourceLabel] : [tag.code, tag.sourceLabel]).filter(Boolean).join(" · ")
+    const title = exact ? procedureDisplayText(tag as unknown as Record<string, unknown>) : tag.label
+    return { title, detail: parts.length ? parts.join(" · ") : source || undefined }
   }
   return { title: proposed === null ? "—" : String(proposed) }
 }
