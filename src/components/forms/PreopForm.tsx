@@ -20,6 +20,8 @@ import { ChevronRight, Lightbulb } from "lucide-react"
 import { ClinicalYesNo } from "@/components/ClinicalYesNo"
 import { AirwayFeatures } from "@/components/forms/sections/AirwayFeatures"
 import { TagInput, type Tag } from "@/components/TagInput"
+import { ProcedureOperationPicker } from "@/components/forms/ProcedureOperationPicker"
+import { procedureGroupTag } from "@lospor/core/procedure-codes"
 import { NumberStepper } from "@/components/NumberStepper"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
 import { AIAdvisor } from "@/components/AIAdvisor"
@@ -565,11 +567,16 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   value={(field.value ?? []) as Tag[]}
                   onChange={field.onChange}
                   searchUrl="/api/search/procedures"
-                  renderSuggestion={(item: ProcedureSearchItem) => ({
-                    label: item.group || item.description,
-                    sub: `${item.code} · ${item.domain}`,
-                  })}
+                  // The group alone: the example code the search matched it
+                  // by named an operation nobody chose. The exact one is picked
+                  // below.
+                  renderSuggestion={(item: ProcedureSearchItem) =>
+                    procedureGroupTag({ group: item.group || item.description, domain: item.domain })}
                   placeholder={t("preop.procedurePlaceholder")}
+                />
+                <ProcedureOperationPicker
+                  value={(field.value ?? []) as Tag[]}
+                  onChange={field.onChange}
                 />
               </div>
             )} />

@@ -1,5 +1,11 @@
 # Changelog - LOSPOR Web App
 
+## [Unreleased]
+
+### Added
+
+- **Exact planned operation.** Below the planned-procedure field, each chosen group offers its ICD-10-PCS operations (laparoscopic or open, whole or partial…), narrowed by typing, from `/api/search/procedures/codes`. Picking one stores the exact code, which is also its research code; the group alone stays valid. A group picked from the search no longer carries the example code the search matched, which named an operation nobody chose.
+
 ## [9.9.5] - 2026-09-07
 
 ### Changed
