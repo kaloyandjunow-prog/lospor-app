@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { plannedProcedureText } from "@lospor/core/procedure-codes"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Progress } from "@/components/ui/progress"
@@ -732,7 +733,7 @@ export default function NewCasePage() {
               currentMedications:    preopData.currentMedications,
               labResults:            preopData.labResults,
               diagnosis:             preopData.diagnoses?.map(t => t.label).join("; ") || null,
-              plannedProcedure:      preopData.procedures?.map(t => t.label).join("; ") || null,
+              plannedProcedure:      plannedProcedureText(preopData.procedures) || null,
               emergencySurgery:      preopData.emergencySurgery ?? null,
             } : null}
             caseStarted={!!(intraopData?.startTime)}

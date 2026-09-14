@@ -4,7 +4,7 @@
 
 ### Added
 
-- **Exact planned operation.** Below the planned-procedure field, each chosen group offers its ICD-10-PCS operations (laparoscopic or open, whole or partial…), narrowed by typing, from `/api/search/procedures/codes`. Picking one stores the exact code, which is also its research code; the group alone stays valid. A group picked from the search no longer carries the example code the search matched, which named an operation nobody chose.
+- **Exact planned operation.** Below the planned-procedure field, each chosen group offers its ICD-10-PCS operations (laparoscopic or open, whole or partial…), narrowed by typing, from `/api/search/procedures/codes`. Picking one stores the exact code, which is also its research code; the group alone stays valid. A group picked from the search no longer carries the example code the search matched, which named an operation nobody chose. The planned-procedure line on the record and the printed sheet names a chosen operation, e.g. "Cholecystectomy: Resection of Gallbladder, Percutaneous Endoscopic Approach [0FT44ZZ]".
 
 ## [9.9.5] - 2026-09-07
 
