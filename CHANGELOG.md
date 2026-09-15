@@ -1,6 +1,6 @@
 # Changelog - LOSPOR Web App
 
-## [Unreleased]
+## [9.10.0] - 2026-09-15
 
 ### Added
 
