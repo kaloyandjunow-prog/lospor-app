@@ -1,5 +1,11 @@
 # Changelog - LOSPOR Web App
 
+## [9.10.2] - 2026-09-16
+
+### Fixed
+
+- **Intraoperative vitals are validated before autosave.** Localized field feedback appears while editing; unusual chartable values (BP, heart rate, temperature) are retained as non-blocking warnings, while hard-invalid device values (BIS, TOF ratio, SpO2) are kept out of the write path. A hard-invalid draft stays visible and blocking in the entry popover instead of silently falling back to a prior reading.
+
 ## [9.10.0] - 2026-09-15
 
 ### Added
