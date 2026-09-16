@@ -1,3 +1,29 @@
+# ENGLISH BELOW
+
+# LOSPOR Web — български
+
+LOSPOR Web е браузърният клиент на периоперативната платформа LOSPOR. Това
+хранилище не представлява самостоятелно целия регистър: клиентът използва
+версионирания LOSPOR API и участва както в публичната Cloud Demo среда, така и
+като вендорирана част от LOSPOR Hospital.
+
+Интерфейсът е предназначен за клинично документиране, преглед и управление на
+периоперативни случаи. Българският език е публичният език по подразбиране, а
+английският остава наличен. Условията за ползване и политиката за
+поверителност са версионирани документи, чието приемане се съхранява като
+точно доказателство.
+
+Публична инсталация: [app.lospor.org](https://app.lospor.org)
+
+Документация: [docs.lospor.org](https://docs.lospor.org)
+
+За локална разработка и за пълните бележки относно езиковите настройки,
+сигурността, API съвместимостта и проверките вижте английската версия по-долу.
+
+---
+
+# English
+
 # LOSPOR Web
 
 [![Licence: AGPL-3.0](https://img.shields.io/badge/Licence-AGPL--3.0-blue.svg)](LICENSE)
@@ -6,9 +32,9 @@
 
 Copyright (C) 2026 Kaloyan Dzhunov. Licensed under AGPL-3.0.
 
-This repository contains the LOSPOR Next.js browser interface. LOSPOR is a
-free, open-source personal anaesthetic case log for learning, portfolio, and
-reflection. Bulgarian is the public default and English remains available. An
+This repository contains the LOSPOR Next.js browser client. It is one client
+of the wider LOSPOR perioperative platform and uses the versioned LOSPOR API;
+it is not a standalone register. Bulgarian is the public default and English remains available. An
 installer can set the unauthenticated appliance default to English with the
 validated runtime variable `LOSPOR_DEFAULT_LOCALE=en`; absent or invalid values
 remain Bulgarian.
