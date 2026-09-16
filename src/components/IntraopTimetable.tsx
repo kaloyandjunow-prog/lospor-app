@@ -36,9 +36,7 @@ import {
   buildFluidFlyoutState,
 } from "@/components/intraop/flyout-state"
 import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
-import {
-  computeRowGeometry,
-} from "@/components/intraop/timetable-row-geometry"
+import { computeRowGeometry } from "@/components/intraop/timetable-row-geometry"
 import {
   selId,
   selIdx,
@@ -82,6 +80,7 @@ import { useInfusionHandlers } from "@/hooks/useInfusionHandlers"
 import { useFluidHandlers } from "@/hooks/useFluidHandlers"
 import { useAgentHandlers } from "@/hooks/useAgentHandlers"
 import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
+import { useVitalDraftEntry } from "@/hooks/useVitalDraftEntry"
 import { DivChart, VITAL_ROW_DEFS } from "@/components/intraop/TimetableVitalsChart"
 import { cvpDisplayRange, cvpToDisplay } from "@lospor/core/monitoring-values"
 import { mayCommitVitalDefault } from "@lospor/core/monitoring-values"
@@ -99,8 +98,6 @@ import {
   quickNumberMap,
 } from "@lospor/core/option-library"
 import {
-} from "@/lib/drug-selector-surface"
-import {
   applyAdultDoseProfilesToOptions,
   applyPediatricDrugProfilesToOptions,
   applyPediatricInfusionProfilesToOptions,
@@ -114,10 +111,7 @@ import {
 } from "@lospor/core/clinical-rules"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
-import {
-  currentFluidRate,
-  fluidDeliveredVolumeMl,
-} from "@/lib/fluid-entry-ui"
+import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { COL_W, INTERVAL, LABEL_W, ROW_COLS, rectAnchor } from "@/components/intraop/timetable-layout"
 
 // The selectable libraries (agents, drugs, fluids, clinical events, infusion
@@ -493,8 +487,6 @@ export function IntraopTimetable({
 
   // Vitals input refs (keyed "${col}-${rowKey}") for Tab column navigation
   const vitalsInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
-  const [vitalDrafts, setVitalDrafts] = useState<Record<string, string>>({})
-  const [activeVitalCell, setActiveVitalCell] = useState<string | null>(null)
   // Vitals slider popup
   const [vitalsPopup, setVitalsPopup] = useState<{
     col: number; key: keyof VitalsEntry
@@ -857,26 +849,11 @@ export function IntraopTimetable({
     }
   }, [flushVitalEvents])
 
-  const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
-    const cellKey = `${col}-${key}`
-    const feedback = evaluateVitalInput(
-      key as IntraopVitalKey,
-      raw,
-      key === "cvp" ? cvpUnit : "mmHg",
-    )
-    if (feedback.error) {
-      setVitalDrafts(current => current[cellKey] === raw ? current : { ...current, [cellKey]: raw })
-      return
-    }
-    setVitalDrafts(current => {
-      if (current[cellKey] === undefined) return current
-      const next = { ...current }
-      delete next[cellKey]
-      return next
-    })
-    setVitalCell(col, key, feedback.value == null ? "" : String(feedback.value))
-    markVitalColDirty(col)
-  }, [setVitalCell, markVitalColDirty, cvpUnit])
+  const { vitalDrafts, activeVitalCell, setActiveVitalCell, setVital } = useVitalDraftEntry({
+    setVitalCell,
+    markVitalColDirty,
+    cvpUnit,
+  })
 
   // Keyboard navigation on selected items
   useEffect(() => {
