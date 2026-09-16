@@ -34,6 +34,8 @@ export type VitalsPopoverProps = {
   converts: "etco2" | "temperature" | null
   /** The value stored for this cell, or undefined when nothing has been entered. */
   value: number | undefined
+  /** A raw grid draft takes precedence over the stored value, including when invalid. */
+  inputDraft?: string
   /** What the cell displays when empty — usually the previous column's reading. */
   fallbackValue: number
   min: number
@@ -52,6 +54,7 @@ export function VitalsPopover({
   vitalKey,
   converts,
   value,
+  inputDraft,
   fallbackValue,
   min,
   max,
@@ -61,7 +64,13 @@ export function VitalsPopover({
 }: VitalsPopoverProps) {
   const copy = useIntraopUiCopy()
   const t = useTranslations("intraop.timetable")
-  const [draftValue, setDraftValue] = useState<number | null>(value ?? fallbackValue)
+  const [draftValue, setDraftValue] = useState<number | null>(() => {
+    if (inputDraft != null) {
+      const parsed = Number(inputDraft.trim().replace(",", "."))
+      if (Number.isFinite(parsed)) return parsed
+    }
+    return value ?? fallbackValue
+  })
   if (typeof document === "undefined") return null
 
   const shown = draftValue

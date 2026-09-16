@@ -33,6 +33,14 @@ function renderPopover(overrides: Partial<React.ComponentProps<typeof VitalsPopo
 }
 
 describe("VitalsPopover validation", () => {
+  it("opens on the hard-invalid grid draft instead of the prior stored value", () => {
+    renderPopover({ value: 50, inputDraft: "101" })
+
+    expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("101")
+    expect(screen.getByRole("alert").textContent).toBe("BIS must be a whole number from 0 to 100.")
+    expect((screen.getByRole("button", { name: "Done" }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it("shows an invalid BIS value without committing it", () => {
     const props = renderPopover()
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "101" } })

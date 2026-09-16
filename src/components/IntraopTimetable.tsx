@@ -2282,6 +2282,7 @@ export function IntraopTimetable({
           const stored = data.vitals[vitalsPopup.col]?.[vitalsPopup.key]
           return stored == null ? stored : vitalToDisplay(vitalsPopup.key, stored)
         })()}
+        inputDraft={vitalDrafts[`${vitalsPopup.col}-${vitalsPopup.key}`]}
         fallbackValue={vitalsPopup.defaultVal}
         min={vitalsPopup.min}
         max={vitalsPopup.max}
