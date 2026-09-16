@@ -83,14 +83,16 @@ import { useFluidHandlers } from "@/hooks/useFluidHandlers"
 import { useAgentHandlers } from "@/hooks/useAgentHandlers"
 import { useGasSettingsHandlers } from "@/hooks/useGasSettingsHandlers"
 import { DivChart, VITAL_ROW_DEFS } from "@/components/intraop/TimetableVitalsChart"
-import { cvpDisplayRange, cvpToCanonical, cvpToDisplay } from "@lospor/core/monitoring-values"
+import { cvpDisplayRange, cvpToDisplay } from "@lospor/core/monitoring-values"
 import { mayCommitVitalDefault } from "@lospor/core/monitoring-values"
 import { useUnitPreferences } from "@/hooks/useUnitPreferences"
 import {
   activeTimetableColumnForTimestamp,
   latestVitalColumn,
   planAutoFillVitalEvents,
+  type IntraopVitalKey,
 } from "@lospor/core/intraop-vitals"
+import { evaluateVitalInput } from "@/lib/intraop-vital-entry"
 import {
   groupClinicalEvents,
   optionStyleMap,
@@ -491,6 +493,8 @@ export function IntraopTimetable({
 
   // Vitals input refs (keyed "${col}-${rowKey}") for Tab column navigation
   const vitalsInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
+  const [vitalDrafts, setVitalDrafts] = useState<Record<string, string>>({})
+  const [activeVitalCell, setActiveVitalCell] = useState<string | null>(null)
   // Vitals slider popup
   const [vitalsPopup, setVitalsPopup] = useState<{
     col: number; key: keyof VitalsEntry
@@ -854,19 +858,23 @@ export function IntraopTimetable({
   }, [flushVitalEvents])
 
   const setVital = useCallback((col: number, key: keyof VitalsEntry, raw: string) => {
-    // CVP is the one vital whose entry unit is a preference, and it is stored
-    // in mmHg regardless. Converting here, at the single write, keeps every
-    // other path -- autosave, the event stream, the export -- working in the
-    // canonical unit without knowing the preference exists.
-    if (key === "cvp" && cvpUnit === "cmH2O" && raw !== "") {
-      const typed = Number(raw)
-      if (Number.isFinite(typed)) {
-        setVitalCell(col, key, String(cvpToCanonical(typed, "cmH2O")))
-        markVitalColDirty(col)
-        return
-      }
+    const cellKey = `${col}-${key}`
+    const feedback = evaluateVitalInput(
+      key as IntraopVitalKey,
+      raw,
+      key === "cvp" ? cvpUnit : "mmHg",
+    )
+    if (feedback.error) {
+      setVitalDrafts(current => current[cellKey] === raw ? current : { ...current, [cellKey]: raw })
+      return
     }
-    setVitalCell(col, key, raw)
+    setVitalDrafts(current => {
+      if (current[cellKey] === undefined) return current
+      const next = { ...current }
+      delete next[cellKey]
+      return next
+    })
+    setVitalCell(col, key, feedback.value == null ? "" : String(feedback.value))
     markVitalColDirty(col)
   }, [setVitalCell, markVitalColDirty, cvpUnit])
 
@@ -990,6 +998,12 @@ export function IntraopTimetable({
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Enter") {
         e.preventDefault(); e.stopPropagation()
+        const draft = vitalDrafts[`${popup.col}-${popup.key}`]
+        if (draft !== undefined && evaluateVitalInput(
+          popup.key as IntraopVitalKey,
+          draft,
+          popup.key === "cvp" ? cvpUnit : "mmHg",
+        ).error) return
         const cur = dataRef.current.vitals[popup.col]?.[popup.key]
         if (cur === undefined && mayCommitVitalDefault(popup.key, popup.defaultIsPriorReading)) {
           setVital(popup.col, popup.key, String(popup.defaultVal))
@@ -1013,7 +1027,7 @@ export function IntraopTimetable({
     }
     window.addEventListener("keydown", handleKey, true) // capture phase — beats input handlers
     return () => window.removeEventListener("keydown", handleKey, true)
-  }, [vitalsPopup, setVital, vitalToDisplay])
+  }, [vitalsPopup, setVital, vitalToDisplay, vitalDrafts, cvpUnit])
 
   // Undo / redo
   useEffect(() => {
@@ -1641,6 +1655,10 @@ export function IntraopTimetable({
             emptyLabel={t("intraop.timetable.selectMonitoringToPopulate")}
             isFirstRow={rowIdx === 0}
             inputRefs={vitalsInputRefs}
+            drafts={vitalDrafts}
+            activeCell={activeVitalCell}
+            onFocusCell={setActiveVitalCell}
+            onBlurCell={cell => setActiveVitalCell(current => current === cell ? null : current)}
             setVital={setVital}
             lastVitalBefore={lastVitalBefore}
             onOpenStepper={setVitalsPopup}
@@ -2248,10 +2266,12 @@ export function IntraopTimetable({
     )}
     {vitalsPopup && (
       <VitalsPopover
+        key={`${vitalsPopup.col}-${vitalsPopup.key}`}
         anchor={vitalsPopup.rect}
         label={vitalsPopup.label}
         unit={vitalsPopup.unit}
         color={vitalsPopup.color}
+        vitalKey={vitalsPopup.key as IntraopVitalKey}
         // CVP is deliberately not routed through ConvertedStepper, which
         // expects canonical bounds. This popup's min/max/step come from the
         // lane row, which is already in the unit on screen -- handing those to
