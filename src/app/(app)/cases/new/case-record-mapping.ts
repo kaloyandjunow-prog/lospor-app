@@ -95,6 +95,7 @@ export function dbPreopToForm(
     elective:             p.elective              ?? false,
     emergencySurgery:     p.emergencySurgery      ?? false,
     aiOptIn:              p.aiOptIn               ?? false,
+    preopProfileVersion: typeof p.preopProfileVersion === "number" ? p.preopProfileVersion : undefined,
 
     preopAnswers: Array.isArray(p.assessmentAnswers) ? p.assessmentAnswers.map(answer => {
       const objectAnswer = typeof answer === "object" && answer !== null ? answer as {

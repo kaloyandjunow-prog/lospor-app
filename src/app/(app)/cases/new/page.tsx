@@ -188,7 +188,14 @@ export default function NewCasePage() {
         ])
 
         if (record.preop) {
-          const serverForm = dbPreopToForm(record.preop, record.clinicalMode) as PreopData
+          const pinnedProfileVersion = (record as unknown as {
+            preopProfilePin?: { profileVersion?: number | null }
+          }).preopProfilePin?.profileVersion
+          const pinnedPreop = {
+            ...record.preop,
+            ...(pinnedProfileVersion == null ? {} : { preopProfileVersion: pinnedProfileVersion }),
+          } as CaseDetailPreop
+          const serverForm = dbPreopToForm(pinnedPreop, record.clinicalMode) as PreopData
           autosaveManager.hydrateSection(
             continueId,
             "preop",
@@ -196,7 +203,7 @@ export default function NewCasePage() {
             record.preop.syncRevision ?? record.preop.updatedAt,
           )
           setPreopData(dbPreopToForm(
-            { ...record.preop, ...queuedPreop } as CaseDetailPreop,
+            { ...pinnedPreop, ...queuedPreop } as CaseDetailPreop,
             queuedPreop?.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : record.clinicalMode,
           ) as PreopData)
         }
