@@ -89,6 +89,15 @@ export function dbPreopToForm(
     emergencySurgery:     p.emergencySurgery      ?? false,
     aiOptIn:              p.aiOptIn               ?? false,
 
+    preopAnswers: Array.isArray(p.assessmentAnswers) ? p.assessmentAnswers.map(answer => ({
+      stableKey: typeof answer === "object" && answer !== null ? String((answer as { question?: { stableKey?: unknown } }).question?.stableKey ?? "") : "",
+      state: typeof answer === "object" && answer !== null ? String((answer as { state?: unknown }).state ?? "NOT_ASKED") : "NOT_ASKED",
+      optionKey: typeof answer === "object" && answer !== null ? ((answer as { optionKey?: string | null }).optionKey ?? null) : null,
+      valueText: typeof answer === "object" && answer !== null ? ((answer as { valueText?: string | null }).valueText ?? null) : null,
+      valueNumber: typeof answer === "object" && answer !== null ? ((answer as { valueNumber?: number | null }).valueNumber ?? null) : null,
+      valueDate: typeof answer === "object" && answer !== null ? ((answer as { valueDate?: string | Date | null }).valueDate ? new Date((answer as { valueDate: string | Date }).valueDate).toISOString() : null) : null,
+    })).filter(answer => answer.stableKey.length > 0) : [],
+
     // Medical history
     comorbidities: Array.isArray(p.comorbidities)
       ? p.comorbidities.map(c => typeof c === "string" ? { label: c } : c)
