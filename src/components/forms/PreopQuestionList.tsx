@@ -81,10 +81,10 @@ export function PreopQuestionList({
             const state = states.get(question.stableKey)
             const value = state === "YES" ? true : state === "NO" ? false : null
             // Offered only on an unanswered question: the clinician's own answer
-        // wins, and accepting would otherwise overwrite it on the next save.
-        const pending = state == null || state === "NOT_ASKED"
-          ? suggestions.find(item => item.stableKey === question.stableKey)
-          : undefined
+            // wins, and accepting would otherwise overwrite it on the next save.
+            const pending = state == null || state === "NOT_ASKED"
+              ? suggestions.find(item => item.stableKey === question.stableKey)
+              : undefined
             const answer = (next: PreopQuestionAnswer["state"] | null) =>
               onAnswer(question.stableKey, next ? { stableKey: question.stableKey, state: next, optionKey: next === "YES" || next === "NO" ? next : null } : null)
             return (
