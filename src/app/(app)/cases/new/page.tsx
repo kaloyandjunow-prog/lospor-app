@@ -1,5 +1,8 @@
 "use client"
 
+import { isServerRefusal } from "@/lib/server-refusal"
+import { fetchMissingRequiredPreop, missingRequiredPreopLabels } from "@/lib/preop-required"
+import type { PreopAssessmentProfile } from "@lospor/core/preop-assessment"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -21,7 +24,7 @@ import {
 } from "./case-record-mapping"
 import { readRejectedFields, rejectionsForSection, rejectionMessages } from "@/lib/rejected-fields"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { CaseSummary } from "@/components/CaseSummary"
 import { useTour } from "@/context/TourContext"
@@ -47,6 +50,7 @@ export default function NewCasePage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations()
+  const locale = useLocale()
   const STEPS = [t("case.steps.preop"), t("case.steps.intraop"), t("case.steps.postop"), t("case.steps.summary")]
 
   const { setCurrentFormStep } = useTour()
@@ -54,6 +58,7 @@ export default function NewCasePage() {
   const [step, setStep]               = useState(0)
   const [caseId, setCaseId]           = useState<string | null>(null)
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
+  const [preopProfile, setPreopProfile] = useState<PreopAssessmentProfile | null>(null)
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
@@ -185,9 +190,9 @@ export default function NewCasePage() {
           autosaveManager.pendingEvents.loadPending<Record<string, unknown> & { id: string }>(continueId).catch(() => []),
           autosaveManager.eventMutations.load(continueId).catch(() => []),
         ])
+        setPreopProfile((record as unknown as { preopProfile?: PreopAssessmentProfile }).preopProfile ?? null)
         if (record.preop) {
-          const pinnedProfileVersion = (record as unknown as { preopProfilePin?: { profileVersion?: number | null } }).preopProfilePin?.profileVersion
-          const pinnedPreop = { ...record.preop, ...(pinnedProfileVersion == null ? {} : { preopProfileVersion: pinnedProfileVersion }) } as CaseDetailPreop
+          const pinnedPreop = record.preop as CaseDetailPreop
           const serverForm = dbPreopToForm(pinnedPreop, record.clinicalMode) as PreopData
           autosaveManager.hydrateSection(
             continueId,
@@ -275,6 +280,18 @@ export default function NewCasePage() {
     router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId, router])
 
+  // A new case has no case read yet; the form still needs the profile to
+  // know which questions are on. An existing case gets it with the case.
+  useEffect(() => {
+    if (searchParams.get("continue") || preopProfile) return
+    let cancelled = false
+    fetch("/api/preop/profile", { cache: "no-store" })
+      .then(response => response.ok ? response.json() as Promise<PreopAssessmentProfile> : null)
+      .then(profile => { if (!cancelled && profile) setPreopProfile(profile) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [searchParams, preopProfile])
+
   // Cleanup countdowns on unmount
   useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
 
@@ -356,6 +373,9 @@ export default function NewCasePage() {
           return "blocked" as const
         }
         if (outcome.result === "queued" || outcome.result === "failed") {
+          // A 4xx is the server saying no, not the network being away; "saved
+          // locally, will sync" would promise a sync that waiting cannot bring.
+          if (isServerRefusal(outcome.failure)) throw new Error(t("case.saveRefused"))
           if (showToast) toast.info(t("case.savedOffline"))
           return "queued" as const
         }
@@ -440,7 +460,15 @@ export default function NewCasePage() {
     const saved = await saveSection("preop", data, { showToast: true })
     setSubmitting(false)
     const decision = canProgressAfterSave(saveOutcomeKind(saved), { caseExistedBeforeSave })
-    if (decision.canProgress) { setStep(1); window.scrollTo(0, 0) }
+    if (!decision.canProgress) return
+    // Required preop questions are enforced here, at continue-to-intraop,
+    // never on a draft save. A read that fails reports nothing missing.
+    const missing = caseIdRef.current ? await fetchMissingRequiredPreop(caseIdRef.current) : []
+    if (missing.length > 0) {
+      toast.error(t("case.preopRequiredMissing", { questions: missingRequiredPreopLabels(missing, locale) }))
+      return
+    }
+    setStep(1); window.scrollTo(0, 0)
   }
 
   async function handleIntraopSubmit(data: IntraopData) {
@@ -702,6 +730,7 @@ export default function NewCasePage() {
             onAutoSave={data => handleAutoSave("preop", data)}
             layoutMode={preopLayout}
             caseId={caseId}
+            preopProfile={preopProfile}
           />
         )}
         {!loading && step === 1 && (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { usePreopAutosave } from "@/lib/use-preop-autosave"
 import { missingPreopFields } from "@/lib/preop-validation"
 import { useForm, Controller, type Resolver } from "react-hook-form"
@@ -48,6 +48,20 @@ import {
   SectionCard,
 } from "@/components/forms/PreopFormPresentational"
 import { LabResultsSection } from "@/components/forms/sections/LabResultsSection"
+import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswer } from "@/components/forms/PreopQuestionList"
+import {
+  isPreopQuestionShown,
+  isPreopScoreAvailable,
+  PREOP_LEGACY_FIELD_BY_QUESTION,
+  preopAnswerStates,
+  type PreopAssessmentProfile,
+  type PreopFormSection,
+} from "@lospor/core/preop-assessment"
+
+/** Baseline question behind each legacy form field. */
+const QUESTION_OF_FIELD: Record<string, string> = Object.fromEntries(
+  Object.entries(PREOP_LEGACY_FIELD_BY_QUESTION).map(([stableKey, field]) => [field, stableKey]),
+)
 
 export type { PreopData } from "@/components/forms/preopSchema"
 
@@ -56,7 +70,7 @@ type ProcedureSearchItem = { code: string; group?: string; description: string; 
 type DrugSearchItem = { name: string; inn?: string; strength?: string; atcCode?: string }
 
 
-export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields }: {
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
@@ -64,6 +78,12 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   onAutoSave?: (data: PreopData) => void | Promise<void>
   layoutMode?: "tabs" | "scroll"
   caseId?: string | null
+  /**
+   * The appliance's preoperative profile: which bundled questions are on, in
+   * what order, and which are required. Absent (an older server, or before the
+   * case read arrives) the form shows the bundled baseline as it always has.
+   */
+  preopProfile?: PreopAssessmentProfile | null
   /** Values the server refused, keyed by field, shown beside the field itself. */
   rejectedFields?: Map<string, string>
 }) {
@@ -114,6 +134,53 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
            "allergies", "familyAnesthesiaProblems", "difficultAirwayHistory", "comorbidities", "bloodType", "rhFactor",
            "clinicalMode", "ageValue", "ageUnit"])
   const isPediatric = clinicalMode === "PEDIATRIC"
+  const preopMode = isPediatric ? "PEDIATRIC" : "ADULT"
+  const shown = (stableKey: string) => isPreopQuestionShown(preopProfile, stableKey, preopMode)
+  const shownField = (field: string) => !QUESTION_OF_FIELD[field] || shown(QUESTION_OF_FIELD[field])
+  const questionStates = preopAnswerStates(watch() as unknown as Record<string, unknown>)
+  const [pendingSuggestions, setPendingSuggestions] = useState<PreopPendingSuggestion[]>([])
+  const loadSuggestions = useCallback(async () => {
+    if (!caseId) return setPendingSuggestions([])
+    const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}/preop-suggestions`, { cache: "no-store" }).catch(() => null)
+    if (!response?.ok) return
+    const rows = await response.json().catch(() => []) as Array<{ id: string; status: string; proposedState: PreopPendingSuggestion["proposedState"]; question?: { stableKey?: string } }>
+    setPendingSuggestions(rows
+      .filter(row => row.status === "PENDING" && row.question?.stableKey)
+      .map(row => ({ id: row.id, stableKey: row.question!.stableKey!, proposedState: row.proposedState })))
+  }, [caseId])
+  useEffect(() => { void loadSuggestions() }, [loadSuggestions])
+  // Answers to the profile's own questions. preopAnswers is sent as the
+  // complete set, so dropping an entry is how an answer is cleared; a parent
+  // answered anything but YES takes its follow-ups with it.
+  const answerQuestion = (stableKey: string, answer: PreopQuestionAnswer | null) => {
+    const followUps = new Set((preopProfile?.questions ?? []).filter(item => item.parentKey === stableKey).map(item => item.stableKey))
+    const keep = (getValues("preopAnswers") ?? []).filter(item => item.stableKey !== stableKey
+      && !(answer?.state !== "YES" && followUps.has(item.stableKey)))
+    setValue("preopAnswers", answer ? [...keep, answer] : keep, { shouldDirty: true })
+  }
+  const reviewSuggestion = async (suggestionId: string, status: "ACCEPTED" | "REJECTED") => {
+    if (!caseId) return
+    const suggestion = pendingSuggestions.find(item => item.id === suggestionId)
+    const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}/preop-suggestions/${encodeURIComponent(suggestionId)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+    }).catch(() => null)
+    if (response?.ok && status === "ACCEPTED" && suggestion?.proposedState && suggestion.proposedState !== "NOT_ASKED") {
+      answerQuestion(suggestion.stableKey, { stableKey: suggestion.stableKey, state: suggestion.proposedState, optionKey: suggestion.proposedState === "YES" || suggestion.proposedState === "NO" ? suggestion.proposedState : null })
+    }
+    await loadSuggestions()
+  }
+  const questionList = (formSection: PreopFormSection) => (
+    <PreopQuestionList
+      profile={preopProfile}
+      formSection={formSection}
+      mode={preopMode}
+      states={questionStates}
+      onAnswer={answerQuestion}
+      suggestions={pendingSuggestions}
+      onReviewSuggestion={reviewSuggestion}
+      className="pt-2"
+    />
+  )
   const pediatricRecordReadOnly = isPediatric && !pediatricCapability.enabled
   const [currentMedications, labResults] = watch(["currentMedications", "labResults"])
 
@@ -480,6 +547,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             })}
           </div>
         </div>
+        {questionList("demographics")}
       </SectionCard>
       </div>
       </div>
@@ -551,12 +619,15 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           </div>
         </div>
         <div className="flex flex-wrap gap-3 pt-1">
+          {shownField("highRiskSurgery") && (
           <div className="flex items-center gap-2">
             <Controller name="highRiskSurgery" control={control} render={({ field }) => (
               <Checkbox id="highRiskSurgery" checked={!!field.value} onCheckedChange={field.onChange} />
             )} />
             <Label htmlFor="highRiskSurgery" className="font-normal cursor-pointer">{t("preop.highRiskSurgery")}</Label>
           </div>
+          )}
+          {shown("BASE_SURGERY_URGENCY") && (<>
           <Controller name="elective" control={control} render={({ field }) => (
             <button type="button"
               onClick={() => { field.onChange(!field.value); if (!field.value) setValue("emergencySurgery", false) }}
@@ -579,7 +650,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               {t("preop.emergencySurgery")}
             </button>
           )} />
+          </>)}
         </div>
+        {questionList("case_details")}
       </SectionCard>
       </div>
       </div>
@@ -614,6 +687,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           </>
         )} />
         <RejectionNote msg={rejectionOf("comorbidities")} />
+        {questionList("medical_history")}
       </SectionCard>
 
       {/* Medications */}
@@ -633,12 +707,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           />
         )} />
         <RejectionNote msg={rejectionOf("currentMedications")} />
+        {questionList("current_medications")}
       </SectionCard>
 
       {/* Anamnesis, habits & risk factor checkboxes */}
       <SectionCard title={t("preop.historyCardTitle")}>
         <div className="space-y-3">
           {/* Allergies */}
+          {shownField("allergies") && (<>
           <div className="flex items-center gap-2">
             <Controller name="allergies" control={control} render={({ field }) => (
               <ClinicalYesNo id="allergies" value={field.value ?? null} tone="danger" onChange={(answer) => {
@@ -669,14 +745,18 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               <RejectionNote msg={rejectionOf("allergyDetails")} />
             </>
           )}
+          </>)}
+          {shownField("latexAllergy") && (
           <div className="flex items-center gap-2">
             <Controller name="latexAllergy" control={control} render={({ field }) => (
               <ClinicalYesNo id="latexAllergy" value={field.value ?? null} onChange={field.onChange} tone="danger" />
             )} />
             <Label htmlFor="latexAllergy" className="font-normal cursor-pointer">{t("preop.latexAllergy")}</Label>
           </div>
+          )}
           <Separator />
           {/* Family history */}
+          {shownField("familyAnesthesiaProblems") && (<>
           <div className="flex items-center gap-2">
             <Controller name="familyAnesthesiaProblems" control={control} render={({ field }) => (
               <ClinicalYesNo id="familyAnesthesiaProblems" value={field.value ?? null} tone="danger" onChange={(answer) => {
@@ -692,49 +772,62 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               <RejectionNote msg={rejectionOf("familyAnesthesiaDetails")} />
             </>
           )}
+          </>)}
           <Separator />
           {/* Personal anaesthetic history — the patient, not the family */}
+          {shownField("unexplainedAnaesthesiaComplications") && (
           <div className="flex items-center gap-2">
             <Controller name="unexplainedAnaesthesiaComplications" control={control} render={({ field }) => (
               <ClinicalYesNo id="unexplainedAnaesthesiaComplications" value={field.value ?? null} tone="danger" onChange={field.onChange} />
             )} />
             <Label htmlFor="unexplainedAnaesthesiaComplications" className="font-normal cursor-pointer">{t("preop.unexplainedAnaesthesiaComplications")}</Label>
           </div>
+          )}
+          {shownField("malignantHyperthermiaHistory") && (
           <div className="flex items-center gap-2">
             <Controller name="malignantHyperthermiaHistory" control={control} render={({ field }) => (
               <ClinicalYesNo id="malignantHyperthermiaHistory" value={field.value ?? null} tone="danger" onChange={field.onChange} />
             )} />
             <Label htmlFor="malignantHyperthermiaHistory" className="font-normal cursor-pointer">{t("preop.malignantHyperthermiaHistory")}</Label>
           </div>
+          )}
           <Separator />
           {/* Dental */}
+          {shownField("dentalProsthetics") && (
           <div className="flex items-center gap-2">
             <Controller name="dentalProsthetics" control={control} render={({ field }) => (
               <ClinicalYesNo id="dentalProsthetics" value={field.value ?? null} onChange={field.onChange} />
             )} />
             <Label htmlFor="dentalProsthetics" className="font-normal cursor-pointer">{t("preop.dentalProsthetics")}</Label>
           </div>
+          )}
+          {shownField("looseTeeth") && (
           <div className="flex items-center gap-2">
             <Controller name="looseTeeth" control={control} render={({ field }) => (
               <ClinicalYesNo id="looseTeeth" value={field.value ?? null} onChange={field.onChange} />
             )} />
             <Label htmlFor="looseTeeth" className="font-normal cursor-pointer">{t("preop.looseTeeth")}</Label>
           </div>
+          )}
           <Separator />
           {/* Habits */}
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t("preop.harmfulHabits")}</p>
+          {shownField("smoking") && (
           <div className="flex items-center gap-2">
             <Controller name="smoking" control={control} render={({ field }) => (
               <ClinicalYesNo id="smoking" value={field.value ?? null} onChange={field.onChange} />
             )} />
             <Label htmlFor="smoking" className="font-normal cursor-pointer">{t("preop.smoking")}</Label>
           </div>
+          )}
+          {shownField("substanceAbuse") && (
           <div className="flex items-center gap-2">
             <Controller name="substanceAbuse" control={control} render={({ field }) => (
               <ClinicalYesNo id="substanceAbuse" value={field.value ?? null} onChange={field.onChange} />
             )} />
             <Label htmlFor="substanceAbuse" className="font-normal cursor-pointer">{t("preop.substanceAbuse")}</Label>
           </div>
+          )}
 
           {!isPediatric && (<>
           <Separator />
@@ -749,7 +842,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               { id:"rcriCVD",           label:"Cerebrovascular disease (history of TIA or stroke)" },
               { id:"rcriInsulinDM",     label:"Insulin-dependent diabetes mellitus" },
               { id:"rcriCreatinine",    label:"Creatinine > 177 µmol/L (> 2.0 mg/dL)" },
-            ] as const).map(item => {
+            ] as const).filter(item => shownField(item.id)).map(item => {
               const suggested = rcriSuggested[item.id as keyof typeof rcriSuggested]
               // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() cannot be memoized; the row re-reads on every change.
               const checked = !!watch(item.id)
@@ -778,7 +871,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             {([
               { id:"apfelPONVHistory",   label:"History of PONV or motion sickness" },
               { id:"apfelPostopOpioids", label:"Postoperative opioids planned" },
-            ] as const).map(item => (
+            ] as const).filter(item => shownField(item.id)).map(item => (
               <div key={item.id} className="flex items-center gap-2">
                 <Controller name={item.id} control={control} render={({ field }) => (
                   <ClinicalYesNo id={item.id} value={field.value ?? null} onChange={field.onChange} />
@@ -800,7 +893,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               { id:"stopbangObserved", label:"Observed — has anyone observed you stop breathing during sleep?" },
               { id:"stopbangBP",       label:"Pressure — do you have or are you being treated for high blood pressure?" },
               { id:"stopbangNeck",     label:"Neck circumference > 40 cm" },
-            ] as const).map(item => {
+            ] as const).filter(item => shownField(item.id)).map(item => {
               const suggested = item.id === "stopbangBP" && stopBangBPSuggested
               const checked = !!watch(item.id)
               return (
@@ -819,6 +912,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             })}
           </div>
           </>)}
+          {questionList("anamnesis")}
         </div>
       </SectionCard>
       </div>
@@ -875,7 +969,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                   <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     {v.label}{v.required && <span className="text-red-500 ml-0.5">*</span>}
                   </Label>
-                  {v.id === "heartRate" && (
+                  {v.id === "heartRate" && shownField("heartArrhythmia") && (
                     <Controller name="heartArrhythmia" control={control} render={({ field }) => (
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <ClinicalYesNo id="heartArrhythmia" value={field.value ?? null} onChange={field.onChange} />
@@ -917,6 +1011,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <Textarea maxLength={500} placeholder={t("preop.physicalExamPlaceholder")} rows={3} {...register("physicalExamReport")} />
           <RejectionNote msg={rejectionOf("physicalExamReport")} />
         </div>
+        {questionList("physical_exam")}
       </SectionCard>
       </div>
 
@@ -1014,12 +1109,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
             predictors above.
           */}
           <div className="space-y-2 col-span-2 sm:col-span-3 border-t border-slate-100 dark:border-[#2a2a2a] pt-3">
+            {shownField("anticipatedDifficultAirway") && (
             <div className="flex items-center gap-2">
               <Controller name="anticipatedDifficultAirway" control={control} render={({ field }) => (
                 <ClinicalYesNo id="anticipatedDifficultAirway" value={field.value ?? null} tone="danger" onChange={field.onChange} />
               )} />
               <Label htmlFor="anticipatedDifficultAirway" className="font-normal cursor-pointer">{t("preop.anticipatedDifficultAirway")}</Label>
             </div>
+            )}
           </div>
         </div>
         )}
@@ -1033,6 +1130,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         {fieldErrors.has("airway") && !airwayUTO && (
           <p className="text-red-500 text-xs pt-1">{t("preop.mallampatiRequired")}</p>
         )}
+        {questionList("airway")}
       </SectionCard>
       </div>
       </div>
@@ -1096,7 +1194,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         {/* Calculated risk scores */}
         {isPediatric ? (
           <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
-            <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} />
+            <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} isShown={shownField} />
           </div>
         ) : (
         <RiskScoreCards
@@ -1106,6 +1204,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           rcriAnswered={rcriAnswered}
           apfelAnswered={apfelAnswered}
           stopBangAnswered={stopBangAnswered}
+          unavailable={{
+            rcri: !isPreopScoreAvailable(preopProfile, "RCRI"),
+            apfel: !isPreopScoreAvailable(preopProfile, "APFEL"),
+            stopBang: !isPreopScoreAvailable(preopProfile, "STOPBANG"),
+          }}
         />
         )}
 

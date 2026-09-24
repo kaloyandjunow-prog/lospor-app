@@ -13,7 +13,6 @@ export const NEVER_PERSISTED: Record<string, string> = {
   patientFirstName: "GDPR: identity is printed by hand, never stored",
   patientLastName:  "GDPR: identity is printed by hand, never stored",
   patientId:        "GDPR: identity is printed by hand, never stored",
-  adoptPreopProfile: "Transient clinician action; the selected profile version is persisted instead",
 }
 
 export type RoundTrip = {
@@ -50,7 +49,6 @@ const flags = (...fields: string[]) =>
 
 export const MATRIX: Record<string, RoundTrip> = {
   clinicalMode: { record: { clinicalMode: "PEDIATRIC" }, form: "PEDIATRIC" },
-  preopProfileVersion: { db: { preopProfileVersion: 1 }, form: 1 },
   preopAnswers: {
     db: {
       assessmentAnswers: [{

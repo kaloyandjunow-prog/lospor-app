@@ -291,9 +291,17 @@ export function PediatricRiskAndCalculators({
   control,
   setValue,
   caseId,
-}: FormProps & { caseId?: string | null }) {
+  isShown = () => true,
+}: FormProps & {
+  caseId?: string | null
+  /** Whether the hospital's preop profile asks this field's question. */
+  isShown?: (field: string) => boolean
+}) {
   const t = useTranslations("pediatric")
+  const tRoot = useTranslations()
   const locale = useLocale()
+  // A score with a switched-off input is not computed as if the answer were "no".
+  const povocAvailable = ["povocSurgeryAtLeast30Minutes", "povocStrabismusSurgery", "povocHistory"].every(field => isShown(field))
   const [
     mode,
     ageValue,
@@ -433,20 +441,22 @@ export function PediatricRiskAndCalculators({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("povoc")}</p>
-          {povoc && <Badge variant="outline">{povoc.score}/4 · {povoc.riskPercent}%</Badge>}
+          {povoc && povocAvailable && <Badge variant="outline">{povoc.score}/4 · {povoc.riskPercent}%</Badge>}
         </div>
+        {!povocAvailable && <p className="text-xs text-slate-500" role="note">{tRoot("preop.scoreUnavailable")}</p>}
         {([
           ["povocSurgeryAtLeast30Minutes", "povocSurgery"],
           ["povocStrabismusSurgery", "povocStrabismus"],
           ["povocHistory", "povocHistory"],
-        ] as const).map(([field, label]) => (
+        ] as const).filter(([field]) => isShown(field)).map(([field, label]) => (
           <Controller key={field} name={field} control={control} render={({ field: controller }) => (
             <ClinicalYesNo id={field} label={t(label)} value={controller.value ?? null} onChange={controller.onChange} />
           )} />
         ))}
-        {povoc && <p className="text-xs text-slate-500">{t("povocAgeFactor", { active: povoc.factors.ageAtLeast3Years ? t("yes") : t("no") })}</p>}
+        {povoc && povocAvailable && <p className="text-xs text-slate-500">{t("povocAgeFactor", { active: povoc.factors.ageAtLeast3Years ? t("yes") : t("no") })}</p>}
       </div>
 
+      {isShown("coldsApplicable") && (
       <div className="border-t border-slate-200 pt-4 dark:border-[#2e2e2e]">
         <label className="flex items-center gap-2 text-sm font-semibold">
           <Controller name="coldsApplicable" control={control} render={({ field }) => (
@@ -477,6 +487,7 @@ export function PediatricRiskAndCalculators({
           </div>
         )}
       </div>
+      )}
 
       <div className="border-t border-slate-200 pt-4 dark:border-[#2e2e2e]">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("fasting")}</p>
