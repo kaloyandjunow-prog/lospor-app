@@ -1,7 +1,8 @@
 "use client"
 
 import { isServerRefusal } from "@/lib/server-refusal"
-import { fetchMissingRequiredPreop, missingRequiredPreopLabels } from "@/lib/preop-required"
+import { FinalizeUndoBanner } from "./FinalizeUndoBanner"
+import { useCasePreopProfile } from "@/hooks/useCasePreopProfile"
 import type { PreopAssessmentProfile } from "@lospor/core/preop-assessment"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -24,7 +25,7 @@ import {
 } from "./case-record-mapping"
 import { readRejectedFields, rejectionsForSection, rejectionMessages } from "@/lib/rejected-fields"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
-import { useLocale, useTranslations } from "next-intl"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { CaseSummary } from "@/components/CaseSummary"
 import { useTour } from "@/context/TourContext"
@@ -50,7 +51,6 @@ export default function NewCasePage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations()
-  const locale = useLocale()
   const STEPS = [t("case.steps.preop"), t("case.steps.intraop"), t("case.steps.postop"), t("case.steps.summary")]
 
   const { setCurrentFormStep } = useTour()
@@ -58,7 +58,7 @@ export default function NewCasePage() {
   const [step, setStep]               = useState(0)
   const [caseId, setCaseId]           = useState<string | null>(null)
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
-  const [preopProfile, setPreopProfile] = useState<PreopAssessmentProfile | null>(null)
+  const { preopProfile, setPreopProfile, missingRequiredMessage } = useCasePreopProfile(!!searchParams.get("continue"))
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
@@ -271,26 +271,15 @@ export default function NewCasePage() {
       })
       .finally(() => setLoading(false))
     // setEventLog is a useState setter and so has a stable identity, but it now
-    // arrives through useCaseEventLog, where the lint rule cannot see that.
-  }, [router, searchParams, t, setEventLog])
+    // arrives through useCaseEventLog, where the lint rule cannot see that;
+    // setPreopProfile likewise arrives through useCasePreopProfile.
+  }, [router, searchParams, t, setEventLog, setPreopProfile])
 
   // Keep -step= in sync so refresh lands on the right step
   useEffect(() => {
     if (!caseId) return
     router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
   }, [step, caseId, router])
-
-  // A new case has no case read yet; the form still needs the profile to
-  // know which questions are on. An existing case gets it with the case.
-  useEffect(() => {
-    if (searchParams.get("continue") || preopProfile) return
-    let cancelled = false
-    fetch("/api/preop/profile", { cache: "no-store" })
-      .then(response => response.ok ? response.json() as Promise<PreopAssessmentProfile> : null)
-      .then(profile => { if (!cancelled && profile) setPreopProfile(profile) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [searchParams, preopProfile])
 
   // Cleanup countdowns on unmount
   useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
@@ -461,13 +450,8 @@ export default function NewCasePage() {
     setSubmitting(false)
     const decision = canProgressAfterSave(saveOutcomeKind(saved), { caseExistedBeforeSave })
     if (!decision.canProgress) return
-    // Required preop questions are enforced here, at continue-to-intraop,
-    // never on a draft save. A read that fails reports nothing missing.
-    const missing = caseIdRef.current ? await fetchMissingRequiredPreop(caseIdRef.current) : []
-    if (missing.length > 0) {
-      toast.error(t("case.preopRequiredMissing", { questions: missingRequiredPreopLabels(missing, locale) }))
-      return
-    }
+    const missing = await missingRequiredMessage(caseIdRef.current)
+    if (missing) { toast.error(missing); return }
     setStep(1); window.scrollTo(0, 0)
   }
 
@@ -599,49 +583,7 @@ export default function NewCasePage() {
 
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
-      {/* Undo finalization banner - shown for 5 minutes after finalizing */}
-      {(undoSecsLeft !== null || undoExpired) && (
-        <div className={`no-print rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${
-          undoExpired
-            ? "border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a]"
-            : "border-green-200 dark:border-green-700/50 bg-green-50 dark:bg-green-950/20"
-        }`}>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-            {undoExpired ? (
-              <span className="text-sm text-slate-600 dark:text-slate-400">{t("case.undoExpired")}</span>
-            ) : (
-              <span className="text-sm font-bold tabular-nums text-green-700 dark:text-green-300">
-                {t("case.finalizedCountdown", {
-                  time: `${String(Math.floor((undoSecsLeft ?? 0) / 60)).padStart(2, "0")}:${String((undoSecsLeft ?? 0) % 60).padStart(2, "0")}`,
-                })}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Case is finished — offer the two-page record straight away */}
-            {finalizedCaseId && (
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => router.push(`/cases/${finalizedCaseId}/print`)}
-              >
-                {t("common.printCase")}
-              </Button>
-            )}
-            {!undoExpired && undoSecsLeft !== null && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
-                onClick={handleUndo}
-              >
-                {t("case.undo")}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      <FinalizeUndoBanner undoSecsLeft={undoSecsLeft} undoExpired={undoExpired} finalizedCaseId={finalizedCaseId} onUndo={handleUndo} />
 
       {isWatching && <WatchingBanner onTakeover={takeover} holderName={holderName} />}
       <div className="no-print flex items-center gap-4">
