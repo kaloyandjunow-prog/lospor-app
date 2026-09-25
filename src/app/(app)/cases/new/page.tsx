@@ -1,5 +1,9 @@
 "use client"
 
+import { isServerRefusal } from "@/lib/server-refusal"
+import { FinalizeUndoBanner } from "./FinalizeUndoBanner"
+import { useCasePreopProfile } from "@/hooks/useCasePreopProfile"
+import type { PreopAssessmentProfile } from "@lospor/core/preop-assessment"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -54,6 +58,7 @@ export default function NewCasePage() {
   const [step, setStep]               = useState(0)
   const [caseId, setCaseId]           = useState<string | null>(null)
   const [preopData, setPreopData]     = useState<PreopData | null>(null)
+  const { preopProfile, setPreopProfile, missingRequiredMessage } = useCasePreopProfile(!!searchParams.get("continue"))
   const [intraopData, setIntraopData] = useState<IntraopData | null>(null)
   const [timetableDefault, setTimetableDefault] = useState<TimetableData | null>(null)
   const [postopData, setPostopData]   = useState<PostopData | null>(null)
@@ -185,9 +190,9 @@ export default function NewCasePage() {
           autosaveManager.pendingEvents.loadPending<Record<string, unknown> & { id: string }>(continueId).catch(() => []),
           autosaveManager.eventMutations.load(continueId).catch(() => []),
         ])
+        setPreopProfile((record as unknown as { preopProfile?: PreopAssessmentProfile }).preopProfile ?? null)
         if (record.preop) {
-          const pinnedProfileVersion = (record as unknown as { preopProfilePin?: { profileVersion?: number | null } }).preopProfilePin?.profileVersion
-          const pinnedPreop = { ...record.preop, ...(pinnedProfileVersion == null ? {} : { preopProfileVersion: pinnedProfileVersion }) } as CaseDetailPreop
+          const pinnedPreop = record.preop as CaseDetailPreop
           const serverForm = dbPreopToForm(pinnedPreop, record.clinicalMode) as PreopData
           autosaveManager.hydrateSection(
             continueId,
@@ -266,8 +271,9 @@ export default function NewCasePage() {
       })
       .finally(() => setLoading(false))
     // setEventLog is a useState setter and so has a stable identity, but it now
-    // arrives through useCaseEventLog, where the lint rule cannot see that.
-  }, [router, searchParams, t, setEventLog])
+    // arrives through useCaseEventLog, where the lint rule cannot see that;
+    // setPreopProfile likewise arrives through useCasePreopProfile.
+  }, [router, searchParams, t, setEventLog, setPreopProfile])
 
   // Keep -step= in sync so refresh lands on the right step
   useEffect(() => {
@@ -356,6 +362,9 @@ export default function NewCasePage() {
           return "blocked" as const
         }
         if (outcome.result === "queued" || outcome.result === "failed") {
+          // A 4xx is the server saying no, not the network being away; "saved
+          // locally, will sync" would promise a sync that waiting cannot bring.
+          if (isServerRefusal(outcome.failure)) throw new Error(t("case.saveRefused"))
           if (showToast) toast.info(t("case.savedOffline"))
           return "queued" as const
         }
@@ -440,7 +449,10 @@ export default function NewCasePage() {
     const saved = await saveSection("preop", data, { showToast: true })
     setSubmitting(false)
     const decision = canProgressAfterSave(saveOutcomeKind(saved), { caseExistedBeforeSave })
-    if (decision.canProgress) { setStep(1); window.scrollTo(0, 0) }
+    if (!decision.canProgress) return
+    const missing = await missingRequiredMessage(caseIdRef.current)
+    if (missing) { toast.error(missing); return }
+    setStep(1); window.scrollTo(0, 0)
   }
 
   async function handleIntraopSubmit(data: IntraopData) {
@@ -571,49 +583,7 @@ export default function NewCasePage() {
 
   return (
     <div className={`${step === 1 ? "max-w-6xl" : step === 3 ? "max-w-[1200px]" : "max-w-4xl"} mx-auto space-y-8 transition-all`}>
-      {/* Undo finalization banner - shown for 5 minutes after finalizing */}
-      {(undoSecsLeft !== null || undoExpired) && (
-        <div className={`no-print rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${
-          undoExpired
-            ? "border-slate-200 dark:border-[#333] bg-slate-50 dark:bg-[#1a1a1a]"
-            : "border-green-200 dark:border-green-700/50 bg-green-50 dark:bg-green-950/20"
-        }`}>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-            {undoExpired ? (
-              <span className="text-sm text-slate-600 dark:text-slate-400">{t("case.undoExpired")}</span>
-            ) : (
-              <span className="text-sm font-bold tabular-nums text-green-700 dark:text-green-300">
-                {t("case.finalizedCountdown", {
-                  time: `${String(Math.floor((undoSecsLeft ?? 0) / 60)).padStart(2, "0")}:${String((undoSecsLeft ?? 0) % 60).padStart(2, "0")}`,
-                })}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Case is finished — offer the two-page record straight away */}
-            {finalizedCaseId && (
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => router.push(`/cases/${finalizedCaseId}/print`)}
-              >
-                {t("common.printCase")}
-              </Button>
-            )}
-            {!undoExpired && undoSecsLeft !== null && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/40"
-                onClick={handleUndo}
-              >
-                {t("case.undo")}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      <FinalizeUndoBanner undoSecsLeft={undoSecsLeft} undoExpired={undoExpired} finalizedCaseId={finalizedCaseId} onUndo={handleUndo} />
 
       {isWatching && <WatchingBanner onTakeover={takeover} holderName={holderName} />}
       <div className="no-print flex items-center gap-4">
@@ -702,6 +672,7 @@ export default function NewCasePage() {
             onAutoSave={data => handleAutoSave("preop", data)}
             layoutMode={preopLayout}
             caseId={caseId}
+            preopProfile={preopProfile}
           />
         )}
         {!loading && step === 1 && (
