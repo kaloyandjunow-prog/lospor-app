@@ -483,6 +483,11 @@ export default function NewCasePage() {
       // clinician here rather than advancing to a summary for a case that
       // never left IN_PROGRESS.
       const submitted = await submitCaseForReview(caseIdRef.current)
+      // Finalised elsewhere meanwhile: say so and show the finished case.
+      if (!submitted.ok && submitted.reason === "finalised") {
+        toast.info(t(submitForReviewMessage(submitted)))
+        return void router.push(`/cases/${caseIdRef.current}`)
+      }
       if (!submitted.ok) return void toast.error(t(submitForReviewMessage(submitted)))
       setAwaitingReviewAt(submitted.awaitingReviewAt)
       setStep(3); window.scrollTo(0, 0)
