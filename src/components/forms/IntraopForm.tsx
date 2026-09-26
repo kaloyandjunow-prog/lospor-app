@@ -205,7 +205,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     }
     // Adults: each route has its own dose, range and step (Core, 1.4.9).
     const view = adultPremedDoseForRoute({ name: drugName, routeDoses: cfg.routeDoses }, route, preop?.weightKg)
-    return view.status === "unknown" ? null : { ...view, ...(view.status === "needs-weight" ? { min: 1, max: 1000 } : {}) }
+    return view.status === "unknown" ? null : { ...view, ...(view.status === "needs-weight" ? { min: 0, max: 1000 } : {}) }
   }, [premedDoses, premedPatient, premedPediatric, preop?.weightKg])
 
   const EMPTY_TIMETABLE = useMemo<TimetableData>(() => ({ vitals: [], drugs: [], fluids: [], agents: [], infusions: [], gasSettings: [], clinicalEvents: [] }), [])
