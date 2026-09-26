@@ -152,7 +152,7 @@ export default function NewCasePage() {
   // Refs for synchronous access inside async callbacks
   const caseIdRef  = useRef<string | null>(null)
   const savingRef  = useRef(false)
-  const { eventLog, setEventLog, handleDeleteEvent, handleLogEvent, handleLogEventDelete } =
+  const { eventLog, setEventLog, applyEventOps } =
     useCaseEventLog(caseIdRef, t)
   // One idempotency key per form session: a create retried after a network
   // blip (autosave re-fires while caseIdRef is still null) can't double-create.
@@ -686,9 +686,7 @@ export default function NewCasePage() {
             onPostopContinued={items => setContinuedPostopItems(items)}
             layoutMode={layoutMode}
             eventLog={eventLog}
-            onDeleteEvent={handleDeleteEvent}
-            onLogEvent={handleLogEvent}
-            onLogEventDelete={handleLogEventDelete}
+            onEventOps={applyEventOps}
           />
         )}
         {!loading && step === 2 && (
