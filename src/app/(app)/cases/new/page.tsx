@@ -44,6 +44,8 @@ import { canProgressAfterSave, type SaveOutcomeKind } from "@lospor/core/save-pr
 import { usePendingCloseCountdown } from "@/hooks/usePendingCloseCountdown"
 import { submitCaseForReview, submitForReviewMessage, refetchAwaitingReviewAt } from "@/lib/submit-case-for-review"
 import { useCaseEventLog } from "./useCaseEventLog"
+import { useStepUrlSync } from "./useStepUrlSync"
+import { intraopAutosaveValues } from "@/lib/intraop-submit"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
 
@@ -131,6 +133,7 @@ export default function NewCasePage() {
     caseId,
     step < 3  // only lock during editing steps, not the summary step
   )
+  const [autoEnded, setAutoEnded] = useState(false)
 
   // The app-wide flusher lives in OutboxBadge (header). Here we only listen:
   // when the tray drains to zero while the pill shows "queued", flip to "saved".
@@ -151,6 +154,7 @@ export default function NewCasePage() {
 
   // Refs for synchronous access inside async callbacks
   const caseIdRef  = useRef<string | null>(null)
+  const caseLoadingRef = useStepUrlSync(caseId, step, router)
   const savingRef  = useRef(false)
   const { eventLog, setEventLog, applyEventOps } =
     useCaseEventLog(caseIdRef, t)
@@ -166,6 +170,7 @@ export default function NewCasePage() {
     // Async fetch-on-mount with a loading flag - standard data-fetching effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
+    caseLoadingRef.current = true
     fetch(`/api/cases/${continueId}`)
       .then(async r => {
         if (!r.ok) {
@@ -223,7 +228,7 @@ export default function NewCasePage() {
             sectionPayload("intraop", serverForm),
             record.intraop.syncRevision ?? record.intraop.updatedAt,
           )
-          setIntraopData(dbIntraopToForm({ ...record.intraop, ...queuedIntraop } as CaseDetailIntraop) as IntraopData); if (record.intraop.autoEndedAt) toast.info(t("intraop.timelineRules.autoEndedNotice"), { duration: 15_000 })
+          setIntraopData(dbIntraopToForm({ ...record.intraop, ...queuedIntraop } as CaseDetailIntraop) as IntraopData); if (record.intraop.autoEndedAt) { setAutoEnded(true); toast.info(t("intraop.timelineRules.autoEndedNotice"), { duration: 15_000 }) }
           // keyEvents must be a non-array object with a "vitals" key - the old
           // Prisma default was "[]" which is an array; skip that gracefully.
           const ke = record.intraop.keyEvents
@@ -269,17 +274,11 @@ export default function NewCasePage() {
         }
         toast.error(error.message || t("case.saveFailed"))
       })
-      .finally(() => setLoading(false))
+      .finally(() => { caseLoadingRef.current = false; setLoading(false) })
     // setEventLog is a useState setter and so has a stable identity, but it now
     // arrives through useCaseEventLog, where the lint rule cannot see that;
     // setPreopProfile likewise arrives through useCasePreopProfile.
-  }, [router, searchParams, t, setEventLog, setPreopProfile])
-
-  // Keep -step= in sync so refresh lands on the right step
-  useEffect(() => {
-    if (!caseId) return
-    router.replace(`/cases/new?continue=${caseId}&step=${step}`, { scroll: false })
-  }, [step, caseId, router])
+  }, [router, searchParams, t, setEventLog, setPreopProfile, caseLoadingRef])
 
   // Cleanup countdowns on unmount
   useEffect(() => () => { if (undoTimerRef.current) clearInterval(undoTimerRef.current) }, [])
@@ -396,11 +395,11 @@ export default function NewCasePage() {
   [saveSectionInner])
 
   // ── Auto-save (debounced, called by each form) ──────────────────────────────
-  // Coalescing drain loop: an autosave arriving while one is in flight is
-  // remembered (latest payload per section wins) and sent right after —
-  // never silently dropped like the old `if (savingRef.current) return`.
+  // Coalescing drain loop: an autosave arriving mid-flight is remembered
+  // (latest per section wins) and sent right after, never silently dropped.
   const pendingAutosaveRef = useRef(new Map<"preop" | "intraop" | "postop", PreopData | IntraopData | PostopData>())
   const handleAutoSave = useCallback(async (section: "preop" | "intraop" | "postop", data: PreopData | IntraopData | PostopData) => {
+    if (isWatching) return // another screen holds the case (9.12.1)
     pendingAutosaveRef.current.set(section, data)
     if (savingRef.current) return // the running drain loop below picks this up
     savingRef.current = true
@@ -425,7 +424,7 @@ export default function NewCasePage() {
       // Fade back to idle after 2s (queued stays visible until it syncs)
       setTimeout(() => setSaveStatus(s => s === "saved" ? "idle" : s), 2000)
     }
-  }, [saveSection])
+  }, [isWatching, saveSection])
 
   /** `saveSection`'s own ad hoc result shape, read as what the shared decision expects. */
   function saveOutcomeKind(saved: Awaited<ReturnType<typeof saveSection>>): SaveOutcomeKind {
@@ -682,11 +681,12 @@ export default function NewCasePage() {
             caseStarted={!!(intraopData?.startTime)}
             onSubmit={handleIntraopSubmit}
             onBack={() => setStep(0)}
-            onAutoSave={data => handleAutoSave("intraop", data)}
+            onAutoSave={data => handleAutoSave("intraop", intraopAutosaveValues(data) as IntraopData)}
             onPostopContinued={items => setContinuedPostopItems(items)}
             layoutMode={layoutMode}
             eventLog={eventLog}
             onEventOps={applyEventOps}
+            readOnly={isWatching} autoEnded={autoEnded}
           />
         )}
         {!loading && step === 2 && (
