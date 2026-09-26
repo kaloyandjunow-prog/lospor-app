@@ -319,3 +319,60 @@ test("a rate change can be recorded, and dragging it copies it to another time",
     expect(await dividers.count(), "the rate change was not copied").toBeGreaterThan(before)
   }).toPass({ timeout: 10_000 })
 })
+
+/** Records one vital through the event API, as a monitor or the PWA would. */
+async function chartVital(page: Page, id: string) {
+  const record = await page.request.get(`/api/cases/${id}`)
+  const revision = (await record.json()).intraop.syncRevision
+  const vital = await page.request.post(`/api/cases/${id}/events`, {
+    headers: { Origin: ORIGIN, "x-lospor-intraop-revision": String(revision) },
+    data: { id: `e2e-vital-${id}`, type: "vital", ts: new Date(Date.now() - 5 * 60_000).toISOString(), heartRate: 72, systolic: 120, diastolic: 70, spO2: 98 },
+  })
+  expect(vital.ok(), `vital failed: ${vital.status()} ${await vital.text()}`).toBeTruthy()
+}
+
+/** Every case write the page sends, from now on. */
+function countCaseWrites(page: Page, id: string) {
+  const writes: string[] = []
+  page.on("request", request => {
+    if (request.method() !== "GET" && request.url().includes(`/api/cases/${id}`) && !request.url().endsWith("/lock")) {
+      writes.push(`${request.method()} ${request.url()}`)
+    }
+  })
+  return writes
+}
+
+// 9.12.1: the form's empty vitals list differed from every loaded case with a
+// charted vital, so each autosave refreshed the case and the refresh saved
+// again -- several saves a second for as long as the chart was open.
+test("an open chart with vitals does not keep saving while nothing changes", async ({ page }) => {
+  const id = await createRecentCase(page)
+  await chartVital(page, id)
+  await openChart(page, id)
+  await page.waitForTimeout(5_000)
+
+  const writes = countCaseWrites(page, id)
+  await page.waitForTimeout(15_000)
+  expect(writes, "the page saved with nothing changed").toEqual([])
+})
+
+// 9.12.1: a page watching another screen's edit said nothing would be saved,
+// then autosaved anyway.
+test("a second screen watching the case writes nothing", async ({ page, browser }) => {
+  const id = await createRecentCase(page)
+  await chartVital(page, id)
+  await openChart(page, id)
+
+  const second = await browser.newContext({ storageState: "e2e/.auth/user.json" })
+  const watcher = await second.newPage()
+  try {
+    const writes = countCaseWrites(watcher, id)
+    await openChart(watcher, id)
+    await expect(watcher.getByText(/currently editing/)).toBeVisible({ timeout: 30_000 })
+    await watcher.waitForTimeout(15_000)
+    expect(writes, "the watching screen wrote to the case").toEqual([])
+  } finally {
+    await watcher.goto("about:blank")
+    await second.close()
+  }
+})
