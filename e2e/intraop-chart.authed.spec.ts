@@ -49,6 +49,20 @@ async function createStartedCase(page: Page, intraop: Record<string, unknown> = 
   return id as string
 }
 
+/**
+ * A case that began twenty minutes ago (1.4.9). The chart is read at "now":
+ * a running bar ends in the now column and an entry placed after it is
+ * planned, so the bar tests need a case whose first chart row holds both the
+ * past and the future, whatever the clock says.
+ */
+async function createRecentCase(page: Page) {
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const startedAt = new Date(Date.now() - 20 * 60_000)
+  const local = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hour12: false })
+    .format(startedAt)
+  return createStartedCase(page, { startTime: local, startedAt: startedAt.toISOString(), timezone: zone })
+}
+
 async function openChart(page: Page, id: string) {
   // step=1 is the intraoperative step of the case wizard.
   // The wizard holds the live-case stream open, so `load` never fires.
@@ -191,7 +205,7 @@ test("a general anaesthetic gets the agent and gas lanes", async ({ page }) => {
 })
 
 test("an infusion started from the chart can be dragged to a different time", async ({ page }) => {
-  const id = await createStartedCase(page)
+  const id = await createRecentCase(page)
   const chart = await openChart(page, id)
 
   await startInfusion(page, chart)
@@ -227,8 +241,10 @@ test("an infusion started from the chart can be dragged to a different time", as
   await expect(chart.getByText("infusion", { exact: true }).first()).toBeVisible()
 })
 
-test("an infusion's right grip extends the bar", async ({ page }) => {
-  const id = await createStartedCase(page)
+// A bar's end is its stop (1.4.9): a running infusion ends at "now" by
+// itself, and dropping its end grip on a later column plans the stop there.
+test("an infusion's right grip sets where it stops", async ({ page }) => {
+  const id = await createRecentCase(page)
   const chart = await openChart(page, id)
   await startInfusion(page, chart)
 
@@ -238,24 +254,17 @@ test("an infusion's right grip extends the bar", async ({ page }) => {
   // Grips appear only on the selected bar, so an unselected chart is not
   // covered in handles. Selecting is what makes the grip reachable at all.
   await bar.click()
-  const grip = lane.locator('[draggable="true"]').last()
+  const grip = lane.locator('.cursor-col-resize.rounded-r-sm')
   await expect(grip).toBeVisible()
 
-  const before = await lane.locator('[draggable="true"]').count()
   const laneBox = await lane.boundingBox()
   await grip.dragTo(lane, { targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 } })
 
-  // Extending adds cells to the bar; each column of a bar is its own draggable
-  // element, so a longer bar is a larger count. Asserting the bar merely still
-  // exists would pass on a grip drag that did nothing.
-  await expect(async () => {
-    expect(await lane.locator('[draggable="true"]').count(), "the bar did not lengthen")
-      .toBeGreaterThan(before)
-  }).toPass({ timeout: 10_000 })
+  await expect(lane.getByTestId("planned-stop-marker")).toBeVisible({ timeout: 10_000 })
 })
 
 test("an infusion's left grip extends the bar backwards in time", async ({ page }) => {
-  const id = await createStartedCase(page)
+  const id = await createRecentCase(page)
   const chart = await openChart(page, id)
   await startInfusion(page, chart)
 
@@ -278,22 +287,20 @@ test("an infusion's left grip extends the bar backwards in time", async ({ page 
 })
 
 test("a rate change can be recorded, and dragging it copies it to another time", async ({ page }) => {
-  const id = await createStartedCase(page)
+  const id = await createRecentCase(page)
   const chart = await openChart(page, id)
   await startInfusion(page, chart)
 
   const lane = chart.getByTestId("infusion-lane").first()
-
-  // A fresh infusion occupies one column, so there is nowhere for a rate
-  // change to sit. Lengthen it first, then open the menu from a later column
-  // of the rate strip so the change lands after the bar started.
-  await chart.locator('[draggable="true"]').first().click()
   const laneBox = await lane.boundingBox()
-  await lane.locator('.cursor-col-resize.rounded-r-sm')
-    .dragTo(lane, { targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 } })
+  const cells = lane.locator('[draggable="true"]')
 
-  // y is inside the rate strip, which is the upper band of the bar.
-  await lane.click({ position: { x: laneBox!.width - 200, y: 10 } })
+  // The infusion started two columns in and runs to now, so it spans several
+  // columns already. Open the menu from its second column: a change has to sit
+  // inside the bar, before now. y is inside the rate strip, the bar's upper band.
+  const second = await cells.nth(1).boundingBox()
+  expect(second, "the running bar spans a single column").not.toBeNull()
+  await page.mouse.click(second!.x + second!.width / 2, laneBox!.y + 10)
   await page.getByRole("button", { name: "Change rate" }).click({ timeout: 30_000 })
   await page.getByRole("button", { name: "Apply" }).click({ timeout: 30_000 })
 
@@ -304,10 +311,9 @@ test("a rate change can be recorded, and dragging it copies it to another time",
   const before = await dividers.count()
 
   // Dragging a divider copies the change to the column it lands on and leaves
-  // the original in place — the handler passes fromCol as null deliberately.
-  // The same rate resuming later is a second event, not a correction of the
-  // first, so both stay on the record.
-  await dividers.first().dragTo(lane, { targetPosition: { x: laneBox!.width - 120, y: 10 } })
+  // the original in place. It lands on the bar's last column, the now column.
+  const last = await cells.last().boundingBox()
+  await dividers.first().dragTo(lane, { targetPosition: { x: last!.x - laneBox!.x + last!.width / 2, y: 10 } })
 
   await expect(async () => {
     expect(await dividers.count(), "the rate change was not copied").toBeGreaterThan(before)
