@@ -17,8 +17,11 @@ export function useInfusionHandlers(
     onChange({ ...data, infusions: (data.infusions ?? []).filter(i => i.id !== id) })
   }
 
-  function extendInfusion(id: string, newEnd: number, terminate = false) {
-    const d = dataRef.current; onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, endCol: newEnd, stopped: terminate ? true : undefined } : i) })
+  // 1.4.9: a bar's end is its stop. Dropping the end grip stops it at that
+  // column (a planned stop if the column is still ahead); on a stopped bar it
+  // moves the stop. A running bar otherwise ends at "now" by itself.
+  function extendInfusion(id: string, newEnd: number) {
+    const d = dataRef.current; onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, endCol: newEnd, plannedStopCol: undefined, stopped: true } : i) })
   }
 
   function resumeInfusion(id: string) {

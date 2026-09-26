@@ -62,7 +62,7 @@ export type AgentLaneProps = LaneChrome & {
   openPickerForSeg: (col: number, seg: AgentSegment, rect: DOMRect) => void
   openPickerEmpty: (col: number, rect: DOMRect) => void
   resumeSegment: (startCol: number) => void
-  extendSegment: (startCol: number, toCol: number, stop: boolean) => void
+  extendSegment: (startCol: number, toCol: number) => void
   removeSegment: (startCol: number) => void
   continueAgent: (seg: AgentSegment, col: number) => void
 }
@@ -191,7 +191,7 @@ export function AgentLane({
               <DiscontinuePrompt
                 open={discConfirmId === `agent-${seg.startCol}`}
                 onOpen={() => setDiscConfirmId(`agent-${seg.startCol}`)}
-                onConfirm={() => { extendSegment(seg.startCol, nowCol ?? seg.endCol, true); setSel(null); setDiscConfirmId(null) }}
+                onConfirm={() => { extendSegment(seg.startCol, nowCol ?? seg.endCol); setSel(null); setDiscConfirmId(null) }}
                 onCancel={() => setDiscConfirmId(null)}
                 style={{ top: 2, right: 14 }}
               />

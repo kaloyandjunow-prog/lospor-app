@@ -16,6 +16,10 @@
   case made.
 - **Premedication follows the route.** Changing the route replaces the dose
   with that route's own, even one typed by hand.
+- **A bar's end is its stop.** A running infusion, fluid or agent ends at the
+  "now" line by itself; dropping its end grip on a column stops it there (a
+  planned stop if the column is still ahead), and on a stopped bar moves the
+  stop.
 
 ### Added
 

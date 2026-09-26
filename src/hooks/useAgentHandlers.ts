@@ -70,8 +70,11 @@ export function useAgentHandlers(
     closeAgentPicker()
   }
 
-  function extendSegment(startCol: number, newEndCol: number, terminate = false) {
-    const d = dataRef.current; onChangeRef.current({ ...d, agents: d.agents.map(a => a.startCol === startCol ? { ...a, endCol: newEndCol, stopped: terminate ? true : undefined } : a) })
+  // 1.4.9: a bar's end is its stop. Dropping the end grip stops it at that
+  // column (a planned stop if the column is still ahead); on a stopped bar it
+  // moves the stop. A running bar otherwise ends at "now" by itself.
+  function extendSegment(startCol: number, newEndCol: number) {
+    const d = dataRef.current; onChangeRef.current({ ...d, agents: d.agents.map(a => a.startCol === startCol ? { ...a, endCol: newEndCol, plannedStopCol: undefined, stopped: true } : a) })
   }
 
   function resumeSegment(startCol: number) {

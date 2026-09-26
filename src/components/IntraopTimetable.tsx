@@ -2018,7 +2018,7 @@ export function IntraopTimetable({
         }}
         onDiscontinue={() => {
           setHoverDiscontinue(null)
-          extendInfusion(infMenu.segId, nowCol ?? 0, true)
+          extendInfusion(infMenu.segId, nowCol ?? 0)
           setInfMenu(null)
         }}
         onRestore={() => { restoreInfusion(infMenu.segId); setInfMenu(null) }}

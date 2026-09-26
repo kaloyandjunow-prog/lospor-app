@@ -15,6 +15,9 @@ export function useFluidHandlers(
     onChange({ ...data, fluids: (data.fluids ?? []).filter(f => f.id !== id) })
   }
 
+  // 1.4.9: a bar's end is its stop. Dropping the end grip stops it at that
+  // column (a planned stop if the column is still ahead); on a stopped bar it
+  // moves the stop. A running bar otherwise ends at "now" by itself.
   function extendFluid(id: string, newEnd: number, terminate = false) {
     const d = dataRef.current
     const segment = d.fluids?.find(fluid => fluid.id === id)
@@ -36,15 +39,14 @@ export function useFluidHandlers(
       fluids: (d.fluids ?? []).map(fluid => fluid.id === id ? {
         ...fluid,
         endCol: newEnd,
-        stopped: terminate ? true : undefined,
+        plannedStopCol: undefined,
+        stopped: true,
         ...(endTs ? { endTs } : {}),
         ...(actualVolumeMl != null
           ? { administeredVolumeMl: actualVolumeMl, volume: String(actualVolumeMl) }
           : {}),
       } : fluid),
     })
-    if (terminate && segment && endTs && actualVolumeMl != null) {
-    }
   }
 
   function resumeFluid(id: string) {

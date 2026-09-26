@@ -81,7 +81,7 @@ export type InfusionLaneProps = {
   drag: TimetableDragState
   dragActions: TimetableDragActions
 
-  extendInfusion: (id: string, toCol: number, stop?: boolean) => void
+  extendInfusion: (id: string, toCol: number) => void
   extendInfusionLeft: (id: string, toCol: number) => void
   applyInfRateChange: (infId: string, fromCol: number | null, toCol: number, rate: number, unit: string) => void
   /** Commit a whole-bar move; the owner decides move versus delete-prompt. */
@@ -320,7 +320,7 @@ export function InfusionLane({
                   <DiscontinuePrompt
                     open={discConfirmId === seg.id}
                     onOpen={() => setDiscConfirmId(seg.id)}
-                    onConfirm={() => { extendInfusion(seg.id, nowCol ?? seg.endCol, true); clearSel(); setDiscConfirmId(null) }}
+                    onConfirm={() => { extendInfusion(seg.id, nowCol ?? seg.endCol); clearSel(); setDiscConfirmId(null) }}
                     onCancel={() => setDiscConfirmId(null)}
                     style={{ top: 24, right: 14 }}
                     cancelClassName="text-[8px] text-white/60 hover:text-white px-1 whitespace-nowrap"
