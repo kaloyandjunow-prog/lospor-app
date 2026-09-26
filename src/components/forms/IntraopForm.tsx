@@ -213,9 +213,9 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     ? defaultTimetable : EMPTY_TIMETABLE
   const [manualSaved, setManualSaved] = useState(false)
   // The chart is the projection of the event log; edits become events (1.4.9).
-  const [timelineStartedAt, timelineEndedAt] = useWatch({ control, name: ["startedAt", "endedAt"] })
-  const { timetable, log: timelineLog, chartStartMs, onTimetableChange, removeEvent, addEvents } = useIntraopEventTimeline({
-    eventLog, startedAt: timelineStartedAt, endedAt: timelineEndedAt, onEventOps, legacyTimetable: safeTimetable,
+  const [timelineStartedAt, timelineEndedAt, timelineStartTime, timelineZone] = useWatch({ control, name: ["startedAt", "endedAt", "startTime", "timezone"] })
+  const { timetable, log: timelineLog, chartStartMs, startedAt: chartStartedAt, onTimetableChange, removeEvent, addEvents } = useIntraopEventTimeline({
+    eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents })
 
@@ -400,7 +400,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
 
   const watchedStartTime = useWatch({ control, name: "startTime" })
-  const watchedStartedAt = useWatch({ control, name: "startedAt" })
   const watchedEndTime = useWatch({ control, name: "endTime" })
   const watchedNbpMonitor = useWatch({ control, name: "nbpMonitor" })
   const watchedInvasiveBP = useWatch({ control, name: "invasiveBP" })
@@ -668,7 +667,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           clinicalPresetVersion={clinicalRulesSnapshot?.preset?.version ?? null}
           clinicalPresetScope={clinicalRulesSnapshot?.preset?.scope ?? null}
           startTime={watchedStartTime || "08:00"}
-          startedAt={watchedStartedAt || undefined}
+          startedAt={chartStartedAt ?? undefined}
           endTime={watchedEndTime || undefined}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
