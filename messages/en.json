@@ -1226,7 +1226,8 @@
       "missing_vitals": "Intraoperative vitals (timetable)",
       "missing_medications": "Drugs / infusions / agents",
       "missing_fluids": "Fluid balance",
-      "missing_complication_documentation": "Complications"
+      "missing_complication_documentation": "Complications",
+      "entries_after_case_end": "Planned timeline entries remain after the end time. Mark each as happened or not."
     },
     "saved": "✓ Saved",
     "saveChanges": "Save Changes",

@@ -223,7 +223,7 @@ export default function NewCasePage() {
             sectionPayload("intraop", serverForm),
             record.intraop.syncRevision ?? record.intraop.updatedAt,
           )
-          setIntraopData(dbIntraopToForm({ ...record.intraop, ...queuedIntraop } as CaseDetailIntraop) as IntraopData)
+          setIntraopData(dbIntraopToForm({ ...record.intraop, ...queuedIntraop } as CaseDetailIntraop) as IntraopData); if (record.intraop.autoEndedAt) toast.info(t("intraop.timelineRules.autoEndedNotice"), { duration: 15_000 })
           // keyEvents must be a non-array object with a "vitals" key - the old
           // Prisma default was "[]" which is an array; skip that gracefully.
           const ke = record.intraop.keyEvents

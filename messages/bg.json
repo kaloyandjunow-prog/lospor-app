@@ -1226,7 +1226,8 @@
       "missing_vitals": "Интраоперативни жизнени показатели (таблица)",
       "missing_medications": "Медикаменти / инфузии / агенти",
       "missing_fluids": "Баланс на течностите",
-      "missing_complication_documentation": "Усложнения"
+      "missing_complication_documentation": "Усложнения",
+      "entries_after_case_end": "След края остават планирани записи. Отбележете за всеки дали се е случил."
     },
     "saved": "✓ Запазено",
     "saveChanges": "Запази промените",
