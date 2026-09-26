@@ -19,7 +19,8 @@ describe("intraopAutosaveValues", () => {
 
 describe("intraopEndCaseValues", () => {
   it("ends in the case's zone", () => {
-    expect(intraopEndCaseValues(new Date("2026-09-26T12:14:34.000Z"), "Europe/Sofia", "14:43")).toEqual({
+    // A 00:00 start never makes the end the next day, whatever the machine's zone.
+    expect(intraopEndCaseValues(new Date("2026-09-26T12:14:34.000Z"), "Europe/Sofia", "00:00")).toEqual({
       endTime: "15:14",
       endedAt: "2026-09-26T12:14:34.000Z",
       timezone: "Europe/Sofia",
