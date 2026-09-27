@@ -70,3 +70,22 @@ describe("in Bulgarian", () => {
     }
   })
 })
+
+describe("refused changes on the web", () => {
+  it("are listed at the entry's time in the case's zone, in Core's words", async () => {
+    const saveState = await import("@/lib/use-case-save-state")
+    const refused = [{ eventId: "stop", status: 412, at: "2026-09-27T12:50:00.000Z", change: "edit" as const, event: { id: "stop", ts: "2026-09-27T12:35:00.000Z", type: "infusion_stop", infId: "i" } }]
+    const spy = vi.spyOn(saveState, "useCaseSaveState").mockReturnValue({ ...saveState.NO_SAVE_STATE, refused })
+    try {
+      const log = [{ id: "start", ts: "2026-09-27T12:00:00.000Z", type: "infusion_start", infId: "i", name: "Remifentanil", rate: "0.1", unit: "mcg/kg/min" }] as never[]
+      const { result } = renderHook(() => useIntraopAttention({ caseId: "case-1", log, timeZone: "Europe/Sofia", locale: "bg" }))
+      expect(result.current.refused).toEqual([{
+        key: "stop-2026-09-27T12:50:00.000Z",
+        time: "15:35",
+        text: expect.stringMatching(/^Remifentanil · .+ \(промяна\) — по-късна промяна е направена на друг екран/),
+      }])
+    } finally {
+      spy.mockRestore()
+    }
+  })
+})
