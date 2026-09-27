@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   intraopAttentionItems,
+  intraopAttentionText,
   intraopResolveAttention,
   type IntraopAttentionAction,
   type IntraopAttentionItem,
 } from "@lospor/core/intraop-attention"
-import { describeIntraopEvent } from "@lospor/core/intraop-summary"
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import type { LogEvent } from "@lospor/core/intraop-types"
@@ -30,8 +30,10 @@ export type WebIntraopAttention = {
  * the PWA uses them, so the two cannot list or write differently; the web only
  * adds the time of day, in the case's own zone, and the event's label.
  */
-export function useIntraopAttention({ log, endedAt, timeZone, onEventOps, readOnly }: {
+export function useIntraopAttention({ log, endedAt, timeZone, locale = "en", onEventOps, readOnly }: {
   log: LogEvent[]
+  /** The screen's language: the questions are said in it, from Core. */
+  locale?: string
   endedAt?: string | null
   timeZone?: string | null
   onEventOps?: (ops: IntraopEventOps) => void | Promise<void>
@@ -43,10 +45,10 @@ export function useIntraopAttention({ log, endedAt, timeZone, onEventOps, readOn
     return () => clearInterval(timer)
   }, [])
   const minute = Math.floor(now / 60_000) * 60_000
-  const entries = useMemo(() => decorate(intraopAttentionItems(log, { now: minute, endedAt }), timeZone), [log, minute, endedAt, timeZone])
+  const entries = useMemo(() => decorate(intraopAttentionItems(log, { now: minute, endedAt }), timeZone, locale), [log, minute, endedAt, timeZone, locale])
   const endCaseEntries = useMemo(
-    () => decorate(intraopAttentionItems(log, { now: minute, endedAt: endedAt ?? minute }), timeZone),
-    [log, minute, endedAt, timeZone],
+    () => decorate(intraopAttentionItems(log, { now: minute, endedAt: endedAt ?? minute }), timeZone, locale),
+    [log, minute, endedAt, timeZone, locale],
   )
 
   const answer = useCallback((key: string, action: IntraopAttentionAction, atEndCase = false) => {
@@ -62,11 +64,11 @@ export function useIntraopAttention({ log, endedAt, timeZone, onEventOps, readOn
   return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps }
 }
 
-function decorate(items: IntraopAttentionItem[], timeZone?: string | null): IntraopAttentionEntry[] {
+function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string): IntraopAttentionEntry[] {
   return items.map(item => ({
     ...item,
     // The case's zone, never the machine's: a hosted server runs at GMT+1.
     time: (timeZone ? localTimeOf(new Date(item.event.ts), timeZone) : null) ?? "",
-    label: describeIntraopEvent(item.event).text,
+    label: intraopAttentionText(item, locale),
   }))
 }

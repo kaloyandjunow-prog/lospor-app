@@ -31,14 +31,19 @@ export function IntraopAttentionPanel({ entries, onAnswer, endCase = false }: {
   if (entries.length === 0) return null
   return (
     <div
-      className="mt-3 rounded-lg border border-dashed border-amber-400 p-3 space-y-2 bg-amber-50/60 dark:bg-amber-900/10"
+      // On the chart it floats above the page's bottom bar, in view however far
+      // the chart is scrolled: a question scrolled out of sight is one nobody
+      // answers. It goes when everything is answered.
+      className={`rounded-lg border border-dashed border-amber-400 p-3 space-y-2 ${endCase
+        ? "mt-3 bg-amber-50/60 dark:bg-amber-900/10"
+        : "fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-2xl bg-amber-50 dark:bg-[#2a2110] shadow-lg"}`}
       data-testid={endCase ? "end-case-after-end" : "intraop-attention"}
     >
       <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tr(endCase ? "endCaseAfterEndTitle" : "attentionTitle")}</p>
       {endCase && <p className="text-[11px] text-slate-500">{tr("endCaseAfterEndHint")}</p>}
       {entries.map(entry => (
         <div key={entry.key} className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="flex-1 min-w-[12rem] truncate">
+          <span className="flex-1 min-w-[12rem] break-words">
             {entry.time ? `${entry.time} · ` : ""}{entry.label}
             {entry.kind === "unconfirmed_stop" ? ` — ${tr("stopUnconfirmed")}` : ""}
           </span>

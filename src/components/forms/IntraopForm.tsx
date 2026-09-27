@@ -214,7 +214,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, readOnly, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents, disabled: readOnly })
-  const attention = useIntraopAttention({ log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, onEventOps, readOnly })
+  const attention = useIntraopAttention({ log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly })
 
   const {
     snapshot: clinicalRulesSnapshot,

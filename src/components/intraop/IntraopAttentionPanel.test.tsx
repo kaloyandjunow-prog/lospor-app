@@ -54,3 +54,19 @@ describe("a screen watching another screen's case", () => {
     }
   })
 })
+
+describe("in Bulgarian", () => {
+  it.each(INTRAOP_ATTENTION_SCENARIOS.filter(scenario => scenario.expected.length > 0))("$name says Core's Bulgarian line", async scenario => {
+    const { intraopAttentionItems, intraopAttentionText } = await import("@lospor/core/intraop-attention")
+    vi.useFakeTimers({ now: new Date(scenario.context.now) })
+    try {
+      const endedAt = scenario.context.endedAt == null ? null : new Date(scenario.context.endedAt).toISOString()
+      const { result } = renderHook(() => useIntraopAttention({ log: scenario.log, endedAt, locale: "bg" }))
+      const expected = intraopAttentionItems(scenario.log, scenario.context).map(item => intraopAttentionText(item, "bg"))
+      expect(result.current.entries.map(entry => entry.label)).toEqual(expected)
+      expect(expected.some(line => /[А-Яа-я]/.test(line))).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
