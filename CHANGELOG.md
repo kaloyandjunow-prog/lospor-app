@@ -1,5 +1,26 @@
 # Changelog - LOSPOR Web App
 
+## [9.13.0] - 2026-09-27
+
+### Added
+
+- **Every chart item says whether it is saved:** a clock while queued or
+  saving, a red cross when refused, nothing once saved -- bars, doses,
+  events, vitals. Refusals are listed until marked seen; totals show "≈"
+  while part of them is unsaved.
+- **Questions above the chart,** always in view: a stop entered ahead whose
+  time came, and entries left after the end, with the same answers as the
+  PWA. End case asks the same. Planned changes are drawn as planned.
+
+### Fixed
+
+- Infusion and fluid bars end at their real minute inside the cell; they
+  ended 12 px short whatever the time.
+- The printed record: doses at their exact minute and the footer date in the
+  case's time zone; an unconfirmed stop is said beside its total.
+- "Now" on the chart follows the server's clock.
+- АН сист / АН диас on a Bulgarian screen.
+
 ## [9.12.3] - 2026-09-27
 
 ### Fixed
