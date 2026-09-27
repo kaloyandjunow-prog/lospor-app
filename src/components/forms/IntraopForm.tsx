@@ -128,12 +128,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const { options: premedOptions } = useOptionLibrary("PREMED_DRUG")
   const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
   const infusionWeightBasis = useMemo<WeightBasisMap>(
-    () => Object.fromEntries(
-      Object.entries(weightBasisMap(infusionLibOpts)).map(([name, basis]) => [
-        name,
-        basis === "IBW" || basis === "TBW" ? basis : "none",
-      ]),
-    ),
+    () => weightBasisMap(infusionLibOpts),
     [infusionLibOpts],
   )
   const airwayDeviceOptions = useMemo(() => airwayOptions.filter(o => o.group === "Device"), [airwayOptions])
@@ -232,13 +227,15 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       ? { value: preop.ageValue, unit: preop.ageUnit }
       : null,
   })
-  const calcIbw = ibwResolution.available ? ibwResolution.kilograms : null
+  // Rounded to 0.1 kg as the PWA and the printed record use it, so the three
+  // cannot total the same infusion a few decimals apart (9.12.3).
+  const calcIbw = ibwResolution.available ? ibwResolution.roundedKg : null
   const calcTbw = preop?.weightKg ?? null
 
   // Arithmetic, not interface — see @/lib/intraop-drug-totals.
   const liveDrugTotals = useMemo(
-    () => computeLiveDrugTotals(timetable, calcIbw, calcTbw, infusionWeightBasis),
-    [calcIbw, calcTbw, infusionWeightBasis, timetable])
+    () => computeLiveDrugTotals(timetable, calcIbw, calcTbw, infusionWeightBasis, preop?.heightCm ?? null),
+    [calcIbw, calcTbw, infusionWeightBasis, preop?.heightCm, timetable])
 
   // Auto-calculate fluid totals from the one canonical delivered-volume path.
   // Running rate entries advance against the real clock; bag entries retain

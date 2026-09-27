@@ -32,7 +32,7 @@ import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
 import { DosingFlyout } from "@/components/intraop/DosingFlyout"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
-  DEFAULT_INF,
+  DEFAULT_INF, infusionCalculationBasis,
   buildDrugFlyoutState,
   buildFluidFlyoutState,
 } from "@/components/intraop/flyout-state"
@@ -717,7 +717,7 @@ export function IntraopTimetable({
     const id   = `${fp.name}-${fp.col}-${uid()}`
     const lib = infusionLibOpts.find(o => o.label === fp.name)
     const ruleAudit = {
-      ...clinicalProvenance(fp),
+      ...clinicalProvenance(fp), calculationBasis: infusionCalculationBasis(fp.name, INFUSION_WEIGHT_BASIS),
     }
     onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:fp.rate, unit:fp.rateUnit, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, formulation: fp.formulation, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit }] })
     setFp(null)
@@ -2082,7 +2082,7 @@ export function IntraopTimetable({
         infusions={(data.infusions ?? []).filter(i => !i.stopped && !i.planned)}
         fluids={(data.fluids ?? []).filter(f => !f.stopped && !f.planned)}
         gasSettings={gasSettings.filter(g => !g.stopped && !g.planned)}
-        weightBasis={INFUSION_WEIGHT_BASIS}
+        weightBasis={INFUSION_WEIGHT_BASIS} ibw={ibw} tbw={tbw}
         afterEnd={afterEndItems(data).map(item => ({ ...item, time: times[item.col] ?? "" }))}
         onResolveAfterEnd={(key, resolution) => onChangeRef.current(resolveAfterEnd(dataRef.current, key, resolution, nowCol ?? 0))}
         onDismiss={() => setShowEndModal(false)}

@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useLocale } from "next-intl"
 import { createPortal } from "react-dom"
 import type { AgentSegment, TimetableInfusion, TimetableFluid, GasSettingsSegment } from "@/components/IntraopTimetable"
-import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
+import { calcInfusionTotal, formatInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { useIntraopUiCopy } from "./ui-copy"
@@ -18,6 +18,9 @@ export interface EndCaseModalProps {
   fluids: TimetableFluid[]
   gasSettings?: GasSettingsSegment[]
   weightBasis: WeightBasisMap
+  /** The patient's weights: a per-kg total was worked out on 1 kg without them (9.12.3). */
+  ibw?: number | null
+  tbw?: number | null
   /** Planned entries after the end; each must be resolved before confirming. */
   afterEnd?: (AfterEndItem & { time: string })[]
   onResolveAfterEnd?: (key: string, resolution: "delete" | "move") => void
@@ -32,7 +35,7 @@ export interface EndCaseModalProps {
   }) => void
 }
 
-export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weightBasis, afterEnd = [], onResolveAfterEnd, onDismiss, onConfirm }: EndCaseModalProps) {
+export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weightBasis, ibw = null, tbw = null, afterEnd = [], onResolveAfterEnd, onDismiss, onConfirm }: EndCaseModalProps) {
   const locale = useLocale()
   const copy = useIntraopUiCopy()
   const [decisions, setDecisions] = useState<Record<string, EndCaseDecision>>({})
@@ -86,7 +89,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
       const d = decisions[`inf-${inf.id}`]
       if (d === "continue") continuedItems.push(`${inf.name} infusion (${inf.rate} ${inf.unit})`)
       if (d === "discontinue") {
-        const tot = calcInfusionTotal(inf, null, null, weightBasis)
+        const tot = calcInfusionTotal(inf, ibw, tbw, weightBasis)
         infusionTotals.push({ name: inf.name, total: tot.amount, unit: tot.unit })
         discontinuedInfusionIds.push(inf.id)
       }
@@ -155,7 +158,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
         {infusions.map(inf => {
           const key = `inf-${inf.id}`
           const d = decisions[key]
-          const tot = d === "discontinue" ? calcInfusionTotal(inf, null, null, weightBasis) : null
+          const tot = d === "discontinue" ? calcInfusionTotal(inf, ibw, tbw, weightBasis) : null
           return (
             <div key={inf.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-1.5">
               <div className="flex items-center justify-between gap-2">
@@ -176,7 +179,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
               </div>
               {tot && (
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 pl-0.5">
-                  {copy.endCase.estimatedTotal} <span className="font-semibold">{tot.amount} {tot.unit}</span>
+                  {copy.endCase.estimatedTotal} <span className="font-semibold">{formatInfusionTotal(tot)}</span>
                 </p>
               )}
             </div>

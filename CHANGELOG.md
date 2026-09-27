@@ -1,5 +1,27 @@
 # Changelog - LOSPOR Web App
 
+## [9.12.3] - 2026-09-27
+
+### Fixed
+
+- **The printed record and the case summary totalled per-kg infusions on
+  1 kg.** They passed no weight: remifentanil 0.1 mcg/kg/min for 25 minutes in
+  an 85 kg patient printed as 2.5 mcg. They now use the patient's weights, the
+  institution's drug library and the time actually run (Core 9.12.3). The End
+  Case dialog's estimated totals had the same fault.
+- **The Bulgarian record was partly English.** Month, "Case … · Page 1 of 2",
+  the duration ("0 ч 31 мин"), the fluid balance labels (Кристалоиди, Колоиди,
+  Биопродукти, Диуреза, Кръвозагуба), the Aldrete rows and the footer date
+  (27.09.2026) are now in the record's language. Units stay canonical ("mL").
+- **The intraop form used an unrounded ideal body weight** where the PWA and the
+  record use it to 0.1 kg, so one infusion could total a few decimals apart.
+
+### Added
+
+- **New infusions record their weight basis** from the drug library, and totals
+  use per-m² body surface area. The dose profile editor says that a basis
+  change applies from now on.
+
 ## [9.12.2] - 2026-09-26
 
 ### Changed

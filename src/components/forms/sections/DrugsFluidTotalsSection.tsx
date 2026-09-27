@@ -7,7 +7,7 @@ import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 
 type DrugTotals = {
   bolusList: { name: string; total: number; unit: string; count: number; mgTotal: number | null }[]
-  infusionList: { name: string; total: number; unit: string; mgTotal: number | null; weightUsed: number | null; weightBasis: "IBW" | "TBW" | "none" | null }[]
+  infusionList: { name: string; total: number; unit: string; display: string; mgTotal: number | null; weightUsed: number | null; weightBasis: "IBW" | "TBW" | "none" | null }[]
   weightNote: string | null
 }
 
