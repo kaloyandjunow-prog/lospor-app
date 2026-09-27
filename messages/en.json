@@ -1565,6 +1565,8 @@
       "removeResult": "Remove laboratory result"
     },
     "timetable": {
+      "vitalBpSys": "BP Sys",
+      "vitalBpDia": "BP Dia",
       "caseFinished": "Case finished",
       "selectMonitoringToPopulate": "Select monitoring above to populate this chart",
       "vitalErrorBis": "BIS must be a whole number from 0 to 100.",

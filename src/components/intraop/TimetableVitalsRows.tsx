@@ -50,6 +50,10 @@ function displayVital(
 
 export type VitalRowDef = (typeof VITAL_ROW_DEFS)[number]
 
+// Rows whose names are words rather than international abbreviations, said in
+// the screen's language (АН сист / АН диас); HR, SpO₂ and the rest stay as read.
+const TRANSLATED_ROW_LABELS: Partial<Record<string, string>> = { systolic: "vitalBpSys", diastolic: "vitalBpDia" }
+
 export type VitalsPopupRequest = {
   col: number
   key: VitalRowDef["key"]
@@ -164,7 +168,7 @@ export function TimetableVitalsRows({
               className="flex flex-col items-end justify-center pr-2 py-1.5 gap-0 select-none bg-white dark:bg-[#1c1c1c]"
             >
               <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color: row.color }}>
-                {row.label}
+                {TRANSLATED_ROW_LABELS[row.key] ? t(TRANSLATED_ROW_LABELS[row.key]!) : row.label}
               </span>
               <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">({row.unit})</span>
             </div>

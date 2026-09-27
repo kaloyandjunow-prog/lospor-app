@@ -1565,6 +1565,8 @@
       "removeResult": "Премахни лабораторния резултат"
     },
     "timetable": {
+      "vitalBpSys": "АН сист",
+      "vitalBpDia": "АН диас",
       "caseFinished": "Приключен случай",
       "selectMonitoringToPopulate": "Изберете мониторинг по-горе, за да се попълни таблицата",
       "vitalErrorBis": "BIS трябва да е цяло число от 0 до 100.",
