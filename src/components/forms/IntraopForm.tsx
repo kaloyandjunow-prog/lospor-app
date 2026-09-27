@@ -673,7 +673,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           startTime={watchedStartTime || "08:00"}
           startedAt={chartStartedAt ?? undefined}
           endTime={watchedEndTime || undefined}
-          endedAt={timelineEndedAt ?? null} attention={attention}
+          endedAt={timelineEndedAt ?? null} timeZone={timelineZone ?? null} attention={attention}
           autoEnded={autoEndedProp && !!timelineEndedAt && timelineEndedAt === defaultValues?.endedAt}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}

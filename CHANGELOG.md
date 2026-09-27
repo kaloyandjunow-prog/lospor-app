@@ -21,6 +21,21 @@
 - "Now" on the chart follows the server's clock.
 - АН сист / АН диас on a Bulgarian screen.
 
+### Fixed (test coverage review)
+
+- Refused changes are listed with their time in the case's zone, what they
+  were and why, from Core -- the PWA's line. A refused edit or deletion
+  showed a raw id and no reason.
+- "Resume until" is in the case's zone; it used the computer's.
+- The save state re-renders the chart only when what it shows changes.
+- Removed the per-entry event handlers nothing called: they read the log as
+  last rendered, so an edit right after an add could be sent as a second add.
+
+### Tests
+
+- The chart's event journal: one edit in order (removals, edits, additions),
+  two edits in one tick, refusals said and undone from the saved log.
+
 ## [9.12.3] - 2026-09-27
 
 ### Fixed
