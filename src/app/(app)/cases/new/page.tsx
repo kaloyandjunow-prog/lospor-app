@@ -38,6 +38,7 @@ import {
 } from "@lospor/core/sync"
 import { onOutboxChange } from "@/lib/case-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
+import { observedFetch } from "@/lib/intraop-clock"
 import { blockedSaveMessage, withBlockedPreopRejection } from "@/lib/blocked-save-message"
 import { randomId } from "@/lib/random-id"
 import { canProgressAfterSave, type SaveOutcomeKind } from "@lospor/core/save-progression"
@@ -171,7 +172,9 @@ export default function NewCasePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     caseLoadingRef.current = true
-    fetch(`/api/cases/${continueId}`)
+    // Observed: opening a case sets the chart's "now" from the server clock at
+    // once, not only after the first save (9.13.0).
+    observedFetch(`/api/cases/${continueId}`)
       .then(async r => {
         if (!r.ok) {
           const body = await r.json().catch(() => ({}))
