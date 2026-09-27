@@ -22,6 +22,7 @@ import {
   dbIntraopToForm,
   sectionPayload,
   preopSummaryForIntraop,
+  fetchCaseRecord,
 } from "./case-record-mapping"
 import { readRejectedFields, rejectionsForSection, rejectionMessages } from "@/lib/rejected-fields"
 import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
@@ -171,14 +172,7 @@ export default function NewCasePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     caseLoadingRef.current = true
-    fetch(`/api/cases/${continueId}`)
-      .then(async r => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}))
-          throw Object.assign(new Error(body.error ?? `Request failed (${r.status})`), { status: r.status })
-        }
-        return r.json()
-      })
+    fetchCaseRecord(continueId)
       .then(async (record: CaseDetail) => {
         if (record.status === "COMPLETE") {
           toast(t("case.caseFinalisedRedirect"))
