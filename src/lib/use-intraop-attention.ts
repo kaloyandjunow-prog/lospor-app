@@ -11,6 +11,7 @@ import {
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import type { LogEvent } from "@lospor/core/intraop-types"
+import { useCaseSaveState, type CaseSaveState } from "@/lib/use-case-save-state"
 
 export type IntraopAttentionEntry = IntraopAttentionItem & { time: string; label: string }
 
@@ -22,6 +23,8 @@ export type WebIntraopAttention = {
   answer: (key: string, action: IntraopAttentionAction, atEndCase?: boolean) => void
   /** False on a screen watching another screen's case: it shows, and writes nothing. */
   canAnswer: boolean
+  /** Whether each change reached the server (9.13.0). */
+  saveState: CaseSaveState
 }
 
 /**
@@ -30,7 +33,8 @@ export type WebIntraopAttention = {
  * the PWA uses them, so the two cannot list or write differently; the web only
  * adds the time of day, in the case's own zone, and the event's label.
  */
-export function useIntraopAttention({ log, endedAt, timeZone, locale = "en", onEventOps, readOnly }: {
+export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, locale = "en", onEventOps, readOnly }: {
+  caseId?: string | null
   log: LogEvent[]
   /** The screen's language: the questions are said in it, from Core. */
   locale?: string
@@ -61,7 +65,8 @@ export function useIntraopAttention({ log, endedAt, timeZone, locale = "en", onE
     if (!isEmptyIntraopEventOps(ops)) void onEventOps(ops)
   }, [endedAt, log, onEventOps, readOnly])
 
-  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps }
+  const saveState = useCaseSaveState(caseId)
+  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState }
 }
 
 function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string): IntraopAttentionEntry[] {

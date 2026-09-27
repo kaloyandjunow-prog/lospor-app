@@ -1,6 +1,8 @@
 "use client"
 
 import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
+import { SaveMark } from "./SaveMark"
+import { segmentEventIds } from "@lospor/core/intraop-save-state"
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
 import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geometry"
@@ -263,6 +265,7 @@ export function InfusionLane({
 
             {seg && (
               <>
+                {isActualEnd && !isRowExit && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-5 right-0" />}
                 <div
                   draggable={!seg.stopped}
                   onDragStart={!seg.stopped

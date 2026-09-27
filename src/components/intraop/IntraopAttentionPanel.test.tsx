@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 import { applyIntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { INTRAOP_ATTENTION_SCENARIOS } from "@lospor/core/intraop-attention-scenarios"
 
-vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }))
+vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key, useLocale: () => "en" }))
 
 import { useIntraopAttention } from "@/lib/use-intraop-attention"
 import { IntraopAttentionPanel } from "./IntraopAttentionPanel"

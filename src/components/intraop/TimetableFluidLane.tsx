@@ -1,6 +1,8 @@
 "use client"
 
 import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
+import { SaveMark } from "./SaveMark"
+import { segmentEventIds } from "@lospor/core/intraop-save-state"
 import { X } from "lucide-react"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { barContinues, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
@@ -136,6 +138,7 @@ export function FluidLane({
           >
             {seg && (
               <>
+                {isActualEnd && !isRowExit && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
                 <div
                   onClick={e => { e.stopPropagation(); if (isActualStart || isRowCont) setSel({ type: "fluid", id: seg.id }) }}
                   onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeFluid(seg.id) }}

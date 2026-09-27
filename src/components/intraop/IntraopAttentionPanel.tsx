@@ -1,9 +1,12 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import type { IntraopAttentionAction, IntraopAttentionKind } from "@lospor/core/intraop-attention"
 
 import type { IntraopAttentionEntry } from "@/lib/use-intraop-attention"
+import type { RefusedChange } from "@lospor/core/sync"
+import { intraopAttentionText } from "@lospor/core/intraop-attention"
+import type { LogEvent } from "@lospor/core/intraop-types"
 
 /**
  * The two answers to each question the timeline asks (9.13.0), the same
@@ -21,14 +24,18 @@ const ANSWERS: Record<IntraopAttentionKind, { action: IntraopAttentionAction; la
   ],
 }
 
-export function IntraopAttentionPanel({ entries, onAnswer, endCase = false }: {
+export function IntraopAttentionPanel({ entries, onAnswer, endCase = false, refused = [], onDismissRefused }: {
   entries: IntraopAttentionEntry[]
+  /** Changes the server refused for good, listed until seen (9.13.0). */
+  refused?: RefusedChange[]
+  onDismissRefused?: () => void
   onAnswer?: (key: string, action: IntraopAttentionAction) => void
   /** In End case: says the case cannot end until each is answered. */
   endCase?: boolean
 }) {
   const tr = useTranslations("intraop.timelineRules")
-  if (entries.length === 0) return null
+  const locale = useLocale()
+  if (entries.length === 0 && refused.length === 0) return null
   return (
     <div
       // On the chart it floats above the page's bottom bar, in view however far
@@ -39,7 +46,19 @@ export function IntraopAttentionPanel({ entries, onAnswer, endCase = false }: {
         : "fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-2xl bg-amber-50 dark:bg-[#2a2110] shadow-lg"}`}
       data-testid={endCase ? "end-case-after-end" : "intraop-attention"}
     >
-      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tr(endCase ? "endCaseAfterEndTitle" : "attentionTitle")}</p>
+      {refused.length > 0 && (
+        <div data-testid="intraop-refused" className="space-y-1">
+          <p className="text-xs font-semibold text-red-600 dark:text-red-400">{tr("refusedTitle")}</p>
+          {refused.map(item => (
+            <p key={`${item.eventId}-${item.at}`} className="text-xs text-red-600/90 dark:text-red-300">
+              {item.event ? intraopAttentionText({ key: item.eventId, kind: "after_end", event: item.event as unknown as LogEvent, actions: [] }, locale) : item.eventId}
+            </p>
+          ))}
+          <button type="button" data-testid="intraop-refused-dismiss" onClick={onDismissRefused}
+            className="text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-600">{tr("refusedDismiss")}</button>
+        </div>
+      )}
+      {entries.length > 0 && <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tr(endCase ? "endCaseAfterEndTitle" : "attentionTitle")}</p>}
       {endCase && <p className="text-[11px] text-slate-500">{tr("endCaseAfterEndHint")}</p>}
       {entries.map(entry => (
         <div key={entry.key} className="flex flex-wrap items-center gap-2 text-sm">

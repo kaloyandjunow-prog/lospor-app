@@ -3,6 +3,7 @@
 import { cvpToDisplay } from "@lospor/core/monitoring-values"
 import type { IntraopVitalKey } from "@lospor/core/intraop-vitals"
 import { useTranslations } from "next-intl"
+import { SaveMark } from "./SaveMark"
 
 import { nextVitalsField } from "./vitals-navigation"
 import type { VITAL_ROW_DEFS } from "./TimetableVitalsChart"
@@ -186,8 +187,9 @@ export function TimetableVitalsRows({
               <div
                 key={ci}
                 style={{ width: colW, minWidth: colW, borderLeft: `1px solid ${row.color}20` }}
-                className="px-1 py-1.5"
+                className="relative px-1 py-1.5"
               >
+                {stored != null && <SaveMark eventIds={[vitals[ci]?.eventId]} className="absolute top-0 right-0" />}
                 <input
                   type="number"
                   tabIndex={-1}

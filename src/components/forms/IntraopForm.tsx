@@ -5,6 +5,9 @@ import { useIntraopEventTimeline } from "@/hooks/useIntraopEventTimeline"
 import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
 import { useIntraopAttention } from "@/lib/use-intraop-attention"
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
+import { CaseSaveStateContext } from "@/lib/use-case-save-state"
+import { appendComplications } from "@/lib/append-complications"
+import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import { adultPremedDoseForRoute } from "@lospor/core/premedication"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
@@ -214,7 +217,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, readOnly, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents, disabled: readOnly })
-  const attention = useIntraopAttention({ log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly })
+  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly })
 
   const {
     snapshot: clinicalRulesSnapshot,
@@ -644,7 +647,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           caseId={caseId ?? null}
           aiOptIn={aiOptIn}
         />
-        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} />
+        <CaseSaveStateContext.Provider value={attention.saveState}>
+        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.saveState.refused} onDismissRefused={attention.saveState.dismissRefused} />
         <IntraopTimetable
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
@@ -686,18 +690,13 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           }}
           onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null) }}
           onPostopContinued={items => onPostopContinued?.(items)}
-          onComplicationAdded={labels => {
-            const cur = getValues("complications") || ""
-            const existing = cur.split(";").map((s: string) => s.trim()).filter(Boolean)
-            const newItems = labels.filter((l: string) => !existing.includes(l))
-            if (newItems.length === 0) return
-            setValue("complications", [...existing, ...newItems].join("; "))
-          }}
+          onComplicationAdded={labels => { const next = appendComplications(getValues("complications"), labels); if (next) setValue("complications", next) }}
         />
+        </CaseSaveStateContext.Provider>
       </SectionCard>
 
       {/* Drugs and Fluid Balance Totals */}
-      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} />
+      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} provisional={totalsProvisional(timetable, attention.saveState)} />
       </div>{/* /intraop-timetable */}
 
         </>)
