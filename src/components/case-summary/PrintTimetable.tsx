@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
-  buildDrugLogEntries,
+  buildDrugLogEntries, eventClockTimes,
   calculateDrugTotals,
   naturalTimetableColumnCount,
 } from "@lospor/core/intraop-summary"
@@ -76,10 +76,10 @@ export type DrugLogEntry = {
   color: string
   colIdx: number
 }
-export function buildDrugLog(timetable: LegacyKeyEvents, startISO?: string | null): DrugLogEntry[] {
+export function buildDrugLog(timetable: LegacyKeyEvents, startISO?: string | null, timeZone?: string | null): DrugLogEntry[] {
   return buildDrugLogEntries({
     drugs: Array.isArray(timetable?.drugs) ? timetable.drugs : [],
-  }, startISO, "utc")
+  }, startISO, "utc", eventClockTimes(Array.isArray(timetable?.log) ? timetable.log : [], timeZone))
     .map((entry, i) => ({
       n: i + 1,
       time: entry.time,

@@ -1,5 +1,7 @@
 import { useMemo } from "react"
 import { calcInfusionTotals, withInfusionInstants, type WeightBasisMap } from "@lospor/core/intraop-totals"
+import { intraopUnconfirmedStops } from "@lospor/core/intraop-commands"
+import { parseLogEvents } from "@lospor/core/intraop-types"
 import { weightBasisMap } from "@lospor/core/option-library"
 import { calculateMostellerBsa } from "@lospor/core/pediatric-calculators"
 
@@ -37,11 +39,15 @@ export function calcInfTotals(
   const bsa = patient.heightCm && patient.tbw
     ? calculateMostellerBsa({ heightCm: patient.heightCm, weightKg: patient.tbw })
     : null
+  // From the log, as of the end or now: a stored chart is projected when
+  // written and may still show a stop as planned whose time has come.
+  const log = parseLogEvents(Array.isArray(timetable?.log) ? timetable.log : [])
+  const unconfirmed = new Set(intraopUnconfirmedStops(log, patient.endedAt ?? new Date()).map(event => event.infId))
   return calcInfusionTotals(
     withInfusionInstants(infusions, timetable?.log, patient.endedAt),
     patient.ibw ?? null,
     patient.tbw ?? null,
     patient.weightBasis,
     bsa?.available ? bsa.value.squareMetres : null,
-  )
+  ).map((total, index) => ({ ...total, stopUnconfirmed: unconfirmed.has(infusions[index].id) }))
 }

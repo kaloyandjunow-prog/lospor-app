@@ -1,6 +1,6 @@
 "use client"
 
-import { PlannedStopMarker } from "./PlannedStopMarker"
+import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
 import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geometry"
@@ -203,9 +203,12 @@ export function InfusionLane({
             }}
           >
             {segments.some(s => s.plannedStopCol === ci) && <PlannedStopMarker />}
+            {segments.flatMap(s => (s.rateChanges ?? []).filter(rc => rc.planned && rc.col === ci))
+              .map(rc => <PlannedChangeMarker key={rc.eventId ?? rc.col} value={`${rc.rate} ${rc.unit}`} />)}
             {/* Rate strip — shares the bar's geometry so the two read as one object. */}
             {seg && !seg.stopped && (() => {
-              const sortedChanges = (seg.rateChanges ?? []).slice().sort((a, b) => a.col - b.col)
+              // A planned change is a marker (above), not yet the running rate.
+              const sortedChanges = (seg.rateChanges ?? []).filter(rc => !rc.planned).sort((a, b) => a.col - b.col)
               const prevChange = sortedChanges.filter(rc => rc.col <= ci).pop()
               const curRate = prevChange?.rate ?? seg.rate
               const curUnit = prevChange?.unit ?? seg.unit

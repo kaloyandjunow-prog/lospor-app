@@ -273,7 +273,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const drugTotals     = calcDrugTotals(timetable)
   // Per-kg infusions on the patient's own weight; the sheet used none (9.12.3).
   const infTotals      = calcInfTotals(timetable, { ibw: ibwResolution.available ? ibwResolution.roundedKg : null, tbw: p?.weightKg, heightCm: p?.heightCm, endedAt: i?.endedAt, weightBasis: infusionWeightBasis })
-  const drugLog        = buildDrugLog(timetable, i?.startTime)
+  const drugLog        = buildDrugLog(timetable, i?.startTime, i?.timezone)
 
   // Continues onto its own sheets rather than capping: a result not shown can
   // be looked up, a dose nobody recorded on paper cannot.
@@ -511,7 +511,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   <span className="font-bold">{L.totalsLbl}:</span>{" "}
                   {[
                     ...drugTotals.map(d => `${displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })} ${d.total} ${d.unit}`),
-                    ...infTotals.map(d => `${displayClinicalCode("option:INTRAOP_INFUSION", d.name, locale, { label: d.name })} ${formatInfusionTotal(d)}`),
+                    ...infTotals.map(d => `${displayClinicalCode("option:INTRAOP_INFUSION", d.name, locale, { label: d.name })} ${formatInfusionTotal(d)}${d.stopUnconfirmed ? L.stopUnconfirmedNote : ""}`),
                   ].join(" · ")}
                 </p>
               )}
@@ -539,7 +539,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           {/* Footer */}
           <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
             <span>{L.footerLine}</span>
-            <span>{L.generatedLbl} {printGeneratedDate(new Date(), locale)}</span>
+            <span>{L.generatedLbl} {printGeneratedDate(new Date(), locale, i?.timezone)}</span>
           </div>
         </div>
 
@@ -584,7 +584,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             )}
             <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
               <span>{L.footerLine}</span>
-              <span>{k < contSheets.length - 1 ? (locale === "bg" ? `Продължава на лист ${k + 3} · ` : `Continues on Sheet ${k + 3} · `) : ""}{L.generatedLbl} {printGeneratedDate(new Date(), locale)}</span>
+              <span>{k < contSheets.length - 1 ? (locale === "bg" ? `Продължава на лист ${k + 3} · ` : `Continues on Sheet ${k + 3} · `) : ""}{L.generatedLbl} {printGeneratedDate(new Date(), locale, i?.timezone)}</span>
             </div>
           </div>
         ))}
@@ -728,7 +728,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
           </div>
           <div className="flex justify-between text-[7.5px] text-slate-400 border-t border-slate-200 pt-1">
             <span>{L.footerLine}</span>
-            <span>{L.generatedLbl} {printGeneratedDate(new Date(), locale)}</span>
+            <span>{L.generatedLbl} {printGeneratedDate(new Date(), locale, i?.timezone)}</span>
           </div>
         </div>
 

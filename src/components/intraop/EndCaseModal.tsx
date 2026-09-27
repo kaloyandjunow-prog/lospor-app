@@ -7,8 +7,9 @@ import { calcInfusionTotal, formatInfusionTotal, type WeightBasisMap } from "@/l
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { useIntraopUiCopy } from "./ui-copy"
-import { useTranslations } from "next-intl"
-import type { AfterEndItem } from "./end-case-after-end"
+import type { IntraopAttentionAction } from "@lospor/core/intraop-attention"
+import type { IntraopAttentionEntry } from "@/lib/use-intraop-attention"
+import { IntraopAttentionPanel } from "./IntraopAttentionPanel"
 
 type EndCaseDecision = "discontinue" | "continue" | null
 
@@ -21,9 +22,12 @@ export interface EndCaseModalProps {
   /** The patient's weights: a per-kg total was worked out on 1 kg without them (9.12.3). */
   ibw?: number | null
   tbw?: number | null
-  /** Planned entries after the end; each must be resolved before confirming. */
-  afterEnd?: (AfterEndItem & { time: string })[]
-  onResolveAfterEnd?: (key: string, resolution: "delete" | "move") => void
+  /**
+   * Entries after the end, and stops entered ahead still unconfirmed; each
+   * is answered before confirming. Core's list (intraop-attention), 9.13.0.
+   */
+  afterEnd?: IntraopAttentionEntry[]
+  onResolveAfterEnd?: (key: string, action: IntraopAttentionAction) => void
   onDismiss: () => void
   onConfirm: (result: {
     continuedItems: string[]
@@ -299,7 +303,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
           )
         })}
 
-        {afterEnd.length > 0 && <AfterEndList items={afterEnd} onResolve={onResolveAfterEnd} />}
+        {afterEnd.length > 0 && <IntraopAttentionPanel entries={afterEnd} onAnswer={onResolveAfterEnd} endCase />}
         {!canConfirm && (agents.length > 0 || infusions.length > 0 || fluids.length > 0 || gasSettings.length > 0) && (
           <p className="pt-3 text-right text-[11px] text-amber-600 dark:text-amber-400">
             {copy.endCase.incomplete}
@@ -318,29 +322,5 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
       </div>
     </div>,
     document.body
-  )
-}
-
-/** Planned entries after the end: each is marked happened or not before the case can end. */
-function AfterEndList({ items, onResolve }: {
-  items: (AfterEndItem & { time: string })[]
-  onResolve?: (key: string, resolution: "delete" | "move") => void
-}) {
-  const tr = useTranslations("intraop.timelineRules")
-  return (
-    <div className="mt-3 rounded-lg border border-dashed border-amber-400 p-3 space-y-2" data-testid="end-case-after-end">
-      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tr("endCaseAfterEndTitle")}</p>
-      <p className="text-[11px] text-slate-500">{tr("endCaseAfterEndHint")}</p>
-      {items.map(item => (
-        <div key={item.key} className="flex items-center gap-2 text-sm">
-          <span className="flex-1 truncate">{item.time} · {item.label}</span>
-          <button type="button" onClick={() => onResolve?.(item.key, "delete")}
-            className="text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-500">{tr("endCaseDidntHappen")}</button>
-          <button type="button" onClick={() => onResolve?.(item.key, "move")}
-            className="text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">{tr("endCaseHappened")}</button>
-        </div>
-      ))}
-      <p className="text-[11px] text-amber-600">{tr("endCaseFinaliseBlocked")}</p>
-    </div>
   )
 }

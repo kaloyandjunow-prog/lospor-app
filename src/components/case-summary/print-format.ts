@@ -47,7 +47,28 @@ export function printTimeSpan(
   return `${hhmm(start)} → ${hhmm(end)} · ${printDuration(minutes, locale)}`
 }
 
-/** "27 Sep 2026" / "27.09.2026", the date form each language writes. */
-export function printGeneratedDate(date: Date, locale: string): string {
-  return format(date, language(locale) === "bg" ? "dd.MM.yyyy" : "dd MMM yyyy")
+const MONTHS_SHORT_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+/**
+ * "27 Sep 2026" / "27.09.2026", the date form each language writes, on the
+ * case's own calendar. The page is first drawn on the server, which runs at
+ * GMT+1: without the case's zone, a record printed just after midnight in
+ * Sofia carried the previous day (9.13.0).
+ */
+export function printGeneratedDate(date: Date, locale: string, timeZone?: string | null): string {
+  const parts = timeZone ? zonedDateParts(date, timeZone) : null
+  if (!parts) return format(date, language(locale) === "bg" ? "dd.MM.yyyy" : "dd MMM yyyy")
+  return language(locale) === "bg"
+    ? `${parts.day}.${parts.month}.${parts.year}`
+    : `${parts.day} ${MONTHS_SHORT_EN[Number(parts.month) - 1]} ${parts.year}`
+}
+
+function zonedDateParts(date: Date, timeZone: string): { day: string; month: string; year: string } | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone, day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(date)
+    const of = (type: string) => parts.find(part => part.type === type)?.value ?? ""
+    return { day: of("day"), month: of("month"), year: of("year") }
+  } catch {
+    return null
+  }
 }

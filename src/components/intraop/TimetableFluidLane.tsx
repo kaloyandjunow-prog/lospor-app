@@ -1,6 +1,6 @@
 "use client"
 
-import { PlannedStopMarker } from "./PlannedStopMarker"
+import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { X } from "lucide-react"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { barContinues, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
@@ -235,6 +235,8 @@ export function FluidLane({
               </button>
             )}
             {segments.some(s => s.plannedStopCol === ci) && <PlannedStopMarker />}
+            {segments.flatMap(s => (s.rateChanges ?? []).filter(rc => rc.planned && rc.col === ci))
+              .map(rc => <PlannedChangeMarker key={rc.eventId ?? rc.col} value={`${rc.rate} ${rc.unit}`} />)}
             {stoppedSeg && (
               <button
                 type="button"

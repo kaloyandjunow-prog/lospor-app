@@ -23,4 +23,13 @@ describe("printed record dates and durations", () => {
     expect(printGeneratedDate(date, "en")).toBe("27 Sep 2026")
     expect(printGeneratedDate(date, "bg")).toBe("27.09.2026")
   })
+
+  it("dates the footer on the case's calendar, not the server's", () => {
+    // 23:30 UTC on 26 Sep is 02:30 on 27 Sep in Sofia; a GMT+1 server says the 27th
+    // only after 23:00 UTC, UTC says the 26th.
+    const late = new Date("2026-09-26T23:30:00.000Z")
+    expect(printGeneratedDate(late, "bg", "Europe/Sofia")).toBe("27.09.2026")
+    expect(printGeneratedDate(late, "en", "Europe/Sofia")).toBe("27 Sep 2026")
+    expect(printGeneratedDate(late, "en", "America/New_York")).toBe("26 Sep 2026")
+  })
 })

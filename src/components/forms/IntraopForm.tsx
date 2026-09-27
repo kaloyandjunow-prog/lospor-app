@@ -3,6 +3,8 @@
 import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { useIntraopEventTimeline } from "@/hooks/useIntraopEventTimeline"
 import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
+import { useIntraopAttention } from "@/lib/use-intraop-attention"
+import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
 import { adultPremedDoseForRoute } from "@lospor/core/premedication"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
@@ -212,6 +214,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, readOnly, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents, disabled: readOnly })
+  const attention = useIntraopAttention({ log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, onEventOps, readOnly })
 
   const {
     snapshot: clinicalRulesSnapshot,
@@ -641,6 +644,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           caseId={caseId ?? null}
           aiOptIn={aiOptIn}
         />
+        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} />
         <IntraopTimetable
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
@@ -665,7 +669,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           startTime={watchedStartTime || "08:00"}
           startedAt={chartStartedAt ?? undefined}
           endTime={watchedEndTime || undefined}
-          endedAt={timelineEndedAt ?? null}
+          endedAt={timelineEndedAt ?? null} attention={attention}
           autoEnded={autoEndedProp && !!timelineEndedAt && timelineEndedAt === defaultValues?.endedAt}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
@@ -680,11 +684,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             if (end.endedAt && end.timezone) { setValue("endedAt", end.endedAt); setValue("timezone", end.timezone) }
             if (end.endTimeNextDay) setValue("endTimeNextDay", true)
           }}
-          onResumeCase={() => {
-            setValue("endTime", "")
-            setValue("endTimeNextDay", false)
-            setValue("endedAt", null)
-          }}
+          onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null) }}
           onPostopContinued={items => onPostopContinued?.(items)}
           onComplicationAdded={labels => {
             const cur = getValues("complications") || ""

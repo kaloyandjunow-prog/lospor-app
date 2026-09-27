@@ -56,7 +56,6 @@ import type {
   AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
 } from "@/types/timetable"
 import { toast } from "sonner"
-import { afterEndItems, resolveAfterEnd } from "@/components/intraop/end-case-after-end"
 import { EndCaseModal } from "@/components/intraop/EndCaseModal"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import {
@@ -143,6 +142,7 @@ interface Props {
   onResumeCase?: () => void
   /** The saved end instant: a reopened ended case can still be resumed (9.12.1). */
   endedAt?: string | null
+  attention?: import("@/lib/use-intraop-attention").WebIntraopAttention // Core intraop-attention (9.13.0)
   /** Ended automatically after 48 hours: Resume is offered with no time limit. */
   autoEnded?: boolean
   onPostopContinued?: (items: string[]) => void
@@ -213,7 +213,7 @@ export function IntraopTimetable({
   onChange,
   onEndCase,
   onResumeCase,
-  endedAt,
+  endedAt, attention,
   autoEnded = false,
   onPostopContinued,
   onInfusionTotals,
@@ -1006,9 +1006,8 @@ export function IntraopTimetable({
              defaultVal: cvpToDisplay(8, "cmH2O") }
   })
 
-  function gasSegmentAt(ci: number): GasSettingsSegment | null {
-    return (data.gasSettings ?? []).find(g => ci >= g.startCol && ci <= g.endCol) ?? null
-  }
+  const gasSegmentAt = (ci: number): GasSettingsSegment | null => (data.gasSettings ?? []).find(g => ci >= g.startCol && ci <= g.endCol) ?? null
+  const plannedGasChangeAt = (ci: number) => (data.gasSettings ?? []).flatMap(g => g.settingsChanges ?? []).find(c => c.planned && c.col === ci) ?? null
 
   // ── Clinical Events ───────────────────────────────────────────────────────────
   const { addClinicalEvent, removeClinicalEvent } = useClinicalEventHandlers(dataRef, onChangeRef, onComplicationAdded)
@@ -1489,6 +1488,7 @@ export function IntraopTimetable({
               setDiscConfirmId={setDiscConfirmId}
               locale={locale}
               gasSegmentAt={gasSegmentAt}
+              plannedGasChangeAt={plannedGasChangeAt}
               openPickerForSeg={openGasPickerForSeg}
               openPickerEmpty={openGasPickerEmpty}
               stopGas={stopGas}
@@ -2083,8 +2083,8 @@ export function IntraopTimetable({
         fluids={(data.fluids ?? []).filter(f => !f.stopped && !f.planned)}
         gasSettings={gasSettings.filter(g => !g.stopped && !g.planned)}
         weightBasis={INFUSION_WEIGHT_BASIS} ibw={ibw} tbw={tbw}
-        afterEnd={afterEndItems(data).map(item => ({ ...item, time: times[item.col] ?? "" }))}
-        onResolveAfterEnd={(key, resolution) => onChangeRef.current(resolveAfterEnd(dataRef.current, key, resolution, nowCol ?? 0))}
+        afterEnd={attention?.endCaseEntries ?? []}
+        onResolveAfterEnd={(key, action) => attention?.answer(key, action, true)}
         onDismiss={() => setShowEndModal(false)}
         onConfirm={handleEndCaseConfirm}
       />

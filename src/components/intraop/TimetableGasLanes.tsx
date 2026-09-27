@@ -1,6 +1,6 @@
 "use client"
 
-import { PlannedStopMarker } from "./PlannedStopMarker"
+import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { X } from "lucide-react"
 import { displayGasMix, displayGasSettings } from "@/lib/clinical-display"
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
@@ -233,6 +233,8 @@ export function AgentLane({
 export type GasSettingsLaneProps = LaneChrome & {
   locale: string
   gasSegmentAt: (col: number) => GasSettingsSegment | null
+  /** A setting change dated after now in this column (9.13.0). */
+  plannedGasChangeAt?: (col: number) => { fgf: number; fio2: number } | null
   openPickerForSeg: (col: number, seg: GasSettingsSegment, rect: DOMRect) => void
   openPickerEmpty: (col: number, rect: DOMRect) => void
   stopGas: (id: string, col: number | null) => void
@@ -253,6 +255,7 @@ export function GasSettingsLane({
   openPickerForSeg,
   openPickerEmpty,
   stopGas,
+  plannedGasChangeAt,
 }: GasSettingsLaneProps) {
   const copy = useIntraopUiCopy()
   return (
@@ -286,6 +289,7 @@ export function GasSettingsLane({
               else openPickerEmpty(ci, rect)
             }}
           >
+            {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
               <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 {copy.gas.tapToStart}

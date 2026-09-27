@@ -33,6 +33,13 @@ describe("printed infusion totals", () => {
     expect(formatInfusionTotal(remifentanil)).toBe("187.5 mcg")
   })
 
+  it("say when a stop entered ahead of its time is not yet confirmed", () => {
+    const ahead = log.map(event => event.id === "stop" ? { ...event, recordedAt: at(10) } : event)
+    const chart = { ...savedChart(), log: ahead }
+    expect(calcInfTotals(chart, { ibw: 75, tbw: 85, endedAt: at(31) })[0].stopUnconfirmed).toBe(true)
+    expect(calcInfTotals(savedChart(), { ibw: 75, tbw: 85, endedAt: at(31) })[0].stopUnconfirmed).toBe(false)
+  })
+
   it("say per kilogram when no weight was recorded, never a 1 kg total", () => {
     const [remifentanil] = calcInfTotals(savedChart(), { endedAt: at(31) })
     expect(formatInfusionTotal(remifentanil)).toBe("2.5 mcg/kg")
