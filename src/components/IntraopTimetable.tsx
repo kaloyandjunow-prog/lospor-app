@@ -142,8 +142,6 @@ interface Props {
   onResumeCase?: () => void
   /** The saved end instant: a reopened ended case can still be resumed (9.12.1). */
   endedAt?: string | null
-  /** The case's own zone: times shown from an instant are said in it. */
-  timeZone?: string | null
   attention?: import("@/lib/use-intraop-attention").WebIntraopAttention // Core intraop-attention (9.13.0)
   /** Ended automatically after 48 hours: Resume is offered with no time limit. */
   autoEnded?: boolean
@@ -215,7 +213,7 @@ export function IntraopTimetable({
   onChange,
   onEndCase,
   onResumeCase,
-  endedAt, timeZone, attention,
+  endedAt, attention,
   autoEnded = false,
   onPostopContinued,
   onInfusionTotals,
@@ -419,7 +417,7 @@ export function IntraopTimetable({
   const [colW, setColW] = useState(COL_W)
   const rowsContainerRef = useRef<HTMLDivElement>(null)
   const prevColRef                    = useRef<number | null>(null)
-  const { resumeSecsLeft, resumeUntilLabel, startWindow, clearWindow } = useIntraopResumeWindow(endedAt, timeZone)
+  const { resumeSecsLeft, resumeUntilLabel, startWindow, clearWindow } = useIntraopResumeWindow(endedAt, attention?.timeZone)
   // In-cell drug picker
   const [drugPicker, setDrugPicker]   = useState<{ ci: number; rect: DOMRect } | null>(null)
   // Shortlist the clinician chose in settings — the same server-side list the

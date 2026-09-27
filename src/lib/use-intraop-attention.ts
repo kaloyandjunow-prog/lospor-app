@@ -32,6 +32,8 @@ export type WebIntraopAttention = {
   saveState: CaseSaveState
   /** What the server refused and why, in Core's words -- the PWA's lines. */
   refused: RefusedLine[]
+  /** The case's own zone, in which every time on the chart is said. */
+  timeZone: string | null
 }
 
 /**
@@ -81,7 +83,7 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
       text: entry.text,
     }
   }), [saveState.refused, locale, log, timeZone])
-  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState, refused }
+  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState, refused, timeZone: timeZone ?? null }
 }
 
 function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string): IntraopAttentionEntry[] {
