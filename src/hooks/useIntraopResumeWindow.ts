@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react"
+import { serverNow } from "@/lib/intraop-clock"
 import { toast } from "sonner"
 import { INTRAOP_RESUME_WINDOW_MS, INTRAOP_RESUME_WINDOW_SECONDS } from "@lospor/core/intraop-engine"
 import type { TimetableData } from "@/types/timetable"
@@ -23,7 +24,7 @@ export function useIntraopResumeWindow(endedAt: string | null | undefined) {
   /** Opens the window at `ended` (End case pressed here, or the saved end). */
   const startWindow = (ended: Date) => {
     endedAtRef.current = ended
-    const left = Math.floor((ended.getTime() + INTRAOP_RESUME_WINDOW_MS - Date.now()) / 1000)
+    const left = Math.floor((ended.getTime() + INTRAOP_RESUME_WINDOW_MS - serverNow().getTime()) / 1000)
     if (left <= 0) return
     setResumeUntilLabel(clockLabel(new Date(ended.getTime() + INTRAOP_RESUME_WINDOW_MS)))
     setResumeSecsLeft(Math.min(left, INTRAOP_RESUME_WINDOW_SECONDS))
@@ -40,7 +41,7 @@ export function useIntraopResumeWindow(endedAt: string | null | undefined) {
     const ended = new Date(endedAt)
     if (Number.isNaN(ended.getTime())) return
     endedAtRef.current = ended
-    const left = Math.floor((ended.getTime() + INTRAOP_RESUME_WINDOW_MS - Date.now()) / 1000)
+    const left = Math.floor((ended.getTime() + INTRAOP_RESUME_WINDOW_MS - serverNow().getTime()) / 1000)
     if (left <= 0) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setResumeUntilLabel(clockLabel(new Date(ended.getTime() + INTRAOP_RESUME_WINDOW_MS)))
@@ -53,7 +54,7 @@ export function useIntraopResumeWindow(endedAt: string | null | undefined) {
     if (!active) return
     const id = setInterval(() => {
       if (!endedAtRef.current) return
-      const elapsed = Math.floor((Date.now() - endedAtRef.current.getTime()) / 1000)
+      const elapsed = Math.floor((serverNow().getTime() - endedAtRef.current.getTime()) / 1000)
       setResumeSecsLeft(Math.max(0, INTRAOP_RESUME_WINDOW_SECONDS - elapsed))
     }, 1000)
     return () => clearInterval(id)

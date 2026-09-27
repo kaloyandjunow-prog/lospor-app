@@ -7,6 +7,7 @@ import { calcInfusionTotal, formatInfusionTotal, type WeightBasisMap } from "@/l
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 import { useIntraopUiCopy } from "./ui-copy"
+import { serverNow } from "@/lib/intraop-clock"
 import type { IntraopAttentionAction } from "@lospor/core/intraop-attention"
 import type { IntraopAttentionEntry } from "@/lib/use-intraop-attention"
 import { IntraopAttentionPanel } from "./IntraopAttentionPanel"
@@ -82,7 +83,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
     const discontinuedInfusionIds: string[] = []
     const finalizedFluidWithAmounts: { id: string; amount: number; category: string; endTs: string }[] = []
     const discontinuedGasIds: string[] = []
-    const fluidEndTs = new Date().toISOString()
+    const fluidEndTs = serverNow().toISOString()
 
     for (const a of agents) {
       const d = decisions[`agent-${a.startCol}`]
@@ -216,7 +217,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
               </div>
               {d === "discontinue" && (() => {
                 const bagVol = Number(f.bagVolumeMl ?? f.volume) || 500
-                const estimatedRateVolume = isRate ? fluidDeliveredVolumeMl(f, new Date()) : 0
+                const estimatedRateVolume = isRate ? fluidDeliveredVolumeMl(f, serverNow()) : 0
                 const displayedAmount = fluidAmounts[f.id] ?? (isRate ? String(estimatedRateVolume) : "0")
                 const curAmt = Number(displayedAmount) || 0
                 const fb = fluidFullBag[f.id] ?? null

@@ -11,7 +11,7 @@ import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import { adultPremedDoseForRoute } from "@lospor/core/premedication"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
-import { buildIntraopSubmission, intraopEndCaseValues, intraopTimeErrors } from "@/lib/intraop-submit"
+import { buildIntraopSubmission, intraopEndCaseValuesNow, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -683,7 +683,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           data={timetable}
           onChange={onTimetableChange}
           onEndCase={() => {
-            const end = intraopEndCaseValues(new Date(), getValues("timezone"), getValues("startTime"))
+            const end = intraopEndCaseValuesNow(getValues("timezone"), getValues("startTime"))
             setValue("endTime", end.endTime)
             if (end.endedAt && end.timezone) { setValue("endedAt", end.endedAt); setValue("timezone", end.timezone) }
             if (end.endTimeNextDay) setValue("endTimeNextDay", true)

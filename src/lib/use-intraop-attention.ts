@@ -12,6 +12,7 @@ import { localTimeOf } from "@lospor/core/intraop-time"
 import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import { useCaseSaveState, type CaseSaveState } from "@/lib/use-case-save-state"
+import { serverNow } from "@/lib/intraop-clock"
 
 export type IntraopAttentionEntry = IntraopAttentionItem & { time: string; label: string }
 
@@ -43,9 +44,9 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   onEventOps?: (ops: IntraopEventOps) => void | Promise<void>
   readOnly?: boolean
 }): WebIntraopAttention {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => serverNow().getTime())
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    const timer = setInterval(() => setNow(serverNow().getTime()), 30_000)
     return () => clearInterval(timer)
   }, [])
   const minute = Math.floor(now / 60_000) * 60_000
@@ -57,9 +58,9 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
 
   const answer = useCallback((key: string, action: IntraopAttentionAction, atEndCase = false) => {
     if (readOnly || !onEventOps) return
-    const at = new Date(Math.floor(Date.now() / 60_000) * 60_000)
+    const at = new Date(Math.floor(serverNow().getTime() / 60_000) * 60_000)
     const ops = intraopResolveAttention(log, key, action, {
-      now: new Date(),
+      now: serverNow(),
       endedAt: endedAt ?? (atEndCase ? at : null),
     })
     if (!isEmptyIntraopEventOps(ops)) void onEventOps(ops)

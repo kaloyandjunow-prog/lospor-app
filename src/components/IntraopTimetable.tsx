@@ -50,7 +50,7 @@ import {
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
-import { gridOriginMs } from "@/lib/intraop-clock"
+import { gridOriginMs, serverNow } from "@/lib/intraop-clock"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
   AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
@@ -632,7 +632,7 @@ export function IntraopTimetable({
     setFp(null)
   }
   function fluidActionTimestamp(col: number): string {
-    const currentTimestamp = new Date().toISOString()
+    const currentTimestamp = serverNow().toISOString()
     return nowCol != null && col === nowCol
       ? currentTimestamp
       : tsForCol(col) ?? currentTimestamp
@@ -934,7 +934,7 @@ export function IntraopTimetable({
     if (!caseStarted) return          // case not started — don't run clock
     function tick() {
       if (endTimeRef.current) return  // case ended — stop the clock
-      const now = new Date()
+      const now = serverNow()
       // Measured from the grid origin (column 0's own start), so the marker lands
       // on the wall clock instead of sitting up to 4:59 to the left of it.
       // Where the marker goes and how wide the table needs to be is arithmetic,
@@ -1055,7 +1055,7 @@ export function IntraopTimetable({
     const d = dataRef.current
     const fluid = (d.fluids ?? []).find(item => item.id === id)
     if (!fluid || fluid.fluidEntryMode !== "RATE") return
-    const ts = new Date().toISOString()
+    const ts = serverNow().toISOString()
     const col = Math.max(fluid.startCol, nowCol ?? fluid.endCol)
     onChangeRef.current({
       ...d,
@@ -1151,7 +1151,7 @@ export function IntraopTimetable({
     const d = dataRef.current
     const fluid = (d.fluids ?? []).find(item => item.id === id)
     if (!fluid) return
-    const endTs = new Date().toISOString()
+    const endTs = serverNow().toISOString()
     const endCol = Math.max(fluid.startCol, nowCol ?? fluid.endCol)
     onChangeRef.current({
       ...d,
@@ -1251,7 +1251,7 @@ export function IntraopTimetable({
           : g
       ),
     })
-    startWindow(new Date())
+    startWindow(serverNow())
     onEndCase?.()
     if (result.continuedItems.length > 0) onPostopContinued?.(result.continuedItems)
     if (result.infusionTotals.length > 0) onInfusionTotals?.(result.infusionTotals)

@@ -1,5 +1,6 @@
 "use client"
 
+import { observedFetch } from "@/lib/intraop-clock"
 import {
   createAutosaveManager,
   eventIdempotencyKey,
@@ -101,7 +102,7 @@ function emitEventCount(): void {
 }
 
 async function sendMutation(operation: EventMutation, revision: SectionRevision) {
-  const response = await fetch(
+  const response = await observedFetch(
     `/api/cases/${operation.caseId}/events/${encodeURIComponent(operation.eventId)}`,
     {
       method: operation.kind === "event.delete" ? "DELETE" : "PUT",
@@ -137,7 +138,7 @@ export const autosaveManager = createAutosaveManager({
       const payloadRecord = payload && typeof payload === "object"
         ? payload as Record<string, unknown>
         : {}
-      const response = await fetch(`/api/cases/${caseId}`, {
+      const response = await observedFetch(`/api/cases/${caseId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -179,7 +180,7 @@ export const autosaveManager = createAutosaveManager({
   pendingEvents: {
     kv: idbKV,
     postEvent: async (caseId, event, revision) => {
-      const response = await fetch(`/api/cases/${caseId}/events`, {
+      const response = await observedFetch(`/api/cases/${caseId}/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -255,7 +256,7 @@ export async function resolveConflict(
   section: CaseSection,
   merged: Record<string, unknown>,
 ): Promise<void> {
-  const response = await fetch(`/api/cases/${caseId}`, {
+  const response = await observedFetch(`/api/cases/${caseId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
