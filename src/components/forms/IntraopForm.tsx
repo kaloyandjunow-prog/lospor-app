@@ -648,7 +648,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           aiOptIn={aiOptIn}
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
-        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.saveState.refused} onDismissRefused={attention.saveState.dismissRefused} />
+        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />
         <IntraopTimetable
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}

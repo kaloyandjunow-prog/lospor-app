@@ -1,12 +1,9 @@
 "use client"
 
-import { useLocale, useTranslations } from "next-intl"
+import { useTranslations } from "next-intl"
 import type { IntraopAttentionAction, IntraopAttentionKind } from "@lospor/core/intraop-attention"
 
-import type { IntraopAttentionEntry } from "@/lib/use-intraop-attention"
-import type { RefusedChange } from "@lospor/core/sync"
-import { intraopAttentionText } from "@lospor/core/intraop-attention"
-import type { LogEvent } from "@lospor/core/intraop-types"
+import type { IntraopAttentionEntry, RefusedLine } from "@/lib/use-intraop-attention"
 
 /**
  * The two answers to each question the timeline asks (9.13.0), the same
@@ -27,14 +24,13 @@ const ANSWERS: Record<IntraopAttentionKind, { action: IntraopAttentionAction; la
 export function IntraopAttentionPanel({ entries, onAnswer, endCase = false, refused = [], onDismissRefused }: {
   entries: IntraopAttentionEntry[]
   /** Changes the server refused for good, listed until seen (9.13.0). */
-  refused?: RefusedChange[]
+  refused?: RefusedLine[]
   onDismissRefused?: () => void
   onAnswer?: (key: string, action: IntraopAttentionAction) => void
   /** In End case: says the case cannot end until each is answered. */
   endCase?: boolean
 }) {
   const tr = useTranslations("intraop.timelineRules")
-  const locale = useLocale()
   if (entries.length === 0 && refused.length === 0) return null
   return (
     <div
@@ -50,8 +46,8 @@ export function IntraopAttentionPanel({ entries, onAnswer, endCase = false, refu
         <div data-testid="intraop-refused" className="space-y-1">
           <p className="text-xs font-semibold text-red-600 dark:text-red-400">{tr("refusedTitle")}</p>
           {refused.map(item => (
-            <p key={`${item.eventId}-${item.at}`} className="text-xs text-red-600/90 dark:text-red-300">
-              {item.event ? intraopAttentionText({ key: item.eventId, kind: "after_end", event: item.event as unknown as LogEvent, actions: [] }, locale) : item.eventId}
+            <p key={item.key} className="text-xs text-red-600/90 dark:text-red-300 break-words">
+              {item.time ? `${item.time} · ` : ""}{item.text}
             </p>
           ))}
           <button type="button" data-testid="intraop-refused-dismiss" onClick={onDismissRefused}

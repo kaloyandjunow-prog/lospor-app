@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   intraopAttentionItems,
   intraopAttentionText,
+  intraopRefusedEntry,
   intraopResolveAttention,
   type IntraopAttentionAction,
   type IntraopAttentionItem,
@@ -16,6 +17,9 @@ import { serverNow } from "@/lib/intraop-clock"
 
 export type IntraopAttentionEntry = IntraopAttentionItem & { time: string; label: string }
 
+/** A change the server refused for good, as listed above the chart. */
+export type RefusedLine = { key: string; time: string; text: string }
+
 export type WebIntraopAttention = {
   /** Waiting now: unconfirmed stops, and on an ended case what is left after the end. */
   entries: IntraopAttentionEntry[]
@@ -26,6 +30,8 @@ export type WebIntraopAttention = {
   canAnswer: boolean
   /** Whether each change reached the server (9.13.0). */
   saveState: CaseSaveState
+  /** What the server refused and why, in Core's words -- the PWA's lines. */
+  refused: RefusedLine[]
 }
 
 /**
@@ -67,7 +73,15 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   }, [endedAt, log, onEventOps, readOnly])
 
   const saveState = useCaseSaveState(caseId)
-  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState }
+  const refused = useMemo(() => saveState.refused.map(item => {
+    const entry = intraopRefusedEntry(item, locale, log)
+    return {
+      key: `${item.eventId}-${item.at}`,
+      time: (timeZone ? localTimeOf(new Date(entry.at), timeZone) : null) ?? "",
+      text: entry.text,
+    }
+  }), [saveState.refused, locale, log, timeZone])
+  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState, refused }
 }
 
 function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string): IntraopAttentionEntry[] {

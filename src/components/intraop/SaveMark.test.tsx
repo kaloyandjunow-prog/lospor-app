@@ -37,11 +37,11 @@ describe("refusals above the chart", () => {
     render(
       <IntraopAttentionPanel
         entries={[]}
-        refused={[{ eventId: "stop", status: 403, at: "2026-09-27T11:00:00.000Z", event: { id: "stop", ts: "2026-09-27T11:00:00.000Z", type: "infusion_stop", infId: "i" } }]}
+        refused={[{ key: "stop", time: "14:00", text: "Remifentanil · Спиране на инфузия (промяна) — по-късна промяна е направена на друг екран и остава в сила" }]}
         onDismissRefused={dismiss}
       />,
     )
-    expect(screen.getByTestId("intraop-refused").textContent).toContain("Спиране на инфузия")
+    expect(screen.getByTestId("intraop-refused").textContent).toContain("14:00 · Remifentanil · Спиране на инфузия")
     fireEvent.click(screen.getByTestId("intraop-refused-dismiss"))
     expect(dismiss).toHaveBeenCalled()
   })

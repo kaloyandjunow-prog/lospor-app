@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import type { IntraopSaveInput } from "@lospor/core/intraop-save-state"
+import { sameIntraopSaveState, type IntraopSaveInput } from "@lospor/core/intraop-save-state"
 import type { CaseSection, RefusedChange } from "@lospor/core/sync"
 
 import { autosaveManager } from "@/lib/autosave-manager"
@@ -32,8 +32,13 @@ export function useCaseSaveState(caseId: string | null | undefined): CaseSaveSta
   useEffect(() => {
     if (!caseId) return
     void autosaveManager.refreshPending(caseId).catch(() => {})
+    // Only when something shown changed: the manager reports every step of
+    // every save, and a re-render of the whole chart per report is what
+    // stopped the PWA on opening a case (9.13.0).
     const unsubscribe = autosaveManager.subscribe(next => {
-      if (next.caseId === caseId) setHeld({ caseId, state: pick(caseId) })
+      if (next.caseId !== caseId) return
+      const picked = pick(caseId)
+      setHeld(current => current.caseId === caseId && sameIntraopSaveState(current.state, picked) ? current : { caseId, state: picked })
     })
     return () => { unsubscribe() }
   }, [caseId])
@@ -48,9 +53,22 @@ function pick(caseId: string | null | undefined): CaseSaveState {
     sendingEventId: current.sendingEventId,
     refused: current.refused,
     queuedSections: current.queuedSections,
-    dismissRefused: () => { void autosaveManager.dismissRefused(caseId).catch(() => {}) },
+    dismissRefused: dismissFor(caseId),
   }
 }
+
+// One dismiss function per case, so a reading that changed nothing else is
+// the same object and nothing re-renders for it.
+const dismissers = new Map<string, () => void>()
+function dismissFor(caseId: string): () => void {
+  let dismiss = dismissers.get(caseId)
+  if (!dismiss) {
+    dismiss = () => { void autosaveManager.dismissRefused(caseId).catch(() => {}) }
+    dismissers.set(caseId, dismiss)
+  }
+  return dismiss
+}
+
 
 /** The case's save state for the chart lanes, without passing it through every lane. */
 export const CaseSaveStateContext = createContext<CaseSaveState>(NO_SAVE_STATE)
