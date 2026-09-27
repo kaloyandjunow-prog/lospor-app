@@ -1,6 +1,6 @@
 # Changelog - LOSPOR Web App
 
-## [9.13.0] - 2026-09-27
+## [9.13.0] - 2026-09-28
 
 ### Added
 
@@ -36,9 +36,15 @@
 - The chart's event journal: one edit in order (removals, edits, additions),
   two edits in one tick, refusals said and undone from the saved log.
 
-## [9.12.3] - 2026-09-27
+### Fixed (release sweep)
 
-### Fixed
+- The chart's "now" follows the server's clock from the moment a case opens;
+  before, only a save corrected it, so until the first save planned-or-given
+  and the now column were read from the computer's clock.
+
+### Included from 9.12.3 (never released on its own)
+
+#### Fixed
 
 - **The printed record and the case summary totalled per-kg infusions on
   1 kg.** They passed no weight: remifentanil 0.1 mcg/kg/min for 25 minutes in
@@ -52,7 +58,7 @@
 - **The intraop form used an unrounded ideal body weight** where the PWA and the
   record use it to 0.1 kg, so one infusion could total a few decimals apart.
 
-### Added
+#### Added
 
 - **New infusions record their weight basis** from the drug library, and totals
   use per-m² body surface area. The dose profile editor says that a basis
