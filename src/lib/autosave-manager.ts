@@ -6,6 +6,7 @@ import {
   eventIdempotencyKey,
   IDEMPOTENCY_HEADER,
   OPERATION_ID_HEADER,
+  MADE_AT_HEADER,
   SOURCE_HEADER,
   buildSectionRevisionHeaders,
   isTransientNetworkError,
@@ -68,12 +69,15 @@ const patchListeners = new Set<(summary: OutboxSummary) => void>()
 const eventListeners = new Set<(count: number) => void>()
 const conflictListeners = new Set<(info: ConflictInfo) => void>()
 
-/** A chart write the server refused for good (400), which the journal then drops. */
+/**
+ * A chart write the server refused for good, which the journal then drops:
+ * a timeline rule (400), or a later change made on another screen (412, 9.13.0).
+ */
 export type EventRefusal = { caseId: string; eventId: string; code: string | null }
 const refusalListeners = new Set<(refusal: EventRefusal) => void>()
 
 function noteRefusal(caseId: string, eventId: string, status: number, body: unknown): void {
-  if (status !== 400) return
+  if (status !== 400 && status !== 412) return
   const code = body && typeof body === "object" && typeof (body as { code?: unknown }).code === "string"
     ? (body as { code: string }).code
     : null
@@ -110,6 +114,8 @@ async function sendMutation(operation: EventMutation, revision: SectionRevision)
         "Content-Type": "application/json",
         [SOURCE_HEADER]: "web",
         [OPERATION_ID_HEADER]: operation.operationId,
+        // When the change was made, so the last one made wins across devices (9.13.0).
+        [MADE_AT_HEADER]: operation.queuedAt,
         ...buildSectionRevisionHeaders("intraop", revision),
       },
       body: operation.kind === "event.upsert" ? JSON.stringify(operation.event) : undefined,
@@ -185,6 +191,7 @@ export const autosaveManager = createAutosaveManager({
         headers: {
           "Content-Type": "application/json",
           ...(event.id ? { [IDEMPOTENCY_HEADER]: eventIdempotencyKey(caseId, String(event.id)) } : {}),
+          ...(typeof event.recordedAt === "string" ? { [MADE_AT_HEADER]: event.recordedAt } : {}),
           [SOURCE_HEADER]: "web",
           ...buildSectionRevisionHeaders("intraop", revision),
         },

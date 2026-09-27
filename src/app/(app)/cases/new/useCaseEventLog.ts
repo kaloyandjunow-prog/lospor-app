@@ -1,3 +1,4 @@
+import { serverNow } from "@/lib/intraop-clock"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import type { LogEvent } from "@/types/timetable"
@@ -15,6 +16,8 @@ import { applyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop
 const TIMELINE_RULE_CODES = new Set([
   "STOP_BEFORE_START", "NOT_RUNNING", "STOP_BEFORE_LATER_CHANGE", "ALREADY_RUNNING",
   "FUTURE_VITAL", "BEFORE_CASE_START", "AFTER_CASE_END",
+  // A later change to the entry was made on another screen (9.13.0).
+  "SUPERSEDED",
 ])
 
 export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: string) => string) {
@@ -46,7 +49,7 @@ export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: 
         kind: "event.delete",
         eventId: evId,
         baseRevision: autosaveManager.getRevision(caseId, "intraop"),
-        queuedAt: new Date().toISOString(),
+        queuedAt: serverNow().toISOString(),
       })
     } catch {
       toast.error(t("case.timelineEditFailed"))
@@ -70,7 +73,7 @@ export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: 
           eventId: durableEvent.id,
           event: durableEvent as Record<string, unknown>,
           baseRevision: autosaveManager.getRevision(caseId, "intraop"),
-          queuedAt: new Date().toISOString(),
+          queuedAt: serverNow().toISOString(),
         })
       } else {
         await autosaveManager.appendEvent(caseId, durableEvent as Record<string, unknown> & { id: string })
@@ -100,7 +103,7 @@ export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: 
           kind: "event.delete",
           eventId: event.id!,
           baseRevision: autosaveManager.getRevision(caseId, "intraop"),
-          queuedAt: new Date().toISOString(),
+          queuedAt: serverNow().toISOString(),
         })
       }
     } catch {
@@ -122,13 +125,13 @@ export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: 
       for (const eventId of ops.remove) {
         await autosaveManager.stageEventMutation({
           operationId: `web-delete-${randomId()}`, caseId, kind: "event.delete", eventId,
-          baseRevision: base(), queuedAt: new Date().toISOString(),
+          baseRevision: base(), queuedAt: serverNow().toISOString(),
         })
       }
       for (const event of ops.update) {
         await autosaveManager.stageEventMutation({
           operationId: `web-upsert-${randomId()}`, caseId, kind: "event.upsert", eventId: event.id,
-          event: event as Record<string, unknown>, baseRevision: base(), queuedAt: new Date().toISOString(),
+          event: event as Record<string, unknown>, baseRevision: base(), queuedAt: serverNow().toISOString(),
         })
       }
       for (const event of ops.add) {

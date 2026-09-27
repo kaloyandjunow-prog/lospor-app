@@ -46,3 +46,14 @@ describe("refusals above the chart", () => {
     expect(dismiss).toHaveBeenCalled()
   })
 })
+
+describe("the lab results' save mark", () => {
+  it("follows the intraop section, which the results are saved with", () => {
+    render(
+      <CaseSaveStateContext.Provider value={{ ...NO_SAVE_STATE, queuedSections: ["intraop"] }}>
+        <SaveMark section="intraop" />
+      </CaseSaveStateContext.Provider>,
+    )
+    expect(screen.getByTestId("save-mark-queued")).toBeTruthy()
+  })
+})

@@ -1,9 +1,10 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { eventsSaveState } from "@lospor/core/intraop-save-state"
+import { eventsSaveState, type ItemSaveState } from "@lospor/core/intraop-save-state"
 
 import { useChartSaveState } from "@/lib/use-case-save-state"
+import type { CaseSection } from "@lospor/core/sync"
 
 /**
  * The mark on one chart item that has not reached the server (9.13.0): a
@@ -11,14 +12,23 @@ import { useChartSaveState } from "@/lib/use-case-save-state"
  * outline -- dashes already mean planned on this chart. Nothing when saved.
  * Which state, for which events, is Core's rule, the same as the PWA's.
  */
-export function SaveMark({ eventIds, className = "absolute -top-1 -right-1" }: {
-  eventIds: readonly (string | undefined)[]
+export function SaveMark({ eventIds = [], section, className = "absolute -top-1 -right-1" }: {
+  eventIds?: readonly (string | undefined)[]
+  /**
+   * For what is saved with a form section rather than as events -- the lab
+   * results: queued while that section has changes not yet on the server.
+   */
+  section?: CaseSection
   className?: string
 }) {
   const save = useChartSaveState()
+  const state = eventsSaveState(eventIds, save) ?? (section && save.queuedSections.includes(section) ? "queued" : null)
+  return state ? <SaveMarkBadge state={state} className={className} /> : null
+}
+
+/** Rendered only when there is something to mark: a saved chart asks for no copy. */
+function SaveMarkBadge({ state, className }: { state: ItemSaveState; className: string }) {
   const t = useTranslations("intraop.timelineRules")
-  const state = eventsSaveState(eventIds, save)
-  if (!state) return null
   const label = t(state === "refused" ? "refusedShort" : state === "sending" ? "sendingShort" : "queuedShort")
   return (
     <span

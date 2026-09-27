@@ -1623,6 +1623,7 @@
     },
     "timelineRules": {
       "refused": {
+        "SUPERSEDED": "A later change to this entry was made on another screen; that one stands.",
         "STOP_BEFORE_START": "Not saved: a stop cannot be earlier than its start.",
         "NOT_RUNNING": "Not saved: that is not running at this time.",
         "STOP_BEFORE_LATER_CHANGE": "Not saved: a later change of the same item comes after this stop. Move or delete that change first.",
