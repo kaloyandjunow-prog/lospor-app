@@ -680,7 +680,7 @@ export default function NewCasePage() {
             layoutMode={layoutMode}
             eventLog={eventLog}
             onEventOps={applyEventOps}
-            readOnly={isWatching} autoEnded={autoEnded}
+            readOnly={isWatching} autoEnded={autoEnded} caseId={caseId} aiOptIn={!!preopData?.aiOptIn}
           />
         )}
         {!loading && step === 2 && (
