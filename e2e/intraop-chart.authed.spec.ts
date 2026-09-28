@@ -460,6 +460,14 @@ test("the lab dialog on the chart knows the case and its AI consent", async ({ p
   const { id } = await create.json()
   created.push(id as string)
 
+  // The scan is only offered where the deployment has an AI provider, which
+  // CI has not: say it has, so what is tested is the case and its consent.
+  await page.route("**/api/capabilities", async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    body.features = { ...body.features, clinicalAi: { ...body.features?.clinicalAi, labImageExtraction: { enabled: true, reason: "ENABLED" } } }
+    await route.fulfill({ response, json: body })
+  })
   const chart = await openChart(page, id as string)
   await chart.getByRole("button", { name: "Labs" }).first().click()
   await chart.getByTestId("labs-draw-cell").first().click()
