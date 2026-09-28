@@ -11,6 +11,13 @@
   same infusion there, Discontinue plans the stop there. An ended case runs
   nothing on.
 
+### Fixed
+
+- **The import review in the clinician's language.** Values the hospital
+  sends as codes read as words, and a result's date is its day where it was
+  taken, as dd.MM.yyyy in Bulgarian (Core's `describeEhrReviewItem`, shared
+  with the phone).
+
 ## [9.13.0] - 2026-09-28
 
 ### Added
