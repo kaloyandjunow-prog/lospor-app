@@ -376,3 +376,72 @@ test("a second screen watching the case writes nothing", async ({ page, browser 
     await second.close()
   }
 })
+
+// 9.13.1: a running infusion runs on in the cells after now, from Core's rule,
+// the same as the PWA's rows. What a click there writes is read back from the
+// saved log: a change of the same infusion, never a second infusion.
+
+async function savedLog(page: Page, id: string) {
+  const record = await page.request.get(`/api/cases/${id}`)
+  return ((await record.json()).intraop?.keyEvents?.log ?? []) as { type: string; infId?: string; ts: string }[]
+}
+
+test("a change planned from a cell after now is on the same infusion, dated to that cell", async ({ page }) => {
+  const id = await createRecentCase(page)
+  const chart = await openChart(page, id)
+  await startInfusion(page, chart)
+
+  const runsOn = chart.getByTestId("infusion-runs-on")
+  await expect(runsOn.first()).toBeVisible({ timeout: 30_000 })
+  const clickedAt = Date.now()
+  await runsOn.nth(2).click()
+  await page.getByRole("button", { name: "Change rate" }).click({ timeout: 30_000 })
+  await page.getByRole("button", { name: "Apply" }).click({ timeout: 30_000 })
+
+  await expect.poll(async () => {
+    const log = await savedLog(page, id)
+    const starts = log.filter(event => event.type === "infusion_start")
+    const change = log.find(event => event.type === "infusion_rate")
+    return starts.length === 1 && !!change && change.infId === starts[0].infId && Date.parse(change.ts) > clickedAt
+  }, { timeout: 30_000, message: "the change was not saved as a later change of the same infusion" }).toBe(true)
+})
+
+test("Discontinue from a cell after now stops the infusion at that cell, not now", async ({ page }) => {
+  const id = await createRecentCase(page)
+  const chart = await openChart(page, id)
+  await startInfusion(page, chart)
+
+  const runsOn = chart.getByTestId("infusion-runs-on")
+  await expect(runsOn.first()).toBeVisible({ timeout: 30_000 })
+  const clickedAt = Date.now()
+  await runsOn.nth(3).click()
+  await page.getByRole("button", { name: "Discontinue" }).click({ timeout: 30_000 })
+
+  await expect.poll(async () => {
+    const stop = (await savedLog(page, id)).find(event => event.type === "infusion_stop")
+    return !!stop && Date.parse(stop.ts) > clickedAt + 10 * 60_000
+  }, { timeout: 30_000, message: "the stop was not dated to the clicked cell" }).toBe(true)
+})
+
+test("an ended case runs nothing on after its end", async ({ page }) => {
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const startedAt = new Date(Date.now() - 40 * 60_000)
+  const local = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hour12: false }).format(startedAt)
+  const id = await createStartedCase(page, { startTime: local, startedAt: startedAt.toISOString(), timezone: zone })
+  const record = await page.request.get(`/api/cases/${id}`)
+  const revision = (await record.json()).intraop.syncRevision
+  const infusion = await page.request.post(`/api/cases/${id}/events`, {
+    headers: { Origin: ORIGIN, "x-lospor-intraop-revision": String(revision) },
+    data: { id: `e2e-inf-${id}`, type: "infusion_start", infId: "prop", name: "Propofol", rate: "4", unit: "mg/kg/hr", ts: new Date(startedAt.getTime() + 5 * 60_000).toISOString() },
+  })
+  expect(infusion.ok(), `infusion failed: ${infusion.status()} ${await infusion.text()}`).toBeTruthy()
+  const end = await page.request.patch(`/api/cases/${id}`, {
+    headers: { Origin: ORIGIN },
+    data: { intraop: { endedAt: new Date(Date.now() - 10 * 60_000).toISOString() } },
+  })
+  expect(end.ok(), `ending failed: ${end.status()} ${await end.text()}`).toBeTruthy()
+
+  const chart = await openChart(page, id)
+  await expect(chart.getByTestId("infusion-lane").first()).toBeVisible({ timeout: 30_000 })
+  await expect(chart.getByTestId("infusion-runs-on")).toHaveCount(0)
+})
