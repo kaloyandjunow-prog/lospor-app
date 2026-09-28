@@ -445,3 +445,25 @@ test("an ended case runs nothing on after its end", async ({ page }) => {
   await expect(chart.getByTestId("infusion-lane").first()).toBeVisible({ timeout: 30_000 })
   await expect(chart.getByTestId("infusion-runs-on")).toHaveCount(0)
 })
+
+test("the lab dialog on the chart knows the case and its AI consent", async ({ page }) => {
+  // Since 9.8.0 the chart's lab dialog was given neither: its scan always
+  // asked for AI consent the case had already given.
+  const create = await page.request.post("/api/cases", {
+    headers: { Origin: ORIGIN },
+    data: {
+      preop: { ageYears: 41, sex: "MALE", heightCm: 178, weightKg: 82, clinicalMode: "ADULT", aiOptIn: true },
+      intraop: { startTime: "08:00" },
+    },
+  })
+  expect(create.ok(), `create failed: ${create.status()}`).toBeTruthy()
+  const { id } = await create.json()
+  created.push(id as string)
+
+  const chart = await openChart(page, id as string)
+  await chart.getByRole("button", { name: "Labs" }).first().click()
+  await chart.getByTestId("labs-draw-cell").first().click()
+  await expect(page.getByText(/Lab report images are sent to the configured AI provider/)).toBeVisible()
+  await expect(page.getByText(/Enable AI assistance for this case/)).toHaveCount(0)
+  await expect(page.getByText(/Save this case first/)).toHaveCount(0)
+})

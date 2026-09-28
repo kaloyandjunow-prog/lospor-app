@@ -17,6 +17,9 @@
   sends as codes read as words, and a result's date is its day where it was
   taken, as dd.MM.yyyy in Bulgarian (Core's `describeEhrReviewItem`, shared
   with the phone).
+- **The chart's lab dialog knows the case and its AI consent.** Since 9.8.0
+  the page gave the intraop form neither, so the lab scan there always asked
+  for AI consent the case had already given.
 
 ## [9.13.0] - 2026-09-28
 
