@@ -11,6 +11,8 @@
 - The long intraoperative chart regression now advances virtual browser time
   instead of waiting 20 wall-clock seconds, reducing CI retries without
   weakening the no-unintended-save assertion.
+- The pediatric submit-for-review/finalize regression now sends the same
+  intraoperative wall-clock and ISO time fields as the production client.
 - The Web client pins Core 9.13.6 and is versioned for the coordinated 9.13.6
   application release.
 
