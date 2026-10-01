@@ -1,5 +1,16 @@
 # Changelog - LOSPOR Web App
 
+## [9.13.7] - 2026-10-01
+
+### Security
+
+- **Updated Next.js to 16.3.8** in the Web runtime and lint toolchain. This
+  clears the critical `GHSA-vcvr-r3jv-pc5j` remote-code-execution advisory in
+  `next/og` without an audit exception.
+- Release-branch E2E now checks out the matching API and PWA vendor branches;
+  it no longer depends on the deleted 9.13.6 feature branch or stale client
+  `main` branches.
+
 ## [9.13.6] - 2026-10-01
 
 ### Fixed
