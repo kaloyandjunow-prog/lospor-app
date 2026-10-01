@@ -98,7 +98,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: kaloyandjunow-prog/lospor-api
-          ref: main
+          # The release-train Web PR must exercise the matching API candidate:
+          # API main still has the pre-9.13.6 validator and cannot understand
+          # the Case.clinicalMode pediatric finalisation contract. Once this PR
+          # is merged, API main is the matching source again.
+          ref: ${{ github.event_name == 'pull_request' && github.base_ref == 'release-9.13.5-vendor' && 'feat/9.13.6-finalization-feedback' || 'main' }}
           path: lospor-api
       - uses: actions/checkout@v6
         with:
