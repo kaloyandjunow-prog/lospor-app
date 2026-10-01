@@ -81,7 +81,16 @@ test("a complete paediatric case can be submitted for review and finalised", asy
     try {
       const intraop = await api.patch(`/api/cases/${id}`, {
         headers: JSON_HEADERS,
-        data: { intraop: { startedAt: STARTED_AT, endedAt: ENDED_AT, timezone: "Europe/Sofia", techniques: ["GENERAL"] } },
+        data: {
+          intraop: {
+            // Mirror the production client payload: wall-clock times are used
+            // for the chart while the ISO instants preserve the authoritative
+            // timeline. Both shapes must leave a newly created case in progress.
+            startTime: "07:30", endTime: "09:05",
+            startedAt: STARTED_AT, endedAt: ENDED_AT,
+            timezone: "Europe/Sofia", techniques: ["GENERAL"],
+          },
+        },
       })
       expect(intraop.ok(), await intraop.text()).toBeTruthy()
 
