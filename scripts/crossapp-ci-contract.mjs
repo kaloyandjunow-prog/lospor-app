@@ -35,12 +35,12 @@ export function assertCrossAppCiContract(source) {
   requirePattern(job, /services:\s*\n\s*postgres:/, "Web E2E must use disposable PostgreSQL")
   requirePattern(
     job,
-    /repository:\s*kaloyandjunow-prog\/lospor-api[\s\S]{0,500}ref:\s*(?:main|\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*&&\s*github\.base_ref\s*==\s*'release-9\.13\.5-vendor'\s*&&\s*'feat\/9\.13\.6-finalization-feedback'\s*\|\|\s*'main'\s*\}\})[\s\S]{0,120}path:\s*lospor-api/,
+    /repository:\s*kaloyandjunow-prog\/lospor-api[\s\S]{0,500}ref:\s*(?:main|\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*&&\s*github\.base_ref\s*==\s*'release-9\.13\.5-vendor'\s*&&\s*'release-9\.13\.5-vendor'\s*\|\|\s*'main'\s*\}\})[\s\S]{0,120}path:\s*lospor-api/,
     "Web E2E must check out the current owner API or the matching release-train API candidate",
   )
   requirePattern(
     job,
-    /repository:\s*kaloyandjunow-prog\/lospor-mobile[\s\S]{0,120}ref:\s*main[\s\S]{0,120}path:\s*lospor-mobile/,
+    /repository:\s*kaloyandjunow-prog\/lospor-mobile[\s\S]{0,500}ref:\s*(?:main|\$\{\{\s*github\.event_name\s*==\s*'pull_request'\s*&&\s*github\.base_ref\s*==\s*'release-9\.13\.5-vendor'\s*&&\s*'release-9\.13\.5-vendor'\s*\|\|\s*'main'\s*\}\})[\s\S]{0,120}path:\s*lospor-mobile/,
     "Cross-app E2E must check out the current owner Mobile/PWA",
   )
   for (const repository of ["lospor-app", "lospor-api", "lospor-mobile"]) {
