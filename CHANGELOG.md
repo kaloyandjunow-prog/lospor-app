@@ -10,6 +10,10 @@
   "check all required fields". An unfinished section of an existing
   preoperative assessment says it is incomplete, not missing.
 
+### Changed
+
+- Core dependency moved to 9.13.8.
+
 ## [9.13.7] - 2026-10-01
 
 ### Security
