@@ -1,5 +1,15 @@
 # Changelog - LOSPOR Web App
 
+## [9.13.8] - 2026-10-03
+
+### Fixed
+
+- **A refused finalization says what is missing.** A case not yet ended, a
+  missing start time, chart entries after the case end and an unconfirmed
+  infusion stop each have their own message (Core 9.13.8); they used to show
+  "check all required fields". An unfinished section of an existing
+  preoperative assessment says it is incomplete, not missing.
+
 ## [9.13.7] - 2026-10-01
 
 ### Security
