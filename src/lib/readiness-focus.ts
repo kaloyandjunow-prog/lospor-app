@@ -47,7 +47,9 @@ export function intraopFocusTab(focus: string | null | undefined): string | unde
 
 export function scrollToReadiness(focus: string): void {
   setTimeout(() => {
-    document.querySelector(`[data-readiness~="${focus}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    // Called after a delay, so it can outlive the page or run where the
+    // element cannot scroll (jsdom): a missing scroll does nothing.
+    document.querySelector<HTMLElement>(`[data-readiness~="${focus}"]`)?.scrollIntoView?.({ behavior: "smooth", block: "center" })
   }, 50)
 }
 
