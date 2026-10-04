@@ -24,6 +24,7 @@ import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { IntraopPreopSummary } from "@/components/intraop/IntraopPreopSummary"
 import { useEndCaseCheck } from "@/components/intraop/EndCaseReadiness"
+import { useAllergyGate } from "@/components/intraop/AllergyGate"
 import { intraopFocusTab, scrollToReadiness, useScrollToReadiness } from "@/lib/readiness-focus"
 import {
   AIRWAY_DEVICE_REQUIRED_FIELDS,
@@ -69,7 +70,6 @@ import { INTRAOP_ISSUE_KEYS } from "./intraop-issue-copy"
 import { schema, type IntraopData, type IntraopFormFields } from "./intraopSchema"
 
 export type { IntraopFormFields, IntraopData } from "./intraopSchema"
-
 
 // Position, airway management, and monitoring option lists now live in the
 // OptionLibrary table (POSITION / AIRWAY_MANAGEMENT / MONITORING categories)
@@ -404,7 +404,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     if (complete && !deviceWasCompleteOnOpen.current) setAirwayExpandedDevice(null)
   }, [_wDltSide, _wDltSize, _wDltType, _wEbSize, _wLmaSize, _wNasalCuffed, _wNasalTubeSize, _wOralCuffed, _wOralTubeSize, airwayExpandedDevice, getValues, setValue])
 
-
   const watchedStartTime = useWatch({ control, name: "startTime" })
   const watchedEndTime = useWatch({ control, name: "endTime" })
   const watchedNbpMonitor = useWatch({ control, name: "nbpMonitor" })
@@ -426,7 +425,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     tempMonitor:   !!watchedTempMonitor,
   }
 
-
+  // A dose that clashes with a recorded allergy is acknowledged before it is added (1.5.0).
+  const allergyGate = useAllergyGate({ preop, locale: locale === "bg" ? "bg" : "en" })
   // The phone app's End case check, on web (1.5.0): blockers stop the end.
   const endCheck = useEndCaseCheck({
     record: () => ({ ...getValues(), timetableData: timetable, keyEvents: eventLog ?? [] }) as Record<string, unknown>,
@@ -584,7 +584,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabChart = (<>
 
       {/* Intraoperative timetable */}
-      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}
+      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}{allergyGate.modal}
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopLabsDialog
           open={labsDialog.open}
@@ -629,7 +629,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           ibw={calcIbw}
           tbw={preop?.weightKg ?? null}
           data={timetable}
-          onChange={onTimetableChange}
+          onChange={allergyGate.guard(timetable, onTimetableChange)}
           onEndCase={() => {
             const end = intraopEndCaseValuesNow(getValues("timezone"), getValues("startTime"))
             setValue("endTime", end.endTime)

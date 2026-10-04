@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
+import { allergyRecords, uncheckedAllergies } from "@lospor/core/allergy-drug-check"
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
 /**
@@ -19,6 +20,8 @@ export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric }: {
 }) {
   const t = useTranslations()
   const medicationWarnings = useMemo(() => getMedicationWarnings(preop.currentMedications ?? []), [preop.currentMedications])
+  // A typed allergy the drug check cannot read is named, so silence is not taken for a pass (1.5.0).
+  const unchecked = uncheckedAllergies(allergyRecords(preop))
   return (
     <div className="rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">{t("intraop.preopSummary")}</p>
@@ -59,6 +62,11 @@ export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric }: {
       {preop.allergies && preop.allergyDetails && preop.allergyDetails.length > 0 && (
         <p className="text-sm font-semibold text-red-700 dark:text-red-400">
           {t("intraop.allergiesPrefix")} {preop.allergyDetails.map(a => a.label).join(", ")}
+        </p>
+      )}
+      {unchecked.length > 0 && (
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+          {t("intraop.allergiesUnchecked")} {unchecked.join(", ")}
         </p>
       )}
       {Array.isArray(preop.comorbidities) && preop.comorbidities.length > 0 && (

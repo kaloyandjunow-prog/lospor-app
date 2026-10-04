@@ -1669,7 +1669,8 @@
       "resumeKeepStops": "Keep",
       "labsPill": "Labs · {count}",
       "autoEndedNotice": "This case was ended automatically 48 hours after it started. Resume it if it is still running."
-    }
+    },
+    "allergiesUnchecked": "Not checked against drugs automatically:"
   },
   "postop": {
     "aldreteSection": "Modified Aldrete Score (on leaving theatre)",
