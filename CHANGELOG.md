@@ -1,5 +1,18 @@
 # Changelog - LOSPOR Web App
 
+## [9.13.9] - 2026-10-04
+
+### Fixed
+
+- **An imported age from the hospital system switches the clinical mode.** A
+  paediatric age arriving at an adult case was held back with "Switch to
+  paediatric mode first", and switching did not release it, so the age could
+  not be added. The age is now ticked like any other value; adding it switches
+  the case to paediatric mode (or an adult age to adult mode) first, with the
+  same clearing as the mode toggle, and then writes the imported values, so
+  imported vitals are kept. The review says what the switch will clear before
+  it happens. Core 9.13.9.
+
 ## [9.13.8] - 2026-10-03
 
 ### Fixed
