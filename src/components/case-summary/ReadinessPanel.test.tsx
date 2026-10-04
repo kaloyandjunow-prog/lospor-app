@@ -64,11 +64,23 @@ describe("the readiness list", () => {
 describe("the review bar", () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  const bar = (readiness = caseReadiness({ clinicalMode: "ADULT", preop: PREOP, intraop: null, postop: null })) =>
+  const COMPLETE = {
+    clinicalMode: "ADULT", preop: PREOP,
+    intraop: {
+      startedAt: "2026-10-04T08:00:00Z", endedAt: "2026-10-04T09:00:00Z", techniques: ["GA"],
+      airwayDevices: ["ETT"], positions: ["SUPINE"], ecg: true, vascularAccesses: ["PIV"],
+      vitals: [{ hr: 70 }], drugs: [{ drugId: "propofol" }], fluids: [{ type: "RL" }], complications: "None",
+    },
+    postop: {
+      aldreteActivity: 2, aldreteRespiration: 2, aldreteCirculation: 2, aldreteConsciousness: 2,
+      aldreteSpO2: 2, disposition: "WARD",
+    },
+  }
+  const bar = (readinessCase: Record<string, unknown> = { clinicalMode: "ADULT", preop: PREOP, intraop: null, postop: null }) =>
     render(
       <ReviewBar
         caseId="c1" status="IN_PROGRESS" canWrite awaitingReviewAt={null} finalizedAtMs={null}
-        now={0} labels={LABELS.en} readiness={readiness}
+        now={0} labels={LABELS.en} readinessCase={readinessCase}
         onFinalized={() => {}} onUnfinalized={() => {}}
       />,
     )
@@ -85,7 +97,7 @@ describe("the review bar", () => {
       error: "x", reason: "incomplete_preop",
       blockers: [{ code: "incomplete_preop", path: ["preop.labs"] }],
     }), { status: 422 })))
-    bar({ ready: true, blockers: [], warnings: [] })
+    bar(COMPLETE)
 
     fireEvent.click(screen.getByRole("button", { name: LABELS.en.closeNow }))
 
@@ -97,7 +109,7 @@ describe("the review bar", () => {
     const alert = vi.fn()
     vi.stubGlobal("alert", alert)
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ code: "CASE_ALREADY_FINALIZED" }), { status: 409 })))
-    bar({ ready: true, blockers: [], warnings: [] })
+    bar(COMPLETE)
 
     fireEvent.click(screen.getByRole("button", { name: LABELS.en.closeNow }))
 

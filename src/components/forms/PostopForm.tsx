@@ -2,9 +2,10 @@
 
 import { useForm, Controller, type Resolver } from "react-hook-form"
 import { useEffect, useRef, useState } from "react"
+import { SectionCard } from "@/components/forms/shared/SectionCard"
+import { useScrollToReadiness } from "@/lib/readiness-focus"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations, useLocale } from "next-intl"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -28,15 +29,6 @@ import { postopSchema, type PostopData } from "@/components/forms/postopSchema"
 export type { PostopData }
 
 
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base text-slate-700 dark:text-slate-200">{title}</CardTitle></CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
-    </Card>
-  )
-}
 
 type AldreteKey = "aldreteActivity" | "aldreteRespiration" | "aldreteCirculation" | "aldreteConsciousness" | "aldreteSpO2"
 
@@ -62,17 +54,11 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
   rejectedFields?: Map<string, string>
   clinicalMode?: "ADULT" | "PEDIATRIC"
   pediatricAgeYears?: number | null
-  /** A part of the record to bring into view on arrival, from the readiness list (1.5.0). */
+  /** A part to bring into view on arrival, from a readiness "Go to" (1.5.0). */
   focus?: string | null
 }) {
   const t      = useTranslations()
-  useEffect(() => {
-    if (focus !== "recovery" && focus !== "disposition") return
-    const timer = setTimeout(() => {
-      document.querySelector(`[data-readiness="${focus}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-    }, 50)
-    return () => clearTimeout(timer)
-  }, [focus])
+  useScrollToReadiness(focus)
   const locale = useLocale()
   const isPediatric = clinicalMode === "PEDIATRIC"
   const [canSelfReport, setCanSelfReport] = useState((pediatricAgeYears ?? 0) >= 4)
@@ -170,8 +156,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 
       {/* Modified Aldrete Score */}
       <div data-tour="postop-aldrete">
-      <div data-readiness="recovery" />
-      <SectionCard title={t("postop.aldreteSection")}>
+      <SectionCard title={t("postop.aldreteSection")} readiness="recovery">
         <div className="space-y-5">
           {ALDRETE_CRITERIA.map(({ key, labelKey, scoreKeys }) => (
             <Controller key={key} name={key} control={control} render={({ field }) => (
@@ -400,8 +385,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 
       {/* Disposition */}
       <div data-tour="postop-disposition">
-      <div data-readiness="disposition" />
-      <SectionCard title={t("postop.dispositionSection")}>
+      <SectionCard title={t("postop.dispositionSection")} readiness="disposition">
         <div className="space-y-1">
           <Label>{t("postop.dispatchTo")}</Label>
           <Controller name="disposition" control={control} render={({ field }) => (

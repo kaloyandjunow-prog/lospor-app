@@ -1,30 +1,72 @@
 "use client"
 
-import type { CaseReadiness, IntraopArea } from "@lospor/core/case-readiness"
+import { useState, type ReactNode } from "react"
+import { caseReadiness, type CaseReadiness, type IntraopArea } from "@lospor/core/case-readiness"
 import { READINESS_COPY } from "@/components/case-summary/readiness-labels"
 
 const TEXT = {
   en: {
-    title: "Still missing from the intraoperative record",
-    note: "Best filled in now, while the team is still in theatre.",
+    title: "Complete before ending the case",
+    note: "Needed to finalize. Fill it in now, while the team is still in theatre.",
+    warnings: "Sections are incomplete:",
+    continueAnyway: "End the case anyway?",
     goTo: "Go to",
     dismiss: "Later",
   },
   bg: {
-    title: "Все още липсва в интраоперативния запис",
-    note: "Най-добре да се попълни сега, докато екипът е още в залата.",
+    title: "Попълнете, преди да приключите случая",
+    note: "Необходимо е за приключването. Попълнете го сега, докато екипът е още в залата.",
+    warnings: "Непълни раздели:",
+    continueAnyway: "Да се приключи ли случаят въпреки това?",
     goTo: "Към",
     dismiss: "По-късно",
   },
 } as const
 
 /**
- * The readiness list at End case, intraoperative part only (1.5.0).
+ * Check the intraoperative record before the case is ended (1.5.0), the way
+ * the phone app does: a blocker stops the end and is listed with a way to it;
+ * warnings ask once whether to end anyway. Preop and postop items wait for
+ * the summary, since recovery has not happened yet.
  *
- * Shown the moment the case is ended because that is when the people who know
- * the answers are still in the room. Recovery has not happened yet, so the
- * postoperative items wait for the summary; and the buttons stay inside the
- * form, switching tabs rather than leaving the chart.
+ * `record` is read at the moment End is pressed, so it sees the chart as it
+ * stands then.
+ */
+export function useEndCaseCheck({ record, locale, onGo }: {
+  record: () => Record<string, unknown>
+  locale: "en" | "bg"
+  onGo: (area: IntraopArea) => void
+}): { before: () => boolean; panel: ReactNode } {
+  const [shown, setShown] = useState<CaseReadiness | null>(null)
+
+  function before(): boolean {
+    const check = caseReadiness(
+      { clinicalMode: "ADULT", preop: {}, intraop: { ...record(), endedAt: new Date().toISOString() }, postop: null },
+      { omitPostop: true },
+    )
+    const blockers = check.blockers.filter(item => item.target.stage === "intraop")
+    const warnings = check.warnings.filter(item => item.target.stage === "intraop")
+    if (blockers.length > 0) {
+      setShown({ ready: false, blockers, warnings: [] })
+      return false
+    }
+    setShown(null)
+    if (warnings.length === 0) return true
+    const copy = READINESS_COPY[locale]
+    const text = TEXT[locale]
+    const list = warnings.map(item => `• ${copy[item.kind]}`).join("\n")
+    return window.confirm(`${text.warnings}\n\n${list}\n\n${text.continueAnyway}`)
+  }
+
+  const panel = shown
+    ? <EndCaseReadiness readiness={shown} locale={locale} onGo={onGo} onDismiss={() => setShown(null)} />
+    : null
+  return { before, panel }
+}
+
+/**
+ * What stopped the case from ending, with a way to each (1.5.0). The buttons
+ * stay inside the form, switching tabs rather than leaving the chart.
  */
 export function EndCaseReadiness({
   readiness,

@@ -13,8 +13,6 @@ import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
 import { buildIntraopSubmission, intraopEndCaseValuesNow, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { caseReadiness, type CaseReadiness, type IntraopArea } from "@lospor/core/case-readiness"
-import { EndCaseReadiness } from "@/components/intraop/EndCaseReadiness"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
@@ -24,8 +22,9 @@ import { useLocale, useTranslations } from "next-intl"
 import { IntraopTimetable, type TimetableData, type IntraopLogEvent } from "@/components/IntraopTimetable"
 import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
-import { calcABW } from "@/lib/scores"
-import { getMedicationWarnings } from "@/lib/risk-derivation"
+import { IntraopPreopSummary } from "@/components/intraop/IntraopPreopSummary"
+import { useEndCaseCheck } from "@/components/intraop/EndCaseReadiness"
+import { intraopFocusTab, scrollToReadiness, useScrollToReadiness } from "@/lib/readiness-focus"
 import {
   AIRWAY_DEVICE_REQUIRED_FIELDS,
   isAirwayDeviceComplete,
@@ -78,14 +77,6 @@ export type { IntraopFormFields, IntraopData } from "./intraopSchema"
 
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
-/** The tab each part of the intraoperative record lives on, for "Go to". */
-const FOCUS_TAB: Record<string, string> = {
-  times: "overview", position: "overview",
-  monitoring: "anaesthesia", technique: "anaesthesia", airway: "anaesthesia", vascular_access: "anaesthesia",
-  vitals: "chart", medications: "chart", fluids: "chart", events: "chart",
-  complications: "finish",
-}
-
 export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onEventOps, readOnly = false, autoEnded: autoEndedProp = false, caseId = null, aiOptIn = false, focus = null }: {
   /**
    * The saved case, once autosave has created one.
@@ -112,7 +103,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   readOnly?: boolean
   /** Ended automatically after 48 hours; applies while that saved end stands (9.12.1). */
   autoEnded?: boolean
-  /** A part of the record to open on arrival, from the readiness list (1.5.0). */
+  /** A part of the record to open on arrival, from a readiness "Go to" (1.5.0). */
   focus?: string | null
 }) {
   const t = useTranslations()
@@ -371,24 +362,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     typeof window !== "undefined" && localStorage.getItem("defaultMonitoring") === "advanced"
   )
   const [airwayExpandedDevice, setAirwayExpandedDevice] = useState<string | null>(null)
-  const [activeTab,            setActiveTab]            = useState(() => (focus ? FOCUS_TAB[focus] : undefined) ?? "overview")
-  // What the intraoperative record still lacks, shown at End case (1.5.0).
-  const [endCheck, setEndCheck] = useState<CaseReadiness | null>(null)
-  function goToArea(area: IntraopArea) {
-    setActiveTab(FOCUS_TAB[area] ?? "overview")
-    setTimeout(() => {
-      document.querySelector(`[data-readiness~="${area}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-    }, 50)
-  }
-  // "Go to" from the readiness list (1.5.0): the tab opens on arrival above,
-  // and the part of it named is brought into view once it has rendered.
-  useEffect(() => {
-    if (!focus || !FOCUS_TAB[focus]) return
-    const timer = setTimeout(() => {
-      document.querySelector(`[data-readiness~="${focus}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-    }, 50)
-    return () => clearTimeout(timer)
-  }, [focus])
+  const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview")
+  useScrollToReadiness(focus)
   const [airwayOverride,       setAirwayOverride]       = useState(false)
   const monDefaultsApplied      = useRef(false)
   const deviceWasCompleteOnOpen = useRef(false)
@@ -441,7 +416,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const startTime  = watchedStartTime || "08:00"
   const showAirway   = techniqueIsGeneral(techniques)
   const showGases    = techniqueUsesGas(techniques)
-  const medicationWarnings = useMemo(() => getMedicationWarnings(preop?.currentMedications ?? []), [preop?.currentMedications])
 
   const monitoring = {
     nbpMonitor:    !!watchedNbpMonitor,
@@ -452,6 +426,13 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     tempMonitor:   !!watchedTempMonitor,
   }
 
+
+  // The phone app's End case check, on web (1.5.0): blockers stop the end.
+  const endCheck = useEndCaseCheck({
+    record: () => ({ ...getValues(), timetableData: timetable, keyEvents: eventLog ?? [] }) as Record<string, unknown>,
+    locale: locale === "bg" ? "bg" : "en",
+    onGo: area => { setActiveTab(intraopFocusTab(area) ?? "overview"); scrollToReadiness(area) },
+  })
 
   function handleContinue() {
     const vals = getValues()
@@ -516,69 +497,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {(() => {
         const tabOverview = (<>
 
-      {/* Preop summary */}
-      {preop && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">{t("intraop.preopSummary")}</p>
-          {preop.diagnosis && (
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-snug">{preop.diagnosis}</p>
-          )}
-          {preop.plannedProcedure && (
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{preop.plannedProcedure}</p>
-          )}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {preop.asaScore && (
-              <span className="font-bold text-amber-800 dark:text-amber-300">
-                ASA {preop.asaScore}{preop.emergencySurgery ? "E" : ""}
-              </span>
-            )}
-            {preop.emergencySurgery && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">{t("intraop.emergencyBadge")}</span>
-            )}
-            {preop.bmi != null && <span className="text-slate-600 dark:text-slate-300">BMI {preop.bmi}</span>}
-            {calcIbw != null && (() => {
-              const ibw = Math.round(calcIbw * 10) / 10
-              const abw = !isPediatric && preop.weightKg ? calcABW(ibw, preop.weightKg) : null
-              return <>
-                <span className="text-slate-600 dark:text-slate-300">IBW {ibw} kg</span>
-                {abw != null && <span className="text-slate-600 dark:text-slate-300">ABW {abw} kg</span>}
-              </>
-            })()}
-            {(preop.bpSystolic || preop.heartRate || preop.spO2) && (
-              <span className="text-slate-600 dark:text-slate-300">
-                {preop.bpSystolic && preop.bpDiastolic ? `BP ${preop.bpSystolic}/${preop.bpDiastolic}` : ""}
-                {preop.heartRate ? ` · HR ${preop.heartRate}` : ""}
-                {preop.spO2 ? ` · SpO₂ ${preop.spO2}%` : ""}
-              </span>
-            )}
-            {preop.mallampati && <span className="text-slate-600 dark:text-slate-300">Mallampati {preop.mallampati}</span>}
-            {preop.difficultAirwayHistory && <span className="font-semibold text-orange-700 dark:text-orange-400">{t("intraop.difficultAirwayHistory")}</span>}
-          </div>
-          {preop.allergies && preop.allergyDetails && preop.allergyDetails.length > 0 && (
-            <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-              {t("intraop.allergiesPrefix")} {preop.allergyDetails.map(a => a.label).join(", ")}
-            </p>
-          )}
-          {Array.isArray(preop.comorbidities) && preop.comorbidities.length > 0 && (
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {preop.comorbidities.slice(0, 4).map(c => c.label).join(" · ")}
-              {preop.comorbidities.length > 4 ? ` +${preop.comorbidities.length - 4} more` : ""}
-            </p>
-          )}
-          {Array.isArray(preop.labResults) && preop.labResults.filter(l => l.value).length > 0 && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {preop.labResults.filter(l => l.value).map(l => `${l.test} ${l.value}${l.unit ? " "+l.unit : ""}`).join(" · ")}
-            </p>
-          )}
-          {medicationWarnings.length > 0 && (
-            <div className="pt-1 space-y-0.5">
-              {medicationWarnings.map(w => (
-                <p key={w.key} className="text-sm font-semibold text-orange-700 dark:text-orange-400">⚠ {w.label}</p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {preop ? <IntraopPreopSummary preop={preop} ibw={calcIbw} isPediatric={isPediatric} /> : null}
       {/* Equipment suggestions */}
       {preop && isPediatric ? (
         <EquipmentSuggestions
@@ -611,7 +530,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       ) : null}
 
       {/* Timeline */}
-      <div ref={timelineSectionRef} data-tour="intraop-timing" data-readiness="times">
+      <div ref={timelineSectionRef} data-tour="intraop-timing" data-readiness="times position">
       <TimelineSection
         t={t} control={control} watch={watch} setValue={setValue} getValues={getValues}
         onAutoSave={onAutoSave}
@@ -622,9 +541,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       </div>
 
       {/* Positions (multi-select) */}
-      <div data-readiness="position">
       <PositionSection t={t} control={control} watch={watch} positionOptions={positionOptions} />
-      </div>
 
         </>)
         const tabAnaesthesia = (<>
@@ -636,7 +553,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       </div>{/* /intraop-monitoring */}
 
       {/* Anaesthesia technique */}
-      <div data-tour="intraop-technique" data-readiness="technique airway">
+      <div data-tour="intraop-technique" data-readiness="technique airway vascular_access">
       <TechniqueSection t={t} control={control} techniques={techniques} techniqueTree={techniqueTree}
         presentsIntubated={presentsIntubated} setPresentsIntubated={setPresentsIntubated} />
 
@@ -655,9 +572,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           here so settings are tracked over time instead of set once statically. */}
 
       {/* Vascular access */}
-      <div data-readiness="vascular_access">
       <VascularAccessSection control={control} watch={watch} />
-      </div>
 
       {/* Premedication */}
       <PremedicationSection t={t} control={control} watch={watch} premedCategories={premedCategories} premedDoses={premedDoses}
@@ -669,7 +584,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabChart = (<>
 
       {/* Intraoperative timetable */}
-      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">
+      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopLabsDialog
           open={labsDialog.open}
@@ -706,7 +621,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           startTime={watchedStartTime || "08:00"}
           startedAt={chartStartedAt ?? undefined}
           endTime={watchedEndTime || undefined}
-          endedAt={timelineEndedAt ?? null} attention={attention}
+          endedAt={timelineEndedAt ?? null} attention={attention} beforeEndCase={endCheck.before}
           autoEnded={autoEndedProp && !!timelineEndedAt && timelineEndedAt === defaultValues?.endedAt}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
@@ -720,23 +635,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             setValue("endTime", end.endTime)
             if (end.endedAt && end.timezone) { setValue("endedAt", end.endedAt); setValue("timezone", end.timezone) }
             if (end.endTimeNextDay) setValue("endTimeNextDay", true)
-            // The intraoperative part of the readiness list, while the team is
-            // still here. Preop and postop items wait for the summary.
-            const values = getValues() as unknown as Record<string, unknown>
-            const check = caseReadiness({
-              clinicalMode: "ADULT",
-              preop: {},
-              intraop: { ...values, timetableData: timetable, keyEvents: eventLog ?? [] },
-              postop: null,
-            }, { omitPostop: true })
-            const intraopOnly: CaseReadiness = {
-              ready: check.blockers.every(item => item.target.stage !== "intraop"),
-              blockers: check.blockers.filter(item => item.target.stage === "intraop"),
-              warnings: check.warnings.filter(item => item.target.stage === "intraop"),
-            }
-            setEndCheck(intraopOnly.blockers.length + intraopOnly.warnings.length > 0 ? intraopOnly : null)
           }}
-          onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null); setEndCheck(null) }}
+          onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null) }}
           onPostopContinued={items => onPostopContinued?.(items)}
           onComplicationAdded={labels => { const next = appendComplications(getValues("complications"), labels); if (next) setValue("complications", next) }}
         />
@@ -751,25 +651,18 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabFinish = (<>
 
       {/* Complications */}
-      <div data-readiness="complications">
       <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} />
-      </div>
 
         </>)
-        const endPanel = endCheck ? (
-          <EndCaseReadiness readiness={endCheck} locale={locale === "bg" ? "bg" : "en"} onGo={goToArea} onDismiss={() => setEndCheck(null)} />
-        ) : null
         if (layoutMode === "scroll") return (
           <div className="space-y-6 mt-6">
-            {endPanel}
             {tabOverview}
             {tabAnaesthesia}
             {tabChart}
             {tabFinish}
           </div>
         )
-        return (<>
-          {endPanel}
+        return (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-0">
             <TabsList variant="line" className="sticky top-0 z-20 w-full bg-white dark:bg-[#111] border-b border-slate-200 dark:border-[#2a2a2a] rounded-none px-4 mb-0 h-11 justify-start gap-1">
               <TabsTrigger value="overview"    className="text-xs font-semibold px-3">{t("intraop.tabs.overview")}</TabsTrigger>
@@ -782,7 +675,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
             <TabsContent value="chart"       className="space-y-6 p-0 mt-6">{tabChart}</TabsContent>
             <TabsContent value="finish"      className="space-y-6 p-0 mt-6">{tabFinish}</TabsContent>
           </Tabs>
-        </>)
+        )
       })()}
 
       {/* Sticky footer — always visible across all tabs */}

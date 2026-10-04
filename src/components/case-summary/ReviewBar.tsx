@@ -9,7 +9,7 @@ import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { usePendingCloseCountdown } from "@/hooks/usePendingCloseCountdown"
 import type { LABELS } from "@/components/case-summary/labels"
 import { finalizeErrorMessage } from "@/components/case-summary/finalize-error"
-import { readinessFromRefusal, type CaseReadiness } from "@lospor/core/case-readiness"
+import { caseReadiness, readinessFromRefusal, type CaseReadiness } from "@lospor/core/case-readiness"
 import { ReadinessPanel } from "@/components/case-summary/ReadinessPanel"
 
 type Labels = (typeof LABELS)["en" | "bg"]
@@ -35,7 +35,7 @@ export function ReviewBar({
   finalizedAtMs,
   now,
   labels: L,
-  readiness,
+  readinessCase,
   onFinalized,
   onUnfinalized,
 }: {
@@ -47,10 +47,11 @@ export function ReviewBar({
   now: number
   labels: Labels
   /**
-   * What still blocks finalizing, worked out from the case on screen (1.5.0).
-   * Shown before anyone presses the button, and counted beside it.
+   * The case on screen. What still blocks finalizing is worked out from it by
+   * the same rules the server finalizes by (1.5.0), shown before anyone presses
+   * the button and counted beside it.
    */
-  readiness: CaseReadiness
+  readinessCase: { clinicalMode?: string | null; preop?: unknown; intraop?: unknown; postop?: unknown }
   onFinalized: (finalizedAt: string) => void
   onUnfinalized: () => void
 }) {
@@ -62,6 +63,12 @@ export function ReviewBar({
   // The server's own list after a refusal. It is what the server checks, so
   // it replaces the local one until the case changes.
   const [refusal, setRefusal] = useState<CaseReadiness | null>(null)
+  const readiness = caseReadiness({
+    clinicalMode: readinessCase.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT",
+    preop: (readinessCase.preop ?? null) as Record<string, unknown> | null,
+    intraop: (readinessCase.intraop ?? null) as Record<string, unknown> | null,
+    postop: (readinessCase.postop ?? null) as Record<string, unknown> | null,
+  })
   const shown = refusal ?? readiness
 
   // Passive countdown to the automatic finalize that started when the case

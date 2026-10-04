@@ -43,7 +43,6 @@ function formatBmi(bmi: number): string {
 import { colToHHMM as sharedColToHHMM } from "@lospor/core/summary-timetable"
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { formatInfusionTotal } from "@lospor/core/intraop-totals"
-import { caseReadiness } from "@lospor/core/case-readiness"
 import { printGeneratedDate, printMonthYear, printTimeSpan } from "@/components/case-summary/print-format"
 
 // ── Enum label maps ───────────────────────────────────────────────────────────
@@ -184,13 +183,6 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const i    = data.intraop
   const o    = data.postop
   const inst = data.institution
-  // The same rules the server finalizes by, on the case on screen (1.5.0).
-  const readiness = caseReadiness({
-    clinicalMode: data.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT",
-    preop: p as Record<string, unknown> | null,
-    intraop: i as Record<string, unknown> | null,
-    postop: o as Record<string, unknown> | null,
-  })
   const ibwResolution = resolveIdealBodyWeight({
     clinicalMode: data.clinicalMode === "PEDIATRIC" ? "PEDIATRIC" : "ADULT",
     heightCm: p?.heightCm,
@@ -372,8 +364,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             awaitingReviewAt={data.awaitingReviewAt ?? null}
             finalizedAtMs={finalizedAtMs}
             now={now}
-            labels={L}
-            readiness={readiness}
+            labels={L} readinessCase={data}
             onFinalized={finalizedAt => setData(prev => prev ? { ...prev, status: "COMPLETE", finalizedAt } : prev)}
             onUnfinalized={() => setData(prev => prev ? { ...prev, status: "IN_PROGRESS", finalizedAt: null } : prev)}
           />
