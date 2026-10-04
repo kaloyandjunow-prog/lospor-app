@@ -53,6 +53,8 @@ type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
 export default function NewCasePage() {
   const router       = useRouter()
   const searchParams = useSearchParams()
+  // The part of the form a readiness "Go to" named (1.5.0).
+  const focus = searchParams.get("focus")
   const t = useTranslations()
   const STEPS = [t("case.steps.preop"), t("case.steps.intraop"), t("case.steps.postop"), t("case.steps.summary")]
 
@@ -656,6 +658,7 @@ export default function NewCasePage() {
 
         {!loading && step === 0 && (
           <PreopForm
+            focus={focus}
             rejectedFields={visiblePreopRejections}
             defaultValues={preopData ?? undefined}
             onSubmit={handlePreopSubmit}
@@ -669,6 +672,7 @@ export default function NewCasePage() {
         )}
         {!loading && step === 1 && (
           <IntraopForm
+            focus={focus}
             defaultValues={intraopData ?? undefined}
             defaultTimetable={timetableDefault ?? undefined}
             preop={preopData ? preopSummaryForIntraop(preopData) : null}
@@ -685,6 +689,7 @@ export default function NewCasePage() {
         )}
         {!loading && step === 2 && (
           <PostopForm
+            focus={focus}
             rejectedFields={rejections.postop}
             defaultValues={postopData ?? undefined}
             clinicalMode={preopData?.clinicalMode ?? "ADULT"}

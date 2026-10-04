@@ -51,7 +51,7 @@ export type HandoverGroup = Omit<CoreHandoverGroup, "id">
 
 export const normaliseHandoverCodes = normalizeHandoverCodes
 
-export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues, rejectedFields, clinicalMode = "ADULT", pediatricAgeYears }: {
+export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultValues, rejectedFields, clinicalMode = "ADULT", pediatricAgeYears, focus = null }: {
   onSubmit: (data: PostopData) => void
   onBack: () => void
   submitting?: boolean
@@ -62,8 +62,17 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
   rejectedFields?: Map<string, string>
   clinicalMode?: "ADULT" | "PEDIATRIC"
   pediatricAgeYears?: number | null
+  /** A part of the record to bring into view on arrival, from the readiness list (1.5.0). */
+  focus?: string | null
 }) {
   const t      = useTranslations()
+  useEffect(() => {
+    if (focus !== "recovery" && focus !== "disposition") return
+    const timer = setTimeout(() => {
+      document.querySelector(`[data-readiness="${focus}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [focus])
   const locale = useLocale()
   const isPediatric = clinicalMode === "PEDIATRIC"
   const [canSelfReport, setCanSelfReport] = useState((pediatricAgeYears ?? 0) >= 4)
@@ -161,6 +170,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 
       {/* Modified Aldrete Score */}
       <div data-tour="postop-aldrete">
+      <div data-readiness="recovery" />
       <SectionCard title={t("postop.aldreteSection")}>
         <div className="space-y-5">
           {ALDRETE_CRITERIA.map(({ key, labelKey, scoreKeys }) => (
@@ -390,6 +400,7 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
 
       {/* Disposition */}
       <div data-tour="postop-disposition">
+      <div data-readiness="disposition" />
       <SectionCard title={t("postop.dispositionSection")}>
         <div className="space-y-1">
           <Label>{t("postop.dispatchTo")}</Label>

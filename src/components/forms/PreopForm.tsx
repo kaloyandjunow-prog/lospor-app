@@ -70,7 +70,20 @@ type ProcedureSearchItem = { code: string; group?: string; description: string; 
 type DrugSearchItem = { name: string; inn?: string; strength?: string; atcCode?: string }
 
 
-export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile }: {
+/** Where each preoperative section lives: its tab, and the anchor to scroll to. */
+const FOCUS_TARGETS: Record<string, { tab: "patient" | "case" | "history" | "exam" | "risk"; ref: string }> = {
+  demographics:        { tab: "patient", ref: "demographics" },
+  case_details:        { tab: "case",    ref: "case" },
+  medical_history:     { tab: "history", ref: "history" },
+  current_medications: { tab: "history", ref: "history" },
+  anamnesis:           { tab: "history", ref: "history" },
+  physical_exam:       { tab: "exam",    ref: "vitals" },
+  airway:              { tab: "exam",    ref: "airway" },
+  labs:                { tab: "risk",    ref: "labs" },
+  risk_scores:         { tab: "risk",    ref: "asa" },
+}
+
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile, focus }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
@@ -86,6 +99,11 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   preopProfile?: PreopAssessmentProfile | null
   /** Values the server refused, keyed by field, shown beside the field itself. */
   rejectedFields?: Map<string, string>
+  /**
+   * A preoperative section to open on arrival (1.5.0): the readiness list's
+   * "Go to" names the part of the form a blocker belongs to.
+   */
+  focus?: string | null
 }) {
   const t      = useTranslations()
   const locale = useLocale()
@@ -270,7 +288,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
     disabled: pediatricRecordReadOnly,
   })
   const airwayUTO = !!watch("airwayUnobtainable")
-  const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">("patient")
+  const [activeTab, setActiveTab] = useState<"patient" | "case" | "history" | "exam" | "risk">(
+    () => (focus ? FOCUS_TARGETS[focus]?.tab : undefined) ?? "patient")
 
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set())
   const refMap = useRef<Record<string, HTMLDivElement | null>>({})
@@ -325,6 +344,15 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       default: return false
     }
   }
+
+  // "Go to" from the readiness list: open the tab the section lives on and
+  // bring it into view. Once, on arrival; after that the clinician drives.
+  useEffect(() => {
+    const where = focus ? FOCUS_TARGETS[focus] : undefined
+    if (!where) return
+    const timer = setTimeout(() => refMap.current[where.ref]?.scrollIntoView({ behavior: "smooth", block: "center" }), 50)
+    return () => clearTimeout(timer)
+  }, [focus])
 
   /** Highlights the given (abstracted) field keys and jumps to wherever the first one lives. */
   function reportFieldErrorsAndJump(errs: string[]) {
@@ -659,7 +687,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       </div>
 
       {/* ── History tab ──────────────────────────────────────────── */}
-      <div className={layoutMode === "tabs" && activeTab !== "history" ? "hidden" : "space-y-6"}>
+      <div ref={el => { refMap.current.history = el }} className={layoutMode === "tabs" && activeTab !== "history" ? "hidden" : "space-y-6"}>
       {/* Medical History */}
       <SectionCard title={t("preop.historySection")}>
         <p className="text-sm text-slate-500">{t("preop.historyDesc")}</p>
@@ -942,7 +970,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       {/* ── Risk & ASA tab ────────────────────────────────────────── */}
       <div className={layoutMode === "tabs" && activeTab !== "risk" ? "hidden" : "space-y-6"}>
       {/* Lab Results */}
+      <div ref={el => { refMap.current.labs = el }}>
       <LabResultsSection control={control} aiOptIn={!!watch("aiOptIn")} caseId={caseId} />
+      </div>
 
       {/* ASA */}
       <div ref={el => { refMap.current.asa = el }} data-tour="preop-scores">
