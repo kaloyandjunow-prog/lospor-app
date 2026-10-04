@@ -655,7 +655,7 @@ export default function NewCasePage() {
         )}
 
         {!loading && step === 0 && (
-          <PreopForm
+          <PreopForm focus={searchParams.get("focus")}
             rejectedFields={visiblePreopRejections}
             defaultValues={preopData ?? undefined}
             onSubmit={handlePreopSubmit}
@@ -668,7 +668,7 @@ export default function NewCasePage() {
           />
         )}
         {!loading && step === 1 && (
-          <IntraopForm
+          <IntraopForm focus={searchParams.get("focus")}
             defaultValues={intraopData ?? undefined}
             defaultTimetable={timetableDefault ?? undefined}
             preop={preopData ? preopSummaryForIntraop(preopData) : null}
@@ -684,7 +684,7 @@ export default function NewCasePage() {
           />
         )}
         {!loading && step === 2 && (
-          <PostopForm
+          <PostopForm focus={searchParams.get("focus")}
             rejectedFields={rejections.postop}
             defaultValues={postopData ?? undefined}
             clinicalMode={preopData?.clinicalMode ?? "ADULT"}
