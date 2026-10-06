@@ -9,7 +9,8 @@ import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
-import { displayClinicalCode, displayNamedOption } from "@/lib/clinical-display"
+import { displayClinicalCode } from "@/lib/clinical-display"
+import { clinicalEventName } from "@/lib/clinical-event-name"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
@@ -1531,7 +1532,7 @@ export function IntraopTimetable({
             rowCols={rowCols}
             colW={colW}
             events={data.clinicalEvents ?? []}
-            displayEventName={label => displayNamedOption("INTRAOP_EVENT", eventLibOpts, label, locale)}
+            displayEventName={label => clinicalEventName(label, eventLibOpts, locale, { "Anaesthesia start": t("intraop.timetable.anaesthesiaStartEvent") })}
             onOpenPicker={(ci, rect) => { setEventPicker({ ci, rect }); setEvSearch("") }}
             onRemove={removeClinicalEvent}
           />

@@ -1620,7 +1620,8 @@
       "favouritesHint": "Choose favourites in Settings",
       "back": "Back",
       "selected": "selected",
-      "manualEntry": "Manual entry only"
+      "manualEntry": "Manual entry only",
+      "anaesthesiaStartEvent": "Anaesthesia start"
     },
     "timelineRules": {
       "refused": {

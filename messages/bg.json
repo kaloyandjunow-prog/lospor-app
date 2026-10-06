@@ -1620,7 +1620,8 @@
       "favouritesHint": "Изберете любими в Настройки",
       "back": "Назад",
       "selected": "избрани",
-      "manualEntry": "Само ръчно въвеждане"
+      "manualEntry": "Само ръчно въвеждане",
+      "anaesthesiaStartEvent": "Начало на анестезията"
     },
     "timelineRules": {
       "refused": {
