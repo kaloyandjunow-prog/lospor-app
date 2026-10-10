@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "9.14.3",
+  "version": "9.14.4",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
@@ -26,12 +26,13 @@
   "overrides": {
     "@hono/node-server": "2.0.12",
     "postcss": "8.5.23",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "serialize-javascript": "^7.0.6",
     "minimatch": "10.2.6",
     "nanoid": "^3.3.18",
     "fast-uri": "^3.1.7",
-    "qs": "^6.15.4"
+    "qs": "^6.15.4",
+    "js-yaml": "4.3.2"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
