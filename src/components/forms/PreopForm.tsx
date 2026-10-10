@@ -50,9 +50,7 @@ import { PreopAnamnesisFields } from "@/components/forms/PreopAnamnesisFields"
 import { LabResultsSection } from "@/components/forms/sections/LabResultsSection"
 import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswer } from "@/components/forms/PreopQuestionList"
 import {
-  isPreopQuestionShown,
-  isPreopScoreAvailable,
-  preopProfileForMode,
+  isPreopQuestionShown, isPreopScoreAvailable, preopProfileForMode,
   PREOP_LEGACY_FIELD_BY_QUESTION,
   preopAnswerStates,
   type PreopAssessmentProfile,
@@ -139,9 +137,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
            "clinicalMode", "ageValue", "ageUnit"])
   const isPediatric = clinicalMode === "PEDIATRIC"
   const preopMode = isPediatric ? "PEDIATRIC" : "ADULT"
-  // Adults and children each have their own profile; switching the mode on
-  // this form switches the questions, their order and what is required.
-  const preopProfile = useMemo(() => preopProfileForMode(profiles, preopMode), [profiles, preopMode])
+  const preopProfile = useMemo(() => preopProfileForMode(profiles, preopMode), [profiles, preopMode]) // adults' or children's
   const shown = (stableKey: string) => isPreopQuestionShown(preopProfile, stableKey, preopMode)
   const shownField = (field: string) => !QUESTION_OF_FIELD[field] || shown(QUESTION_OF_FIELD[field])
   const questionStates = preopAnswerStates(watch() as unknown as Record<string, unknown>)
