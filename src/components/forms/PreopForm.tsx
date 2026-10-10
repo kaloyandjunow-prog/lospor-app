@@ -52,6 +52,7 @@ import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswe
 import {
   isPreopQuestionShown,
   isPreopScoreAvailable,
+  preopProfileForMode,
   PREOP_LEGACY_FIELD_BY_QUESTION,
   preopAnswerStates,
   type PreopAssessmentProfile,
@@ -70,7 +71,7 @@ type ProcedureSearchItem = { code: string; group?: string; description: string; 
 type DrugSearchItem = { name: string; inn?: string; strength?: string; atcCode?: string }
 
 
-export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile, focus }: {
+export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile: profiles, focus }: {
   defaultValues?: Partial<PreopData>
   onSubmit: (data: PreopData) => void
   onNameChange?: (name: string) => void
@@ -138,6 +139,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
            "clinicalMode", "ageValue", "ageUnit"])
   const isPediatric = clinicalMode === "PEDIATRIC"
   const preopMode = isPediatric ? "PEDIATRIC" : "ADULT"
+  // Adults and children each have their own profile; switching the mode on
+  // this form switches the questions, their order and what is required.
+  const preopProfile = useMemo(() => preopProfileForMode(profiles, preopMode), [profiles, preopMode])
   const shown = (stableKey: string) => isPreopQuestionShown(preopProfile, stableKey, preopMode)
   const shownField = (field: string) => !QUESTION_OF_FIELD[field] || shown(QUESTION_OF_FIELD[field])
   const questionStates = preopAnswerStates(watch() as unknown as Record<string, unknown>)
