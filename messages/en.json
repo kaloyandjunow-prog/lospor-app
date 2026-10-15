@@ -1565,7 +1565,9 @@
         "pediatricDesc": "Sevoflurane induction · Face mask",
         "awakeFoiLabel": "Awake Fiberoptic",
         "awakeFoiDesc": "FOI · Topical LA · Oral ETT"
-      }
+      },
+      "startDate": "Start date",
+      "endDate": "End date"
     },
     "offlineLibrary": "⚠ Offline reference list — some option lists may be out of date",
     "offlineLibraryAsOf": "{message} (as of {date})",
