@@ -1221,6 +1221,7 @@
       "PEDIATRIC_RISK": "Pediatric risk",
       "PEDIATRIC_SAFETY": "Pediatric safety",
       "ADULT_ADDITIONS": "Adult history",
+      "SHARED_ADDITIONS": "Additional history",
       "PEDIATRIC_ADDITIONS": "Pediatric history"
     }
   },

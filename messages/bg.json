@@ -1221,6 +1221,7 @@
       "PEDIATRIC_RISK": "Педиатричен риск",
       "PEDIATRIC_SAFETY": "Педиатрична безопасност",
       "ADULT_ADDITIONS": "Анамнеза при възрастни",
+      "SHARED_ADDITIONS": "Допълнителна анамнеза",
       "PEDIATRIC_ADDITIONS": "Анамнеза при деца"
     }
   },
