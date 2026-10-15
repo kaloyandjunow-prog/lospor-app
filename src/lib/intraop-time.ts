@@ -4,6 +4,7 @@ export {
   daysBetweenDateKeys,
   defaultEndDayOffset,
   durationMinutesBetween,
+  earliestEndDateKey,
   endInstantForWallClock,
   formatDateKeyShort,
   instantFromDateKey,

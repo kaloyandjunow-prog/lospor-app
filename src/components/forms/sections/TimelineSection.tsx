@@ -12,6 +12,8 @@ import {
   buildIntraopStartTiming,
   daysBetweenDateKeys,
   defaultEndDayOffset,
+  durationMinutesBetween,
+  earliestEndDateKey,
   endInstantForWallClock,
   formatDateKeyShort,
   instantFromDateKey,
@@ -315,7 +317,7 @@ export function TimelineSection({
               value={savedEndKey ?? savedStartKey ?? todayKey}
               onChange={stepEndDay}
               todayKey={todayKey}
-              min={savedStartKey}
+              min={savedStart && zoneNow && watch("endTime") ? earliestEndDateKey(savedStart, watch("endTime")!, zoneNow) : savedStartKey}
               max={savedStartKey ? shiftDateKey(savedStartKey, 2) : null}
               locale={dateLocale}
               label={t("intraop.timeline.endDate")}
@@ -333,6 +335,9 @@ export function TimelineSection({
               </button>
             )}
           </div>
+          {(durationMinutesBetween(savedStart, savedEnd) ?? 0) > 24 * 60 && (
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400" data-testid="intraop-longer-than-day">{t("intraop.timeline.longerThanDay")}</p>
+          )}
           {!watch("endTime") && showEndPrompt && (
             <div className="mt-1 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 flex gap-2">
               <Controller name="endTime" control={control} render={({ field }) => (
