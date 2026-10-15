@@ -293,10 +293,6 @@
     "bsa": "Телесна повърхност",
     "maintenanceFluid": "Поддържаща скорост на инфузия на течности",
     "resuscitation": "Ресусцитация",
-    "profilesUnavailable": "Педиатричните препоръки за оборудване, вентилация, кръвен обем, локални анестетици и медикаменти остават недостъпни, докато профилите им не бъдат клинично проверени и одобрени.",
-    "accepted": "Записано",
-    "accept": "Приеми и запиши",
-    "saveFirst": "Първо запази случая",
     "manualDoseOnly": "Няма одобрен педиатричен дозов профил. Въведете приложената доза ръчно и я проверете независимо.",
     "postopPain": "Оценка на болката при дете",
     "recommendedPainScale": "Препоръчана скала според възможностите на пациента: {scale}",
@@ -304,7 +300,15 @@
     "canUseNumbers": "Може да използва числова скала",
     "painScore": "Оценка на болката",
     "paedScore": "Оценка по PAED",
-    "paedOptional": "Незадължителна оценка за делир при събуждане, 0-20."
+    "paedOptional": "Незадължителна оценка за делир при събуждане, 0-20.",
+    "intraopReference": "Педиатрична справка",
+    "bsaValue": "{value} m²",
+    "maintenanceDaily": "{daily} ml/ден · {hourly} ml/ч",
+    "maintenanceRange": "{min}–{max} ml/ден (новородено, според деня от живота)",
+    "shockLine": "Дефибрилация {first} J (4 J/kg); от 5-ия шок до {escalated} J (8 J/kg, макс. 360 J)",
+    "adrenalineLine": "Адреналин {mcg} mcg i.v./i.o. на всеки 3–5 мин (макс. 1 mg)",
+    "amiodaroneLine": "Амиодарон {first} mg след 3-ия шок, {second} mg след 5-ия",
+    "referenceSources": "Mosteller · NICE NG29 · RCUK 2025"
   },
   "common": {
     "appName": "LOSPOR",

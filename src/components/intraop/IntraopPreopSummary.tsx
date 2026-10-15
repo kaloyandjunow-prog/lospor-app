@@ -6,6 +6,7 @@ import { calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
 import { allergyRecords, uncheckedAllergies } from "@lospor/core/allergy-drug-check"
 import type { PreopSummary } from "@/components/forms/preop-summary"
+import { PediatricIntraopReference } from "./PediatricIntraopReference"
 
 /**
  * The preoperative assessment, condensed, at the top of the intraoperative
@@ -87,6 +88,7 @@ export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric }: {
           ))}
         </div>
       )}
+      {isPediatric && <PediatricIntraopReference preop={preop} />}
     </div>
   )
 }

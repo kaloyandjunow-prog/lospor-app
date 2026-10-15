@@ -984,7 +984,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         {/* Calculated risk scores */}
         {isPediatric ? (
           <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
-            <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} isShown={shownField} />
+            <PediatricRiskAndCalculators control={control} setValue={setValue} isShown={shownField} />
           </div>
         ) : (<>
         <RiskScoreCards

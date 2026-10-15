@@ -293,10 +293,6 @@
     "bsa": "Body surface area",
     "maintenanceFluid": "Maintenance fluid",
     "resuscitation": "Resuscitation",
-    "profilesUnavailable": "Pediatric equipment, ventilation, blood-volume, local-anaesthetic and medication recommendations remain unavailable until their profiles are clinically reviewed and approved.",
-    "accepted": "Recorded",
-    "accept": "Accept and record",
-    "saveFirst": "Save the case first",
     "manualDoseOnly": "No reviewed pediatric dose profile is available. Enter the administered dose manually and verify it independently.",
     "postopPain": "Pediatric pain assessment",
     "recommendedPainScale": "Suggested scale for the patient's ability: {scale}",
@@ -304,7 +300,15 @@
     "canUseNumbers": "Can use a numeric scale",
     "painScore": "Pain score",
     "paedScore": "PAED score",
-    "paedOptional": "Optional emergence-delirium assessment, 0-20."
+    "paedOptional": "Optional emergence-delirium assessment, 0-20.",
+    "intraopReference": "Paediatric reference",
+    "bsaValue": "{value} m²",
+    "maintenanceDaily": "{daily} ml/day · {hourly} ml/h",
+    "maintenanceRange": "{min}–{max} ml/day (newborn, by day of life)",
+    "shockLine": "Shock {first} J (4 J/kg); from the 5th shock up to {escalated} J (8 J/kg, max 360 J)",
+    "adrenalineLine": "Adrenaline {mcg} mcg IV/IO every 3–5 min (max 1 mg)",
+    "amiodaroneLine": "Amiodarone {first} mg after the 3rd shock, {second} mg after the 5th",
+    "referenceSources": "Mosteller · NICE NG29 · RCUK 2025"
   },
   "common": {
     "appName": "LOSPOR",

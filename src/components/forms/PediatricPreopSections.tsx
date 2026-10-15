@@ -1,13 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   Controller,
   useWatch,
   type Control,
   type UseFormSetValue,
 } from "react-hook-form"
-import { useLocale, useTranslations } from "next-intl"
+import { useTranslations } from "next-intl"
 import { ShieldAlert } from "lucide-react"
 import {
   APAGBI_FASTING_POLICY_2023,
@@ -20,11 +20,6 @@ import {
   type PediatricAgeUnit,
   type PediatricFastingCategory,
 } from "@lospor/core/pediatric"
-import {
-  calculateMostellerBsa,
-  calculatePediatricMaintenanceFluid,
-  calculateRcukPediatricResuscitation,
-} from "@lospor/core/pediatric-calculators"
 import { ClinicalYesNo } from "@/components/ClinicalYesNo"
 import { NumberStepper } from "@/components/NumberStepper"
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +30,6 @@ import {
   pediatricCapabilityMessageKey,
   type PediatricModeCapability,
 } from "@/lib/deployment-capabilities"
-import { CalculationCard } from "@/components/forms/PediatricPreopDisplay"
 import { PediatricColdsCard } from "@/components/forms/PediatricColdsCard"
 
 type FormProps = {
@@ -274,29 +268,22 @@ const FASTING_CATEGORIES: PediatricFastingCategory[] = [
   "SOLID_FOOD_OR_COW_MILK",
 ]
 
-type AcceptedKind = "MOSTELLER_BSA" | "MAINTENANCE_FLUID" | "RCUK_RESUSCITATION"
-
 export function PediatricRiskAndCalculators({
   control,
   setValue,
-  caseId,
   isShown = () => true,
 }: FormProps & {
-  caseId?: string | null
   /** Whether the hospital's preop profile asks this field's question. */
   isShown?: (field: string) => boolean
 }) {
   const t = useTranslations("pediatric")
   const tRoot = useTranslations()
-  const locale = useLocale()
   // A score with a switched-off input is not computed as if the answer were "no".
   const povocAvailable = ["povocSurgeryAtLeast30Minutes", "povocStrabismusSurgery", "povocHistory"].every(field => isShown(field))
   const [
     mode,
     ageValue,
     ageUnitRaw,
-    heightCm,
-    weightKg,
     povocSurgeryAtLeast30Minutes,
     povocStrabismusSurgery,
     povocHistory,
@@ -307,16 +294,12 @@ export function PediatricRiskAndCalculators({
       "clinicalMode",
       "ageValue",
       "ageUnit",
-      "heightCm",
-      "weightKg",
       "povocSurgeryAtLeast30Minutes",
       "povocStrabismusSurgery",
       "povocHistory",
       "pediatricFasting",
     ],
   })
-  const [accepting, setAccepting] = useState<AcceptedKind | null>(null)
-  const [accepted, setAccepted] = useState<Set<AcceptedKind>>(new Set())
   const ageUnit: PediatricAgeUnit = ageUnitRaw ?? "YEARS"
   const age = ageValue != null ? normalizePediatricAge({ value: ageValue, unit: ageUnit }) : null
   const povoc = age
@@ -327,15 +310,6 @@ export function PediatricRiskAndCalculators({
         patientOrFamilyHistory: !!povocHistory,
       })
     : null
-  const bsa = heightCm && weightKg ? calculateMostellerBsa({ heightCm, weightKg }) : null
-  const maintenance = weightKg
-    ? calculatePediatricMaintenanceFluid({
-        weightKg,
-        age: ageValue != null ? { value: ageValue, unit: ageUnit } : null,
-      })
-    : null
-  const resuscitation = weightKg ? calculateRcukPediatricResuscitation({ weightKg }) : null
-
   const fastingByCategory = useMemo(
     () => new Map((fastingRows ?? []).map(row => [row.category, row])),
     [fastingRows],
@@ -366,22 +340,6 @@ export function PediatricRiskAndCalculators({
         policyVersion: result.policyVersion,
       },
     ], { shouldDirty: true })
-  }
-
-  async function acceptCalculation(kind: AcceptedKind, inputs: Record<string, unknown>) {
-    if (!caseId) return
-    setAccepting(kind)
-    try {
-      const response = await fetch(`/api/cases/${caseId}/calculations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, inputs }),
-      })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      setAccepted(current => new Set(current).add(kind))
-    } finally {
-      setAccepting(null)
-    }
   }
 
   function localDateValue(value?: string | null) {
@@ -442,54 +400,6 @@ export function PediatricRiskAndCalculators({
         </p>
       </div>
 
-      <div className="border-t border-slate-200 pt-4 dark:border-[#2e2e2e]">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("calculators")}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <CalculationCard
-            title={t("bsa")}
-            value={bsa?.available ? `${bsa.value.squareMetres} m²` : "—"}
-            caseId={caseId}
-            accepted={accepted.has("MOSTELLER_BSA")}
-            accepting={accepting === "MOSTELLER_BSA"}
-            onAccept={heightCm && weightKg
-              ? () => acceptCalculation("MOSTELLER_BSA", { heightCm, weightKg })
-              : undefined}
-          />
-          <CalculationCard
-            title={t("maintenanceFluid")}
-            value={maintenance?.available
-              ? maintenance.value.dailyRangeMl
-                ? `${maintenance.value.dailyRangeMl.minimum}–${maintenance.value.dailyRangeMl.maximum} ml/day`
-                : `${maintenance.value.dailyMl} ml/day · ${maintenance.value.hourlyMl} ml/h`
-              : "—"}
-            caseId={caseId}
-            accepted={accepted.has("MAINTENANCE_FLUID")}
-            accepting={accepting === "MAINTENANCE_FLUID"}
-            onAccept={weightKg
-              ? () => acceptCalculation("MAINTENANCE_FLUID", {
-                  weightKg,
-                  age: ageValue != null ? { value: ageValue, unit: ageUnit } : null,
-                })
-              : undefined}
-          />
-          <CalculationCard
-            title={t("resuscitation")}
-            value={resuscitation?.available
-              ? `${resuscitation.value.shockJoules} J · ${resuscitation.value.adrenalineMicrograms} mcg`
-              : "—"}
-            caseId={caseId}
-            accepted={accepted.has("RCUK_RESUSCITATION")}
-            accepting={accepting === "RCUK_RESUSCITATION"}
-            onAccept={weightKg
-              ? () => acceptCalculation("RCUK_RESUSCITATION", { weightKg })
-              : undefined}
-          />
-        </div>
-        <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          {t("profilesUnavailable")}
-        </div>
-        <p className="mt-2 text-xs text-slate-400">{locale === "bg" ? "Версия на правилата" : "Ruleset"}: {bsa?.ruleVersion ?? "—"}</p>
-      </div>
     </div>
   )
 }
