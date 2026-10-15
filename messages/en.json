@@ -307,7 +307,9 @@
     "npoHint": "How many hours before surgery each intake stops. The times follow from the start of surgery.",
     "npoUsePolicy": "Assign APAGBI 2023 hours",
     "npoHoursBefore": "h before surgery",
-    "npoBelowMinimum": "Shorter than the APAGBI minimum of {hours} h"
+    "npoBelowMinimum": "Shorter than the APAGBI minimum of {hours} h",
+    "npoStopBy": "{category}: by {time} ({hours} h before)",
+    "npoPreviousDay": "the day before"
   },
   "common": {
     "appName": "LOSPOR",

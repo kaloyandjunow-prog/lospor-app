@@ -327,6 +327,7 @@ export function preopSummaryForIntraop(preop: PreopData): PreopSummary {
     diagnosis:             preop.diagnoses?.map(d => d.label).join("; ") || null,
     plannedProcedure:      plannedProcedureText(preop.procedures) || null,
     emergencySurgery:      preop.emergencySurgery ?? null,
+    pediatricFasting:      preop.pediatricFasting ?? null,
   }
 }
 

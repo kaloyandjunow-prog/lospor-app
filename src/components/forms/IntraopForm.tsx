@@ -497,7 +497,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {(() => {
         const tabOverview = (<>
 
-      {preop ? <IntraopPreopSummary preop={preop} ibw={calcIbw} isPediatric={isPediatric} /> : null}
+      {preop ? <IntraopPreopSummary preop={preop} ibw={calcIbw} isPediatric={isPediatric} surgeryStart={timelineStartedAt} timezone={timelineZone} /> : null}
       {/* Equipment suggestions */}
       {preop && isPediatric ? (
         <EquipmentSuggestions

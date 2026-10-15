@@ -28,4 +28,21 @@ describe("the paediatric reference in intraop", () => {
     show({ clinicalMode: "PEDIATRIC", heightCm: 122 })
     expect(screen.queryByTestId("pediatric-intraop-reference")).toBeNull()
   })
+
+  it("reads the nil-by-mouth assignment as clock times once surgery has started", () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <PediatricIntraopReference preop={{ clinicalMode: "PEDIATRIC", weightKg: 12, pediatricFasting: [{ category: "CLEAR_FLUIDS", hoursBefore: 1 }, { category: "BREAST_MILK", hoursBefore: 10 }] } as never}
+          surgeryStart="2026-10-16T05:30:00Z" timezone="Europe/Sofia" />
+      </NextIntlClientProvider>,
+    )
+    const text = screen.getByTestId("pediatric-npo-clock").textContent ?? ""
+    expect(text).toContain("Clear fluids: by 07:30 (1 h before)")
+    expect(text).toContain("Breast milk: by 22:30 (10 h before) · the day before")
+  })
+
+  it("shows no clock times before surgery starts", () => {
+    show({ clinicalMode: "PEDIATRIC", weightKg: 12, pediatricFasting: [{ category: "CLEAR_FLUIDS", hoursBefore: 1 }, { category: "BREAST_MILK", hoursBefore: 10 }] })
+    expect(screen.queryByTestId("pediatric-npo-clock")).toBeNull()
+  })
 })

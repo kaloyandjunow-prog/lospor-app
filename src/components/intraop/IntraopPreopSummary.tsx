@@ -14,10 +14,13 @@ import { PediatricIntraopReference } from "./PediatricIntraopReference"
  *
  * Split out of IntraopForm, which is at its size budget.
  */
-export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric }: {
+export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric, surgeryStart, timezone }: {
   preop: PreopSummary
   ibw: number | null
   isPediatric: boolean
+  /** The stored start of surgery, for the nil-by-mouth clock times. */
+  surgeryStart?: string | Date | null
+  timezone?: string | null
 }) {
   const t = useTranslations()
   const medicationWarnings = useMemo(() => getMedicationWarnings(preop.currentMedications ?? []), [preop.currentMedications])
@@ -88,7 +91,7 @@ export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric }: {
           ))}
         </div>
       )}
-      {isPediatric && <PediatricIntraopReference preop={preop} />}
+      {isPediatric && <PediatricIntraopReference preop={preop} surgeryStart={surgeryStart} timezone={timezone} />}
     </div>
   )
 }

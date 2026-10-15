@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { pediatricIntraopReference } from "@lospor/core/pediatric-calculators"
+import { fastingClockTimes } from "@lospor/core/pediatric"
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
 /**
@@ -10,7 +11,11 @@ import type { PreopSummary } from "@/components/forms/preop-summary"
  * it is drawn: nothing to accept, nothing stored (they used to need an
  * "Accept and record" in preop, which nothing ever displayed).
  */
-export function PediatricIntraopReference({ preop }: { preop: PreopSummary }) {
+export function PediatricIntraopReference({ preop, surgeryStart, timezone }: {
+  preop: PreopSummary
+  surgeryStart?: string | Date | null
+  timezone?: string | null
+}) {
   const t = useTranslations("pediatric")
   const reference = pediatricIntraopReference({
     weightKg: preop.weightKg,
@@ -18,7 +23,9 @@ export function PediatricIntraopReference({ preop }: { preop: PreopSummary }) {
     age: preop.ageValue != null && preop.ageUnit ? { value: preop.ageValue, unit: preop.ageUnit } : null,
   })
   const { bsaSquareMetres, maintenance, resuscitation } = reference
-  if (bsaSquareMetres == null && !maintenance && !resuscitation) return null
+  // The assignment's hours, as the clock times they meant once surgery started.
+  const fasting = fastingClockTimes(preop.pediatricFasting, surgeryStart, timezone)
+  if (bsaSquareMetres == null && !maintenance && !resuscitation && fasting.length === 0) return null
   return (
     <div className="mt-2 border-t border-amber-200 pt-2 dark:border-amber-700/40" data-testid="pediatric-intraop-reference">
       <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">{t("intraopReference")}</p>
@@ -39,6 +46,17 @@ export function PediatricIntraopReference({ preop }: { preop: PreopSummary }) {
             <span className="block">{t("shockLine", { first: resuscitation.shockJoules, escalated: resuscitation.escalatedShockJoules })}</span>
             <span className="block">{t("adrenalineLine", { mcg: resuscitation.adrenalineMicrograms })}</span>
             <span className="block">{t("amiodaroneLine", { first: resuscitation.amiodaroneFirstDoseMilligrams, second: resuscitation.amiodaroneSecondDoseMilligrams })}</span>
+          </dd>
+        </>}
+        {fasting.length > 0 && <>
+          <dt className="text-slate-500 dark:text-slate-400">{t("npoTitle")}</dt>
+          <dd className="space-y-0.5" data-testid="pediatric-npo-clock">
+            {fasting.map(row => (
+              <span key={row.category} className="block">
+                {t("npoStopBy", { category: t(`fastingCategories.${row.category}`), time: row.clock, hours: row.hoursBefore })}
+                {row.previousDay ? ` · ${t("npoPreviousDay")}` : ""}
+              </span>
+            ))}
           </dd>
         </>}
       </dl>

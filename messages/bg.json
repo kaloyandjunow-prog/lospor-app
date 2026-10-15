@@ -307,7 +307,9 @@
     "npoHint": "Колко часа преди операцията се спира всеки прием. Часовете се изчисляват от началото на операцията.",
     "npoUsePolicy": "Попълни часовете по APAGBI 2023",
     "npoHoursBefore": "ч преди операцията",
-    "npoBelowMinimum": "По-кратко от минимума по APAGBI от {hours} ч"
+    "npoBelowMinimum": "По-кратко от минимума по APAGBI от {hours} ч",
+    "npoStopBy": "{category}: до {time} ({hours} ч преди)",
+    "npoPreviousDay": "предния ден"
   },
   "common": {
     "appName": "LOSPOR",
