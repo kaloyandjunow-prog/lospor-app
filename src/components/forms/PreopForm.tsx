@@ -936,7 +936,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
         <div className="space-y-3">
           <div className="space-y-2">
             <Label>{t("preop.asaLabel")} <span className="text-red-500">*</span></Label>
-            {asaSuggestion && (
+            {asaSuggestion && !watch("asaScore") && ( // a prompt to choose, gone once a class is chosen
               <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 space-y-1">
                 <div className="flex items-center gap-2 text-sm text-blue-700">
                   <Lightbulb className="h-4 w-4 shrink-0" />
