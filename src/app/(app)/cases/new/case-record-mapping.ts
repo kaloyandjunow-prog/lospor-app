@@ -220,10 +220,7 @@ export function dbPreopToForm(
     coldsAirwayDevice:              p.coldsAirwayDevice              as PreopData["coldsAirwayDevice"],
     coldsSurgery:                   p.coldsSurgery                   as PreopData["coldsSurgery"],
     pediatricFasting: Array.isArray(p.pediatricFasting)
-      ? p.pediatricFasting.map(row => ({
-          ...row,
-          status: row.status ?? "UNKNOWN",
-        })) as PreopData["pediatricFasting"]
+      ? p.pediatricFasting as PreopData["pediatricFasting"]
       : [],
 
     // Free text. Both are stored columns that the shared CaseDetailPreop DTO

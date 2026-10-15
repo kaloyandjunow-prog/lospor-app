@@ -277,17 +277,11 @@
     },
     "select": "Избери",
     "coldsScore": "Оценка по COLDS",
-    "fasting": "Предоперативно гладуване при деца",
     "fastingCategories": {
       "CLEAR_FLUIDS": "Бистри течности",
       "BREAST_MILK": "Кърма",
       "INFANT_FORMULA_UNDER_1_YEAR": "Адаптирано мляко под 1 година",
       "SOLID_FOOD_OR_COW_MILK": "Твърда храна или краве мляко"
-    },
-    "fastingStatus": {
-      "MET": "Изискването е изпълнено",
-      "NOT_MET": "Изискването не е изпълнено",
-      "UNKNOWN": "Не е оценено"
     },
     "calculators": "Педиатрични изчисления",
     "bsa": "Телесна повърхност",
@@ -308,7 +302,12 @@
     "shockLine": "Дефибрилация {first} J (4 J/kg); от 5-ия шок до {escalated} J (8 J/kg, макс. 360 J)",
     "adrenalineLine": "Адреналин {mcg} mcg i.v./i.o. на всеки 3–5 мин (макс. 1 mg)",
     "amiodaroneLine": "Амиодарон {first} mg след 3-ия шок, {second} mg след 5-ия",
-    "referenceSources": "Mosteller · NICE NG29 · RCUK 2025"
+    "referenceSources": "Mosteller · NICE NG29 · RCUK 2025",
+    "npoTitle": "Предписание за гладуване",
+    "npoHint": "Колко часа преди операцията се спира всеки прием. Часовете се изчисляват от началото на операцията.",
+    "npoUsePolicy": "Попълни часовете по APAGBI 2023",
+    "npoHoursBefore": "ч преди операцията",
+    "npoBelowMinimum": "По-кратко от минимума по APAGBI от {hours} ч"
   },
   "common": {
     "appName": "LOSPOR",

@@ -12,7 +12,9 @@ import { ShieldAlert } from "lucide-react"
 import {
   APAGBI_FASTING_POLICY_2023,
   calculatePovoc,
-  evaluatePediatricFasting,
+  isFastingAssignmentBelowMinimum,
+  PEDIATRIC_FASTING_CATEGORIES,
+  policyFastingAssignments,
   normalizePediatricAge,
   validateClinicalModeAge,
   validatePediatricAge,
@@ -261,12 +263,6 @@ export function ClinicalModeAgeFields({
   )
 }
 
-const FASTING_CATEGORIES: PediatricFastingCategory[] = [
-  "CLEAR_FLUIDS",
-  "BREAST_MILK",
-  "INFANT_FORMULA_UNDER_1_YEAR",
-  "SOLID_FOOD_OR_COW_MILK",
-]
 
 export function PediatricRiskAndCalculators({
   control,
@@ -317,37 +313,19 @@ export function PediatricRiskAndCalculators({
 
   if (mode !== "PEDIATRIC") return null
 
-  function updateFasting(category: PediatricFastingCategory, rawLocalDate: string) {
+  // A nil-by-mouth assignment: each intake stops so many hours before
+  // surgery. Clearing the hours removes that intake from the assignment.
+  function assignFasting(category: PediatricFastingCategory, raw: string) {
     const remaining = (fastingRows ?? []).filter(row => row.category !== category)
-    if (!rawLocalDate) {
+    const hoursBefore = raw === "" ? null : Number(raw)
+    if (hoursBefore == null || !Number.isFinite(hoursBefore) || hoursBefore < 0) {
       setValue("pediatricFasting", remaining, { shouldDirty: true })
       return
     }
-    const lastIntakeAt = new Date(rawLocalDate).toISOString()
-    const result = evaluatePediatricFasting({
-      category,
-      lastIntakeAt,
-      assessmentAt: new Date(),
-    })
     setValue("pediatricFasting", [
       ...remaining,
-      {
-        category,
-        lastIntakeAt,
-        status: result.status,
-        requiredHours: result.requiredHours,
-        policyId: result.policyId,
-        policyVersion: result.policyVersion,
-      },
+      { category, hoursBefore: Math.min(hoursBefore, 24), policyId: APAGBI_FASTING_POLICY_2023.id, policyVersion: APAGBI_FASTING_POLICY_2023.version },
     ], { shouldDirty: true })
-  }
-
-  function localDateValue(value?: string | null) {
-    if (!value) return ""
-    const date = new Date(value)
-    if (!Number.isFinite(date.getTime())) return ""
-    const offset = date.getTimezoneOffset() * 60_000
-    return new Date(date.getTime() - offset).toISOString().slice(0, 16)
   }
 
   return (
@@ -373,23 +351,36 @@ export function PediatricRiskAndCalculators({
       {isShown("coldsApplicable") && <PediatricColdsCard control={control} setValue={setValue} />}
 
       <div className="border-t border-slate-200 pt-4 dark:border-[#2e2e2e]">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("fasting")}</p>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("npoTitle")}</p>
+          <Button type="button" size="sm" variant="outline" onClick={() => setValue("pediatricFasting", policyFastingAssignments(), { shouldDirty: true })}>
+            {t("npoUsePolicy")}
+          </Button>
+        </div>
+        <p className="mb-3 text-xs text-slate-500">{t("npoHint")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {FASTING_CATEGORIES.map(category => {
+          {PEDIATRIC_FASTING_CATEGORIES.map(category => {
             const row = fastingByCategory.get(category)
+            const minimum = APAGBI_FASTING_POLICY_2023.minimumHours[category]
             return (
-              <label key={category} className="space-y-1 text-xs font-semibold text-slate-500">
+              <label key={category} className="space-y-1 text-xs font-semibold text-slate-500" data-testid={`npo-${category}`}>
                 <span>{t(`fastingCategories.${category}`)}</span>
-                <input
-                  type="datetime-local"
-                  value={localDateValue(row?.lastIntakeAt)}
-                  onChange={event => updateFasting(category, event.target.value)}
-                  className="h-10 w-full border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800 dark:border-[#3a3a3a] dark:bg-[#181818] dark:text-slate-100"
-                />
-                {row && (
-                  <span className={row.status === "MET" ? "text-emerald-600" : row.status === "NOT_MET" ? "text-red-600" : "text-amber-600"}>
-                    {t(`fastingStatus.${row.status ?? "UNKNOWN"}`)} · {row.requiredHours} h
-                  </span>
+                <span className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={24}
+                    step={0.5}
+                    inputMode="decimal"
+                    value={row?.hoursBefore ?? ""}
+                    placeholder={String(minimum)}
+                    onChange={event => assignFasting(category, event.target.value)}
+                    className="h-10 w-24 border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800 dark:border-[#3a3a3a] dark:bg-[#181818] dark:text-slate-100"
+                  />
+                  <span className="font-normal">{t("npoHoursBefore")}</span>
+                </span>
+                {row && isFastingAssignmentBelowMinimum(row) && (
+                  <span className="block font-normal text-amber-600">{t("npoBelowMinimum", { hours: minimum })}</span>
                 )}
               </label>
             )

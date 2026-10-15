@@ -26,11 +26,9 @@ export type RoundTrip = {
 
 const FASTING_ROW = {
   category: "CLEAR_FLUIDS",
-  lastIntakeAt: "2026-08-01T04:00:00.000Z",
-  status: "MET",
-  requiredHours: 2,
-  policyId: "esaic-2022",
-  policyVersion: "1",
+  hoursBefore: 2,
+  policyId: "APAGBI_FASTING",
+  policyVersion: "2023",
 }
 
 // Every field carries a distinct value so a mis-wired mapping cannot pass by
