@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl"
 import {
+  isPreopChoiceQuestion,
   preopQuestionProgress,
   preopQuestionRows,
   type PreopAnswerState,
@@ -38,6 +39,7 @@ export function PreopQuestionList({
   formSection,
   mode,
   states,
+  optionKeys,
   onAnswer,
   suggestions = [],
   onReviewSuggestion,
@@ -47,6 +49,8 @@ export function PreopQuestionList({
   formSection: PreopFormSection
   mode: "ADULT" | "PEDIATRIC"
   states: ReadonlyMap<string, PreopAnswerState>
+  /** The option an answered choice question holds (preopAnswerOptionKeys). */
+  optionKeys?: ReadonlyMap<string, string>
   onAnswer: (stableKey: string, answer: PreopQuestionAnswer | null) => void
   suggestions?: readonly PreopPendingSuggestion[]
   onReviewSuggestion?: (suggestionId: string, status: "ACCEPTED" | "REJECTED") => void
@@ -90,9 +94,23 @@ export function PreopQuestionList({
             return (
               <div
                 key={question.stableKey}
-                className={cn("flex items-start gap-2", depth === 1 && "ml-6 border-l pl-3")}
+                className={cn("flex items-start gap-2", isPreopChoiceQuestion(question) && "flex-wrap", depth === 1 && "ml-6 border-l pl-3")}
                 data-testid={`preop-question-${question.stableKey}`}
               >
+                {isPreopChoiceQuestion(question) ? (
+                  // Not yes/no: one of the question's own options, stored as YES + option key.
+                  <select
+                    id={`preop-question-${question.stableKey}`}
+                    value={state === "YES" ? optionKeys?.get(question.stableKey) ?? "" : ""}
+                    onChange={event => onAnswer(question.stableKey, event.target.value ? { stableKey: question.stableKey, state: "YES", optionKey: event.target.value } : null)}
+                    className="order-last mt-1 w-full max-w-md rounded-md border border-input bg-background px-2 py-1 text-sm"
+                  >
+                    <option value="">{t("preop.choose")}</option>
+                    {question.options.map(option => (
+                      <option key={option.key} value={option.key}>{locale === "bg" ? option.labelBg : option.labelEn}</option>
+                    ))}
+                  </select>
+                ) : (
                 <div className="flex flex-col gap-1">
                   <ClinicalYesNo
                     id={`preop-question-${question.stableKey}`}
@@ -117,6 +135,7 @@ export function PreopQuestionList({
                     </div>
                   )}
                 </div>
+                )}
                 <div className="min-w-0">
                   <label id={`preop-question-${question.stableKey}-label`} htmlFor={`preop-question-${question.stableKey}`} className="text-sm leading-snug">
                     {label(question)}

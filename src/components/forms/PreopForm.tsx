@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { calcBMI, calcABW } from "@/lib/scores"
-import { RiskScoreCards } from "@/components/forms/RiskScoreCards"
+import { GuptaRiskCard, RiskScoreCards } from "@/components/forms/RiskScoreCards"
 import { suggestASAFromTags } from "@/lib/icd-categories"
 import { usePreopRiskScores } from "@/hooks/usePreopRiskScores"
 import { ChevronRight, Lightbulb } from "lucide-react"
@@ -52,7 +52,7 @@ import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswe
 import {
   isPreopQuestionShown, isPreopScoreAvailable, preopProfileForMode,
   PREOP_LEGACY_FIELD_BY_QUESTION,
-  preopAnswerStates,
+  preopAnswerStates, preopAnswerOptionKeys,
   type PreopAssessmentProfile,
   type PreopFormSection,
 } from "@lospor/core/preop-assessment"
@@ -140,7 +140,8 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   const preopProfile = useMemo(() => preopProfileForMode(profiles, preopMode), [profiles, preopMode]) // adults' or children's
   const shown = (stableKey: string) => isPreopQuestionShown(preopProfile, stableKey, preopMode)
   const shownField = (field: string) => !QUESTION_OF_FIELD[field] || shown(QUESTION_OF_FIELD[field])
-  const questionStates = preopAnswerStates(watch() as unknown as Record<string, unknown>)
+  const formValues = watch() as unknown as Record<string, unknown>
+  const questionStates = preopAnswerStates(formValues)
   const [pendingSuggestions, setPendingSuggestions] = useState<PreopPendingSuggestion[]>([])
   const loadSuggestions = useCallback(async () => {
     if (!caseId) return setPendingSuggestions([])
@@ -177,7 +178,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       profile={preopProfile}
       formSection={formSection}
       mode={preopMode}
-      states={questionStates}
+      states={questionStates} optionKeys={preopAnswerOptionKeys(formValues)}
       onAnswer={answerQuestion}
       suggestions={pendingSuggestions}
       onReviewSuggestion={reviewSuggestion}
@@ -985,21 +986,15 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
           <div className="pt-1 border-t border-slate-100 dark:border-[#2a2a2a]">
             <PediatricRiskAndCalculators control={control} setValue={setValue} caseId={caseId} isShown={shownField} />
           </div>
-        ) : (
+        ) : (<>
         <RiskScoreCards
-          rcriScore={rcriScore}
-          apfelScore={apfelScore}
-          stopBangScore={stopBangScore}
-          rcriAnswered={rcriAnswered}
-          apfelAnswered={apfelAnswered}
-          stopBangAnswered={stopBangAnswered}
-          unavailable={{
-            rcri: !isPreopScoreAvailable(preopProfile, "RCRI"),
-            apfel: !isPreopScoreAvailable(preopProfile, "APFEL"),
-            stopBang: !isPreopScoreAvailable(preopProfile, "STOPBANG"),
-          }}
+          rcriScore={rcriScore} apfelScore={apfelScore} stopBangScore={stopBangScore}
+          rcriAnswered={rcriAnswered} apfelAnswered={apfelAnswered} stopBangAnswered={stopBangAnswered}
+          unavailable={{ rcri: !isPreopScoreAvailable(preopProfile, "RCRI"), apfel: !isPreopScoreAvailable(preopProfile, "APFEL"), stopBang: !isPreopScoreAvailable(preopProfile, "STOPBANG") }}
         />
-        )}
+        {questionList("risk_scores")}
+        <GuptaRiskCard profile={preopProfile} values={formValues} onAnswer={answerQuestion} />
+        </>)}
 
         {/* Notes */}
         <div className="space-y-1 pt-2">

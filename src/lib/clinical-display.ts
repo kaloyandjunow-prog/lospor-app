@@ -2,3 +2,6 @@
 // platform-specific; both apps simply had their own copy.
 export * from "@lospor/core/clinical-display"
 export { clinicalEventName } from "./clinical-event-name"
+
+// The PAED band beside the score on the postop form; the words are core vocabulary.
+export { displayPaedBand } from "@lospor/core/risk-band-display"

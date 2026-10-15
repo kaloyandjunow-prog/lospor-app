@@ -118,3 +118,4 @@ export function RiskScoreCards({
     </div>
   )
 }
+export { GuptaRiskCard } from "./GuptaRiskCard"
