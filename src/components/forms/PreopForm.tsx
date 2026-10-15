@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { calcBMI, calcABW } from "@/lib/scores"
 import { GuptaRiskCard, RiskScoreCards } from "@/components/forms/RiskScoreCards"
-import { suggestASAFromTags } from "@/lib/icd-categories"
+import { asaReasonLabel, suggestASAFromTags } from "@/lib/icd-categories"
 import { usePreopRiskScores } from "@/hooks/usePreopRiskScores"
 import { ChevronRight, Lightbulb } from "lucide-react"
 import { ClinicalYesNo } from "@/components/ClinicalYesNo"
@@ -944,7 +944,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
                 </div>
                 {asaSuggestion.reasons.length > 0 && (
                   <ul className="text-xs text-blue-600 pl-6 list-disc space-y-0.5">
-                    {asaSuggestion.reasons.map(r => <li key={r}>{r}</li>)}
+                    {asaSuggestion.reasonCodes.map(code => <li key={code}>{asaReasonLabel(code, locale === "bg" ? "bg" : "en", bmi)}</li>)}
                   </ul>
                 )}
               </div>
