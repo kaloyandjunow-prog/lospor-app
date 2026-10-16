@@ -78,7 +78,7 @@ function PlannedTechniques({ facts, techniques }: { facts: SummaryFacts; techniq
       <div className="grid grid-cols-4 gap-x-3 gap-y-1 text-[10px]" data-testid="preop-summary-techniques">
         {CONSENT_TECHNIQUES.map(technique => (
           <span key={technique}>
-            <Box ticked={techniques.includes(technique)} />{labels[technique]}
+            <Box ticked={technique === CONSENT_FALLBACK_TECHNIQUE || techniques.includes(technique)} />{labels[technique]}
             {technique === CONSENT_FALLBACK_TECHNIQUE ? <span className="text-slate-500"> ({facts.L.fallback})</span> : null}
           </span>
         ))}

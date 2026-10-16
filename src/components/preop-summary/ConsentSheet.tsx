@@ -43,7 +43,7 @@ function SectionWithInitials({ section, L }: { section: ConsentSection; L: Preop
 function TechniqueTable({ sections, L }: { sections: ConsentSection[]; L: PreopSummaryLabels }) {
   const columns = consentTableColumns(sections)
   return (
-    <table className="w-full border-collapse text-[8px] leading-[1.25] my-1.5" data-testid="consent-table">
+    <table className="w-full border-collapse text-[8px] leading-[1.25] my-1.5 text-left" data-testid="consent-table">
       <thead>
         <tr>
           <th className="border border-slate-400 bg-slate-100 px-1 py-0.5 text-left w-[24mm]">{L.technique}</th>
