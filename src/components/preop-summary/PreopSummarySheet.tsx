@@ -200,6 +200,7 @@ export function PreopSummarySheet({ data, locale, printedAt }: { data: PreopSumm
           <Section title={L.exam}><p className="text-[10.5px]">{vitals}</p></Section>
         ) : null}
 
+        {p?.mallampati || p?.mouthOpeningCm || p?.thyromental || p?.neckMobility || p?.upperLipBiteTest || p?.difficultAirwayHistory === true || p?.anticipatedDifficultAirway === true ? (
         <Section title={L.airway}>
           <div className="space-y-0.5">
             {p?.mallampati ? <Line label="Mallampati" value={displayClinicalCode("option:MALLAMPATI", p.mallampati, locale)} /> : null}
@@ -211,6 +212,7 @@ export function PreopSummarySheet({ data, locale, printedAt }: { data: PreopSumm
             {p?.anticipatedDifficultAirway === true ? <p className="text-[10.5px] font-semibold text-red-700 dark:text-red-400">{L.anticipatedDifficultAirway}</p> : null}
           </div>
         </Section>
+        ) : null}
 
         {scores.length > 0 ? (
           <Section title={L.scores}>

@@ -71,3 +71,10 @@ describe("the consent pages", () => {
     expect(screen.getByTestId("consent-sheet").textContent).toContain("вариант 3")
   })
 })
+
+describe("an empty section", () => {
+  it("is not printed: no airway heading without an airway finding", () => {
+    render(<PreopSummarySheet locale="en" printedAt={PRINTED} data={data({})} />)
+    expect(screen.getByTestId("preop-summary-sheet").textContent).not.toContain("Airway")
+  })
+})
