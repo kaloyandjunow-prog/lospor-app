@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, FileText, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HandoverButton } from "@/components/HandoverButton"
-import { PreopSummarySheet, type PreopSummaryData } from "./PreopSummarySheet"
+import { PreopSummaryFirstPage } from "./PreopDocumentPages"
+import type { PreopSummaryData } from "./facts"
 
 const TXT = {
   en: {
@@ -86,7 +87,7 @@ export function PreopSummaryView({ caseId, data, locale, sessionUserId, sessionR
 
       <div className="rounded-xl border border-slate-200 dark:border-[#2a2a2a] bg-white p-5 sm:p-8 shadow-sm overflow-x-auto">
         <div className="min-w-[640px]">
-          <PreopSummarySheet data={data} locale={locale} printedAt={printedAt} />
+          <PreopSummaryFirstPage data={data} locale={locale} printedAt={printedAt} />
         </div>
       </div>
     </div>
