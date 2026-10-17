@@ -5,7 +5,7 @@
   "src/app/(app)/cases/new/page.tsx": 750,
   "src/components/forms/IntraopForm.tsx": 748,
   "src/components/CaseSummary.tsx": 750,
-  "src/components/SettingsMenu.tsx": 841,
+  "src/components/SettingsMenu.tsx": 810,
   "src/components/clinical-rules/DoseProfileEditor.tsx": 662,
   "src/components/clinical-rules/ClinicalRuleEditor.tsx": 646,
   "src/components/forms/PediatricPreopSections.tsx": 399,

@@ -135,7 +135,7 @@ export function InfusionLane({
         style={{ width: labelWidth, minWidth: labelWidth }}
         className="flex flex-col items-end justify-end pr-2 pb-1.5 gap-0 select-none shrink-0"
       >
-        <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{drugName}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{displayInfusionName(drugName)}</span>
         <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">{copy.infusion.laneKind}</span>
       </div>
       {rowCols.map(ci => {

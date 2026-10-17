@@ -6,6 +6,7 @@ import { ArrowLeft, Printer, FileDown } from "lucide-react"
 import { useLocale } from "next-intl"
 import { CaseSummary } from "@/components/CaseSummary"
 import type { CaseDetail } from "@/types/case-detail"
+import { setBulgarianNameSwitches, type BulgarianNameSwitches } from "@lospor/core/display"
 
 const TXT = {
   en: {
@@ -29,12 +30,15 @@ const STAGE_W = 1123
 // Phones should normally not print from here at all — "Download PDF" fetches a
 // server-rendered A4 PDF (see /api/cases/[id]/pdf), which is also what the
 // mobile app opens directly.
-export function PrintPageClient({ caseId, initialData, autoPrint, printToken }: {
+export function PrintPageClient({ caseId, initialData, autoPrint, printToken, bulgarianNames }: {
   caseId: string
   initialData: CaseDetail
   autoPrint?: boolean
   printToken?: string
+  /** The requester's Bulgarian-name switches, for a PDF the server renders (no stored preferences there). */
+  bulgarianNames?: BulgarianNameSwitches | null
 }) {
+  if (bulgarianNames) setBulgarianNameSwitches(bulgarianNames)
   const locale = useLocale()
   const T = locale === "bg" ? TXT.bg : TXT.en
 
