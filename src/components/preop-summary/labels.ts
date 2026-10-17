@@ -188,7 +188,7 @@ export const PREOP_SUMMARY_LABELS = {
     mouthOpening: "Отваряне на устата",
     thyromental: "Тироментално разст.",
     neck: "Шия",
-    ulbt: "Захапка на горна устна",
+    ulbt: "Тест за захапване на горната устна",
     difficultAirway: "Анамнеза за труден дихателен път",
     anticipatedDifficultAirway: "Очакван труден дихателен път",
     scores: "Скорове",

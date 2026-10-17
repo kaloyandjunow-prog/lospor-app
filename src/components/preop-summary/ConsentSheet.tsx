@@ -5,7 +5,9 @@ import {
   consentTableColumns,
   consentTableRow,
   consentTechniquesToPrint,
+  consentWithAssignedFasting,
   parseConsentText,
+  type ConsentFastingRow,
   type ConsentFieldValues,
   type ConsentSection,
   type ConsentTechnique,
@@ -67,8 +69,8 @@ function TechniqueTable({ sections, L }: { sections: ConsentSection[]; L: PreopS
   )
 }
 
-function ConsentBody({ template, values, mode, techniques, L, lang }: {
-  template: ConsentTemplateVersionView
+function ConsentBody({ body, values, mode, techniques, L, lang }: {
+  body: string
   values: ConsentFieldValues
   mode: ConsentMode
   techniques: readonly ConsentTechnique[]
@@ -76,9 +78,9 @@ function ConsentBody({ template, values, mode, techniques, L, lang }: {
   lang: "en" | "bg"
 }) {
   if (mode === "full" || mode === "keep") {
-    return <div className="consent-body text-[9.5px] leading-[1.38] columns-2 gap-5 text-justify"><ConsentBlocks blocks={parseConsentText(template.body, values)} /></div>
+    return <div className="consent-body text-[9.5px] leading-[1.38] columns-2 gap-5 text-justify"><ConsentBlocks blocks={parseConsentText(body, values)} /></div>
   }
-  const { intro, sections } = consentSections(template.body, values)
+  const { intro, sections } = consentSections(body, values)
   const others = sections.filter(section => !section.technique)
   if (mode === "table") {
     return (
@@ -116,7 +118,7 @@ function ConsentBody({ template, values, mode, techniques, L, lang }: {
  * здравето чл. 87), and the anaesthetist always signs. Name and ID stay
  * blank lines: the patient's name is never stored.
  */
-export function ConsentSheet({ template, values, ageYears, locale, caseCode, mode = "full", techniques = [], plannedAnaesthesia }: {
+export function ConsentSheet({ template, values, ageYears, locale, caseCode, mode = "full", techniques = [], plannedAnaesthesia, fasting }: {
   template: ConsentTemplateVersionView
   values: ConsentFieldValues
   ageYears: number | null
@@ -126,6 +128,8 @@ export function ConsentSheet({ template, values, ageYears, locale, caseCode, mod
   techniques?: readonly ConsentTechnique[]
   /** The anaesthesia planned at the preop visit, printed on its line; blank for the pen. */
   plannedAnaesthesia?: string
+  /** The child's nil-by-mouth assignment; the consent's fasting list prints these hours. */
+  fasting?: readonly ConsentFastingRow[] | null
 }) {
   const L = preopSummaryLabels(locale)
   const lang = locale === "bg" ? "bg" : "en"
@@ -153,7 +157,7 @@ export function ConsentSheet({ template, values, ageYears, locale, caseCode, mod
         </div>
       )}
 
-      <ConsentBody template={template} values={values} mode={mode} techniques={techniques} L={L} lang={lang} />
+      <ConsentBody body={consentWithAssignedFasting(template.body, fasting)} values={values} mode={mode} techniques={techniques} L={L} lang={lang} />
 
       {keep ? null : <SignerLines ageYears={ageYears} locale={locale} L={L} />}
 

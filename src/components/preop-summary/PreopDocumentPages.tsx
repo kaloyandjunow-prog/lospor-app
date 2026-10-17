@@ -82,6 +82,7 @@ export function preopDocumentPages({ data, locale, printedAt, techniques }: {
           caseCode={data.caseCode}
           mode={CONSENT_MODE[layout]}
           techniques={techniques}
+          fasting={data.preop?.pediatricFasting}
           plannedAnaesthesia={plannedAnaesthesiaText(data.preop?.plannedAnaesthesia, locale === "bg" ? "bg" : "en")}
         />
       ),

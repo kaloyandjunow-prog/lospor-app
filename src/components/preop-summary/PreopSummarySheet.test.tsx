@@ -167,3 +167,16 @@ describe("the planned anaesthesia", () => {
     expect(screen.getByTestId("preop-summary-sheet").textContent).not.toContain("д-р д-р")
   })
 })
+
+describe("the consent's fasting list", () => {
+  it("prints the hours assigned to the child at the preop visit", () => {
+    renderPages(data({ ageYears: 7, pediatricFasting: [
+      { category: "CLEAR_FLUIDS", hoursBefore: 1, policyId: "APAGBI_FASTING", policyVersion: "2023" },
+      { category: "SOLID_FOOD_OR_COW_MILK", hoursBefore: 6, policyId: "APAGBI_FASTING", policyVersion: "2023" },
+    ] }))
+    const consent = screen.getByTestId("consent-sheet").textContent ?? ""
+    expect(consent).toContain("вода или чай — 1 час преди анестезията;")
+    expect(consent).toContain("друга храна или краве мляко — 6 часа преди анестезията.")
+    expect(consent).not.toContain("друга храна — 8 часа")
+  })
+})
