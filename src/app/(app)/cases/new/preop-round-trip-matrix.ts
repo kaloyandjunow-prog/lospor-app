@@ -78,7 +78,7 @@ export const MATRIX: Record<string, RoundTrip> = {
     rcriScore: 3, apfelScore: 2, stopBangScore: 5,
     coldsCurrentSymptoms: "MILD", coldsOnset: "TWO_TO_4_WEEKS",
     coldsLungDisease: "MODERATE_OR_SEVERE", coldsAirwayDevice: "SUPRAGLOTTIC",
-    coldsSurgery: "MINOR_AIRWAY", pediatricFasting: [FASTING_ROW],
+    coldsSurgery: "MINOR_AIRWAY", pediatricFasting: [FASTING_ROW], plannedAnaesthesia: { techniques: ["GENERAL_TIVA", "BLOCK_ESP"], airwayDevices: ["LMA"], airwayTools: [], vascularAccesses: [{ site: "ART_RADIAL" }], postopVentilation: false },
     bpSystolic: 96, bpDiastolic: 54, heartRate: 128, spO2: 97,
     temperature: 36.8, respiratoryRate: 24,
     mallampati: "III", mouthOpeningCm: 2.5, thyromental: 5.5,

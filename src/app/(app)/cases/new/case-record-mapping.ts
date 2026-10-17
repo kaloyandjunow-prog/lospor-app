@@ -5,6 +5,7 @@
 // wizard just calls it on load and on save.
 
 import { hasDedicatedPreopControl } from "@lospor/core/preop-assessment"
+import { normalizePlannedAnaesthesia } from "@lospor/core/preop-plan"
 import type { PreopData } from "@/components/forms/PreopForm"
 import type { IntraopData } from "@/components/forms/IntraopForm"
 import type { PostopData } from "@/components/forms/PostopForm"
@@ -222,6 +223,7 @@ export function dbPreopToForm(
     pediatricFasting: Array.isArray(p.pediatricFasting)
       ? p.pediatricFasting as PreopData["pediatricFasting"]
       : [],
+    plannedAnaesthesia: normalizePlannedAnaesthesia(p.plannedAnaesthesia),
 
     // Free text. Both are stored columns that the shared CaseDetailPreop DTO
     // does not spell out, so they arrive through its index signature.

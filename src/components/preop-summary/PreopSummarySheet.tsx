@@ -144,7 +144,7 @@ export function PreopSummarySheet({ data, locale, printedAt, layout = "B", techn
       {layout === "C" && consent ? <PlannedTechniques facts={facts} techniques={techniques} /> : null}
 
       <Section title={L.plan}>
-        <PenLine label={L.planAnaesthesia} />
+        {facts.plannedText ? <Line label={L.planAnaesthesia} value={facts.plannedText} /> : <PenLine label={L.planAnaesthesia} />}
         <PenLine label={L.planFasting} />
         <PenLine label={L.planMedications} />
         <PenLine label={L.planProphylaxis} />

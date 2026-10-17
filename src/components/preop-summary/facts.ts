@@ -8,6 +8,7 @@ import {
   allergyLine,
   titledName,
 } from "@lospor/core/preop-documents"
+import { plannedAnaesthesiaText } from "@lospor/core/preop-plan"
 import type { CaseDetail } from "@/types/case-detail"
 import { printGeneratedDate } from "@/components/case-summary/print-format"
 import { preopSummaryLabels, type PreopSummaryLabels } from "./labels"
@@ -100,6 +101,7 @@ export function summaryFacts(data: PreopSummaryData, locale: string, printedAt: 
     allergyLine: allergyLine(listOfLabels(p?.allergyDetails).map(tag => tag.label), p?.latexAllergy === true, L.latex),
     labs: (p?.labResults ?? []).filter(lab => lab?.value),
     fasting: p?.pediatricFasting ?? [],
+    plannedText: plannedAnaesthesiaText(p?.plannedAnaesthesia, lang),
     scores,
     vitals,
     questionnaire: data.preopQuestionnaire ?? [],

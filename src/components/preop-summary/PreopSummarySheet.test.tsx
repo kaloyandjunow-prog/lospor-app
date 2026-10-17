@@ -148,3 +148,22 @@ describe("the consent pages", () => {
     expect(screen.queryByTestId("consent-sheet")).toBeNull()
   })
 })
+
+describe("the planned anaesthesia", () => {
+  it("prints on the plan and the consent's line when recorded", () => {
+    renderPages(data({ plannedAnaesthesia: { techniques: ["GENERAL_TIVA"], airwayDevices: ["LMA"], vascularAccesses: [{ site: "ART_RADIAL" }] } }))
+    expect(screen.getByTestId("preop-summary-sheet").textContent).toContain("Обща анестезия: тотална интравенозна анестезия (ТИВА); Ларингеална маска (LMA); Артериален достъп (Arteria radialis)")
+    expect(screen.getByTestId("consent-planned-anaesthesia").textContent).toBe("Обща анестезия: тотална интравенозна анестезия (ТИВА); Ларингеална маска (LMA); Артериален достъп (Arteria radialis)")
+  })
+
+  it("leaves both lines for the pen when nothing is planned", () => {
+    renderPages(data({}))
+    expect(screen.queryByTestId("consent-planned-anaesthesia")).toBeNull()
+  })
+
+  it("prints the doctor's title once and latex once", () => {
+    renderPages(data({ allergies: true, latexAllergy: true, allergyDetails: [{ label: "Латекс" }] }, { createdBy: { name: "д-р А. Николов", title: "д-р" } }))
+    expect(screen.getByTestId("preop-summary-allergy").textContent).toBe("АЛЕРГИЯ: Латекс")
+    expect(screen.getByTestId("preop-summary-sheet").textContent).not.toContain("д-р д-р")
+  })
+})

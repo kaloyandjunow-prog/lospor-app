@@ -106,7 +106,7 @@ export function PreopSummaryPrintClient({ caseId, data, printToken, pdfMode, ini
     if (!response?.ok) toast.error(T.recordFailed)
   }
 
-  const techniqueQuery = chosen.length > 0 ? `&techniques=${chosen.join(",")}` : ""
+  const techniqueQuery = layout === "C" ? `&techniques=${chosen.join(",")}` : ""
   const pdfHref = `/api/cases/${caseId}/pdf?doc=preop-summary&lang=${locale === "bg" ? "bg" : "en"}${techniqueQuery}${printToken ? `&print_token=${printToken}` : ""}`
 
   // Server-rendered with its data: ready for headless Chrome as soon as it loads.

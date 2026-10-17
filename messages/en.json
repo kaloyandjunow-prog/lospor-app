@@ -1118,6 +1118,9 @@
     "asaSuggested": "Suggested",
     "asaReview": "review and confirm",
     "scoresNote": "GUPTA, RCRI, Apfel and STOP-BANG scores are calculated automatically from your entries.",
+    "plannedAnaesthesia": "Planned anaesthesia",
+    "plannedAnaesthesiaHint": "Optional. Prints on the summary; the consent per technique (layout C) starts with the sections this plan needs ticked.",
+    "plannedPostopVentilation": "Ventilation after the operation",
     "continueIntraop": "Continue to Intraoperative",
     "timetable": {
       "caseFinished": "Case finished",

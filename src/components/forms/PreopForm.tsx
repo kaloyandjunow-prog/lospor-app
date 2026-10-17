@@ -14,6 +14,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { calcBMI, calcABW } from "@/lib/scores"
 import { GuptaRiskCard, RiskScoreCards } from "@/components/forms/RiskScoreCards"
+import { PlannedAnaesthesiaField } from "@/components/forms/PlannedAnaesthesiaField"
+import { AsaClassButtons } from "@/components/forms/AsaClassButtons"
 import { asaReasonLabel, suggestASAFromTags } from "@/lib/icd-categories"
 import { usePreopRiskScores } from "@/hooks/usePreopRiskScores"
 import { ChevronRight, Lightbulb } from "lucide-react"
@@ -36,6 +38,7 @@ import {
 } from "@/components/forms/PediatricPreopSections"
 import { resolveIdealBodyWeight } from "@lospor/core/ideal-body-weight"
 import { metadataString } from "@lospor/core/option-contracts"
+import { preopAgeInYears } from "@lospor/core/preop-documents"
 import {
   pediatricCapabilityMessageKey,
   useClinicalAiCapabilities,
@@ -178,6 +181,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       profile={preopProfile}
       formSection={formSection}
       mode={preopMode}
+      ageYears={preopAgeInYears({ ageYears: ageYearsVal, ageValue, ageUnit })}
       states={questionStates} optionKeys={preopAnswerOptionKeys(formValues)}
       onAnswer={answerQuestion}
       suggestions={pendingSuggestions}
@@ -955,31 +959,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               </div>
             )}
             <Controller name="asaScore" control={control} render={({ field }) => (
-              <div className={`grid grid-cols-3 sm:grid-cols-6 gap-2 ${fe("asaScore")}`}>
-                {[
-                  { v:"I",   desc:"Normal healthy patient",               color:"bg-green-500  border-green-500  text-white dark:bg-green-700  dark:border-green-500" },
-                  { v:"II",  desc:"Mild systemic disease",                color:"bg-lime-500   border-lime-500   text-white dark:bg-lime-700   dark:border-lime-500"   },
-                  { v:"III", desc:"Severe systemic disease",              color:"bg-yellow-500 border-yellow-500 text-white dark:bg-yellow-700 dark:border-yellow-500" },
-                  { v:"IV",  desc:"Constant threat to life",              color:"bg-orange-500 border-orange-500 text-white dark:bg-orange-700 dark:border-orange-500" },
-                  { v:"V",   desc:"Moribund patient",                     color:"bg-red-500    border-red-500    text-white dark:bg-red-700    dark:border-red-500"    },
-                  { v:"VI",  desc:"Brain-dead organ donor",               color:"bg-slate-500  border-slate-500  text-white dark:bg-slate-600  dark:border-slate-400"  },
-                ].map(opt => {
-                  const label = emergencySurgery && opt.v !== "VI" ? `${opt.v}E` : opt.v
-                  return (
-                    <button key={opt.v} type="button"
-                      onClick={() => field.onChange(field.value === opt.v ? undefined : opt.v)}
-                      className={`rounded-xl border-2 p-3 text-center transition-all ${field.value === opt.v ? opt.color + " scale-105 shadow-sm" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#555]"}`}>
-                      <div className="text-xl font-bold">{label}</div>
-                      <div className="text-[9px] mt-1 leading-tight">{opt.desc}</div>
-                    </button>
-                  )
-                })}
-              </div>
+              <AsaClassButtons value={field.value} onChange={field.onChange} emergencySurgery={!!emergencySurgery} className={fe("asaScore")} />
             )} />
           </div>
           {fieldErrors.has("asaScore") && <p className="text-red-500 text-xs">{t("preop.asaRequired")}</p>}
           <p className="text-xs text-slate-500">{t("preop.scoresNote")}</p>
         </div>
+
+        <Controller name="plannedAnaesthesia" control={control} render={({ field }) => <PlannedAnaesthesiaField value={field.value} onChange={field.onChange} />} />
 
         {/* Calculated risk scores */}
         {isPediatric ? (

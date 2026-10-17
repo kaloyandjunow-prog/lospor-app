@@ -8,6 +8,7 @@ import {
   type PreopDocumentLayout,
   titledName,
 } from "@lospor/core/preop-documents"
+import { plannedAnaesthesiaText } from "@lospor/core/preop-plan"
 import { printGeneratedDate } from "@/components/case-summary/print-format"
 import { ConsentSheet, type ConsentMode } from "./ConsentSheet"
 import { DocumentTwoSheet } from "./DocumentTwoSheet"
@@ -81,6 +82,7 @@ export function preopDocumentPages({ data, locale, printedAt, techniques }: {
           caseCode={data.caseCode}
           mode={CONSENT_MODE[layout]}
           techniques={techniques}
+          plannedAnaesthesia={plannedAnaesthesiaText(data.preop?.plannedAnaesthesia, locale === "bg" ? "bg" : "en")}
         />
       ),
     })

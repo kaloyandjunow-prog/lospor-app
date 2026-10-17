@@ -1,6 +1,6 @@
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { summaryFacts, type PreopSummaryData } from "./facts"
-import { Blank, Box, PenLine } from "./parts"
+import { Blank, Box, Line, PenLine } from "./parts"
 import { Questionnaire } from "./Questionnaire"
 
 function SecTitle({ children }: { children: string }) {
@@ -91,7 +91,7 @@ export function DocumentTwoSheet({ data, locale, printedAt }: { data: PreopSumma
         <div className="flex flex-wrap gap-x-3"><span><Box />{L.noContra}</span><span><Box />{L.relContra}</span><span><Box />{L.absContra}</span><span><Box ticked={p?.emergencySurgery === true} />{L.emergencyAnaesthesia}</span></div>
         <div className="font-bold mt-1.5">{L.riskTitle}</div>
         <div className="flex flex-wrap gap-x-3"><span><Box />{L.usualRisk}</span><span><Box />{L.raisedRisk}</span>{L.riskReasons.map(reason => <span key={reason}><Box />{reason}</span>)}</div>
-        <PenLine label={L.plannedAnaesthesia} width="34mm" />
+        {facts.plannedText ? <Line label={L.plannedAnaesthesia} value={facts.plannedText} /> : <PenLine label={L.plannedAnaesthesia} width="34mm" />}
         <div className="flex items-end gap-3 mt-4">
           <span>{L.anaesthetist}:</span><b>{facts.consultant ?? ""}</b>{facts.consultedAt ? <span className="text-slate-500">{facts.consultedAt}</span> : null}
           <span className="ml-auto">{L.signature}</span><Blank width="45mm" />

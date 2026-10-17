@@ -44,6 +44,7 @@ export function PreopQuestionList({
   suggestions = [],
   onReviewSuggestion,
   className,
+  ageYears,
 }: {
   profile: Pick<PreopAssessmentProfile, "questions"> | null | undefined
   formSection: PreopFormSection
@@ -55,10 +56,12 @@ export function PreopQuestionList({
   suggestions?: readonly PreopPendingSuggestion[]
   onReviewSuggestion?: (suggestionId: string, status: "ACCEPTED" | "REJECTED") => void
   className?: string
+  /** The case's age; a question asked only from an age is left off younger patients. */
+  ageYears?: number | null
 }) {
   const t = useTranslations()
   const locale = useLocale()
-  const rows = preopQuestionRows(profile, formSection, mode, states)
+  const rows = preopQuestionRows(profile, formSection, mode, states, ageYears)
   if (rows.length === 0) return null
   const progress = preopQuestionProgress(rows, states)
   const label = (question: PreopProfileQuestion) => locale === "bg" ? question.labelBg : question.labelEn

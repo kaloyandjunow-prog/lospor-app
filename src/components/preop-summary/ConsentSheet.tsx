@@ -116,7 +116,7 @@ function ConsentBody({ template, values, mode, techniques, L, lang }: {
  * здравето чл. 87), and the anaesthetist always signs. Name and ID stay
  * blank lines: the patient's name is never stored.
  */
-export function ConsentSheet({ template, values, ageYears, locale, caseCode, mode = "full", techniques = [] }: {
+export function ConsentSheet({ template, values, ageYears, locale, caseCode, mode = "full", techniques = [], plannedAnaesthesia }: {
   template: ConsentTemplateVersionView
   values: ConsentFieldValues
   ageYears: number | null
@@ -124,6 +124,8 @@ export function ConsentSheet({ template, values, ageYears, locale, caseCode, mod
   caseCode?: string | null
   mode?: ConsentMode
   techniques?: readonly ConsentTechnique[]
+  /** The anaesthesia planned at the preop visit, printed on its line; blank for the pen. */
+  plannedAnaesthesia?: string
 }) {
   const L = preopSummaryLabels(locale)
   const lang = locale === "bg" ? "bg" : "en"
@@ -143,9 +145,11 @@ export function ConsentSheet({ template, values, ageYears, locale, caseCode, mod
       {keep ? null : <div className="mb-1"><NameIdLines L={L} /></div>}
       <div className="text-[10.5px] mb-1"><span className="text-slate-500">{L.plannedProcedure}: </span><b>{values.procedure || "…………………………………………"}</b></div>
       {keep ? null : (
-        <div className="flex items-end gap-2 text-[10.5px] h-[7mm] mb-2">
+        <div className={`flex gap-2 text-[10.5px] mb-2 ${plannedAnaesthesia ? "items-baseline" : "items-end h-[7mm]"}`}>
           <span className="text-slate-500 shrink-0">{L.plannedAnaesthesia}:</span>
-          <span className="flex-1 border-b border-dotted border-slate-400 dark:border-slate-500" />
+          {plannedAnaesthesia
+            ? <b className="flex-1" data-testid="consent-planned-anaesthesia">{plannedAnaesthesia}</b>
+            : <span className="flex-1 border-b border-dotted border-slate-400 dark:border-slate-500" />}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import type { Viewport } from "next"
 import { PreopSummaryPrintClient } from "@/components/preop-summary/PreopSummaryPrintClient"
 import type { PreopSummaryData } from "@/components/preop-summary/facts"
 import { parseConsentTechniques } from "@lospor/core/preop-documents"
+import { consentTechniquesForPlan } from "@lospor/core/preop-plan"
 import { loginUrlForCallback } from "@/lib/safe-navigation"
 
 export const viewport: Viewport = { colorScheme: "only light" }
@@ -35,7 +36,11 @@ export default async function PreopSummaryPrintPage({
       data={data}
       printToken={printToken}
       pdfMode={values?.pdf === "1"}
-      initialTechniques={parseConsentTechniques(values?.techniques)}
+      // Layout C starts from the anaesthesia planned at the preop visit, until
+      // the anaesthetist changes the ticks (the PDF then carries them).
+      initialTechniques={values?.techniques == null
+        ? consentTechniquesForPlan(data.preop?.plannedAnaesthesia)
+        : parseConsentTechniques(values.techniques)}
     />
   )
 }
