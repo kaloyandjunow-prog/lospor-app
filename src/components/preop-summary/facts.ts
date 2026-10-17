@@ -5,6 +5,8 @@ import {
   preopAgeInYears,
   type PreopDocumentsResponse,
   type PreopQuestionnaireItem,
+  allergyLine,
+  titledName,
 } from "@lospor/core/preop-documents"
 import type { CaseDetail } from "@/types/case-detail"
 import { printGeneratedDate } from "@/components/case-summary/print-format"
@@ -38,10 +40,7 @@ export function listOfLabels(raw: unknown): Tag[] {
   return [{ label: trimmed }]
 }
 
-function personName(person: { name: string; title?: string | null } | null | undefined): string | null {
-  if (!person?.name) return null
-  return person.title ? `${person.title} ${person.name}` : person.name
-}
+const personName = titledName
 
 /**
  * What every layout prints about the case, worked out once: the sheets only
@@ -81,7 +80,6 @@ export function summaryFacts(data: PreopSummaryData, locale: string, printedAt: 
 
   const consultant = personName(data.createdBy)
   const holder = personName(data.user)
-  const allergyText = listOfLabels(p?.allergyDetails).map(tag => tag.label).join(", ")
 
   return {
     L,
@@ -99,7 +97,7 @@ export function summaryFacts(data: PreopSummaryData, locale: string, printedAt: 
     comorbidities: listOfLabels(p?.comorbidities),
     medications: listOfLabels(p?.currentMedications),
     hasAllergy: p?.allergies === true || p?.latexAllergy === true,
-    allergyLine: [allergyText, p?.latexAllergy ? L.latex : null].filter(Boolean).join(" · "),
+    allergyLine: allergyLine(listOfLabels(p?.allergyDetails).map(tag => tag.label), p?.latexAllergy === true, L.latex),
     labs: (p?.labResults ?? []).filter(lab => lab?.value),
     fasting: p?.pediatricFasting ?? [],
     scores,

@@ -6,6 +6,7 @@ import {
   type ConsentFieldValues,
   type ConsentTechnique,
   type PreopDocumentLayout,
+  titledName,
 } from "@lospor/core/preop-documents"
 import { printGeneratedDate } from "@/components/case-summary/print-format"
 import { ConsentSheet, type ConsentMode } from "./ConsentSheet"
@@ -33,7 +34,7 @@ export function consentFieldValues(data: PreopSummaryData, locale: string, print
     diagnosis: data.preop?.diagnosis ?? null,
     procedure: data.preop?.plannedProcedure ?? null,
     date: printGeneratedDate(printedAt, locale, data.intraop?.timezone ?? null),
-    anaesthetist: data.createdBy ? [data.createdBy.title, data.createdBy.name].filter(Boolean).join(" ") : null,
+    anaesthetist: titledName(data.createdBy),
   }
 }
 
