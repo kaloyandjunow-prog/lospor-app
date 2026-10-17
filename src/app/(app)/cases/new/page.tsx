@@ -40,7 +40,7 @@ import {
 } from "@lospor/core/sync"
 import { onOutboxChange } from "@/lib/case-outbox"
 import { autosaveManager } from "@/lib/autosave-manager"
-import { blockedSaveMessage, withBlockedPreopRejection } from "@/lib/blocked-save-message"
+import { blockedSaveMessage, failedSaveMessage, withBlockedPreopRejection } from "@/lib/blocked-save-message"
 import { randomId } from "@/lib/random-id"
 import { canProgressAfterSave, type SaveOutcomeKind } from "@lospor/core/save-progression"
 import { usePendingCloseCountdown } from "@/hooks/usePendingCloseCountdown"
@@ -306,9 +306,7 @@ export default function NewCasePage() {
             break
           }
           const issue = readBlockedSaveIssue(body)
-          if (!issue) throw new Error(
-            typeof body.error === "string" ? body.error : `Save failed (HTTP ${res.status})`,
-          )
+          if (!issue) throw new Error(failedSaveMessage(body, res.status))
           firstBlocked ??= issue
           const before = Object.keys(acceptedPayload).length
           for (const key of issue.blockedKeys) delete acceptedPayload[key]

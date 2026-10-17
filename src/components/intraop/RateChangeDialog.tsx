@@ -198,7 +198,7 @@ export function RateChangeDialog({
                 value={state.timeH}
                 onChange={event => onPatch({ timeH: event.target.value })}
               >
-                <option value="">HH</option>
+                <option value="">{copy.hourPlaceholder}</option>
                 {hours.map(hour => <option key={hour} value={hour}>{hour}</option>)}
               </select>
               <span className="font-bold text-slate-400">:</span>
@@ -207,7 +207,7 @@ export function RateChangeDialog({
                 value={state.timeM}
                 onChange={event => onPatch({ timeM: event.target.value })}
               >
-                <option value="">MM</option>
+                <option value="">{copy.minutePlaceholder}</option>
                 {minutes.map(minute => <option key={minute} value={minute}>{minute}</option>)}
               </select>
             </div>

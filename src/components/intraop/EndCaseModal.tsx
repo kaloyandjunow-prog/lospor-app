@@ -144,7 +144,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
             <div key={a.startCol} className="flex items-center justify-between gap-2 py-3 border-b border-slate-100 dark:border-[#2e2e2e]">
               <div>
                 <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">{displayClinicalCode("option:INHALATIONAL_AGENT", a.name, locale, { label: a.name })}</span>
-                <span className="ml-2 text-[10px] text-slate-400">inhalational</span>
+                <span className="ml-2 text-[10px] text-slate-400">{copy.inhalationalTag}</span>
               </div>
               <div className="flex gap-1.5 shrink-0">
                 <button type="button" onClick={() => setDecision(key, "discontinue")}

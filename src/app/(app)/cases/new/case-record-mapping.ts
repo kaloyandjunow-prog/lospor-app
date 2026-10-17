@@ -16,6 +16,7 @@ import { localTimeOf } from "@/lib/intraop-time"
 import { observedFetch } from "@/lib/intraop-clock"
 import type { CaseDetail } from "@/types/case-detail"
 import { plannedProcedureText } from "@lospor/core/procedure-codes"
+import { serverMessage } from "@/lib/server-message"
 
 type FormPreopAnswerState = "YES" | "NO" | "UNKNOWN" | "NOT_APPLICABLE"
 
@@ -59,7 +60,7 @@ export async function fetchCaseRecord(id: string): Promise<CaseDetail> {
   const response = await observedFetch(`/api/cases/${id}`)
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw Object.assign(new Error(body.error ?? `Request failed (${response.status})`), { status: response.status })
+    throw Object.assign(new Error(serverMessage(body.error ?? `Request failed (${response.status})`)), { status: response.status })
   }
   return response.json() as Promise<CaseDetail>
 }

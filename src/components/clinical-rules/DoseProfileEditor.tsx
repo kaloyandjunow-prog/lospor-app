@@ -288,7 +288,7 @@ function FluidEntryProfileFields({
           >
             <option value="">{copy.manualOnly}</option>
             {FLUID_RATE_CALCULATIONS.map(item => (
-              <option key={item} value={item}>Pediatric 4/2/1</option>
+              <option key={item} value={item}>{copy.pediatricFluidRule}</option>
             ))}
           </select>
         </label>

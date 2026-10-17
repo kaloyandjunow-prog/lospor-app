@@ -6,6 +6,9 @@ import { useLocale } from "next-intl"
 const COPY = {
   en: {
     apply: "Apply",
+    inhalationalTag: "inhalational",
+    hourPlaceholder: "HH",
+    minutePlaceholder: "MM",
     confirm: "Confirm",
     discontinue: "Discontinue",
     delete: "Delete",
@@ -159,6 +162,9 @@ const COPY = {
   },
   bg: {
     apply: "Приложи",
+    inhalationalTag: "инхалационен",
+    hourPlaceholder: "чч",
+    minutePlaceholder: "мм",
     confirm: "Потвърди",
     discontinue: "Прекрати",
     delete: "Изтрий",
