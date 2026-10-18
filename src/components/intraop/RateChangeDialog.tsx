@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom"
 import type { DoseLimit } from "@lospor/core/catalog"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
-import { PUMP_UNIT, rateFromPumpText, suggestedVolumeRate, switchVolumeUnit, volumeRateView } from "@/lib/volume-rate-entry"
+import { infusionRateView, infusionStrengths, suggestedRateAt, switchInfusionUnit, type InfusionRateInput } from "@/lib/infusion-rate-view"
 import { useIntraopUiCopy } from "./ui-copy"
 
 /**
@@ -36,13 +36,19 @@ export type RateChangeState = {
   timeM: string
   editFromCol?: number
   concentration?: string
+  route?: string
   /** A child's local anaesthetic infusion: its rule's strengths, pills and dose limit (rate-dialog-surface). */
   concentrationOptions?: string[]
   quickValues?: number[]
   doseLimit?: DoseLimit
-  /** The pump rate (mL/hr) is being typed instead of the per-kg rate. */
-  pumpMode?: boolean
-  pumpText?: string
+  /**
+   * `rate` is the value entered in `unit`, which may be another dose unit or
+   * the pump rate; `ruleUnit` is the drug's own, the range's. What is saved
+   * is worked out by rateDialogChange: both rates (2026-10-18).
+   */
+  ruleUnit?: string
+  doseUnit?: string
+  weightKg?: number | null
 }
 
 export type RateChangeDialogProps = {
@@ -52,8 +58,8 @@ export type RateChangeDialogProps = {
   concentrations: readonly string[] | undefined
   /** "TBW"/"IBW" and the weight it resolves to, when the unit is per-kilogram. */
   weightBasis: { basis: string; weightKg: number | null } | null
-  /** The child's weight, for the pump rate of a mL/kg/hr infusion. */
-  volumeWeightKg?: number | null
+  /** Offer the drug's syringes (prospective guidance on). */
+  offerSyringes?: boolean
   hours: string[]
   minutes: string[]
   labels: {
@@ -77,7 +83,7 @@ export function RateChangeDialog({
   displayName,
   concentrations,
   weightBasis,
-  volumeWeightKg = null,
+  offerSyringes = false,
   hours,
   minutes,
   labels,
@@ -91,14 +97,16 @@ export function RateChangeDialog({
   if (typeof document === "undefined") return null
 
   const editing = state.editFromCol !== undefined
-  const volume = volumeRateView({
-    unit: state.unit, rate: state.rate, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues,
-    doseLimit: state.doseLimit, concentration: state.concentration, weightKg: volumeWeightKg,
-    pumpMode: state.pumpMode, pumpText: state.pumpText, onPumpLabel: copy.volumeOnPump,
-  })
-  const setValue = (text: string) => onPatch(volume.pumpMode
-    ? { pumpText: text, rate: rateFromPumpText(text, volumeWeightKg) ?? 0 }
-    : { rate: parseFloat(text) || state.rateMin })
+  const rateInput: InfusionRateInput = {
+    ruleUnit: state.ruleUnit ?? state.unit, entryUnit: state.unit, doseUnit: state.doseUnit, value: state.rate,
+    min: state.rateMin, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues,
+    doseLimit: state.doseLimit, concentration: state.concentration, weightKg: state.weightKg,
+  }
+  const view = infusionRateView({ ...rateInput, onPumpLabel: copy.volumeOnPump })
+  const strengths = concentrations?.length || offerSyringes
+    ? infusionStrengths({ name: state.name, route: state.route, localAnaesthetic: concentrations, running: state.concentration })
+    : { options: [], syringe: false }
+  const setValue = (text: string) => onPatch({ rate: parseFloat(text) || 0 })
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onDismiss}>
@@ -124,13 +132,13 @@ export function RateChangeDialog({
 
         {state.step === "rate" && (
           <>
-            {concentrations && concentrations.length > 0 && (
+            {strengths.options.length > 0 && (
               <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                  {labels.concentration}
+                  {strengths.syringe ? copy.syringe : labels.concentration}
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {concentrations.map(value => (
+                  {strengths.options.map(value => (
                     <button
                       key={value}
                       type="button"
@@ -138,8 +146,8 @@ export function RateChangeDialog({
                       // by mistake has to be removable, not just replaceable.
                       onClick={() => {
                         const next = state.concentration === value ? undefined : value
-                        const suggested = suggestedVolumeRate({ max: state.rateMax, step: state.rateStep, doseLimit: state.doseLimit, concentration: next })
-                        onPatch({ concentration: next, ...(suggested == null ? {} : { rate: suggested, pumpMode: false }) })
+                        const suggested = suggestedRateAt(rateInput, next)
+                        onPatch({ concentration: next, ...(suggested == null ? {} : { rate: suggested }) })
                       }}
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
                         state.concentration === value
@@ -158,28 +166,29 @@ export function RateChangeDialog({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  value={volume.value}
+                  value={state.rate}
                   autoFocus
-                  min={showDoseGuidance ? state.rateMin : undefined}
-                  max={showDoseGuidance ? volume.max : undefined}
-                  step={volume.pumpMode ? 0.1 : state.rateStep}
+                  min={showDoseGuidance ? view.min : undefined}
+                  max={showDoseGuidance ? view.max : undefined}
+                  step={view.step}
                   onChange={event => setValue(event.target.value)}
                   className="flex-1 text-lg font-semibold text-center border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none focus:ring-1 focus:ring-blue-400 [appearance:textfield]"
                 />
                 <select
-                  value={volume.pumpMode ? PUMP_UNIT : state.unit}
-                  onChange={event => onPatch(volume.pumpAvailable
-                    ? switchVolumeUnit({ unit: state.unit, rate: state.rate, weightKg: volumeWeightKg, next: event.target.value })
-                    : { unit: event.target.value })}
+                  value={state.unit}
+                  onChange={event => {
+                    const next = switchInfusionUnit({ ...rateInput, next: event.target.value })
+                    onPatch({ rate: next.value ?? 0, unit: next.entryUnit, doseUnit: next.doseUnit })
+                  }}
                   className="text-xs border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none"
                 >
-                  {(volume.pumpAvailable ? [state.unit, PUMP_UNIT] : state.units).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                  {view.units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
                 </select>
               </div>
-              {volume.readout && <p className="text-[10px] text-sky-600 dark:text-sky-400">{volume.readout}</p>}
-              {showDoseGuidance && volume.quickValues && volume.quickValues.length > 0 && (
+              {view.readout && <p className="text-[10px] text-sky-600 dark:text-sky-400">{view.readout}</p>}
+              {showDoseGuidance && view.quickValues && view.quickValues.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {volume.quickValues.map(value => (
+                  {view.quickValues.map(value => (
                     <button key={value} type="button" onClick={() => onPatch({ rate: value })}
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${state.rate === value ? "bg-blue-500 border-blue-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"}`}>
                       {value}
@@ -191,16 +200,16 @@ export function RateChangeDialog({
                 <>
                   <input
                     type="range"
-                    min={state.rateMin}
-                    max={volume.max}
-                    step={volume.pumpMode ? 0.1 : state.rateStep}
-                    value={volume.value}
+                    min={view.min}
+                    max={view.max}
+                    step={view.step}
+                    value={state.rate}
                     onChange={event => setValue(event.target.value)}
                     className="w-full accent-blue-500"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400">
                     <span>{state.rateMin}</span>
-                    <span>{volume.max} {volume.unitSuffix}</span>
+                    <span>{view.max} {state.unit}</span>
                   </div>
                 </>
               )}

@@ -10,7 +10,7 @@ import { appendComplications } from "@/lib/append-complications"
 import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import { adultPremedDoseForRoute } from "@lospor/core/premedication"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
-import { computeLiveDrugTotals } from "@/lib/intraop-drug-totals"
+import { computeLiveDrugTotals, infusionsVolumeMl } from "@/lib/intraop-drug-totals"
 import { buildIntraopSubmission, intraopEndCaseValuesNow, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
@@ -263,17 +263,17 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       }
       setValue("crystalloidsMl", crystalloids || undefined)
       setValue("colloidsMl",     colloids     || undefined)
-      setValue("bloodMl",        blood        || undefined)
+      setValue("bloodMl",        blood        || undefined); setValue("infusionsMl", infusionsVolumeMl(timetable.infusions, asOf) || undefined)
     }
 
     updateFluidTotals()
     const hasRunningRate = (timetable.fluids ?? []).some(
       fluid => fluid.fluidEntryMode === "RATE" && !fluid.stopped,
-    )
+    ) || (timetable.infusions ?? []).some(infusion => !infusion.stopped && infusion.volumeRateMlPerHour != null)
     if (!hasRunningRate) return
     const timer = window.setInterval(updateFluidTotals, 30_000)
     return () => window.clearInterval(timer)
-  }, [setValue, timetable.fluids])
+  }, [setValue, timetable.fluids, timetable.infusions])
 
   // Smart monitoring defaults — fire once when technique first selected
   const watchedTechniques = useWatch({ control, name: "techniques" })

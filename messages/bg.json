@@ -1533,6 +1533,8 @@
     "crystalloids": "Кристалоиди (мл)",
     "colloids": "Колоиди (мл)",
     "bloodTransfusion": "Кръвни продукти - трансфузия (мл)",
+    "drugInfusions": "Инфузии на медикаменти (мл)",
+    "totalIn": "Общо приети (мл)",
     "urineOutput": "Диуреза (мл)",
     "bloodLoss": "Очаквана кръвозагуба (мл)",
     "complicationsSection": "Интраоперативни усложнения",

@@ -2,6 +2,9 @@ import { calculateDrugTotals } from "@lospor/core/intraop-summary"
 import type { TimetableData } from "@/types/timetable"
 
 import { formatInfusionTotal, infusionLocalAnaestheticMg } from "@lospor/core/intraop-totals"
+import { infusionVolumeMl } from "@lospor/core/infusion-volume"
+
+export { infusionsVolumeMl } from "@lospor/core/intraop-totals"
 import { calculateMostellerBsa } from "@lospor/core/pediatric-calculators"
 import { calcInfusionTotal, type WeightBasisMap } from "@/lib/infusion-calc"
 
@@ -47,6 +50,8 @@ export function computeLiveDrugTotals(
       weightUsed,
       weightBasis,
       bsaUsed,
+      // Its millilitres, from the pump rates; none when the syringe was skipped (2026-10-18).
+      volumeMl: inf.planned ? null : infusionVolumeMl(inf),
     }
   })
 

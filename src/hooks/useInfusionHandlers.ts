@@ -53,7 +53,11 @@ export function useInfusionHandlers(
     onChangeRef.current({ ...d, infusions: (d.infusions ?? []).map(i => i.id === id ? { ...i, stopped: undefined, endCol: Math.max(i.endCol, col) } : i) })
   }
 
-  function applyInfRateChange(infId: string, fromCol: number | null, toCol: number, rate: number, unit: string, concentration?: string) {
+  /** A change records both rates when known: the dose rate and the pump rate (2026-10-18). */
+  function applyInfRateChange(
+    infId: string, fromCol: number | null, toCol: number,
+    { rate, unit, concentration, volumeRateMlPerHour }: { rate: number; unit: string; concentration?: string; volumeRateMlPerHour?: number },
+  ) {
     onChangeRef.current({
       ...dataRef.current,
       infusions: (dataRef.current.infusions ?? []).map(i => {
@@ -61,9 +65,9 @@ export function useInfusionHandlers(
         const changes = (i.rateChanges ?? []).filter(rc => rc.col !== fromCol && rc.col !== toCol).sort((a, b) => a.col - b.col)
         if (toCol === i.startCol) {
           // Dropped on the start cell → change the base rate/concentration of the segment
-          return { ...i, rate, unit, concentration: concentration ?? i.concentration, rateChanges: changes.length > 0 ? changes : undefined }
+          return { ...i, rate, unit, concentration: concentration ?? i.concentration, volumeRateMlPerHour, rateChanges: changes.length > 0 ? changes : undefined }
         }
-        return { ...i, rateChanges: [...changes, { col: toCol, rate, unit, concentration: concentration ?? i.concentration }].sort((a, b) => a.col - b.col) }
+        return { ...i, rateChanges: [...changes, { col: toCol, rate, unit, concentration: concentration ?? i.concentration, volumeRateMlPerHour }].sort((a, b) => a.col - b.col) }
       }),
     })
   }

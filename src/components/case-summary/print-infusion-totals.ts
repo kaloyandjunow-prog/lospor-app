@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { calcInfusionTotals, withInfusionInstants, type WeightBasisMap } from "@lospor/core/intraop-totals"
 import { intraopUnconfirmedStops } from "@lospor/core/intraop-commands"
+import { infusionVolumeMl } from "@lospor/core/infusion-volume"
 import { parseLogEvents } from "@lospor/core/intraop-types"
 import { weightBasisMap } from "@lospor/core/option-library"
 import { calculateMostellerBsa } from "@lospor/core/pediatric-calculators"
@@ -43,11 +44,17 @@ export function calcInfTotals(
   // written and may still show a stop as planned whose time has come.
   const log = parseLogEvents(Array.isArray(timetable?.log) ? timetable.log : [])
   const unconfirmed = new Set(intraopUnconfirmedStops(log, patient.endedAt ?? new Date()).map(event => event.infId))
+  const timed = withInfusionInstants(infusions, timetable?.log, patient.endedAt)
   return calcInfusionTotals(
-    withInfusionInstants(infusions, timetable?.log, patient.endedAt),
+    timed,
     patient.ibw ?? null,
     patient.tbw ?? null,
     patient.weightBasis,
     bsa?.available ? bsa.value.squareMetres : null,
-  ).map((total, index) => ({ ...total, stopUnconfirmed: unconfirmed.has(infusions[index].id) }))
+  ).map((total, index) => ({
+    ...total,
+    stopUnconfirmed: unconfirmed.has(infusions[index].id),
+    // Its millilitres from the pump rates; none when the syringe was skipped (2026-10-18).
+    volumeMl: infusionVolumeMl(timed[index]!, patient.endedAt ?? new Date()),
+  }))
 }

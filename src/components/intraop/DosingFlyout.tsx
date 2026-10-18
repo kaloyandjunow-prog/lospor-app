@@ -9,6 +9,7 @@ import { InfusionDoseFields } from "./InfusionDoseFields"
 import { fitPopoverWidth, positionPopover } from "./anchored-position"
 import type { createDoseSurfaces } from "./dose-surfaces"
 import type { TtFP } from "./timetable-types"
+import type { InfusionRecord } from "@lospor/core/infusion-entry"
 import { drugSelectorAtomicState } from "@/lib/drug-selector-surface"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
 
@@ -56,7 +57,8 @@ export type DosingFlyoutProps = {
   pediatricRulesLoading: boolean
   pediatricRulesError: string | null
   fpCommitBolus: () => void
-  fpCommitInfusion: () => void
+  /** The record carries both rates (dose and pump) worked out by InfusionDoseFields. */
+  fpCommitInfusion: (record?: InfusionRecord) => void
   fpCommitFluid: () => void
 }
 
@@ -118,7 +120,7 @@ export function DosingFlyout({
         )
         // A flyout with routes, concentrations or entry modes needs both more
         // width and more headroom before it is worth opening downwards.
-        const detailed = hasDetailedBolus || hasDetailedFluid
+        const detailed = hasDetailedBolus || hasDetailedFluid || fp.mode === "infusion" // syringe, units and readout
         const viewport = { width: window.innerWidth, height: window.innerHeight }
         const POP_W = fitPopoverWidth(detailed ? 300 : 220, viewport.width)
         const { left, top, showAbove } = positionPopover({

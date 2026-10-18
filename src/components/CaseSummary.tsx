@@ -480,7 +480,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                 {[
                   { label: L.fluidCrystalloid, value: i?.crystalloidsMl },
                   { label: L.fluidColloid, value: i?.colloidsMl },
-                  { label: L.fluidBlood, value: i?.bloodMl },
+                  { label: L.fluidBlood, value: i?.bloodMl }, { label: L.fluidInfusions, value: (i as { infusionsMl?: number | null } | null | undefined)?.infusionsMl },
                   { label: L.fluidUrine,  value: i?.urineMl },
                   { label: L.fluidBloodLoss, value: i?.bloodLossMl },
                 ].map(({ label, value }) => (
@@ -511,7 +511,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
                   <span className="font-bold">{L.totalsLbl}:</span>{" "}
                   {[
                     ...drugTotals.map(d => `${displayClinicalCode("option:INTRAOP_DRUG", d.name, locale, { label: d.name })} ${d.total} ${d.unit}`),
-                    ...infTotals.map(d => `${displayClinicalCode("option:INTRAOP_INFUSION", d.name, locale, { label: d.name })} ${formatInfusionTotal(d)}${d.stopUnconfirmed ? L.stopUnconfirmedNote : ""}`),
+                    ...infTotals.map(d => `${displayClinicalCode("option:INTRAOP_INFUSION", d.name, locale, { label: d.name })} ${formatInfusionTotal(d)}${d.volumeMl != null ? ` · ${d.volumeMl} mL` : ""}${d.stopUnconfirmed ? L.stopUnconfirmedNote : ""}`),
                   ].join(" · ")}
                 </p>
               )}

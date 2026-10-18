@@ -40,6 +40,8 @@ const COPY = {
     administer: "Administer",
     startInfusion: "Start Infusion",
     volumeOnPump: "on the pump",
+    syringe: "Syringe",
+    syringeCustom: "e.g. 8 mg/50 mL",
     totalUsesWeight: (basis: string, weight?: number) => `Total will use ${basis}${weight ? ` ${weight} kg` : " — enter patient weight in preop"}`,
     doseSelectorAria: "Administration route",
     endCase: {
@@ -197,6 +199,8 @@ const COPY = {
     administer: "Приложи",
     startInfusion: "Започни инфузията",
     volumeOnPump: "на помпата",
+    syringe: "Спринцовка",
+    syringeCustom: "напр. 8 mg/50 mL",
     totalUsesWeight: (basis: string, weight?: number) => `Общото количество ще използва ${basis}${weight ? ` ${weight} kg` : " — въведете теглото на пациента в предоперативната форма"}`,
     doseSelectorAria: "Път на приложение",
     endCase: {

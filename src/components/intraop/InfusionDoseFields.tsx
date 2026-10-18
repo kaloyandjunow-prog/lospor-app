@@ -2,18 +2,22 @@
 
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
-import { PUMP_UNIT, rateFromPumpText, suggestedVolumeRate, switchVolumeUnit, volumeRateView } from "@/lib/volume-rate-entry"
+import { infusionRateView, infusionStrengths, suggestedRateAt, switchInfusionUnit, type InfusionRateInput } from "@/lib/infusion-rate-view"
+import { infusionEntryWeightKg, infusionRecord, type InfusionRecord } from "@lospor/core/infusion-entry"
+import { infusionCalculationBasis } from "@lospor/core/intraop-totals"
 import type { createDoseSurfaces } from "./dose-surfaces"
 import type { TtFP } from "./timetable-types"
 import { useIntraopUiCopy } from "./ui-copy"
 
 /**
- * The infusion half of the dosing flyout: rate, unit, route, strength.
+ * The infusion half of the dosing flyout: strength, rate, unit, route.
  *
- * A child's local anaesthetic infusion is entered as volume (mL/kg/hr). Its
- * slider maximum and pills follow the strength picked, so the dose stays under
- * the rule's limit; the pump rate and the dose are read out beside it; and the
- * pump rate can be typed instead (lib/volume-rate-entry, same as the PWA).
+ * The strength comes first -- a syringe ("4 mg/50 mL", or typed with Other)
+ * or a local anaesthetic's %. The rate may be entered in the drug's unit, the
+ * other dose unit of the same amount, or the pump's mL/hr; the other rate is
+ * read out beside it, and both are recorded (2026-10-18). The syringe may be
+ * skipped: then there is no pump rate and no millilitres for the balance.
+ * Same logic as the PWA (core infusion-entry.ts).
  */
 export function InfusionDoseFields({
   fp, setFp, doseSurfaces, isPediatric, laConcentrations, infusionWeightBasis, ibw, tbw, onConfirm,
@@ -26,7 +30,7 @@ export function InfusionDoseFields({
   infusionWeightBasis: Record<string, "IBW" | "TBW" | "BSA_M2" | "none">
   ibw?: number | null
   tbw?: number | null
-  onConfirm: () => void
+  onConfirm: (record?: InfusionRecord) => void
 }) {
   const copy = useIntraopUiCopy()
   const isurf = fp.searchOnlyManualEntry
@@ -45,52 +49,59 @@ export function InfusionDoseFields({
   const weightHint = isPerKg && basis
     ? `⚖ ${copy.totalUsesWeight(basis, wt ? Math.round(wt * 10) / 10 : undefined)}`
     : undefined
-  const volumeWeight = wt
-  const volume = volumeRateView({
-    unit: fp.rateUnit,
-    rate: fp.manualEntryOnly && fp.rate === 0 ? "" : fp.rate,
-    max: fp.rateMax,
-    step: fp.rateStep,
-    quickValues: fp.quickRates,
-    doseLimit: fp.doseLimit,
-    concentration: fp.concentration,
-    weightKg: volumeWeight,
-    pumpMode: fp.pumpMode,
-    pumpText: fp.pumpText,
-    onPumpLabel: copy.volumeOnPump,
-  })
-  const extraHint = [volume.readout, fp.advisory, weightHint].filter(Boolean).join(" · ") || undefined
+  // A typed infusion with no library entry keeps its free unit choice (it is
+  // given several); any catalogue infusion -- one unit, with or without
+  // per-route profiles -- gets the strength, the entry units and both rates.
+  const governed = !fp.searchOnlyManualEntry && (isPediatric || !!isurf || fp.rateUnits.length === 1)
+  const weightKg = isPediatric ? tbw ?? null : infusionEntryWeightKg({
+    basis: infusionCalculationBasis(fp.name, infusionWeightBasis), idealWeightKg: ibw, actualWeightKg: tbw })
+  const entryUnit = fp.entryUnit ?? fp.rateUnit
+  const rateInput: InfusionRateInput = {
+    ruleUnit: fp.rateUnit, entryUnit, doseUnit: fp.doseUnit, value: fp.manualEntryOnly && fp.rate === 0 ? "" : fp.rate,
+    min: fp.rateMin, max: fp.rateMax, step: fp.rateStep, quickValues: fp.quickRates,
+    doseLimit: fp.doseLimit, concentration: fp.concentration, weightKg,
+  }
+  const view = infusionRateView({ ...rateInput, onPumpLabel: copy.volumeOnPump })
+  const strengths = governed && (isLA || doseSurfaces.guidanceEnabled)
+    ? infusionStrengths({ name: fp.name, route: fp.route, localAnaesthetic: isLA ? conc : undefined })
+    : { options: isLA ? conc ?? [] : [], syringe: false }
+  const extraHint = governed
+    ? [view.readout, fp.advisory, weightHint].filter(Boolean).join(" · ") || undefined
+    : [fp.advisory, weightHint].filter(Boolean).join(" · ") || undefined
+  const record = (): InfusionRecord | undefined => governed
+    ? infusionRecord({ unit: fp.rateUnit, min: fp.rateMin, max: fp.rateMax, step: fp.rateStep, doseLimit: fp.doseLimit,
+        concentration: fp.concentration, weightKg, value: Number(fp.rate), entryUnit, doseUnit: fp.doseUnit }) ?? undefined
+    : undefined
   return (
     <DoseSelector
       accent="blue"
-      concentrationOptions={isLA ? conc : undefined}
+      concentrationOptions={strengths.options.length ? strengths.options : undefined}
+      concentrationLabel={strengths.syringe ? copy.syringe : undefined}
+      customConcentrationPlaceholder={strengths.syringe ? copy.syringeCustom : undefined}
       concentrationUnit={isLA ? fp.concentrationUnitHint : undefined}
       concentration={fp.concentration}
       onConcentrationChange={c => setFp(f => {
         if (!f) return f
-        const suggested = suggestedVolumeRate({ max: f.rateMax, step: f.rateStep, doseLimit: f.doseLimit, concentration: c })
-        return { ...f, concentration: c, customConc: "", ...(suggested == null ? {} : { rate: suggested, pumpMode: false }) }
+        const suggested = suggestedRateAt({ ...rateInput, value: f.rate }, c)
+        return { ...f, concentration: c, customConc: "", ...(suggested == null ? {} : { rate: suggested }) }
       })}
       customConcentration={fp.customConc}
       onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
-      quickValues={volume.quickValues}
+      quickValues={governed ? view.quickValues : fp.quickRates}
       manualEntryOnly={fp.manualEntryOnly}
-      value={volume.value}
-      onValueChange={v => setFp(f => {
-        if (!f) return f
-        if (volume.pumpMode) return { ...f, pumpText: v, rate: rateFromPumpText(v, volumeWeight) ?? 0 }
-        return { ...f, rate: parseFloat(v) || f.rateMin }
-      })}
+      value={fp.manualEntryOnly && fp.rate === 0 ? "" : String(fp.rate)}
+      onValueChange={v => setFp(f => f ? { ...f, rate: parseFloat(v) || (governed ? 0 : f.rateMin) } : f)}
       valuePlaceholder={copy.rate}
-      min={fp.rateMin} max={volume.max} step={volume.pumpMode ? 0.1 : fp.rateStep}
-      units={volume.pumpAvailable ? [fp.rateUnit, PUMP_UNIT] : !isLA ? fp.rateUnits : undefined}
-      unit={volume.pumpMode ? PUMP_UNIT : fp.rateUnit}
+      min={governed ? view.min : fp.rateMin} max={governed ? view.max : fp.rateMax} step={governed ? view.step : fp.rateStep}
+      units={governed ? (view.units.length > 1 ? view.units : undefined) : !isLA ? fp.rateUnits : undefined}
+      unit={governed ? entryUnit : fp.rateUnit}
       onUnitChange={u => setFp(f => {
         if (!f) return f
-        if (volume.pumpAvailable) return { ...f, ...switchVolumeUnit({ unit: f.rateUnit, rate: f.rate, weightKg: volumeWeight, next: u }) }
-        return { ...f, rateUnit: u }
+        if (!governed) return { ...f, rateUnit: u }
+        const next = switchInfusionUnit({ ...rateInput, value: f.rate, next: u })
+        return { ...f, rate: next.value ?? 0, entryUnit: next.entryUnit, doseUnit: next.doseUnit }
       })}
-      unitSuffix={volume.unitSuffix}
+      unitSuffix={governed ? entryUnit : fp.rateUnit}
       extraHint={extraHint}
       showGuidance={DISPLAY_CLINICAL_DOSE_GUIDANCE}
       formulationOptions={fp.formulationOptions}
@@ -108,6 +119,8 @@ export function InfusionDoseFields({
             rate: next.suggestedRate ?? 0,
             rateUnit: next.unit,
             rateUnits: [next.unit],
+            entryUnit: undefined,
+            doseUnit: undefined,
             rateMin: next.min,
             rateMax: next.max,
             rateStep: next.step,
@@ -121,7 +134,6 @@ export function InfusionDoseFields({
             manualEntryOnly: next.manualEntryOnly,
             advisory: next.advisory ?? undefined,
             doseLimit: next.doseLimit,
-            pumpMode: false,
             clinicalRuleKey: next.ruleKey,
             clinicalRuleVersion: next.ruleVersion,
             clinicalRuleSourceIds: next.sourceIds,
@@ -130,7 +142,7 @@ export function InfusionDoseFields({
         const surf = doseSurfaces.infusionRouteSurface(f.name, r)
         if (!surf) return { ...f, route: r }
         return { ...f, route: r,
-          rateUnit: surf.unit, rateUnits: [surf.unit],
+          rateUnit: surf.unit, rateUnits: [surf.unit], entryUnit: undefined, doseUnit: undefined,
           rateMin: surf.min, rateMax: surf.max, rateStep: surf.step,
           rate: surf.suggestedRate ?? surf.min,
           quickRates: surf.quickValues ?? f.quickRates,
@@ -143,7 +155,7 @@ export function InfusionDoseFields({
         || (!!fp.concentrationUnitHint && !fp.concentration)
         || (!!fp.formulationOptions?.length && !fp.formulation)
       }
-      onConfirm={onConfirm}
+      onConfirm={() => onConfirm(record())}
     />
   )
 }

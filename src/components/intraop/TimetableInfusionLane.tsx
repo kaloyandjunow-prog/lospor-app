@@ -47,6 +47,9 @@ export type RatePillMove = {
   fromCol: number
   rate: number
   unit: string
+  /** Carried with the change when it is slid: both rates stay together (2026-10-18). */
+  concentration?: string
+  volumeRateMlPerHour?: number
 }
 
 export type InfusionMenuRequest = {
@@ -86,7 +89,7 @@ export type InfusionLaneProps = {
 
   extendInfusion: (id: string, toCol: number) => void
   extendInfusionLeft: (id: string, toCol: number) => void
-  applyInfRateChange: (infId: string, fromCol: number | null, toCol: number, rate: number, unit: string) => void
+  applyInfRateChange: (infId: string, fromCol: number | null, toCol: number, change: { rate: number; unit: string; concentration?: string; volumeRateMlPerHour?: number }) => void
   /** Commit a whole-bar move; the owner decides move versus delete-prompt. */
   onMoveBar: (move: InfusionBarMove, toCol: number) => void
   onOpenMenu: (request: InfusionMenuRequest) => void
@@ -207,7 +210,7 @@ export function InfusionLane({
                 e.preventDefault()
                 // Only lands where an infusion is running; fromCol null keeps
                 // the original change in place rather than moving it.
-                if (seg) applyInfRateChange(movingRatePill!.infId, null, ci, movingRatePill!.rate, movingRatePill!.unit)
+                if (seg) applyInfRateChange(movingRatePill!.infId, null, ci, movingRatePill!)
                 dragActions.ratePillEnd()
               }
             }}
@@ -272,7 +275,7 @@ export function InfusionLane({
                       onDragStart={e => {
                         e.stopPropagation()
                         const rc = sortedChanges.find(r => r.col === ci)!
-                        dragActions.ratePillStart({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit })
+                        dragActions.ratePillStart({ infId: seg.id, fromCol: ci, rate: Number(rc.rate) || 0, unit: rc.unit, concentration: rc.concentration, volumeRateMlPerHour: rc.volumeRateMlPerHour })
                       }}
                       onDragEnd={() => dragActions.ratePillEnd()}
                       onClick={e => e.stopPropagation()}

@@ -37,7 +37,7 @@ import {
   buildFluidFlyoutState,
 } from "@/components/intraop/flyout-state"
 import { RateChangeDialog, type RateChangeState } from "@/components/intraop/RateChangeDialog"
-import { rateDialogSurface } from "@/components/intraop/rate-dialog-surface"
+import { rateDialogChange, rateDialogSurface, type InfusionRecord } from "@/components/intraop/rate-dialog-surface"
 import { computeRowGeometry } from "@/components/intraop/timetable-row-geometry"
 import {
   selId,
@@ -703,17 +703,17 @@ export function IntraopTimetable({
     setFp(null)
     if (!conflict) addFluidDirect(pending, fp.col)
   }
-  function fpCommitInfusion() {
+  function fpCommitInfusion(record?: InfusionRecord) {
     if (!fp) return
     const cfg  = INFUSION_CONFIGS[fp.name] ?? DEFAULT_INF
-    const conc = fp.concentration ? ` ${fp.concentration}` : ""
+    const conc = fp.concentration?.endsWith("%") ? ` ${fp.concentration}` : "" // a syringe stays out of the name
     const displayName = fp.name + conc
     const id   = `${fp.name}-${fp.col}-${uid()}`
     const lib = infusionLibOpts.find(o => o.label === fp.name)
     const ruleAudit = {
       ...clinicalProvenance(fp), calculationBasis: infusionCalculationBasis(fp.name, INFUSION_WEIGHT_BASIS),
     }
-    onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:fp.rate, unit:fp.rateUnit, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, formulation: fp.formulation, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit }] })
+    onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:record?.rate ?? fp.rate, unit:record?.unit ?? fp.rateUnit, volumeRateMlPerHour: record?.volumeRateMlPerHour, calculationWeightKg: record?.calculationWeightKg, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, formulation: fp.formulation, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit }] })
     setFp(null)
   }
 
@@ -1963,7 +1963,7 @@ export function IntraopTimetable({
             : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
           setRateDialog({
             segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit,
-            ...rateDialogSurface({ name: baseDrugName, route: seg.route, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces }),
+            route: seg.route, ...rateDialogSurface({ name: baseDrugName, route: seg.route, runningUnit: cur.unit, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces, weights: { tbw, ibw, basis: INFUSION_WEIGHT_BASIS } }),
             color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "",
             editFromCol: pillCol, concentration: cur.concentration, baseDrugName,
           })
@@ -1991,7 +1991,7 @@ export function IntraopTimetable({
           if (!basis || basis === "none" || !rateDialog.unit?.includes("/kg/")) return null
           return { basis, weightKg: basis === "TBW" ? tbw ?? null : ibw ?? null }
         })()}
-        volumeWeightKg={isPediatric ? tbw ?? null : null}
+        offerSyringes={prospectiveGuidanceEnabled}
         hours={Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))}
         minutes={Array.from(
           { length: 60 / INTERVAL },
@@ -2005,7 +2005,7 @@ export function IntraopTimetable({
         onPatch={patch => setRateDialog(d => d ? { ...d, ...patch } : d)}
         onApply={() => {
           const col = rateDialog.editFromCol !== undefined ? rateDialog.editFromCol : nowCol ?? 0
-          applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
+          applyInfRateChange(rateDialog.segId, rateDialog.editFromCol ?? null, col, rateDialogChange(rateDialog))
           setRateDialog(null)
         }}
         onConfirmTime={() => {
@@ -2015,7 +2015,7 @@ export function IntraopTimetable({
             intervalMinutes: INTERVAL,
             columnCount: colCount,
           })
-          applyInfRateChange(rateDialog.segId, null, changeCol, rateDialog.rate, rateDialog.unit, rateDialog.concentration)
+          applyInfRateChange(rateDialog.segId, null, changeCol, rateDialogChange(rateDialog))
           setRateDialog(null)
         }}
         onDismiss={() => setRateDialog(null)}

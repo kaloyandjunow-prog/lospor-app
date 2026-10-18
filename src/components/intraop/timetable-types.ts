@@ -105,11 +105,15 @@ export type TtFP = {
   /** Routine-hidden item opened deliberately from search; never resolve guidance for it. */
   searchOnlyManualEntry?: boolean
   advisory?: string
-  /** A volume rate limited by dose (local anaesthetics in children); see lib/volume-rate-entry. */
+  /** A volume rate limited by dose (local anaesthetics in children); see lib/infusion-rate-view. */
   doseLimit?: DoseLimit
-  /** The pump rate (mL/hr) is being typed instead of the per-kg rate. */
-  pumpMode?: boolean
-  pumpText?: string
+  /**
+   * The unit the rate is entered in when not `rateUnit` (the drug's own): the
+   * other dose unit or the pump's mL/hr; and the dose unit a pump rate is
+   * recorded as. Both rates are recorded (2026-10-18).
+   */
+  entryUnit?: string
+  doseUnit?: string
   calculationBasis?: "FLAT" | "TBW" | "IBW" | "BSA_M2"
   calculationWeightKg?: number
   calculationMethod?: string

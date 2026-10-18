@@ -70,6 +70,9 @@ export type DoseSelectorProps = {
   concentrationUnit?: string
   onConcentrationChange?: (c: string | undefined) => void
   customConcentration?: string
+  /** The heading over the strengths, and a typed strength as text ("8 mg/50 mL"): an infusion's syringe. */
+  concentrationLabel?: string
+  customConcentrationPlaceholder?: string
   onCustomConcentrationChange?: (v: string) => void
 
   formulationOptions?: LocalAnaestheticFormulation[]
@@ -92,6 +95,7 @@ export function DoseSelector({
   units, unit, onUnitChange, unitSuffix,
   routes, route, onRouteChange,
   concentrationOptions, concentration, concentrationUnit, onConcentrationChange, customConcentration, onCustomConcentrationChange,
+  concentrationLabel, customConcentrationPlaceholder,
   formulationOptions, formulation, onFormulationChange,
   confirmLabel, onConfirm, confirmDisabled, stickyConfirm = false,
 }: DoseSelectorProps) {
@@ -104,7 +108,7 @@ export function DoseSelector({
   )
   const a = ACCENT[accent] ?? ACCENT.violet
   const num = parseFloat(value) || 0
-  const pillBase = "min-h-7 text-[10px] font-semibold px-2 py-1 rounded-full border transition-all"
+  const pillBase = "min-h-7 whitespace-nowrap text-[10px] font-semibold px-2 py-1 rounded-full border transition-all"
   const pillOff  = "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"
   const doseValues = useMemo(() => quickValues ?? [], [quickValues])
   const safeDosePage = clampSelectorPage(doseValues.length, DOSE_PILL_PAGE_SIZE, dosePage)
@@ -204,7 +208,7 @@ export function DoseSelector({
 
       {showConcentration && (
         <div className="space-y-1.5 pb-1 border-b border-slate-100 dark:border-[#2a2a2a]">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{copy.concentration}</p>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{concentrationLabel ?? copy.concentration}</p>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1">
             <div
               className="grid gap-1"
@@ -240,7 +244,13 @@ export function DoseSelector({
               onPageChange={setConcentrationPage}
             />
           )}
-          {customConcentrationOpen && (
+          {customConcentrationOpen && customConcentrationPlaceholder && (
+            <input ref={customConcentrationRef} type="text" placeholder={customConcentrationPlaceholder} value={customConcentration ?? ""}
+              aria-label={concentrationLabel}
+              onChange={e => { onConcentrationChange?.(e.target.value.trim() || undefined); onCustomConcentrationChange?.(e.target.value) }}
+              className="min-w-0 w-full text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-2 py-1 outline-none focus:border-sky-400" />
+          )}
+          {customConcentrationOpen && !customConcentrationPlaceholder && (
             <div className="flex items-center gap-1.5">
               <input ref={customConcentrationRef} type="number" min="0.01" max={customConcentrationUnit === "%" ? 20 : undefined} step="0.001" placeholder={copy.concentrationExample}
                 value={customConcentration ?? ""}

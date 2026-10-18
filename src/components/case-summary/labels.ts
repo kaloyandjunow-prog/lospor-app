@@ -24,7 +24,7 @@ export const LABELS = {
     caseLbl: "Case", pageLbl: "Page", ofLbl: "of",
     // A stop entered ahead of its time whose time came, not yet confirmed (9.13.0).
     stopUnconfirmedNote: " (stop not confirmed)",
-    fluidCrystalloid: "Crystalloid", fluidColloid: "Colloid", fluidBlood: "Blood", fluidUrine: "Urine", fluidBloodLoss: "Blood loss",
+    fluidCrystalloid: "Crystalloid", fluidColloid: "Colloid", fluidBlood: "Blood", fluidInfusions: "Infusions", fluidUrine: "Urine", fluidBloodLoss: "Blood loss",
     aldreteActivity: "Activity", aldreteRespiration: "Respiration", aldreteCirculation: "Circulation", aldreteConsciousness: "Consciousness",
     printCase: "Print case", notNow: "Not now",
     edit: "Edit:", preopShort: "Preop", intraopShort: "Intraop", postopShort: "Postop", unfinalize: "Unfinalize",
@@ -99,7 +99,7 @@ export const LABELS = {
     generatedLbl: "Генериран",
     caseLbl: "Случай", pageLbl: "Стр.", ofLbl: "от",
     stopUnconfirmedNote: " (спирането не е потвърдено)",
-    fluidCrystalloid: "Кристалоиди", fluidColloid: "Колоиди", fluidBlood: "Биопродукти", fluidUrine: "Диуреза", fluidBloodLoss: "Кръвозагуба",
+    fluidCrystalloid: "Кристалоиди", fluidColloid: "Колоиди", fluidBlood: "Биопродукти", fluidInfusions: "Инфузии", fluidUrine: "Диуреза", fluidBloodLoss: "Кръвозагуба",
     aldreteActivity: "Активност", aldreteRespiration: "Дишане", aldreteCirculation: "Циркулация", aldreteConsciousness: "Съзнание",
     printCase: "Печат на случая", notNow: "Не сега",
     edit: "Редакция:", preopShort: "Предоп.", intraopShort: "Интраоп.", postopShort: "Следоп.", unfinalize: "Отмени финализирането",
