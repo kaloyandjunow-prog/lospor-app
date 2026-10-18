@@ -301,7 +301,7 @@ export function DoseSelector({
         <input autoFocus type="number" placeholder={valuePlaceholder ?? copy.value} value={value}
           onChange={e => onValueChange(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !confirmDisabled && onConfirm?.()}
-          className={`flex-1 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none ${a.focusBorder} [appearance:textfield]`} />
+          className={`flex-1 min-w-0 text-xs text-center bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1 outline-none ${a.focusBorder} [appearance:textfield]`} />
         {showGuidance && !manualEntryOnly && (
           <button type="button"
             onClick={() => onValueChange(String(Math.min(max, (parseFloat(value) || 0) + step)))}

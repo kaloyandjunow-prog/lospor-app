@@ -1,7 +1,9 @@
 "use client"
 
 import { createPortal } from "react-dom"
+import type { DoseLimit } from "@lospor/core/catalog"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
+import { PUMP_UNIT, rateFromPumpText, suggestedVolumeRate, switchVolumeUnit, volumeRateView } from "@/lib/volume-rate-entry"
 import { useIntraopUiCopy } from "./ui-copy"
 
 /**
@@ -34,6 +36,13 @@ export type RateChangeState = {
   timeM: string
   editFromCol?: number
   concentration?: string
+  /** A child's local anaesthetic infusion: its rule's strengths, pills and dose limit (rate-dialog-surface). */
+  concentrationOptions?: string[]
+  quickValues?: number[]
+  doseLimit?: DoseLimit
+  /** The pump rate (mL/hr) is being typed instead of the per-kg rate. */
+  pumpMode?: boolean
+  pumpText?: string
 }
 
 export type RateChangeDialogProps = {
@@ -43,6 +52,8 @@ export type RateChangeDialogProps = {
   concentrations: readonly string[] | undefined
   /** "TBW"/"IBW" and the weight it resolves to, when the unit is per-kilogram. */
   weightBasis: { basis: string; weightKg: number | null } | null
+  /** The child's weight, for the pump rate of a mL/kg/hr infusion. */
+  volumeWeightKg?: number | null
   hours: string[]
   minutes: string[]
   labels: {
@@ -66,6 +77,7 @@ export function RateChangeDialog({
   displayName,
   concentrations,
   weightBasis,
+  volumeWeightKg = null,
   hours,
   minutes,
   labels,
@@ -79,6 +91,14 @@ export function RateChangeDialog({
   if (typeof document === "undefined") return null
 
   const editing = state.editFromCol !== undefined
+  const volume = volumeRateView({
+    unit: state.unit, rate: state.rate, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues,
+    doseLimit: state.doseLimit, concentration: state.concentration, weightKg: volumeWeightKg,
+    pumpMode: state.pumpMode, pumpText: state.pumpText, onPumpLabel: copy.volumeOnPump,
+  })
+  const setValue = (text: string) => onPatch(volume.pumpMode
+    ? { pumpText: text, rate: rateFromPumpText(text, volumeWeightKg) ?? 0 }
+    : { rate: parseFloat(text) || state.rateMin })
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onDismiss}>
@@ -116,7 +136,11 @@ export function RateChangeDialog({
                       type="button"
                       // Tapping the selected one clears it: a strength recorded
                       // by mistake has to be removable, not just replaceable.
-                      onClick={() => onPatch({ concentration: state.concentration === value ? undefined : value })}
+                      onClick={() => {
+                        const next = state.concentration === value ? undefined : value
+                        const suggested = suggestedVolumeRate({ max: state.rateMax, step: state.rateStep, doseLimit: state.doseLimit, concentration: next })
+                        onPatch({ concentration: next, ...(suggested == null ? {} : { rate: suggested, pumpMode: false }) })
+                      }}
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
                         state.concentration === value
                           ? "bg-sky-500 border-sky-500 text-white"
@@ -134,36 +158,49 @@ export function RateChangeDialog({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  value={state.rate}
+                  value={volume.value}
                   autoFocus
                   min={showDoseGuidance ? state.rateMin : undefined}
-                  max={showDoseGuidance ? state.rateMax : undefined}
-                  step={state.rateStep}
-                  onChange={event => onPatch({ rate: parseFloat(event.target.value) || state.rateMin })}
+                  max={showDoseGuidance ? volume.max : undefined}
+                  step={volume.pumpMode ? 0.1 : state.rateStep}
+                  onChange={event => setValue(event.target.value)}
                   className="flex-1 text-lg font-semibold text-center border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none focus:ring-1 focus:ring-blue-400 [appearance:textfield]"
                 />
                 <select
-                  value={state.unit}
-                  onChange={event => onPatch({ unit: event.target.value })}
+                  value={volume.pumpMode ? PUMP_UNIT : state.unit}
+                  onChange={event => onPatch(volume.pumpAvailable
+                    ? switchVolumeUnit({ unit: state.unit, rate: state.rate, weightKg: volumeWeightKg, next: event.target.value })
+                    : { unit: event.target.value })}
                   className="text-xs border border-slate-200 dark:border-[#3a3a3a] rounded-lg px-2 py-1.5 bg-white dark:bg-[#2a2a2a] focus:outline-none"
                 >
-                  {state.units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                  {(volume.pumpAvailable ? [state.unit, PUMP_UNIT] : state.units).map(unit => <option key={unit} value={unit}>{unit}</option>)}
                 </select>
               </div>
+              {volume.readout && <p className="text-[10px] text-sky-600 dark:text-sky-400">{volume.readout}</p>}
+              {showDoseGuidance && volume.quickValues && volume.quickValues.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {volume.quickValues.map(value => (
+                    <button key={value} type="button" onClick={() => onPatch({ rate: value })}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${state.rate === value ? "bg-blue-500 border-blue-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"}`}>
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              )}
               {showDoseGuidance && (
                 <>
                   <input
                     type="range"
                     min={state.rateMin}
-                    max={state.rateMax}
-                    step={state.rateStep}
-                    value={state.rate}
-                    onChange={event => onPatch({ rate: parseFloat(event.target.value) })}
+                    max={volume.max}
+                    step={volume.pumpMode ? 0.1 : state.rateStep}
+                    value={volume.value}
+                    onChange={event => setValue(event.target.value)}
                     className="w-full accent-blue-500"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400">
                     <span>{state.rateMin}</span>
-                    <span>{state.rateMax} {state.unit}</span>
+                    <span>{volume.max} {volume.unitSuffix}</span>
                   </div>
                 </>
               )}

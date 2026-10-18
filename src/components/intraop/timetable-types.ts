@@ -1,4 +1,4 @@
-import type { LocalAnaestheticFormulation } from "@lospor/core/catalog"
+import type { DoseLimit, LocalAnaestheticFormulation } from "@lospor/core/catalog"
 import type { DrugSelectionSurface } from "@lospor/core/drug-selection"
 import type { FluidEntryMode } from "@lospor/core/intraop-fluids"
 
@@ -105,6 +105,11 @@ export type TtFP = {
   /** Routine-hidden item opened deliberately from search; never resolve guidance for it. */
   searchOnlyManualEntry?: boolean
   advisory?: string
+  /** A volume rate limited by dose (local anaesthetics in children); see lib/volume-rate-entry. */
+  doseLimit?: DoseLimit
+  /** The pump rate (mL/hr) is being typed instead of the per-kg rate. */
+  pumpMode?: boolean
+  pumpText?: string
   calculationBasis?: "FLAT" | "TBW" | "IBW" | "BSA_M2"
   calculationWeightKg?: number
   calculationMethod?: string

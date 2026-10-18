@@ -39,6 +39,7 @@ const COPY = {
     startAgent: (name: string) => `Start ${name}`,
     administer: "Administer",
     startInfusion: "Start Infusion",
+    volumeOnPump: "on the pump",
     totalUsesWeight: (basis: string, weight?: number) => `Total will use ${basis}${weight ? ` ${weight} kg` : " — enter patient weight in preop"}`,
     doseSelectorAria: "Administration route",
     endCase: {
@@ -195,6 +196,7 @@ const COPY = {
     startAgent: (name: string) => `Започни ${name}`,
     administer: "Приложи",
     startInfusion: "Започни инфузията",
+    volumeOnPump: "на помпата",
     totalUsesWeight: (basis: string, weight?: number) => `Общото количество ще използва ${basis}${weight ? ` ${weight} kg` : " — въведете теглото на пациента в предоперативната форма"}`,
     doseSelectorAria: "Път на приложение",
     endCase: {

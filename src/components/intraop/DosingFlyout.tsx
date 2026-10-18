@@ -5,6 +5,7 @@ import { useIntraopUiCopy } from "./ui-copy"
 import { DosingFlyoutHeader } from "./DosingFlyoutHeader"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import { FluidDoseFields } from "./FluidDoseFields"
+import { InfusionDoseFields } from "./InfusionDoseFields"
 import { fitPopoverWidth, positionPopover } from "./anchored-position"
 import type { createDoseSurfaces } from "./dose-surfaces"
 import type { TtFP } from "./timetable-types"
@@ -303,92 +304,8 @@ export function DosingFlyout({
             })()}
 
             {fp.mode === "infusion" && (
-              (() => {
-                const isurf = fp.searchOnlyManualEntry
-                  ? undefined
-                  : doseSurfaces.infusionRouteSurface(fp.name, fp.route)
-                const conc = isPediatric
-                  ? fp.concentrationOptions
-                  : isurf ? (isurf.mode?.includes("concentration") ? isurf.concentrationOptions : undefined) : laConcentrations[fp.name]
-                const isLA = !!fp.concentrationUnitHint || !!conc?.length
-                const basis = fp.searchOnlyManualEntry ? undefined : infusionWeightBasis[fp.name]
-                const isPerKg = fp.rateUnit?.includes("/kg/")
-                const wt = basis === "TBW" ? tbw : ibw
-                const weightHint = isPerKg && basis
-                  ? `⚖ ${copy.totalUsesWeight(basis, wt ? Math.round(wt * 10) / 10 : undefined)}`
-                  : undefined
-                const extraHint = [fp.advisory, weightHint].filter(Boolean).join(" · ") || undefined
-                return (
-                  <DoseSelector
-                    accent="blue"
-                    concentrationOptions={isLA ? conc : undefined}
-                    concentrationUnit={isLA ? fp.concentrationUnitHint : undefined}
-                    concentration={fp.concentration}
-                    onConcentrationChange={c => setFp(f => f ? {...f, concentration: c, customConc: ""} : f)}
-                    customConcentration={fp.customConc}
-                    onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
-                    quickValues={fp.quickRates}
-                    manualEntryOnly={fp.manualEntryOnly}
-                    value={fp.manualEntryOnly && fp.rate === 0 ? "" : String(fp.rate)} onValueChange={v => setFp(f => f ? {...f, rate: parseFloat(v) || f.rateMin} : f)}
-                    valuePlaceholder={copy.rate}
-                    min={fp.rateMin} max={fp.rateMax} step={fp.rateStep}
-                    units={!isLA ? fp.rateUnits : undefined}
-                    unit={fp.rateUnit} onUnitChange={u => setFp(f => f ? {...f, rateUnit: u} : f)}
-                    unitSuffix={fp.rateUnit}
-                    extraHint={extraHint}
-                    showGuidance={DISPLAY_CLINICAL_DOSE_GUIDANCE}
-                    formulationOptions={fp.formulationOptions}
-                    formulation={fp.formulation}
-                    onFormulationChange={formulation => setFp(f => f ? { ...f, formulation } : f)}
-                    routes={fp.routes} route={fp.route} onRouteChange={r => setFp(f => {
-                      if (!f) return f
-                      if (f.searchOnlyManualEntry) return { ...f, route: r }
-                      if (isPediatric) {
-                        const next = doseSurfaces.clinicalPediatricInfusionFor(f.name, r).surface
-                        if (!next || next.disposition === "HIDDEN") return f
-                        return {
-                          ...f,
-                          route: next.route,
-                          rate: next.suggestedRate ?? 0,
-                          rateUnit: next.unit,
-                          rateUnits: [next.unit],
-                          rateMin: next.min,
-                          rateMax: next.max,
-                          rateStep: next.step,
-                          quickRates: next.quickValues,
-                          concentration: next.concentration || undefined,
-                          concentrationOptions: next.concentrationOptions,
-                          concentrationUnitHint: next.concentrationUnit,
-                          customConc: "",
-                          formulation: next.formulation,
-                          formulationOptions: next.formulationOptions,
-                          manualEntryOnly: next.manualEntryOnly,
-                          advisory: next.advisory ?? undefined,
-                          clinicalRuleKey: next.ruleKey,
-                          clinicalRuleVersion: next.ruleVersion,
-                          clinicalRuleSourceIds: next.sourceIds,
-                        }
-                      }
-                      const surf = doseSurfaces.infusionRouteSurface(f.name, r)
-                      if (!surf) return { ...f, route: r }
-                      return { ...f, route: r,
-                        rateUnit: surf.unit, rateUnits: [surf.unit],
-                        rateMin: surf.min, rateMax: surf.max, rateStep: surf.step,
-                        rate: surf.suggestedRate ?? surf.min,
-                        quickRates: surf.quickValues ?? f.quickRates,
-                        concentration: surf.suggestedConcentration, customConc: "" }
-                    })}
-                    confirmLabel={copy.startInfusion}
-                    confirmDisabled={
-                      !Number.isFinite(Number(fp.rate))
-                      || Number(fp.rate) <= 0
-                      || (!!fp.concentrationUnitHint && !fp.concentration)
-                      || (!!fp.formulationOptions?.length && !fp.formulation)
-                    }
-                    onConfirm={fpCommitInfusion}
-                  />
-                )
-              })()
+              <InfusionDoseFields fp={fp} setFp={setFp} doseSurfaces={doseSurfaces} isPediatric={isPediatric}
+                laConcentrations={laConcentrations} infusionWeightBasis={infusionWeightBasis} ibw={ibw} tbw={tbw} onConfirm={fpCommitInfusion} />
             )}
           </div>
         )

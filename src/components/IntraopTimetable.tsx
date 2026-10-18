@@ -36,7 +36,8 @@ import {
   buildDrugFlyoutState,
   buildFluidFlyoutState,
 } from "@/components/intraop/flyout-state"
-import { RateChangeDialog } from "@/components/intraop/RateChangeDialog"
+import { RateChangeDialog, type RateChangeState } from "@/components/intraop/RateChangeDialog"
+import { rateDialogSurface } from "@/components/intraop/rate-dialog-surface"
 import { computeRowGeometry } from "@/components/intraop/timetable-row-geometry"
 import {
   selId,
@@ -432,15 +433,8 @@ export function IntraopTimetable({
   const [infPicker, setInfPicker]     = useState<{ ci: number; rect: DOMRect } | null>(null)
   // Infusion context menu + rate-change dialog
   const [infMenu, setInfMenu] = useState<{ segId: string; name: string; color: string; rect: DOMRect; stopped?: boolean; fromPillCol?: number } | null>(null)
-  const [rateDialog, setRateDialog] = useState<{
-    segId: string; name: string; rate: number; unit: string
-    units: string[]; rateMin: number; rateMax: number; rateStep: number
-    color: string; rect: DOMRect; step: "rate" | "time"
-    timeH: string; timeM: string
-    editFromCol?: number
-    concentration?: string  // local anaesthetic infusions only — editable mid-run
-    baseDrugName?: string   // drug name without the concentration suffix, for LA_CONCENTRATIONS lookup
-  } | null>(null)
+  // baseDrugName: the drug name without the concentration suffix, for LA_CONCENTRATIONS lookup.
+  const [rateDialog, setRateDialog] = useState<(RateChangeState & { segId: string; rect: DOMRect; baseDrugName?: string }) | null>(null)
   // Timetable layout mode
   const [layout, setLayout] = useState<"expand" | "scroll">(() =>
     typeof window !== "undefined"
@@ -1969,10 +1963,7 @@ export function IntraopTimetable({
             : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
           setRateDialog({
             segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit,
-            units: cfg.units,
-            rateMin: prospectiveGuidanceEnabled ? cfg.min : 0,
-            rateMax: prospectiveGuidanceEnabled ? cfg.max : 100_000,
-            rateStep: prospectiveGuidanceEnabled ? cfg.step : 0.1,
+            ...rateDialogSurface({ name: baseDrugName, route: seg.route, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces }),
             color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "",
             editFromCol: pillCol, concentration: cur.concentration, baseDrugName,
           })
@@ -1993,13 +1984,14 @@ export function IntraopTimetable({
         state={rateDialog}
         displayName={displayInfusionName(rateDialog.name) + (rateDialog.editFromCol != null && nowCol != null && rateDialog.editFromCol > nowCol ? ` · ${t("intraop.timetable.plannedAt", { time: times[rateDialog.editFromCol] })}` : "")}
         concentrations={prospectiveGuidanceEnabled
-          ? LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name]
+          ? rateDialog.concentrationOptions ?? LA_CONCENTRATIONS[rateDialog.baseDrugName ?? rateDialog.name]
           : undefined}
         weightBasis={(() => {
-          const basis = INFUSION_WEIGHT_BASIS[rateDialog.name]
-          if (!basis || !rateDialog.unit?.includes("/kg/")) return null
+          const basis = isPediatric ? "TBW" : INFUSION_WEIGHT_BASIS[rateDialog.name] // children: actual weight
+          if (!basis || basis === "none" || !rateDialog.unit?.includes("/kg/")) return null
           return { basis, weightKg: basis === "TBW" ? tbw ?? null : ibw ?? null }
         })()}
+        volumeWeightKg={isPediatric ? tbw ?? null : null}
         hours={Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))}
         minutes={Array.from(
           { length: 60 / INTERVAL },
