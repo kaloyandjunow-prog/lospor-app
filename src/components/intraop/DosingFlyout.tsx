@@ -197,7 +197,8 @@ export function DosingFlyout({
                         : "Overlapping profiles were returned. The dose cannot be recorded."}
                     </p>
                   ) : null}
-                  {fp.calculationUnavailableReason && (!isPediatric || pediatricProfiles.length === 1) ? (
+                  {/* Only missing patient data is worth saying; a route with no calculation (intrathecal, say) is not missing anything. */}
+                  {fp.calculationUnavailableReason && fp.calculationUnavailableReason !== "NO_AUTOFILL" && (!isPediatric || pediatricProfiles.length === 1) ? (
                     <p className="text-[10px] text-amber-600 dark:text-amber-400">
                       {isBg
                         ? "Дозата не може да бъде изчислена от наличните данни. Въведете я ръчно."
