@@ -94,7 +94,7 @@ export const LABELS = {
     undatedDraw: "Часът не е записан",
     labsOmitted: (results: number, draws: number) =>
       `+${results} по-ранни резултата от ${draws} по-ранни вземания — вижте записа`,
-    aldreteTotalLbl: "Общо Aldrete", readyDischarge: "Готов за извеждане", recoveryObs: "Наблюдения при възстановяване",
+    aldreteTotalLbl: "Общо Алдрет", readyDischarge: "Готов за извеждане", recoveryObs: "Наблюдения при възстановяване",
     footerLine: "LOSPOR личен журнал на случаи · Не е клиничен документ · Не се съхраняват лични данни — полетата за самоличност се попълват на ръка след печат",
     generatedLbl: "Генериран",
     caseLbl: "Случай", pageLbl: "Стр.", ofLbl: "от",
@@ -105,7 +105,7 @@ export const LABELS = {
     edit: "Редакция:", preopShort: "Предоп.", intraopShort: "Интраоп.", postopShort: "Следоп.", unfinalize: "Отмени финализирането",
     closing: "Затваряне…", closeNow: "Затвори сега",
     finalizeMissingTechnique: "Няма записана анестезиологична техника", finalizeMissingPostop: "Следоперативният запис не е завършен",
-    finalizeMissingAldrete: "Липсва оценка по Aldrete", finalizeMissingDisposition: "Не е записано къде е насочен пациентът",
+    finalizeMissingAldrete: "Липсва оценка по Алдрет", finalizeMissingDisposition: "Не е записано къде е насочен пациентът",
     finalizeMissingIntraop: "Интраоперативният запис не е започнат", finalizeMissingPreop: "Липсва предоперативна оценка",
     finalizeMissingDemographics: "Непълни предоперативни демографски данни — липсва възраст, пол, ръст или тегло",
     finalizeAlreadyFinalized: "Случаят вече е финализиран",

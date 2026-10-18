@@ -1664,8 +1664,8 @@ export function IntraopTimetable({
           {chartOpen ? uiCopy.timetable.hideChart : uiCopy.timetable.showChart}
           {chartOpen && (
             <span className="flex items-center gap-2 ml-1 text-[10px] font-normal opacity-70">
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-red-400 rounded" />BP</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-green-500 rounded" />HR</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-red-400 rounded" />{t("intraop.timetable.vitalBp")}</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-green-500 rounded" />{t("intraop.timetable.vitalHr")}</span>
               <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-cyan-500 rounded" />SpO2</span>
               <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-amber-500 rounded" />EtCO2</span>
             </span>

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { useLocale, useTranslations } from "next-intl"
+import { vitalAbbreviations } from "@lospor/core/intraop-summary"
 import { calcABW } from "@/lib/scores"
 import { getMedicationWarnings } from "@/lib/risk-derivation"
 import { allergyRecords, uncheckedAllergies } from "@lospor/core/allergy-drug-check"
@@ -56,8 +57,8 @@ export function IntraopPreopSummary({ preop, ibw: calcIbw, isPediatric, surgeryS
         })()}
         {(preop.bpSystolic || preop.heartRate || preop.spO2) && (
           <span className="text-slate-600 dark:text-slate-300">
-            {preop.bpSystolic && preop.bpDiastolic ? `BP ${preop.bpSystolic}/${preop.bpDiastolic}` : ""}
-            {preop.heartRate ? ` · HR ${preop.heartRate}` : ""}
+            {preop.bpSystolic && preop.bpDiastolic ? `${vitalAbbreviations(locale).bp} ${preop.bpSystolic}/${preop.bpDiastolic}` : ""}
+            {preop.heartRate ? ` · ${vitalAbbreviations(locale).hr} ${preop.heartRate}` : ""}
             {preop.spO2 ? ` · SpO₂ ${preop.spO2}%` : ""}
           </span>
         )}

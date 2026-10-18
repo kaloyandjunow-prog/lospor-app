@@ -1623,6 +1623,9 @@
       "removeResult": "Remove laboratory result"
     },
     "timetable": {
+      "vitalBp": "BP",
+      "vitalHr": "HR",
+      "vitalTemp": "Temp",
       "vitalBpSys": "BP Sys",
       "vitalBpDia": "BP Dia",
       "caseFinished": "Case finished",
