@@ -31,6 +31,8 @@ import {
 import { cloneRouteMode, doseProfileEditorIssues, effectiveRouteMode } from "@/lib/dose-profile-validation"
 import { ProfilePreview, type PreviewSection } from "./ProfilePreview"
 import { useDoseProfileCopy } from "./dose-profile-copy"
+import { ruleCodeLabel, ruleRouteLabel } from "./rule-code-labels"
+import { useLocale } from "next-intl"
 
 const fieldClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 dark:border-[#3a3a3a] dark:bg-[#202020] dark:text-slate-100 dark:disabled:bg-[#161616]"
 const labelClass = "grid gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300"
@@ -112,10 +114,6 @@ function calcMethod(calc: DoseCalc | undefined): CalcMethod {
 
 function calcAmount(calc: DoseCalc | undefined): number | undefined {
   return calc?.perKg ?? calc?.perM2 ?? calc?.flat
-}
-
-function routeName(route: string): string {
-  return ADMINISTRATION_ROUTES.find(item => item.code === route)?.labelEn ?? route
 }
 
 function NumberInput({
@@ -311,6 +309,9 @@ export function DoseProfileEditor({
   previewWeightKg?: number
 }) {
   const copy = useDoseProfileCopy()
+  const locale = useLocale()
+  // A route by name, in the reader's language (it was English, or the code, before 2026-10-18).
+  const routeName = (route: string) => ruleRouteLabel(route, locale)
   const initialRoute = profile.defaultRoute ?? profile.routes[0] ?? "IV"
   const [activeRoute, setActiveRoute] = useState(initialRoute)
   const [previewSection, setPreviewSection] = useState<PreviewSection | null>(null)
@@ -452,7 +453,7 @@ export function DoseProfileEditor({
           {copy.addIncludedRoute}
           <select value={routeToAdd} onChange={event => setRouteToAdd(event.target.value as AdministrationRouteCode | "")} className={fieldClass}>
             <option value="">{copy.selectRoute}</option>
-            {availableRoutes.map(route => <option key={route.code} value={route.code}>{route.labelEn}</option>)}
+            {availableRoutes.map(route => <option key={route.code} value={route.code}>{routeName(route.code)}</option>)}
           </select>
         </label>
         <label className={labelClass}>
@@ -481,7 +482,7 @@ export function DoseProfileEditor({
                 onClick={() => setActiveRoute(route)}
                 className={`shrink-0 rounded-md border px-3 py-2 text-xs font-semibold ${selectedRoute === route ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950/30 dark:text-blue-200" : "border-slate-300 text-slate-600 dark:border-[#3a3a3a] dark:text-slate-300"}`}
               >
-                {route} · {unit}{isDefault ? " · default" : ""}
+                {routeName(route)} · {unit}{isDefault ? ` · ${ruleCodeLabel("word", "DEFAULT", locale)}` : ""}
               </button>
             )
           })}

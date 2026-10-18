@@ -642,7 +642,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             {/* Risk scores + preop vitals */}
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
               <p className="text-[8.5px] font-bold tracking-[0.1em] text-blue-900 dark:text-blue-300 mb-1">{L.riskScores.toUpperCase()}</p>
-              <F label="ASA"       value={p?.asaScore ? `Class ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null} />
+              <F label="ASA"       value={p?.asaScore ? `${L.asaClass} ${p.asaScore}${p.emergencySurgery ? "E" : ""}` : null} />
               {p?.rcriScore  != null && <F label="RCRI"      value={`${p.rcriScore} / 6 — ${displayRcriRisk(p.rcriScore, bandLocale).label}`} />}
               {p?.apfelScore != null && <F label="Apfel"     value={`${p.apfelScore} / 4 — ${displayApfelRisk(p.apfelScore, bandLocale).label}`} />}
               {p?.stopBangScore != null && <F label="STOP-BANG" value={`${p.stopBangScore} / 8 — ${displayStopBangRisk(p.stopBangScore, bandLocale).label}`} />}

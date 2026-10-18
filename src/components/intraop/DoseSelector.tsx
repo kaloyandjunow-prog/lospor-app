@@ -13,7 +13,8 @@ import {
   selectorPage,
   selectorPageCount,
 } from "@/lib/selector-pagination"
-import type { LocalAnaestheticFormulation } from "@lospor/core/catalog"
+import { localAnaestheticFormulationLabel, type LocalAnaestheticFormulation } from "@lospor/core/catalog"
+import { useLocale } from "next-intl"
 import { useIntraopUiCopy } from "./ui-copy"
 import { customStrengthLabel } from "@lospor/core/strength-entry"
 import { StrengthCustomField } from "./StrengthCustomField"
@@ -107,6 +108,7 @@ export function DoseSelector({
   confirmLabel, onConfirm, confirmDisabled, confirmBlockedReason, stickyConfirm = false,
 }: DoseSelectorProps) {
   const copy = useIntraopUiCopy()
+  const locale = useLocale()
   const [dosePage, setDosePage] = useState(0)
   const [concentrationPage, setConcentrationPage] = useState(0)
   const [customConcentrationOpen, setCustomConcentrationOpen] = useState(
@@ -204,7 +206,7 @@ export function DoseSelector({
                 aria-pressed={formulation === option}
                 className={`${pillBase} truncate ${formulation === option ? "bg-sky-500 border-sky-500 text-white" : pillOff + " hover:border-sky-400 dark:hover:border-sky-600"}`}
               >
-                {option.charAt(0) + option.slice(1).toLocaleLowerCase()}
+                {localAnaestheticFormulationLabel(option, locale)}
               </button>
             ))}
           </div>

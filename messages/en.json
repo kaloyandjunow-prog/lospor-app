@@ -1358,6 +1358,7 @@
         "insertionDepth": "~{value} cm insertion depth",
         "cuffedPair": "{cuffed} cuffed / {uncuffed} uncuffed",
         "smallerCuffed": "{value} cuffed (0.5 mm smaller)",
+        "smallerHalf": "{value} (0.5 smaller)",
         "prepareSmaller": "Prepare 0.5 mm smaller than the clinically planned ETT"
       }
     },
