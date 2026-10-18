@@ -59,3 +59,34 @@ describe("an adult catalogue infusion", () => {
     expect(screen.queryByText("Syringe")).toBeNull()
   })
 })
+
+describe("a syringe typed with Other", () => {
+  it("opens sliders prefilled from the drug's syringes", () => {
+    fields({ customConc: "…" })
+    const group = screen.getByTestId("syringe-custom-fields")
+    expect(group.querySelectorAll("input[type=number]")[0]).toHaveProperty("value", "4")
+    expect(group.querySelectorAll("input[type=number]")[1]).toHaveProperty("value", "50")
+    for (const unit of ["mg", "mcg"]) expect(screen.getAllByRole("button", { name: unit }).length).toBeGreaterThan(0)
+  })
+
+  it("says what is wrong and holds the start back", () => {
+    fields({ customConc: "…", concentration: undefined })
+    const amount = screen.getByTestId("syringe-custom-fields").querySelectorAll("input[type=number]")[0]!
+    fireEvent.change(amount, { target: { value: "0" } })
+    expect(screen.getByRole("alert").textContent).toMatch(/amount/i)
+    expect(screen.getByRole("button", { name: /Start Infusion/ })).toHaveProperty("disabled", true)
+  })
+})
+
+describe("an infusion with no rate", () => {
+  it("says why Start is off", () => {
+    fields({ rate: 0 })
+    expect(screen.getByTestId("dose-confirm-blocked").textContent).toMatch(/rate above 0/)
+    expect(screen.getByRole("button", { name: /Start Infusion/ })).toHaveProperty("disabled", true)
+  })
+
+  it("says nothing when it can start", () => {
+    fields()
+    expect(screen.queryByTestId("dose-confirm-blocked")).toBeNull()
+  })
+})

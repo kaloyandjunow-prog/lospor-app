@@ -12,6 +12,7 @@ import type { TtFP } from "./timetable-types"
 import type { InfusionRecord } from "@lospor/core/infusion-entry"
 import { drugSelectorAtomicState } from "@/lib/drug-selector-surface"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
+import { doseConfirmProblem } from "@lospor/core/infusion-entry"
 
 /**
  * The quick-entry flyout: the panel that opens on a cell and takes a dose.
@@ -170,6 +171,10 @@ export function DosingFlyout({
                     : undefined
               const isLA = !!conc?.length
               const laSelected = isLA && !!fp.concentration
+              // Why Administer is off, said above it. A strength offered must be
+              // picked (a refused Other leaves none), as on the PWA.
+              const blocked = doseConfirmProblem({ dose: fp.dose, strengthMissing: isLA && !fp.concentration,
+                formulationMissing: !!bolusSurface?.formulationOptions.length && !fp.formulation })
               const quick = bolusSurface?.quickValues ?? bsurf?.quickValues ?? fp.quickDoses
               return (
                 <>
@@ -217,7 +222,7 @@ export function DosingFlyout({
                     manualEntryOnly={fp.manualEntryOnly}
                     concentrationOptions={isLA ? conc : undefined}
                     concentration={fp.concentration}
-                    concentrationUnit={bolusSurface?.concentrationUnit ?? (isLA ? "%" : undefined)}
+                    concentrationUnit={bolusSurface?.concentrationUnit ?? (isLA ? "%" : undefined)} concentrationName={fp.name}
                     onConcentrationChange={c => setFp(f => f ? {
                       ...f,
                       concentration: c,
@@ -292,12 +297,10 @@ export function DosingFlyout({
                       }
                     })}
                     confirmLabel={copy.administer}
+                    confirmBlockedReason={blocked ? copy.infusionNeeds[blocked] : undefined}
                     onConfirm={fpCommitBolus}
                     confirmDisabled={
-                      !fp.dose
-                      || (!!bolusSurface?.concentrationOptions.length && !fp.concentration)
-                      || (!!bolusSurface?.formulationOptions.length && !fp.formulation)
-                      || pediatricProfiles.length > 1
+                      !!blocked || pediatricProfiles.length > 1
                     }
                     stickyConfirm
                   />

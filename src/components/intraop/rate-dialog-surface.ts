@@ -1,4 +1,3 @@
-import type { DoseLimit } from "@lospor/core/catalog"
 import { infusionEntryWeightKg, infusionRecord } from "@lospor/core/infusion-entry"
 import { PUMP_RATE_UNIT } from "@lospor/core/infusion-volume"
 import { infusionCalculationBasis, type WeightBasisMap } from "@lospor/core/intraop-totals"

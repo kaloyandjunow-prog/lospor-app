@@ -3,11 +3,13 @@
 import { DoseSelector } from "@/components/intraop/DoseSelector"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
 import { infusionRateView, infusionStrengths, suggestedRateAt, switchInfusionUnit, type InfusionRateInput } from "@/lib/infusion-rate-view"
-import { infusionEntryWeightKg, infusionRecord, type InfusionRecord } from "@lospor/core/infusion-entry"
+import { infusionConfirmProblem, infusionEntryWeightKg, infusionRecord, type InfusionRecord } from "@lospor/core/infusion-entry"
 import { infusionCalculationBasis } from "@lospor/core/intraop-totals"
 import type { createDoseSurfaces } from "./dose-surfaces"
 import type { TtFP } from "./timetable-types"
 import { useIntraopUiCopy } from "./ui-copy"
+import { SyringeCustomFields } from "./SyringeCustomFields"
+import { parseSyringe } from "@lospor/core/infusion-volume"
 
 /**
  * The infusion half of the dosing flyout: strength, rate, unit, route.
@@ -19,6 +21,9 @@ import { useIntraopUiCopy } from "./ui-copy"
  * skipped: then there is no pump rate and no millilitres for the balance.
  * Same logic as the PWA (core infusion-entry.ts).
  */
+/** Marks Other as open while its syringe is not yet valid (the selector reopens on a non-empty value). */
+const OTHER_OPEN = "…"
+
 export function InfusionDoseFields({
   fp, setFp, doseSurfaces, isPediatric, laConcentrations, infusionWeightBasis, ibw, tbw, onConfirm,
 }: {
@@ -57,7 +62,7 @@ export function InfusionDoseFields({
     basis: infusionCalculationBasis(fp.name, infusionWeightBasis), idealWeightKg: ibw, actualWeightKg: tbw })
   const entryUnit = fp.entryUnit ?? fp.rateUnit
   const rateInput: InfusionRateInput = {
-    ruleUnit: fp.rateUnit, entryUnit, doseUnit: fp.doseUnit, value: fp.manualEntryOnly && fp.rate === 0 ? "" : fp.rate,
+    name: fp.name, ruleUnit: fp.rateUnit, entryUnit, doseUnit: fp.doseUnit, value: fp.manualEntryOnly && fp.rate === 0 ? "" : fp.rate,
     min: fp.rateMin, max: fp.rateMax, step: fp.rateStep, quickValues: fp.quickRates,
     doseLimit: fp.doseLimit, concentration: fp.concentration, weightKg,
   }
@@ -72,13 +77,19 @@ export function InfusionDoseFields({
     ? infusionRecord({ unit: fp.rateUnit, min: fp.rateMin, max: fp.rateMax, step: fp.rateStep, doseLimit: fp.doseLimit,
         concentration: fp.concentration, weightKg, value: Number(fp.rate), entryUnit, doseUnit: fp.doseUnit }) ?? undefined
     : undefined
+  // Why Start is off, said above it rather than refused in silence.
+  const blocked = infusionConfirmProblem({ rate: fp.rate, strengthMissing: !!fp.concentrationUnitHint && !fp.concentration,
+    formulationMissing: !!fp.formulationOptions?.length && !fp.formulation })
   return (
     <DoseSelector
       accent="blue"
       concentrationOptions={strengths.options.length ? strengths.options : undefined}
       concentrationLabel={strengths.syringe ? copy.syringe : undefined}
-      customConcentrationPlaceholder={strengths.syringe ? copy.syringeCustom : undefined}
-      concentrationUnit={isLA ? fp.concentrationUnitHint : undefined}
+      customConcentrationContent={strengths.syringe && fp.customConc ? (
+        <SyringeCustomFields name={fp.name} route={fp.route} doseUnit={fp.rateUnit}
+          onChange={label => setFp(f => f ? { ...f, concentration: label, customConc: label ?? OTHER_OPEN } : f)} />
+      ) : undefined}
+      concentrationUnit={isLA ? fp.concentrationUnitHint : undefined} concentrationName={fp.name}
       concentration={fp.concentration}
       onConcentrationChange={c => setFp(f => {
         if (!f) return f
@@ -86,7 +97,7 @@ export function InfusionDoseFields({
         return { ...f, concentration: c, customConc: "", ...(suggested == null ? {} : { rate: suggested }) }
       })}
       customConcentration={fp.customConc}
-      onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: v} : f)}
+      onCustomConcentrationChange={v => setFp(f => f ? {...f, customConc: strengths.syringe && v === "" ? OTHER_OPEN : v} : f)}
       quickValues={governed ? view.quickValues : fp.quickRates}
       manualEntryOnly={fp.manualEntryOnly}
       value={fp.manualEntryOnly && fp.rate === 0 ? "" : String(fp.rate)}
@@ -149,12 +160,9 @@ export function InfusionDoseFields({
           concentration: surf.suggestedConcentration, customConc: "" }
       })}
       confirmLabel={copy.startInfusion}
-      confirmDisabled={
-        !Number.isFinite(Number(fp.rate))
-        || Number(fp.rate) <= 0
-        || (!!fp.concentrationUnitHint && !fp.concentration)
-        || (!!fp.formulationOptions?.length && !fp.formulation)
-      }
+      // Other open and not yet a usable syringe: its fields say why, and the start waits.
+      confirmDisabled={!!blocked || (strengths.syringe && !!fp.customConc && !parseSyringe(fp.concentration))}
+      confirmBlockedReason={blocked ? copy.infusionNeeds[blocked] : undefined}
       onConfirm={() => onConfirm(record())}
     />
   )

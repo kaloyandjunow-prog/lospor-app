@@ -5,6 +5,9 @@ import type { DoseLimit } from "@lospor/core/catalog"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
 import { infusionRateView, infusionStrengths, suggestedRateAt, switchInfusionUnit, type InfusionRateInput } from "@/lib/infusion-rate-view"
 import { useIntraopUiCopy } from "./ui-copy"
+import { SyringeCustomFields } from "./SyringeCustomFields"
+import { parseSyringe } from "@lospor/core/infusion-volume"
+import { infusionConfirmProblem } from "@lospor/core/infusion-entry"
 
 /**
  * Changing an infusion rate mid-case.
@@ -49,6 +52,8 @@ export type RateChangeState = {
   ruleUnit?: string
   doseUnit?: string
   weightKg?: number | null
+  /** A new syringe is being typed with Other. */
+  customOpen?: boolean
 }
 
 export type RateChangeDialogProps = {
@@ -98,7 +103,7 @@ export function RateChangeDialog({
 
   const editing = state.editFromCol !== undefined
   const rateInput: InfusionRateInput = {
-    ruleUnit: state.ruleUnit ?? state.unit, entryUnit: state.unit, doseUnit: state.doseUnit, value: state.rate,
+    name: state.name, ruleUnit: state.ruleUnit ?? state.unit, entryUnit: state.unit, doseUnit: state.doseUnit, value: state.rate,
     min: state.rateMin, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues,
     doseLimit: state.doseLimit, concentration: state.concentration, weightKg: state.weightKg,
   }
@@ -107,6 +112,10 @@ export function RateChangeDialog({
     ? infusionStrengths({ name: state.name, route: state.route, localAnaesthetic: concentrations, running: state.concentration })
     : { options: [], syringe: false }
   const setValue = (text: string) => onPatch({ rate: parseFloat(text) || 0 })
+  // Other is open and not yet a usable syringe: the fields say why; the change waits.
+  const customInvalid = strengths.syringe && !!state.customOpen && !parseSyringe(state.concentration)
+  // An empty box or 0 is not a rate (a stop is its own action): say so, and hold the change.
+  const rateMissing = !!infusionConfirmProblem({ rate: state.rate })
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onDismiss}>
@@ -147,10 +156,10 @@ export function RateChangeDialog({
                       onClick={() => {
                         const next = state.concentration === value ? undefined : value
                         const suggested = suggestedRateAt(rateInput, next)
-                        onPatch({ concentration: next, ...(suggested == null ? {} : { rate: suggested }) })
+                        onPatch({ concentration: next, customOpen: false, ...(suggested == null ? {} : { rate: suggested }) })
                       }}
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                        state.concentration === value
+                        !state.customOpen && state.concentration === value
                           ? "bg-sky-500 border-sky-500 text-white"
                           : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400 hover:border-sky-400 dark:hover:border-sky-600"
                       }`}
@@ -158,7 +167,18 @@ export function RateChangeDialog({
                       {value}
                     </button>
                   ))}
+                  {strengths.syringe && (
+                    <button type="button" aria-pressed={!!state.customOpen}
+                      onClick={() => onPatch({ customOpen: true, concentration: undefined })}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${state.customOpen ? "bg-sky-500 border-sky-500 text-white" : "border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-slate-400"}`}>
+                      {copy.other}
+                    </button>
+                  )}
                 </div>
+                {strengths.syringe && state.customOpen && (
+                  <SyringeCustomFields name={state.name} route={state.route} doseUnit={state.ruleUnit ?? state.unit}
+                    onChange={label => onPatch({ concentration: label })} />
+                )}
               </div>
             )}
 
@@ -215,11 +235,13 @@ export function RateChangeDialog({
               )}
             </div>
 
+            {rateMissing && <p role="alert" className="text-[10px] font-semibold text-red-500 dark:text-red-400">{copy.infusionNeeds.rate}</p>}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onApply}
-                className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 transition-colors"
+                disabled={customInvalid || rateMissing}
+                className="flex-1 text-sm font-semibold bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-lg py-2 transition-colors"
               >
                 {editing ? copy.apply : copy.rateChange.startNow}
               </button>
@@ -227,7 +249,8 @@ export function RateChangeDialog({
                 <button
                   type="button"
                   onClick={() => onPatch({ step: "time" })}
-                  className="flex-1 text-sm font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-2 transition-colors"
+                  disabled={customInvalid || rateMissing}
+                  className="flex-1 text-sm font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-2 transition-colors disabled:opacity-40"
                 >
                   {copy.rateChange.pickTime}
                 </button>

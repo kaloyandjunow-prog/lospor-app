@@ -15,6 +15,8 @@ import { formatSyringe, parseSyringe, PUMP_RATE_UNIT, syringeOptions } from "@lo
  * (infusion-entry.ts), so the PWA shows the same numbers.
  */
 export type InfusionRateInput = {
+  /** The drug, for the units it is charted in (propofol also mcg/kg/min). */
+  name?: string
   /** The rule's unit, which the range and pills belong to. */
   ruleUnit: string
   /** The unit the value is entered in. */
@@ -32,7 +34,7 @@ export type InfusionRateInput = {
 }
 
 const base = (input: InfusionRateInput) => ({
-  unit: input.ruleUnit, min: input.min, max: input.max, step: input.step, quickValues: input.quickValues,
+  name: input.name, unit: input.ruleUnit, min: input.min, max: input.max, step: input.step, quickValues: input.quickValues,
   doseLimit: input.doseLimit, concentration: input.concentration, weightKg: input.weightKg,
 })
 

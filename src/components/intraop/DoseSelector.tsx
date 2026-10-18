@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react"
 import {
   canonicalConcentrationUnit,
@@ -15,6 +15,8 @@ import {
 } from "@/lib/selector-pagination"
 import type { LocalAnaestheticFormulation } from "@lospor/core/catalog"
 import { useIntraopUiCopy } from "./ui-copy"
+import { customStrengthLabel } from "@lospor/core/strength-entry"
+import { StrengthCustomField } from "./StrengthCustomField"
 
 // One reused dose-entry screen for drugs (bolus), infusions, fluids, and
 // agents — extracted out of IntraopTimetable.tsx where each of these used
@@ -72,7 +74,10 @@ export type DoseSelectorProps = {
   customConcentration?: string
   /** The heading over the strengths, and a typed strength as text ("8 mg/50 mL"): an infusion's syringe. */
   concentrationLabel?: string
-  customConcentrationPlaceholder?: string
+  /** Shown for Other instead of the typed % box: an infusion's syringe fields. */
+  customConcentrationContent?: ReactNode
+  /** The drug or fluid, for the range of a strength typed with Other. */
+  concentrationName?: string
   onCustomConcentrationChange?: (v: string) => void
 
   formulationOptions?: LocalAnaestheticFormulation[]
@@ -84,6 +89,8 @@ export type DoseSelectorProps = {
   confirmLabel?: string
   onConfirm?: () => void
   confirmDisabled?: boolean
+  /** Why the confirm is off, shown above it: nothing is refused in silence. */
+  confirmBlockedReason?: string
   stickyConfirm?: boolean
 }
 
@@ -95,12 +102,11 @@ export function DoseSelector({
   units, unit, onUnitChange, unitSuffix,
   routes, route, onRouteChange,
   concentrationOptions, concentration, concentrationUnit, onConcentrationChange, customConcentration, onCustomConcentrationChange,
-  concentrationLabel, customConcentrationPlaceholder,
+  concentrationLabel, customConcentrationContent, concentrationName,
   formulationOptions, formulation, onFormulationChange,
-  confirmLabel, onConfirm, confirmDisabled, stickyConfirm = false,
+  confirmLabel, onConfirm, confirmDisabled, confirmBlockedReason, stickyConfirm = false,
 }: DoseSelectorProps) {
   const copy = useIntraopUiCopy()
-  const customConcentrationRef = useRef<HTMLInputElement>(null)
   const [dosePage, setDosePage] = useState(0)
   const [concentrationPage, setConcentrationPage] = useState(0)
   const [customConcentrationOpen, setCustomConcentrationOpen] = useState(
@@ -159,7 +165,6 @@ export function DoseSelector({
     setCustomConcentrationOpen(true)
     onConcentrationChange?.(undefined)
     onCustomConcentrationChange?.("")
-    requestAnimationFrame(() => customConcentrationRef.current?.focus())
   }
 
   return (
@@ -244,25 +249,13 @@ export function DoseSelector({
               onPageChange={setConcentrationPage}
             />
           )}
-          {customConcentrationOpen && customConcentrationPlaceholder && (
-            <input ref={customConcentrationRef} type="text" placeholder={customConcentrationPlaceholder} value={customConcentration ?? ""}
-              aria-label={concentrationLabel}
-              onChange={e => { onConcentrationChange?.(e.target.value.trim() || undefined); onCustomConcentrationChange?.(e.target.value) }}
-              className="min-w-0 w-full text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-2 py-1 outline-none focus:border-sky-400" />
-          )}
-          {customConcentrationOpen && !customConcentrationPlaceholder && (
-            <div className="flex items-center gap-1.5">
-              <input ref={customConcentrationRef} type="number" min="0.01" max={customConcentrationUnit === "%" ? 20 : undefined} step="0.001" placeholder={copy.concentrationExample}
-                value={customConcentration ?? ""}
-                aria-label={copy.customConcentrationAria(customConcentrationUnit)}
-                onChange={e => {
-                  const v = e.target.value
-                  onConcentrationChange?.(v ? `${v}${customConcentrationUnit}` : undefined)
-                  onCustomConcentrationChange?.(v)
-                }}
-                className="min-w-0 flex-1 text-[10px] bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-md px-2 py-1 outline-none focus:border-sky-400 [appearance:textfield]" />
-              <span className="text-[9px] text-slate-400">{customConcentrationUnit}</span>
-            </div>
+          {customConcentrationOpen && customConcentrationContent}
+          {customConcentrationOpen && !customConcentrationContent && (
+            <StrengthCustomField name={concentrationName} unit={customConcentrationUnit} options={presetConcentrations}
+              onChange={v => {
+                onConcentrationChange?.(customStrengthLabel(v, customConcentrationUnit))
+                onCustomConcentrationChange?.(v)
+              }} />
           )}
         </div>
       )}
@@ -340,6 +333,9 @@ export function DoseSelector({
 
       {showGuidance && extraHint && <p className="text-[9px] text-amber-500 dark:text-amber-400">{extraHint}</p>}
 
+      {confirmLabel && onConfirm && confirmDisabled && confirmBlockedReason && (
+        <p role="alert" data-testid="dose-confirm-blocked" className="text-[10px] font-semibold text-red-500 dark:text-red-400">{confirmBlockedReason}</p>
+      )}
       {confirmLabel && onConfirm && (
         <div className={stickyConfirm ? "sticky -bottom-3 -mx-3 bg-white px-3 pb-3 pt-1 dark:bg-[#1e1e1e]" : undefined}>
           <button type="button" onClick={onConfirm} disabled={confirmDisabled}

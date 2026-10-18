@@ -109,3 +109,42 @@ describe("RateChangeDialog syringe and both rates (2026-10-18)", () => {
     expect(onPatch).toHaveBeenLastCalledWith({ rate: 5.3, unit: "mL/hr", doseUnit: "mcg/kg/min" })
   })
 })
+
+describe("RateChangeDialog Other (2026-10-18)", () => {
+  const typed: RateChangeState = {
+    ...state, name: "Norepinephrine / Noradrenaline", rateMin: 0, rateMax: 3,
+    ruleUnit: "mcg/kg/min", weightKg: 70, customOpen: true, concentration: undefined,
+  }
+  it("opens the syringe sliders and waits for a usable syringe", () => {
+    const onPatch = vi.fn()
+    render(
+      <RateChangeDialog
+        state={typed} displayName="Noradrenaline" concentrations={undefined} offerSyringes
+        weightBasis={null} hours={[]} minutes={[]}
+        labels={{ setNewRatePrompt: "", pickRateChangeTime: "", concentration: "Concentration" }}
+        onPatch={onPatch} onApply={vi.fn()} onConfirmTime={vi.fn()} onDismiss={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId("syringe-custom-fields")).toBeTruthy()
+    // The prefilled 4 mg/50 mL is reported as the new strength.
+    expect(onPatch).toHaveBeenCalledWith({ concentration: "4 mg/50 mL" })
+    // Until the parent takes it, the change waits.
+    expect(screen.getByRole("button", { name: "Start now" })).toHaveProperty("disabled", true)
+  })
+})
+
+describe("RateChangeDialog with no rate (2026-10-18)", () => {
+  it("says why, and holds both Start now and Pick time", () => {
+    render(
+      <RateChangeDialog
+        state={{ ...state, rate: 0 }} displayName="Noradrenaline" concentrations={undefined}
+        weightBasis={null} hours={[]} minutes={[]}
+        labels={{ setNewRatePrompt: "", pickRateChangeTime: "", concentration: "Concentration" }}
+        onPatch={vi.fn()} onApply={vi.fn()} onConfirmTime={vi.fn()} onDismiss={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole("alert").textContent).toMatch(/rate above 0/)
+    expect(screen.getByRole("button", { name: "Start now" })).toHaveProperty("disabled", true)
+    expect(screen.getByRole("button", { name: "Pick time" })).toHaveProperty("disabled", true)
+  })
+})
