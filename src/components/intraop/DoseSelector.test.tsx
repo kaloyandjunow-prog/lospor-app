@@ -96,6 +96,11 @@ describe("DoseSelector", () => {
     })
     expect(screen.getByRole("alert").textContent).toBe("Enter a strength from 0.5 to 2 mg/mL.")
     expect(onConcentrationChange).toHaveBeenLastCalledWith(undefined)
+
+    // Leaving the box brings it to the maximum, and says so.
+    fireEvent.blur(screen.getByRole("spinbutton", { name: "Custom concentration mg/mL" }))
+    expect(screen.getByRole("status").textContent).toBe("Lowered to the maximum, 2 mg/mL.")
+    expect(onConcentrationChange).toHaveBeenLastCalledWith("2 mg/mL")
   })
 
   it("keeps manual numeric entry independent from the slider maximum", () => {
