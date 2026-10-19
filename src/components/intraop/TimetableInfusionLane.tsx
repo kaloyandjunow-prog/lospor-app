@@ -2,6 +2,7 @@
 
 import { runsOnAt } from "@lospor/core/intraop-summary"
 import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
+import { TciCellLine, tciLaneLabel, useTciLanePredictions } from "./TciLaneOverlay"
 import { SaveMark } from "./SaveMark"
 import { segmentEventIds } from "@lospor/core/intraop-save-state"
 import { DiscontinuePrompt } from "./DiscontinuePrompt"
@@ -127,6 +128,8 @@ export function InfusionLane({
   const { movingInf, movingInfCol, movingRatePill, extendingInf, extInfHover, extendingInfLeft, extInfLeftHover } = drag
   const isBusyMovingBar = movingInf !== null && segments.some(s => s.id === movingInf.id)
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
+  // A TCI bar shows its target and the predicted concentration line (2026-10-18).
+  const tciPredictions = useTciLanePredictions(segments)
 
   return (
     <div
@@ -286,9 +289,10 @@ export function InfusionLane({
                       className="text-[8px] font-bold whitespace-nowrap truncate leading-none"
                       style={{ color, paddingLeft: isRateChangeCol ? 10 : 5 }}
                     >
-                      {curRate} {curUnit}
+                      {tciLaneLabel(seg, curRate, curUnit, ci === seg.startCol) ?? `${curRate} ${curUnit}`}
                     </span>
                   )}
+                  <TciCellLine seg={seg} column={ci} prediction={tciPredictions.get(seg.id)} color={color} />
                 </div>
               )
             })()}

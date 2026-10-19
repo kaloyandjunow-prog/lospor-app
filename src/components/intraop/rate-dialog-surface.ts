@@ -3,6 +3,7 @@ import { PUMP_RATE_UNIT } from "@lospor/core/infusion-volume"
 import { infusionCalculationBasis, type WeightBasisMap } from "@lospor/core/intraop-totals"
 import type { createDoseSurfaces } from "./dose-surfaces"
 import type { RateChangeState } from "./RateChangeDialog"
+import { TCI_DRUG_SPECS, TCI_MODEL_DRUG, type TciModel } from "@lospor/core/tci"
 
 export type { InfusionRecord } from "@lospor/core/infusion-entry"
 
@@ -25,7 +26,16 @@ export function rateDialogSurface(input: {
   isPediatric: boolean
   doseSurfaces: ReturnType<typeof createDoseSurfaces>
   weights: { tbw?: number | null; ibw?: number | null; basis: WeightBasisMap }
-}): Pick<RateChangeState, "units" | "rateMin" | "rateMax" | "rateStep" | "doseLimit" | "quickValues" | "concentrationOptions" | "ruleUnit" | "doseUnit" | "weightKg"> {
+  /** A TCI infusion changes its target, in its model's range (2026-10-18). */
+  tciModel?: TciModel
+}): Pick<RateChangeState, "units" | "rateMin" | "rateMax" | "rateStep" | "doseLimit" | "quickValues" | "concentrationOptions" | "ruleUnit" | "doseUnit" | "weightKg" | "tci"> {
+  if (input.tciModel) {
+    const spec = TCI_DRUG_SPECS[TCI_MODEL_DRUG[input.tciModel]]
+    return {
+      units: [spec.units.target], rateMin: spec.target.min, rateMax: spec.target.max, rateStep: spec.target.step,
+      quickValues: spec.target.quickValues, ruleUnit: spec.units.target, weightKg: null, tci: true,
+    }
+  }
   const pediatric = input.isPediatric && input.guidance
     ? input.doseSurfaces.clinicalPediatricInfusionFor(input.name, input.route).surface
     : null
@@ -69,6 +79,8 @@ export function rateDialogChange(state: RateChangeState): {
   concentration?: string
   volumeRateMlPerHour?: number
 } {
+  // A TCI target is recorded as entered: the model, not a rate, makes the amount.
+  if (state.tci) return { rate: state.rate, unit: state.unit, concentration: state.concentration }
   const unit = state.ruleUnit ?? state.unit
   const record = infusionRecord({
     unit,

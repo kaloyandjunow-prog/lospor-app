@@ -1529,7 +1529,11 @@
       "infusions": "Infusions",
       "bolusDrugs": "Bolus drugs",
       "doseCount": "{count, plural, one {# dose} other {# doses}}",
-      "fluidBalance": "Fluid balance"
+      "fluidBalance": "Fluid balance",
+      "tciPump": "(from the pump; the model calculates {calculated} {unit})",
+      "tciCalculated": "(calculated by the TCI model)",
+      "tciNeedsPatient": "TCI total needs the patient's age, weight, height and sex",
+      "tciModelUnusable": "this TCI model cannot be used for this patient"
     },
     "crystalloids": "Crystalloids (mL)",
     "colloids": "Colloids (mL)",

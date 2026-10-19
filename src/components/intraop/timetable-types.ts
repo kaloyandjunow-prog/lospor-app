@@ -1,6 +1,7 @@
 import type { DoseLimit, LocalAnaestheticFormulation } from "@lospor/core/catalog"
 import type { DrugSelectionSurface } from "@lospor/core/drug-selection"
 import type { FluidEntryMode } from "@lospor/core/intraop-fluids"
+import type { TciModel, TciSite } from "@lospor/core/tci"
 
 /**
  * Shared shapes for the intraoperative timetable.
@@ -124,5 +125,7 @@ export type TtFP = {
   clinicalPresetId?: string
   clinicalPresetVersion?: number
   clinicalPresetScope?: "PLATFORM" | "INSTITUTION" | "USER"
+  /** Started as a target-controlled infusion: the rate is the target (2026-10-18). */
+  tci?: { model: TciModel; site: TciSite; opioids: boolean }
   anchor: FConflictAnchor
 }

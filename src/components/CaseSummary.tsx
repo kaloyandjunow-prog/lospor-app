@@ -272,7 +272,7 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const dateStr = printCaseDate(i, locale)
   const drugTotals     = calcDrugTotals(timetable)
   // Per-kg infusions on the patient's own weight; the sheet used none (9.12.3).
-  const infTotals      = calcInfTotals(timetable, { ibw: ibwResolution.available ? ibwResolution.roundedKg : null, tbw: p?.weightKg, heightCm: p?.heightCm, endedAt: i?.endedAt, weightBasis: infusionWeightBasis })
+  const infTotals      = calcInfTotals(timetable, { ibw: ibwResolution.available ? ibwResolution.roundedKg : null, tbw: p?.weightKg, heightCm: p?.heightCm, endedAt: i?.endedAt, weightBasis: infusionWeightBasis, ageYears: p?.ageYears, ageValue: p?.ageValue, ageUnit: p?.ageUnit, sex: p?.sex })
   const drugLog        = buildDrugLog(timetable, i?.startTime, i?.timezone)
 
   // Continues onto its own sheets rather than capping: a result not shown can

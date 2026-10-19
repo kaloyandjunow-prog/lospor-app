@@ -11,6 +11,7 @@ import { serverNow } from "@/lib/intraop-clock"
 import type { IntraopAttentionAction } from "@lospor/core/intraop-attention"
 import type { IntraopAttentionEntry } from "@/lib/use-intraop-attention"
 import { IntraopAttentionPanel } from "./IntraopAttentionPanel"
+import { useTciPatient } from "./tci-patient-context"
 
 type EndCaseDecision = "discontinue" | "continue" | null
 
@@ -43,6 +44,8 @@ export interface EndCaseModalProps {
 export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weightBasis, ibw = null, tbw = null, afterEnd = [], onResolveAfterEnd, onDismiss, onConfirm }: EndCaseModalProps) {
   const locale = useLocale()
   const copy = useIntraopUiCopy()
+  // A TCI infusion is totalled by its model, for this patient (2026-10-18).
+  const tciPatient = useTciPatient()
   const [decisions, setDecisions] = useState<Record<string, EndCaseDecision>>({})
   const [fluidAmounts, setFluidAmounts] = useState<Record<string, string>>({})
   const [fluidFullBag, setFluidFullBag] = useState<Record<string, boolean | null>>({})
@@ -94,7 +97,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
       const d = decisions[`inf-${inf.id}`]
       if (d === "continue") continuedItems.push(`${inf.name} infusion (${inf.rate} ${inf.unit})`)
       if (d === "discontinue") {
-        const tot = calcInfusionTotal(inf, ibw, tbw, weightBasis)
+        const tot = calcInfusionTotal(inf, ibw, tbw, weightBasis, null, tciPatient)
         infusionTotals.push({ name: inf.name, total: tot.amount, unit: tot.unit })
         discontinuedInfusionIds.push(inf.id)
       }
@@ -163,7 +166,7 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
         {infusions.map(inf => {
           const key = `inf-${inf.id}`
           const d = decisions[key]
-          const tot = d === "discontinue" ? calcInfusionTotal(inf, ibw, tbw, weightBasis) : null
+          const tot = d === "discontinue" ? calcInfusionTotal(inf, ibw, tbw, weightBasis, null, tciPatient) : null
           return (
             <div key={inf.id} className="py-3 border-b border-slate-100 dark:border-[#2e2e2e] space-y-1.5">
               <div className="flex items-center justify-between gap-2">

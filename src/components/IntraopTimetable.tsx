@@ -21,6 +21,7 @@ import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
 import { baseInfusionName } from "@/components/intraop/infusion-naming"
 import { InfusionMenuPopover } from "@/components/intraop/InfusionMenuPopover"
+import { tciPumpTotal } from "@/components/intraop/TciLaneOverlay"
 import { columnForWallClock } from "@lospor/core/timetable"
 import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLanes"
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
@@ -30,9 +31,12 @@ import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
 import { DosingFlyout } from "@/components/intraop/DosingFlyout"
+import { flyoutInfusion } from "@/components/intraop/flyout-infusion"
+import { TciPatientContext } from "@/components/intraop/tci-patient-context"
+import { tciPatientFrom } from "@lospor/core/tci"
 import { createDoseSurfaces } from "@/components/intraop/dose-surfaces"
 import {
-  DEFAULT_INF, infusionCalculationBasis,
+  DEFAULT_INF,
   buildDrugFlyoutState,
   buildFluidFlyoutState,
 } from "@/components/intraop/flyout-state"
@@ -229,6 +233,7 @@ export function IntraopTimetable({
   const uiCopy = useIntraopUiCopy()
   const isBg = locale.startsWith("bg")
   const isPediatric = clinicalMode === "PEDIATRIC"
+  const tciPatient = useMemo(() => tciPatientFrom({ ageValue: pediatricAgeValue, ageUnit: pediatricAgeUnit, weightKg: tbw, heightCm: patientHeightCm, sex: patientSex }), [pediatricAgeValue, pediatricAgeUnit, tbw, patientHeightCm, patientSex])
   const pediatricAge = useMemo(
     () => isPediatric && pediatricAgeValue != null && pediatricAgeUnit
       ? { value: pediatricAgeValue, unit: pediatricAgeUnit }
@@ -705,15 +710,8 @@ export function IntraopTimetable({
   }
   function fpCommitInfusion(record?: InfusionRecord) {
     if (!fp) return
-    const cfg  = INFUSION_CONFIGS[fp.name] ?? DEFAULT_INF
-    const conc = fp.concentration?.endsWith("%") ? ` ${fp.concentration}` : "" // a syringe stays out of the name
-    const displayName = fp.name + conc
-    const id   = `${fp.name}-${fp.col}-${uid()}`
-    const lib = infusionLibOpts.find(o => o.label === fp.name)
-    const ruleAudit = {
-      ...clinicalProvenance(fp), calculationBasis: infusionCalculationBasis(fp.name, INFUSION_WEIGHT_BASIS),
-    }
-    onChange({ ...data, infusions: [...(data.infusions??[]), { id, name:displayName, rate:record?.rate ?? fp.rate, unit:record?.unit ?? fp.rateUnit, volumeRateMlPerHour: record?.volumeRateMlPerHour, calculationWeightKg: record?.calculationWeightKg, startCol:fp.col, endCol:fp.col, color:cfg.color, concentration: fp.concentration, formulation: fp.formulation, route: fp.route, drugId: lib?.drugId ?? undefined, atcCode: lib?.atcCode ?? undefined, inn: lib?.inn ?? undefined, ...ruleAudit }] })
+    const infusion = flyoutInfusion({ fp, record, id: `${fp.name}-${fp.col}-${uid()}`, configs: INFUSION_CONFIGS, libraryOptions: infusionLibOpts, weightBasis: INFUSION_WEIGHT_BASIS })
+    onChange({ ...data, infusions: [...(data.infusions??[]), infusion] })
     setFp(null)
   }
 
@@ -1010,7 +1008,7 @@ export function IntraopTimetable({
   const { removeDrug } = useDrugHandlers(data, onChange)
 
   // ── Infusions ────────────────────────────────────────────────────────────────
-  const { removeInfusion, extendInfusion, extendInfusionLeft, restoreInfusion, applyInfRateChange } =
+  const { removeInfusion, extendInfusion, setInfusionPumpTotal, extendInfusionLeft, restoreInfusion, applyInfRateChange } =
     useInfusionHandlers(data, onChange, dataRef, onChangeRef, nowCol)
 
   /**
@@ -1651,7 +1649,7 @@ export function IntraopTimetable({
   }
 
   return (
-    <>
+    <TciPatientContext.Provider value={tciPatient}>
     <div className="space-y-3">
       {/* Chart toggle + layout toggle on same row */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -1950,6 +1948,7 @@ export function IntraopTimetable({
         name={displayInfusionName(infMenu.name) + (infMenu.fromPillCol != null && nowCol != null && infMenu.fromPillCol > nowCol ? ` · ${t("intraop.timetable.plannedAt", { time: times[infMenu.fromPillCol] })}` : "")}
         color={infMenu.color}
         stopped={!!infMenu.stopped}
+        pumpTotal={tciPumpTotal((data.infusions ?? []).find(i => i.id === infMenu.segId), pump => { setInfusionPumpTotal(infMenu.segId, pump); setInfMenu(null) })}
         onChangeRate={() => {
           const seg = (data.infusions ?? []).find(i => i.id === infMenu.segId)
           if (!seg) { setInfMenu(null); return }
@@ -1963,15 +1962,15 @@ export function IntraopTimetable({
             : { rate: seg.rate, unit: seg.unit, concentration: seg.concentration }
           setRateDialog({
             segId: seg.id, name: baseDrugName, rate: Number(cur.rate) || 0, unit: cur.unit,
-            route: seg.route, ...rateDialogSurface({ name: baseDrugName, route: seg.route, runningUnit: cur.unit, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces, weights: { tbw, ibw, basis: INFUSION_WEIGHT_BASIS } }),
+            route: seg.route, ...rateDialogSurface({ name: baseDrugName, route: seg.route, runningUnit: cur.unit, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces, weights: { tbw, ibw, basis: INFUSION_WEIGHT_BASIS }, tciModel: seg.tciModel }),
             color: infMenu.color, rect: infMenu.rect, step: "rate", timeH: "", timeM: "",
             editFromCol: pillCol, concentration: cur.concentration, baseDrugName,
           })
           setInfMenu(null)
         }}
-        onDiscontinue={() => {
+        onDiscontinue={pump => {
           setHoverDiscontinue(null)
-          extendInfusion(infMenu.segId, Math.max(nowCol ?? 0, infMenu.fromPillCol ?? 0))
+          extendInfusion(infMenu.segId, Math.max(nowCol ?? 0, infMenu.fromPillCol ?? 0), pump)
           setInfMenu(null)
         }}
         onRestore={() => { restoreInfusion(infMenu.segId); setInfMenu(null) }}
@@ -2223,6 +2222,6 @@ export function IntraopTimetable({
         document.body
       )
     })()}
-    </>
+    </TciPatientContext.Provider>
   )
 }

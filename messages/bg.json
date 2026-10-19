@@ -1529,7 +1529,11 @@
       "infusions": "Инфузии",
       "bolusDrugs": "Болусни медикаменти",
       "doseCount": "{count, plural, one {# доза} other {# дози}}",
-      "fluidBalance": "Баланс на течностите"
+      "fluidBalance": "Баланс на течностите",
+      "tciPump": "(по помпата; моделът изчислява {calculated} {unit})",
+      "tciCalculated": "(изчислено по модела за TCI)",
+      "tciNeedsPatient": "за общото количество при TCI са нужни възраст, тегло, ръст и пол",
+      "tciModelUnusable": "този модел за TCI не може да се използва при този пациент"
     },
     "crystalloids": "Кристалоиди (мл)",
     "colloids": "Колоиди (мл)",

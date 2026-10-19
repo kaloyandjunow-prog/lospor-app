@@ -54,6 +54,8 @@ export type RateChangeState = {
   weightKg?: number | null
   /** A new syringe is being typed with Other. */
   customOpen?: boolean
+  /** A TCI infusion: the value is its new target (2026-10-18). */
+  tci?: boolean
 }
 
 export type RateChangeDialogProps = {
@@ -107,7 +109,10 @@ export function RateChangeDialog({
     min: state.rateMin, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues,
     doseLimit: state.doseLimit, concentration: state.concentration, weightKg: state.weightKg,
   }
-  const view = infusionRateView({ ...rateInput, onPumpLabel: copy.volumeOnPump })
+  // A TCI target keeps its unit and its model's range; there is no pump rate to read out.
+  const view = state.tci
+    ? { units: [state.unit], min: state.rateMin, max: state.rateMax, step: state.rateStep, quickValues: state.quickValues, readout: undefined as string | undefined }
+    : infusionRateView({ ...rateInput, onPumpLabel: copy.volumeOnPump })
   const strengths = concentrations?.length || offerSyringes
     ? infusionStrengths({ name: state.name, route: state.route, localAnaesthetic: concentrations, running: state.concentration })
     : { options: [], syringe: false }
@@ -125,7 +130,7 @@ export function RateChangeDialog({
       >
         <div>
           <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: state.color }}>
-            {displayName}{state.concentration ? ` ${state.concentration}` : ""} — {copy.rateChange.title}
+            {displayName}{state.concentration ? ` ${state.concentration}` : ""} — {state.tci ? copy.tci.newTarget : copy.rateChange.title}
           </p>
           {state.step === "rate" && <p className="text-[10px] text-slate-400">{labels.setNewRatePrompt}</p>}
           {state.step === "time" && <p className="text-[10px] text-slate-400">{labels.pickRateChangeTime}</p>}

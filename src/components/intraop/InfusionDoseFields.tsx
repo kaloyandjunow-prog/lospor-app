@@ -10,6 +10,9 @@ import type { TtFP } from "./timetable-types"
 import { useIntraopUiCopy } from "./ui-copy"
 import { SyringeCustomFields } from "./SyringeCustomFields"
 import { parseSyringe } from "@lospor/core/infusion-volume"
+import { TCI_DRUG_SPECS, tciDrugFor, tciModelsFor } from "@lospor/core/tci"
+import { defaultTciChoice, TciFields, TciModeSwitch } from "./TciFields"
+import { useTciPatient } from "./tci-patient-context"
 
 /**
  * The infusion half of the dosing flyout: strength, rate, unit, route.
@@ -38,6 +41,7 @@ export function InfusionDoseFields({
   onConfirm: (record?: InfusionRecord) => void
 }) {
   const copy = useIntraopUiCopy()
+  const tciPatient = useTciPatient()
   const isurf = fp.searchOnlyManualEntry
     ? undefined
     : doseSurfaces.infusionRouteSurface(fp.name, fp.route)
@@ -80,7 +84,10 @@ export function InfusionDoseFields({
   // Why Start is off, said above it rather than refused in silence.
   const blocked = infusionConfirmProblem({ rate: fp.rate, strengthMissing: !!fp.concentrationUnitHint && !fp.concentration,
     formulationMissing: !!fp.formulationOptions?.length && !fp.formulation })
-  return (
+  // Propofol, remifentanil, sufentanil and alfentanil may run as TCI instead (2026-10-18).
+  const tciDrug = governed ? tciDrugFor(fp.name) : null
+  const offersTci = !!tciDrug && tciModelsFor(tciDrug, isPediatric).length > 0
+  const rateFields = (
     <DoseSelector
       accent="blue"
       concentrationOptions={strengths.options.length ? strengths.options : undefined}
@@ -165,5 +172,28 @@ export function InfusionDoseFields({
       confirmBlockedReason={blocked ? copy.infusionNeeds[blocked] : undefined}
       onConfirm={() => onConfirm(record())}
     />
+  )
+  if (!offersTci || !tciDrug) return rateFields
+  return (
+    <div className="space-y-2">
+      <TciModeSwitch
+        tci={!!fp.tci}
+        onRate={() => setFp(f => f ? { ...f, tci: undefined, rate: f.quickRates?.[0] ?? f.rateMin } : f)}
+        onTci={() => setFp(f => {
+          const choice = f ? defaultTciChoice(tciDrug, isPediatric, tciPatient) : null
+          return f && choice ? { ...f, tci: choice, rate: TCI_DRUG_SPECS[tciDrug].target.prefill, entryUnit: undefined, doseUnit: undefined } : f
+        })}
+      />
+      {fp.tci ? (
+        <TciFields
+          drug={tciDrug} pediatric={isPediatric} patient={tciPatient} choice={fp.tci}
+          onChoice={choice => setFp(f => f ? { ...f, tci: choice } : f)}
+          target={fp.rate} onTarget={value => setFp(f => f ? { ...f, rate: value } : f)}
+          syringes={strengths.syringe ? strengths.options : []} syringe={fp.concentration}
+          onSyringe={concentration => setFp(f => f ? { ...f, concentration } : f)}
+          onConfirm={() => onConfirm({ rate: fp.rate, unit: TCI_DRUG_SPECS[tciDrug].units.target })}
+        />
+      ) : rateFields}
+    </div>
   )
 }

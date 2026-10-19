@@ -310,8 +310,7 @@ export function DoseProfileEditor({
 }) {
   const copy = useDoseProfileCopy()
   const locale = useLocale()
-  // A route by name, in the reader's language (it was English, or the code, before 2026-10-18).
-  const routeName = (route: string) => ruleRouteLabel(route, locale)
+  const routeName = (route: string) => ruleRouteLabel(route, locale) // by name, in the reader's language (2026-10-18)
   const initialRoute = profile.defaultRoute ?? profile.routes[0] ?? "IV"
   const [activeRoute, setActiveRoute] = useState(initialRoute)
   const [previewSection, setPreviewSection] = useState<PreviewSection | null>(null)
