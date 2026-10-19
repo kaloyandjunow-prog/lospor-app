@@ -8,7 +8,7 @@ import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 type DrugTotals = {
   bolusList: { name: string; total: number; unit: string; count: number; mgTotal: number | null }[]
   infusionList: { name: string; total: number; unit: string; display: string; mgTotal: number | null; weightUsed: number | null; weightBasis: "IBW" | "TBW" | "none" | null; volumeMl?: number | null
-    tci?: { calculated: number | null; pump: number | null; unavailable?: "patient" | "model" } }[]
+    tci?: { calculated: number | null; pump: number | null; unavailable?: "patient" | "model"; pumpNeedsStrength?: true } }[]
   weightNote: string | null
 }
 
@@ -45,6 +45,7 @@ export function DrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, pro
                 <span data-testid="tci-total-note" className="text-[11px] text-slate-400 dark:text-slate-500">
                   {row.tci.pump != null
                     ? t("intraop.totals.tciPump", { calculated: row.tci.calculated ?? "—", unit: row.unit })
+                    : row.tci.pumpNeedsStrength ? t("intraop.totals.tciPumpNeedsStrength")
                     : row.tci.calculated != null ? t("intraop.totals.tciCalculated") : t(row.tci.unavailable === "patient" ? "intraop.totals.tciNeedsPatient" : "intraop.totals.tciModelUnusable")}
                 </span>
               )}

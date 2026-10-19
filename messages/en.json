@@ -1532,6 +1532,7 @@
       "fluidBalance": "Fluid balance",
       "tciPump": "(from the pump; the model calculates {calculated} {unit})",
       "tciCalculated": "(calculated by the TCI model)",
+      "tciPumpNeedsStrength": "(the pump total is in mL but no syringe strength was recorded, so the model's amount is used)",
       "tciNeedsPatient": "TCI total needs the patient's age, weight, height and sex",
       "tciModelUnusable": "this TCI model cannot be used for this patient"
     },

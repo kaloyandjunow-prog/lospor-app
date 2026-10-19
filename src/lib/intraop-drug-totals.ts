@@ -56,7 +56,7 @@ export function computeLiveDrugTotals(
       // Its millilitres, from the pump rates (or a TCI model); none when the syringe was skipped (2026-10-18).
       volumeMl: inf.planned ? null : deliveredInfusionVolumeMl(inf, new Date(), tciPatient),
       // A TCI infusion: the pump's total, the calculation, and why there may be neither.
-      ...(total.tci ? { tci: { calculated: total.tci.calculated, pump: total.tci.pump, unavailable: total.tci.unavailable } } : {}),
+      ...(total.tci ? { tci: { calculated: total.tci.calculated, pump: total.tci.pump, unavailable: total.tci.unavailable, pumpNeedsStrength: total.tci.pumpNeedsStrength } } : {}),
     }
   })
 
