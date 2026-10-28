@@ -9,6 +9,8 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { loginUrlForCallback } from "@/lib/safe-navigation"
+import { cancellationReasonLabel } from "@lospor/core/case-cancellation"
+import { plannedProcedureLabel } from "@lospor/core/procedure-codes"
 
 export default async function CasePage({
   params,
@@ -36,8 +38,12 @@ export default async function CasePage({
     createdAt: string
     caseCode: string | null
     notes: string | null
+    theatre?: { name: string | null } | null
+    status?: string
+    cancellationReason?: string | null
     preop: {
       plannedProcedure: string | null
+      procedureUndetermined?: boolean
       diagnosis: string | null
       ageYears: number | null
       sex: string | null
@@ -66,7 +72,7 @@ export default async function CasePage({
                 <ArrowLeft className="h-4 w-4" /> {t("nav.dashboard")}
               </Button>
             </Link>
-            <h1 className="text-xl font-bold text-slate-800">{p?.plannedProcedure ?? t("case.anaesthesiaCase")}</h1>
+            <h1 className="text-xl font-bold text-slate-800">{plannedProcedureLabel(p, locale) ?? t("case.anaesthesiaCase")}</h1>
             <p className="text-slate-500 text-sm mt-1">
               {p?.diagnosis} · {p?.ageYears}{locale === "bg" ? " г." : "y"} {p?.sex === "MALE" ? (locale === "bg" ? "М" : "M") : p?.sex === "FEMALE" ? (locale === "bg" ? "Ж" : "F") : ""} ·{" "}
               {i?.monthYear
@@ -77,7 +83,8 @@ export default async function CasePage({
           </div>
           <div className="flex flex-col items-end gap-2">
             {record.caseCode && (
-              <CaseMeta caseId={id} caseCode={record.caseCode} initialNotes={record.notes} canWrite={canWrite} />
+              <CaseMeta caseId={id} caseCode={record.caseCode} initialNotes={record.notes} canWrite={canWrite && record.status !== "CANCELLED"} theatreName={record.theatre?.name ?? null}
+                cancelled={record.status === "CANCELLED" ? { reason: cancellationReasonLabel(record.cancellationReason, locale) } : null} />
             )}
           </div>
         </div>

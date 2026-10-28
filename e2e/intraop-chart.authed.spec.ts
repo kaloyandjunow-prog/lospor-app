@@ -242,8 +242,9 @@ test("an infusion started from the chart can be dragged to a different time", as
 })
 
 // A bar's end is its stop (1.4.9): a running infusion ends at "now" by
-// itself, and dropping its end grip on a later column plans the stop there.
-test("an infusion's right grip sets where it stops", async ({ page }) => {
+// itself. Dropping its end grip on a later column writes nothing: a stop is
+// planned from the cell's own menu, never by a drag that ends past now.
+test("an infusion's right grip dropped past now writes no stop", async ({ page }) => {
   const id = await createRecentCase(page)
   const chart = await openChart(page, id)
   await startInfusion(page, chart)
@@ -260,7 +261,11 @@ test("an infusion's right grip sets where it stops", async ({ page }) => {
   const laneBox = await lane.boundingBox()
   await grip.dragTo(lane, { targetPosition: { x: laneBox!.width - 60, y: laneBox!.height / 2 } })
 
-  await expect(lane.getByTestId("planned-stop-marker")).toBeVisible({ timeout: 10_000 })
+  await page.waitForTimeout(3_000)
+  await expect(lane.getByTestId("planned-stop-marker")).toHaveCount(0)
+  const body = await page.request.get(`/api/cases/${id}`).then(r => r.json())
+  const types = ((body?.intraop?.keyEvents?.log ?? []) as { type: string }[]).filter(e => e.type.startsWith("infusion")).map(e => e.type)
+  expect(types).toEqual(["infusion_start"])
 })
 
 test("an infusion's left grip extends the bar backwards in time", async ({ page }) => {
