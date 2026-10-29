@@ -10,6 +10,9 @@
   scoring.
 - **Case-lock cleanup:** repeated release requests and leases removed during
   case cleanup no longer produce false 404/unhandled-rejection noise.
+- **Postoperative score rendering:** rapid FLACC/Aldrete/Steward item taps now
+  render from the synchronous score projection, eliminating stale aggregate
+  totals during interaction bursts.
 - **Dependency security:** upgraded Next.js to 16.4.3, Sentry, Vitest 5,
   Zod, Vite and the related transitive packages; no high or critical npm audit
   findings remain. The remaining low `deepmerge` advisory has no upstream fix.

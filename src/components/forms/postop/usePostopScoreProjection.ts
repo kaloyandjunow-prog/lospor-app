@@ -35,7 +35,7 @@ export function usePostopScoreProjection(defaultValues: Partial<PostopData> | un
     setProjection(next)
   }
   const projected = <K extends ScoreField>(key: K, observed: number | null | undefined) =>
-    Object.prototype.hasOwnProperty.call(projection, key) ? projection[key] : observed
+    Object.prototype.hasOwnProperty.call(projectionRef.current, key) ? projectionRef.current[key] : observed
 
   return { setScore, projected }
 }
