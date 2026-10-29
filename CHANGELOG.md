@@ -1,5 +1,12 @@
 # Changelog - LOSPOR Web App
 
+## [10.0.1] - 2026-10-29
+
+### Changed
+
+- **Maintenance release:** the web app development lint toolchain now uses
+  ESLint 10.13.0; the public clinical workflow is unchanged.
+
 ## [10.0.0] - 2026-10-28
 
 ### Added

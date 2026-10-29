@@ -1,6 +1,6 @@
 {
   "name": "lospor-app",
-  "version": "10.0.0",
+  "version": "10.0.1",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
@@ -73,7 +73,7 @@
     "@vitalets/google-translate-api": "^9.2.1",
     "@vitest/coverage-v8": "^4.1.9",
     "cross-env": "^10.1.0",
-    "eslint": "^9.39.5",
+    "eslint": "^10.13.0",
     "eslint-config-next": "16.3.8",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
