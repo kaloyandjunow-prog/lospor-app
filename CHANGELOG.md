@@ -1,5 +1,14 @@
 # Changelog - LOSPOR Web App
 
+## [10.0.2] - 2026-10-29
+
+### Fixed
+
+- **Postoperative score totals:** recovery and item pain totals now project
+  the latest click synchronously, preventing stale totals during rapid input.
+- **Regression coverage:** added component tests for rapid Steward and FLACC
+  scoring.
+
 ## [10.0.1] - 2026-10-29
 
 ### Changed
