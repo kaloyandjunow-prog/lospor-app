@@ -31,7 +31,7 @@ async function open(page: Page, id: string) {
   if (await tab.waitFor({ state: "visible", timeout: 5_000 }).then(() => true, () => false)) await tab.click()
   const chart = page.locator('[data-tour="intraop-timetable"]')
   await expect(chart).toBeVisible({ timeout: 60_000 })
-  await page.waitForTimeout(1500)
+  await expect(chart.locator('[data-touch-drag-ready="true"]')).toBeVisible({ timeout: 60_000 })
   return chart
 }
 async function finger(cdp: CDPSession, page: Page, x: number, y: number, dx: number, holdMs: number) {
