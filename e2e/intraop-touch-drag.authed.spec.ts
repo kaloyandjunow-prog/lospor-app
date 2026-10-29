@@ -70,6 +70,7 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
     // coordinates; this keeps the test from touching a stale/empty cell.
     const bar = chart.locator('[data-testid="infusion-lane"] div[draggable="true"][title]').first()
     await expect(bar).toBeVisible({ timeout: 60_000 })
+    await bar.scrollIntoViewIfNeeded()
     const b = (await bar.boundingBox())!
     const cdp = await page.context().newCDPSession(page)
     const start = async () => (await log(page, id)).find(e => e.type === "infusion_start")!.ts
@@ -85,6 +86,7 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
       const secondChart = await open(secondPage, id)
       const afterSwipeBar = secondChart.locator('[data-testid="infusion-lane"] div[draggable="true"][title]').first()
       await expect(afterSwipeBar).toBeVisible({ timeout: 60_000 })
+      await afterSwipeBar.scrollIntoViewIfNeeded()
       const afterSwipe = (await afterSwipeBar.boundingBox())!
       await finger(await secondPage.context().newCDPSession(secondPage), secondPage, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
       await expect.poll(async () => Date.parse(s1) - Date.parse(await start()), {
