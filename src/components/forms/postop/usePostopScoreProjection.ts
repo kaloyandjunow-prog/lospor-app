@@ -23,7 +23,7 @@ export function usePostopScoreProjection(defaultValues: Partial<PostopData> | un
     return Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([key, value]) => keys.has(key) && value !== undefined)) as Partial<Record<ScoreField, number | null>>
   })()
   const projectionRef = useRef(initialProjection)
-  const [projection, setProjection] = useState(initialProjection)
+  const [, setProjection] = useState(initialProjection)
 
   const setScore = (key: ScoreField, value: number | null) => {
     // Keep the merge synchronous as well as functional. Several real clicks can
