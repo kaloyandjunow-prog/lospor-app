@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Controller, useWatch, type Control } from "react-hook-form"
 import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
@@ -46,9 +46,10 @@ export function RecoveryScore({ control, isPediatric, suggestions, total, max, s
     "aldreteActivity", "aldreteRespiration", "aldreteCirculation", "aldreteConsciousness", "aldreteSpO2",
     "stewardConsciousness", "stewardAirway", "stewardMovement",
   ] })
-  const [immediateScores, setImmediateScores] = useState<Partial<Record<AldreteKey | StewardKey, number | null>>>({})
+  const immediateScoresRef = useRef<Partial<Record<AldreteKey | StewardKey, number | null>>>({})
+  const [, setImmediateScores] = useState(0)
   const score = (key: AldreteKey | StewardKey) => {
-    if (Object.prototype.hasOwnProperty.call(immediateScores, key)) return immediateScores[key]
+    if (Object.prototype.hasOwnProperty.call(immediateScoresRef.current, key)) return immediateScoresRef.current[key]
     const index = [
       "aldreteActivity", "aldreteRespiration", "aldreteCirculation", "aldreteConsciousness", "aldreteSpO2",
       "stewardConsciousness", "stewardAirway", "stewardMovement",
@@ -58,7 +59,7 @@ export function RecoveryScore({ control, isPediatric, suggestions, total, max, s
   const immediateTotal = isPediatric
     ? calculateStewardTotal({ stewardConsciousness: score("stewardConsciousness"), stewardAirway: score("stewardAirway"), stewardMovement: score("stewardMovement") })
     : calculateAldreteTotal({ aldreteActivity: score("aldreteActivity"), aldreteRespiration: score("aldreteRespiration"), aldreteCirculation: score("aldreteCirculation"), aldreteConsciousness: score("aldreteConsciousness"), aldreteSpO2: score("aldreteSpO2") })
-  const visibleTotal = Object.keys(immediateScores).length > 0 ? immediateTotal : total
+  const visibleTotal = Object.keys(immediateScoresRef.current).length > 0 ? immediateTotal : total
   const color = visibleTotal == null ? "outline" : status === "ready" ? "default" : status === "observe" ? "secondary" : "destructive"
   return (
     <div id="postop-sec-score" data-tour="postop-aldrete" className="scroll-mt-28">
@@ -66,7 +67,7 @@ export function RecoveryScore({ control, isPediatric, suggestions, total, max, s
         <div className="space-y-5">
           {criteria.map(({ key, labelKey, scoreKeys }) => <Controller key={key} name={key} control={control} render={({ field }) => {
             const suggestion = suggestions[key as AldreteKey]
-            return <div><p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t(labelKey)} <span className="text-red-500">*</span></p><div className="grid grid-cols-3 gap-2">{scoreKeys.map((sk, i) => { const selected = Number(field.value) === i && field.value != null; return <button key={i} type="button" onClick={() => { const value = selected ? null : i; field.onChange(value); setImmediateScores(previous => ({ ...previous, [key]: value })); onScoreChange?.(key, value) }} className={`rounded-xl border-2 p-2.5 text-center transition-all ${selected ? SCORE_COLORS[i] + " scale-105 shadow-sm" : UNSELECTED} ${suggestion?.score === i && !selected ? "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-[#111]" : ""}`}><div className="text-xl font-bold leading-none">{i}</div><div className="text-[10px] mt-1 leading-tight opacity-90">{String(t(sk)).replace(/^\d+\s*[—–-]\s*/, "")}</div></button> })}</div>{suggestion && (field.value == null || Number(field.value) !== suggestion.score) ? <div className="mt-1.5 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300" data-testid={`suggest-${key}`}><span>{suggestion.text}</span><button type="button" onClick={() => { field.onChange(suggestion.score); setImmediateScores(previous => ({ ...previous, [key]: suggestion.score })); onScoreChange?.(key, suggestion.score) }} className="rounded-full border border-blue-300 px-2 py-0.5 font-semibold hover:bg-blue-50 dark:border-blue-700 dark:hover:bg-blue-950/40">{t("postop.suggest.use")}</button></div> : null}</div>
+            return <div><p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">{t(labelKey)} <span className="text-red-500">*</span></p><div className="grid grid-cols-3 gap-2">{scoreKeys.map((sk, i) => { const selected = Number(field.value) === i && field.value != null; return <button key={i} type="button" onClick={() => { const value = selected ? null : i; field.onChange(value); immediateScoresRef.current = { ...immediateScoresRef.current, [key]: value }; setImmediateScores(previous => previous + 1); onScoreChange?.(key, value) }} className={`rounded-xl border-2 p-2.5 text-center transition-all ${selected ? SCORE_COLORS[i] + " scale-105 shadow-sm" : UNSELECTED} ${suggestion?.score === i && !selected ? "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-[#111]" : ""}`}><div className="text-xl font-bold leading-none">{i}</div><div className="text-[10px] mt-1 leading-tight opacity-90">{String(t(sk)).replace(/^\d+\s*[—–-]\s*/, "")}</div></button> })}</div>{suggestion && (field.value == null || Number(field.value) !== suggestion.score) ? <div className="mt-1.5 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300" data-testid={`suggest-${key}`}><span>{suggestion.text}</span><button type="button" onClick={() => { field.onChange(suggestion.score); immediateScoresRef.current = { ...immediateScoresRef.current, [key]: suggestion.score }; setImmediateScores(previous => previous + 1); onScoreChange?.(key, suggestion.score) }} className="rounded-full border border-blue-300 px-2 py-0.5 font-semibold hover:bg-blue-50 dark:border-blue-700 dark:hover:bg-blue-950/40">{t("postop.suggest.use")}</button></div> : null}</div>
           }} />)}
           <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-[#2a2a2a]"><span className="font-semibold text-slate-700 dark:text-slate-200">{t(isPediatric ? "postop.stewardTotal" : "postop.aldreteTotal")}:</span><Badge variant={color} className="text-base px-3 py-1" data-testid={isPediatric ? "steward-total" : "aldrete-total"}>{visibleTotal ?? "—"} / {max}</Badge>{status === "ready" && <span className="text-sm text-green-600 dark:text-green-400">{t("postop.aldreteReady")}</span>}{status !== null && status !== "ready" && <span className="text-sm text-amber-600 dark:text-amber-400">{t("postop.aldreteMonitor")}</span>}</div>
         </div>
