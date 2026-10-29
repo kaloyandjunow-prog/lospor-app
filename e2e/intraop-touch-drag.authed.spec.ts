@@ -61,7 +61,12 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
   const id = await seed(page, false)
   try {
     const chart = await open(page, id)
-    const bar = chart.locator('[data-testid="infusion-lane"] div[draggable="true"]').first()
+    // Empty lane cells are not draggable, but selecting the generic draggable
+    // descendant can still race the timetable rehydrate. Wait for
+    // the actual running bar (the only draggable with a title) before taking
+    // coordinates; this keeps the test from touching a stale/empty cell.
+    const bar = chart.locator('[data-testid="infusion-lane"] div[draggable="true"][title]').first()
+    await expect(bar).toBeVisible({ timeout: 60_000 })
     const b = (await bar.boundingBox())!
     const cdp = await page.context().newCDPSession(page)
     const start = async () => (await log(page, id)).find(e => e.type === "infusion_start")!.ts
@@ -71,13 +76,16 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
     expect(s1).toBe(s0)
     // Keep the two gesture assertions isolated. A quick touch is intentionally
     // allowed to scroll/reflow the chart, and the touch adapter's state belongs
-    // to that gesture; the long-press assertion must start a fresh session.
-    await page.reload({ waitUntil: "domcontentloaded" })
-    await expect(chart).toBeVisible({ timeout: 60_000 })
-    await page.waitForTimeout(1500)
-    const afterSwipe = (await chart.locator('[data-testid="infusion-lane"] div[draggable="true"]').first().boundingBox())!
-    await finger(await page.context().newCDPSession(page), page, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
-    const s2 = await start()
-    expect(Date.parse(s1) - Date.parse(s2)).toBeGreaterThan(0)
+    // to that gesture; the long-press assertion must start in a fresh page.
+    const secondPage = await page.context().newPage()
+    try {
+      const secondChart = await open(secondPage, id)
+      const afterSwipeBar = secondChart.locator('[data-testid="infusion-lane"] div[draggable="true"][title]').first()
+      await expect(afterSwipeBar).toBeVisible({ timeout: 60_000 })
+      const afterSwipe = (await afterSwipeBar.boundingBox())!
+      await finger(await secondPage.context().newCDPSession(secondPage), secondPage, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
+      const s2 = await start()
+      expect(Date.parse(s1) - Date.parse(s2)).toBeGreaterThan(0)
+    } finally { await secondPage.close() }
   } finally { await page.request.delete(`/api/cases/${id}`, { headers: { Origin: ORIGIN } }) }
 })
