@@ -1,4 +1,5 @@
 import { useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import type { UseFormSetValue } from "react-hook-form"
 import { FLACC_ITEMS, NIPS_ITEMS, PAED_ITEMS, type FlaccField, type NipsField, type PaedField } from "@lospor/core/postop-pain"
 import type { PostopData } from "@/components/forms/postopSchema"
@@ -31,8 +32,10 @@ export function usePostopScoreProjection(defaultValues: Partial<PostopData> | un
     // prevents the last click from being calculated from a stale projection.
     const next = { ...projectionRef.current, [key]: value }
     projectionRef.current = next
-    setValue(key, value, { shouldDirty: true })
-    setProjection(next)
+    flushSync(() => {
+      setValue(key, value, { shouldDirty: true })
+      setProjection(next)
+    })
   }
   const projected = <K extends ScoreField>(key: K, observed: number | null | undefined) =>
     Object.prototype.hasOwnProperty.call(projectionRef.current, key) ? projectionRef.current[key] : observed
