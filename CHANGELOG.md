@@ -10,6 +10,9 @@
   scoring.
 - **Case-lock cleanup:** repeated release requests and leases removed during
   case cleanup no longer produce false 404/unhandled-rejection noise.
+- **Dependency security:** upgraded Next.js to 16.4.3, Sentry, Vitest 5,
+  Zod, Vite and the related transitive packages; no high or critical npm audit
+  findings remain. The remaining low `deepmerge` advisory has no upstream fix.
 
 ## [10.0.1] - 2026-10-29
 
