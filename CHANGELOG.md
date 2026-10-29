@@ -13,6 +13,8 @@
 - **Postoperative score rendering:** rapid FLACC/Aldrete/Steward item taps now
   render from the synchronous score projection, eliminating stale aggregate
   totals during interaction bursts, including the recovery score component.
+- **Recovery score stability:** recovery score taps now commit the complete
+  immediate projection before React Hook Form publishes its next render.
 - **Dependency security:** upgraded Next.js to 16.4.3, Sentry, Vitest 5,
   Zod, Vite and the related transitive packages; no high or critical npm audit
   findings remain. The remaining low `deepmerge` advisory has no upstream fix.
