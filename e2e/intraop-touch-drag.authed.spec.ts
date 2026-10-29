@@ -84,8 +84,10 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
       await expect(afterSwipeBar).toBeVisible({ timeout: 60_000 })
       const afterSwipe = (await afterSwipeBar.boundingBox())!
       await finger(await secondPage.context().newCDPSession(secondPage), secondPage, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
-      const s2 = await start()
-      expect(Date.parse(s1) - Date.parse(s2)).toBeGreaterThan(0)
+      await expect.poll(async () => Date.parse(s1) - Date.parse(await start()), {
+        timeout: 15_000,
+        intervals: [250, 500, 1_000],
+      }).toBeGreaterThan(0)
     } finally { await secondPage.close() }
   } finally { await page.request.delete(`/api/cases/${id}`, { headers: { Origin: ORIGIN } }) }
 })
