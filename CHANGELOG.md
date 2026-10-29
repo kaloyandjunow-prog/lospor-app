@@ -8,6 +8,8 @@
   the latest click synchronously, preventing stale totals during rapid input.
 - **Regression coverage:** added component tests for rapid Steward and FLACC
   scoring.
+- **Case-lock cleanup:** repeated release requests and leases removed during
+  case cleanup no longer produce false 404/unhandled-rejection noise.
 
 ## [10.0.1] - 2026-10-29
 
