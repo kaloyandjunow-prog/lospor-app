@@ -37,6 +37,9 @@ async function open(page: Page, id: string) {
 async function finger(cdp: CDPSession, page: Page, x: number, y: number, dx: number, holdMs: number) {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
   await page.waitForTimeout(holdMs)
+  // Give the adapter's press-hold timer a scheduling window under a loaded CI
+  // runner before the first move arrives. Short swipes do not use this pause.
+  if (holdMs >= 400) await page.waitForTimeout(300)
   for (let i = 1; i <= 12; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * i / 12, y }] }); await page.waitForTimeout(40) }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
   await page.waitForTimeout(2500)
