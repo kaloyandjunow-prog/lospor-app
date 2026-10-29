@@ -69,11 +69,14 @@ test("hold and slide a running bar moves it; a quick swipe does not", async ({ p
     await finger(cdp, page, b.x + 20, b.y + b.height / 2, -90, 60)
     const s1 = await start()
     expect(s1).toBe(s0)
-    // A quick touch is intentionally allowed to scroll/reflow the chart. Do
-    // not reuse the pre-swipe coordinates for the long press: on a touch
-    // viewport they can now point at a different cell or lane.
-    const afterSwipe = (await bar.boundingBox())!
-    await finger(cdp, page, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
+    // Keep the two gesture assertions isolated. A quick touch is intentionally
+    // allowed to scroll/reflow the chart, and the touch adapter's state belongs
+    // to that gesture; the long-press assertion must start a fresh session.
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await expect(chart).toBeVisible({ timeout: 60_000 })
+    await page.waitForTimeout(1500)
+    const afterSwipe = (await chart.locator('[data-testid="infusion-lane"] div[draggable="true"]').first().boundingBox())!
+    await finger(await page.context().newCDPSession(page), page, afterSwipe.x + 20, afterSwipe.y + afterSwipe.height / 2, -90, 700)
     const s2 = await start()
     expect(Date.parse(s1) - Date.parse(s2)).toBeGreaterThan(0)
   } finally { await page.request.delete(`/api/cases/${id}`, { headers: { Origin: ORIGIN } }) }
