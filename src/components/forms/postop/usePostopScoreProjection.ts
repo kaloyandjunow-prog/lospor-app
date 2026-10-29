@@ -1,5 +1,4 @@
-import { useRef, useState } from "react"
-import { flushSync } from "react-dom"
+import { useRef, useSyncExternalStore } from "react"
 import type { UseFormSetValue } from "react-hook-form"
 import { FLACC_ITEMS, NIPS_ITEMS, PAED_ITEMS, type FlaccField, type NipsField, type PaedField } from "@lospor/core/postop-pain"
 import type { PostopData } from "@/components/forms/postopSchema"
@@ -24,7 +23,13 @@ export function usePostopScoreProjection(defaultValues: Partial<PostopData> | un
     return Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([key, value]) => keys.has(key) && value !== undefined)) as Partial<Record<ScoreField, number | null>>
   })()
   const projectionRef = useRef(initialProjection)
-  const [, setProjection] = useState(initialProjection)
+  const listenersRef = useRef(new Set<() => void>())
+  const subscribe = (listener: () => void) => {
+    listenersRef.current.add(listener)
+    return () => listenersRef.current.delete(listener)
+  }
+  const getSnapshot = () => projectionRef.current
+  const projection = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   const setScore = (key: ScoreField, value: number | null) => {
     // Keep the merge synchronous as well as functional. Several real clicks can
@@ -32,13 +37,11 @@ export function usePostopScoreProjection(defaultValues: Partial<PostopData> | un
     // prevents the last click from being calculated from a stale projection.
     const next = { ...projectionRef.current, [key]: value }
     projectionRef.current = next
-    flushSync(() => {
-      setValue(key, value, { shouldDirty: true })
-      setProjection(next)
-    })
+    setValue(key, value, { shouldDirty: true })
+    listenersRef.current.forEach(listener => listener())
   }
   const projected = <K extends ScoreField>(key: K, observed: number | null | undefined) =>
-    Object.prototype.hasOwnProperty.call(projectionRef.current, key) ? projectionRef.current[key] : observed
+    Object.prototype.hasOwnProperty.call(projection, key) ? projection[key] : observed
 
   return { setScore, projected }
 }
