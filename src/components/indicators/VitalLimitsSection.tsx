@@ -2,11 +2,9 @@
 
 import { useLocale, useTranslations } from "next-intl"
 import { VITAL_SIGN_KEYS, vitalQuestionsEnabled } from "@lospor/core/intraop-automation"
-import { FIXED_HEART_RATE, VITAL_BANDS, vitalLimitsFor } from "@lospor/core/vital-questions"
+import { FIXED_HEART_RATE, VITAL_BANDS, vitalLimitsFor, vitalSignAbbreviation } from "@lospor/core/vital-questions"
 import { useIntraopAutomation } from "@/lib/use-intraop-automation"
 import { Section } from "./IndicatorWidgets"
-
-const SIGN_LABEL = { hr: "HR", sbp: "SBP", dbp: "DBP", map: "MAP" } as const
 
 /**
  * The limits the vitals questions use, per age band (10.1.0), read-only for
@@ -28,7 +26,7 @@ export function VitalLimitsSection() {
             <tr className="text-left text-xs text-slate-500">
               <th className="py-1 pr-3">{t("band")}</th>
               <th className="py-1 pr-3 text-right">{t("bandCases")}</th>
-              {VITAL_SIGN_KEYS.map(sign => <th key={sign} className="py-1 pr-3 text-right">{SIGN_LABEL[sign]}</th>)}
+              {VITAL_SIGN_KEYS.map(sign => <th key={sign} className="py-1 pr-3 text-right">{vitalSignAbbreviation(sign, locale)}</th>)}
               <th className="py-1 text-right">{t("fixedHr")}</th>
             </tr>
           </thead>

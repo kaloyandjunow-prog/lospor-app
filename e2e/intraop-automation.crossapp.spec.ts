@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { test, expect, type APIRequestContext, type Page } from "@playwright/test"
+import { test, expect, type APIRequestContext, type Browser, type Page } from "@playwright/test"
 import { contextFor, JSON_HEADERS } from "./roles"
 import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop } from "./pwa"
@@ -63,6 +63,19 @@ async function timetable(page: Page, locale: Locale) {
   await page.waitForTimeout(600)
 }
 
+/** Opens the current slot, unless a save has left it open already. */
+async function nowSlot(page: Page) {
+  if (await page.getByTestId("timetable-quick-add-event").count() === 0) await page.getByTestId("timetable-row-now").click()
+  await page.getByTestId("timetable-quick-add-event").click()
+}
+
+/** Signing the phone in sets the account to English: say the language again afterwards. */
+async function phoneIn(browser: Browser, request: APIRequestContext, locale: Locale) {
+  const phone = await openPhone(browser, E2E_MEMBER_A_EMAIL)
+  await request.patch("/api/user", { headers: JSON_HEADERS, data: { preferences: { ui: { locale } } } })
+  return phone
+}
+
 async function intraop(request: APIRequestContext, caseId: string): Promise<Record<string, unknown>> {
   return ((await (await request.get(`/api/cases/${caseId}`)).json()) as { intraop?: Record<string, unknown> }).intraop ?? {}
 }
@@ -76,8 +89,8 @@ for (const locale of LOCALES) {
       // ── Phone: a question from the vitals, answered, and its episode closed ──
       const caseA = await startedCase(web.request, at(40))
       await chart(web.request, caseA, { id: "low-hr", type: "vital", ts: at(10), heartRate: 44, systolic: 118, diastolic: 70 })
-      const phone = await openPhone(browser, E2E_MEMBER_A_EMAIL)
-      await openPhoneIntraop(phone.page, caseA)
+      const phone = await phoneIn(browser, web.request, locale)
+      await openPhoneIntraop(phone.page, caseA, locale)
       await timetable(phone.page, locale)
       const key = "vital:bradycardia:low-hr"
       await expect(phone.page.getByTestId(`attention-vital-detail-${key}`)).toBeVisible({ timeout: 20_000 })
@@ -87,14 +100,12 @@ for (const locale of LOCALES) {
 
       // A timed complication from the slot sheet.
       await timetable(phone.page, locale)
-      await phone.page.getByTestId("timetable-row-now").click()
-      await phone.page.getByTestId("timetable-quick-add-event").click()
+      await nowSlot(phone.page)
       await phone.page.getByText(locale === "bg" ? "Ларингоспазъм" : "Laryngospasm", { exact: true }).click()
       await expect.poll(async () => (await events(web.request, caseA)).filter(event => event.type === "complication").length, { timeout: 20_000 }).toBe(2)
 
       // A shock.
-      await phone.page.getByTestId("timetable-row-now").click()
-      await phone.page.getByTestId("timetable-quick-add-event").click()
+      await nowSlot(phone.page)
       await phone.page.getByTestId("slot-defibrillation").click()
       for (let i = 0; i < 15; i += 1) await phone.page.getByTestId("defib-step-10").click()
       await phone.page.getByTestId("defib-sync").click()
@@ -110,7 +121,7 @@ for (const locale of LOCALES) {
 
       // A normal reading closes the episode at its time.
       await chart(web.request, caseA, { id: "back-hr", type: "vital", ts: at(5), heartRate: 72, systolic: 120, diastolic: 72 })
-      await openPhoneIntraop(phone.page, caseA)
+      await openPhoneIntraop(phone.page, caseA, locale)
       await timetable(phone.page, locale)
       await expect.poll(async () => (await events(web.request, caseA)).find(event => event.complicationSource === "vitals")?.endTs, { timeout: 20_000 }).toBe(at(5))
       await phone.context.close()
@@ -119,9 +130,11 @@ for (const locale of LOCALES) {
       const start = new Date(Date.now() - 3 * 86_400_000)
       start.setUTCHours(7, 0, 0, 0)
       const caseB = await startedCase(web.request, start.toISOString())
-      const late = await openPhone(browser, E2E_MEMBER_A_EMAIL)
-      await openPhoneIntraop(late.page, caseB)
+      const late = await phoneIn(browser, web.request, locale)
+      await openPhoneIntraop(late.page, caseB, locale)
       await timetable(late.page, locale)
+      // Sections left incomplete are a warning to continue past, not the subject here.
+      late.page.on("dialog", dialog => { console.log(`End case dialog: ${dialog.message()}`); void dialog.accept() })
       await late.page.getByTestId("timetable-end-case").click()
       await late.page.getByTestId("end-case-mode-at").click()
       const back = late.page.getByLabel(locale === "bg" ? "Дата на край: −1" : "End date: −1")
