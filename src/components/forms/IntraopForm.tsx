@@ -150,6 +150,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const safeTimetable = (defaultTimetable && !Array.isArray(defaultTimetable) && "vitals" in defaultTimetable)
     ? defaultTimetable : EMPTY_TIMETABLE
   const [manualSaved, setManualSaved] = useState(false)
+  // While the reasons for a changed end are open, the floating questions step aside (10.1.0).
+  const [endCorrectionOpen, setEndCorrectionOpen] = useState(false)
   // The chart is the projection of the event log; edits become events (1.4.9).
   const [timelineStartedAt, timelineEndedAt, timelineStartTime, timelineZone] = useWatch({ control, name: ["startedAt", "endedAt", "startTime", "timezone"] })
   const { timetable, log: timelineLog, chartStartMs, startedAt: chartStartedAt, onTimetableChange, removeEvent, addEvents } = useIntraopEventTimeline({
@@ -517,6 +519,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         timeErrors={timeErrors} setTimeErrors={setTimeErrors}
         monDefaultsAppliedRef={monDefaultsApplied}
         setAdvancedMonOpen={setAdvancedMonOpen} setAirwayExpandedDevice={setAirwayExpandedDevice}
+        onEndCorrectionOpen={setEndCorrectionOpen}
       />
       </div>
 
@@ -576,7 +579,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           aiOptIn={aiOptIn}
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
-        <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />
+        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
         <IntraopTimetable
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}

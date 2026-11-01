@@ -10,7 +10,7 @@ const SOFIA = "Europe/Sofia"
 // 16 Oct 2026, 10:00 in Sofia.
 const NOW = new Date("2026-10-16T07:00:00Z")
 
-function Harness({ defaults, onSave }: { defaults: Partial<IntraopFormFields>; onSave: (data: Record<string, unknown>) => void }) {
+function Harness({ defaults, onSave, onEndCorrectionOpen }: { defaults: Partial<IntraopFormFields>; onSave: (data: Record<string, unknown>) => void; onEndCorrectionOpen?: (open: boolean) => void }) {
   const { control, watch, setValue, getValues } = useForm<IntraopFormFields>({ defaultValues: { timezone: SOFIA, ...defaults } as never })
   return (
     <TimelineSection
@@ -25,6 +25,7 @@ function Harness({ defaults, onSave }: { defaults: Partial<IntraopFormFields>; o
       monDefaultsAppliedRef={{ current: false }}
       setAdvancedMonOpen={() => {}}
       setAirwayExpandedDevice={() => {}}
+      onEndCorrectionOpen={onEndCorrectionOpen}
     />
   )
 }
@@ -114,5 +115,26 @@ describe("the date beside the start and end of surgery", () => {
     expect(saves).toEqual([])
     act(() => { fireEvent.change(endTime, { target: { value: "50" } }) })
     expect(screen.queryByTestId("end-correction-reasons")).toBeNull()
+  })
+
+  // The floating "Waiting for your answer" panel covered the last reasons.
+  it("tells the form while the reasons are open, so the floating questions step aside", () => {
+    const open = vi.fn()
+    const view = render(<Harness
+      defaults={{ startTime: "09:00", startedAt: "2026-10-16T06:00:00.000Z", endTime: "09:50", endedAt: "2026-10-16T06:50:00.000Z" } as never}
+      onSave={() => {}}
+      onEndCorrectionOpen={open}
+    />)
+    expect(open).toHaveBeenLastCalledWith(false)
+    const selects = document.querySelectorAll("select")
+    act(() => { fireEvent.change(selects[selects.length - 1]!, { target: { value: "40" } }) })
+    expect(open).toHaveBeenLastCalledWith(true)
+    act(() => { fireEvent.click(screen.getByTestId("end-correction-DEVICE_CLOCK")) })
+    expect(open).toHaveBeenLastCalledWith(false)
+    act(() => { fireEvent.change(selects[selects.length - 1]!, { target: { value: "30" } }) })
+    expect(open).toHaveBeenLastCalledWith(true)
+    // Leaving the section while they are open brings the questions back.
+    view.unmount()
+    expect(open).toHaveBeenLastCalledWith(false)
   })
 })

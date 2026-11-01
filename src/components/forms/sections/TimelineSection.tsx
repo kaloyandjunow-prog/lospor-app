@@ -1,5 +1,5 @@
 "use client"
-import { useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useLocale } from "next-intl"
 import { Controller, type Control, type UseFormWatch, type UseFormSetValue, type UseFormGetValues } from "react-hook-form"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
@@ -86,7 +86,7 @@ function nowHHMM() {
 
 export function TimelineSection({
   t, control, watch, setValue, getValues, onAutoSave,
-  timeErrors, setTimeErrors, monDefaultsAppliedRef, setAdvancedMonOpen, setAirwayExpandedDevice,
+  timeErrors, setTimeErrors, monDefaultsAppliedRef, setAdvancedMonOpen, setAirwayExpandedDevice, onEndCorrectionOpen,
 }: {
   t: (key: string, values?: Record<string, string | number>) => string
   control: Control<IntraopFormFields>
@@ -99,6 +99,8 @@ export function TimelineSection({
   monDefaultsAppliedRef: { current: boolean }
   setAdvancedMonOpen: (value: boolean) => void
   setAirwayExpandedDevice: (v: string | null) => void
+  /** The reasons box for a changed end is open (10.1.0): the floating questions step aside meanwhile. */
+  onEndCorrectionOpen?: (open: boolean) => void
 }) {
   const locale = useLocale()
   const [showTemplates, setShowTemplates]   = useState(false)
@@ -116,6 +118,13 @@ export function TimelineSection({
   const [endDayTouched, setEndDayTouched] = useState(false)
   // Changing the end of a case that has ended asks why first (10.1.0).
   const [pendingEnd, setPendingEnd] = useState<{ hhmm: string; dayOffset?: number } | null>(null)
+  // The floating "Waiting for your answer" panel would cover the reasons:
+  // it steps aside while they are open, and comes back if this section goes.
+  const endCorrectionOpen = pendingEnd != null
+  useEffect(() => {
+    onEndCorrectionOpen?.(endCorrectionOpen)
+    return () => onEndCorrectionOpen?.(false)
+  }, [endCorrectionOpen, onEndCorrectionOpen])
   const dateLocale = locale === "bg" ? "bg" : "en"
   const formatDay = (key: string) => formatDateKeyShort(key, dateLocale) ?? key
 
