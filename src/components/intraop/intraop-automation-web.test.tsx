@@ -18,7 +18,8 @@ import { parseIntraopAutomationResponse } from "@/lib/use-intraop-automation"
 import { VitalLimitsSection } from "@/components/indicators/VitalLimitsSection"
 import { DefibrillationDialog } from "./DefibrillationDialog"
 import { IntraopAttentionPanel } from "./IntraopAttentionPanel"
-import { defibrillationDialogProps, extraComplicationOptions } from "./event-picker-extras"
+import { clinicalEventName } from "@/lib/clinical-event-name"
+import { defibrillationDialogProps, moreComplicationCategories, quickComplicationOption } from "./event-picker-extras"
 
 const vitals = { settings: parseIntraopAutomation({ enabled: true, vitalQuestions: { enabled: true } }), stats: null, ageDays: 40 * 365, keepLogging: true }
 
@@ -154,9 +155,22 @@ describe("the limits in Unit indicators", () => {
 })
 
 describe("the chart's complications", () => {
-  it("offer the whole taxonomy after the quick ones", () => {
-    const extra = extraComplicationOptions([{ label: "Hypotension" }], "en")
-    expect(extra.some(option => option.label === "Hypotension")).toBe(false)
-    expect(extra.some(option => option.label === "Ventricular fibrillation")).toBe(true)
+  it("offer the rest of the catalogue after the quick ones, under its headings", () => {
+    const more = moreComplicationCategories([{ label: "Hypotension" }, { label: "LAST" }], "en")
+    expect(more.map(category => category.displayCat)).toEqual(["Cardiovascular", "Respiratory", "Neurological", "Metabolic / Temperature", "Drug / Pharmacological", "Haematological", "Equipment / Technical", "Surgical"])
+    const offered = more.flatMap(category => category.events.map(event => event.label))
+    expect(offered).not.toContain("Hypotension")
+    expect(offered).not.toContain("Local anaesthetic systemic toxicity (LAST)")
+    expect(offered).toContain("Ventricular fibrillation")
+    expect(more.every(category => category.isComplication)).toBe(true)
+    expect(moreComplicationCategories([], "bg")[0].displayCat).toMatch(/[А-Яа-я]/)
+  })
+
+  it("name a quick button as the list does, and save it under the catalogue's name", () => {
+    expect(quickComplicationOption({ label: "Drug error", color: "#ef4444" }, "en")).toEqual({ label: "Drug error", color: "#ef4444", displayLabel: "Medication error" })
+    expect(quickComplicationOption({ label: "LAST", color: "#ef4444" }, "en").label).toBe("Local anaesthetic systemic toxicity (LAST)")
+    // The chart marker reads the same, even with the catalogue's "(LAST)" at the end.
+    expect(clinicalEventName("Local anaesthetic systemic toxicity (LAST)", [], "bg", {})).toBe(quickComplicationOption({ label: "LAST", color: "#ef4444" }, "bg").displayLabel)
+    expect(clinicalEventName("Drug error", [], "en", {})).toBe("Medication error")
   })
 })

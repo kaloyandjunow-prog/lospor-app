@@ -17,7 +17,7 @@ import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import { DefibrillationDialog } from "./intraop/DefibrillationDialog"
-import { defibrillationDialogProps, extraComplicationOptions } from "./intraop/event-picker-extras"
+import { defibrillationDialogProps, moreComplicationCategories, quickComplicationOption } from "./intraop/event-picker-extras"
 import { VitalsPopover } from "@/components/intraop/VitalsPopover"
 import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
@@ -1800,12 +1800,14 @@ export function IntraopTimetable({
           color: category.color,
           displayCat: displayGroupName(category.cat),
           isComplication: category.isComplication ?? false,
-          events: [...category.events.map(event => ({
+          events: category.events.map(event => category.isComplication ? quickComplicationOption(event, locale) : {
             label: event.label,
             color: event.color,
             displayLabel: displayEventName(event),
-          })), ...(category.isComplication ? extraComplicationOptions(category.events, locale) : [])],
-        }))}
+          }),
+        })).flatMap(category => category.isComplication
+          ? [category, ...moreComplicationCategories(category.events, locale)]
+          : [category])}
         defibrillation={{ label: t("intraop.defibrillation.button"), onOpen: () => { setDefibCol(eventPicker.ci); setEventPicker(null) } }}
         recordedLabels={new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker.ci).map(e => e.label))}
         labels={{
