@@ -16,6 +16,8 @@ import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
+import { DefibrillationDialog } from "./intraop/DefibrillationDialog"
+import { defibrillationDialogProps, extraComplicationOptions } from "./intraop/event-picker-extras"
 import { VitalsPopover } from "@/components/intraop/VitalsPopover"
 import { FluidPickerPopover } from "@/components/intraop/FluidPickerPopover"
 import { DoseEditPopover } from "@/components/intraop/DoseEditPopover"
@@ -158,7 +160,6 @@ interface Props {
   autoEnded?: boolean
   onPostopContinued?: (items: string[]) => void
   onInfusionTotals?: (totals: { name: string; total: number; unit: string }[]) => void
-  onComplicationAdded?: (labels: string[]) => void
 
   /**
    * Laboratory draws taken during the case.
@@ -228,7 +229,6 @@ export function IntraopTimetable({
   autoEnded = false,
   onPostopContinued,
   onInfusionTotals,
-  onComplicationAdded,
   labResults = [],
   onOpenLabDraw,
   onOpenAllLabs,
@@ -1004,7 +1004,8 @@ export function IntraopTimetable({
   const plannedGasChangeAt = (ci: number) => (data.gasSettings ?? []).flatMap(g => g.settingsChanges ?? []).find(c => c.planned && c.col === ci) ?? null
 
   // ── Clinical Events ───────────────────────────────────────────────────────────
-  const { addClinicalEvent, removeClinicalEvent } = useClinicalEventHandlers(dataRef, onChangeRef, onComplicationAdded)
+  const { addClinicalEvent, removeClinicalEvent, addDefibrillation } = useClinicalEventHandlers(dataRef, onChangeRef)
+  const [defibCol, setDefibCol] = useState<number | null>(null) // a shock at this column (10.1.0)
 
   // ── Drugs ───────────────────────────────────────────────────────────────────
   const { removeDrug } = useDrugHandlers(data, onChange)
@@ -1799,12 +1800,13 @@ export function IntraopTimetable({
           color: category.color,
           displayCat: displayGroupName(category.cat),
           isComplication: category.isComplication ?? false,
-          events: category.events.map(event => ({
+          events: [...category.events.map(event => ({
             label: event.label,
             color: event.color,
             displayLabel: displayEventName(event),
-          })),
+          })), ...(category.isComplication ? extraComplicationOptions(category.events, locale) : [])],
         }))}
+        defibrillation={{ label: t("intraop.defibrillation.button"), onOpen: () => { setDefibCol(eventPicker.ci); setEventPicker(null) } }}
         recordedLabels={new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker.ci).map(e => e.label))}
         labels={{
           logClinicalEvent: t("intraop.timetable.logClinicalEvent"),
@@ -1819,6 +1821,10 @@ export function IntraopTimetable({
         }}
         onDismiss={() => setEventPicker(null)}
       />
+    )}
+    {defibCol != null && (
+      <DefibrillationDialog {...defibrillationDialogProps(data.clinicalEvents ?? [], defibCol, times[defibCol] ?? "", { ageValue: pediatricAgeValue, ageUnit: pediatricAgeUnit, weightKg: tbw })}
+        onCancel={() => setDefibCol(null)} onSave={(energyJ, synchronized) => { addDefibrillation(defibCol, energyJ, synchronized); setDefibCol(null) }} />
     )}
     <MedicationPickerPortals
       drugPicker={drugPicker}

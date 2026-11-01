@@ -4,9 +4,9 @@ import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { useIntraopEventTimeline } from "@/hooks/useIntraopEventTimeline"
 import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
 import { useIntraopAttention } from "@/lib/use-intraop-attention"
+import { useVitalQuestionContext } from "@/lib/use-intraop-automation"
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
 import { CaseSaveStateContext } from "@/lib/use-case-save-state"
-import { appendComplications } from "@/lib/append-complications"
 import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals, infusionsVolumeMl, tciPatientFrom } from "@/lib/intraop-drug-totals"
@@ -156,7 +156,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, readOnly, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents, disabled: readOnly })
-  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly })
+  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly) })
 
   const {
     snapshot: clinicalRulesSnapshot,
@@ -618,7 +618,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           }}
           onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null) }}
           onPostopContinued={items => onPostopContinued?.(items)}
-          onComplicationAdded={labels => { const next = appendComplications(getValues("complications"), labels); if (next) setValue("complications", next) }}
         />
         </CaseSaveStateContext.Provider>
       </SectionCard>

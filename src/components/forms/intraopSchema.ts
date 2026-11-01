@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { CLINICAL_NUMBER_RULES } from "@lospor/core/clinical-validation"
+import { INTRAOP_END_CORRECTION_REASONS } from "@lospor/core/intraop-end-correction"
 import type { TimetableData } from "@/components/IntraopTimetable"
 
 /**
@@ -47,6 +48,9 @@ export const schema = z.object({
   endTimeNextDay: z.boolean().default(false),
   startedAt:      z.string().nullable().optional(),
   endedAt:        z.string().nullable().optional(),
+  // 10.1.0: why the end of a case that had ended was changed. Sent with the
+  // saves after that change; the API needs it only when the end differs.
+  endCorrectionReason: z.enum(INTRAOP_END_CORRECTION_REASONS).optional(),
   timezone:       z.string().nullable().optional(),
 
   positions: z.array(z.string()).catch([]).default([]),

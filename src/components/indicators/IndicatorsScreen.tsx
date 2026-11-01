@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { READINESS_COPY } from "@/components/case-summary/readiness-labels"
 import { cancellationReasonLabel } from "@lospor/core/case-cancellation"
+import { VitalLimitsSection } from "@/components/indicators/VitalLimitsSection"
 import { Section, Panel, Figure, TallyList, SpreadList, TallyChart, Heatmap, FilterBar, agentName, share, spread, percent, type IndicatorResponse as Response, type IndicatorFilters as Filters } from "@/components/indicators/IndicatorWidgets"
 
 /**
@@ -266,6 +267,8 @@ export function IndicatorsScreen() {
               </table>
             </Panel>
           </Section>
+
+          <VitalLimitsSection />
 
           <Section id="documentation" title={t("s_documentation")}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

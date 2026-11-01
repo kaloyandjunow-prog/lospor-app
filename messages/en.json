@@ -928,7 +928,9 @@
     },
     "uiScale": "Display size",
     "uiScaleDesc": "Text, buttons and spacing larger or smaller, on this device.",
-    "uiScaleReset": "Reset"
+    "uiScaleReset": "Reset",
+    "vitalEpisodeAutoLog": "Keep logging while out of range",
+    "vitalEpisodeAutoLogDesc": "After you log a complication from a vitals question, it stays logged while the readings stay out of range. Off: you are asked at every out-of-range reading."
   },
   "admin": {
     "title": "Admin Panel",
@@ -1662,7 +1664,9 @@
       },
       "startDate": "Start date",
       "endDate": "End date",
-      "longerThanDay": "Longer than 24 hours: check the end date"
+      "longerThanDay": "Longer than 24 hours: check the end date",
+      "endCorrectionTitle": "Why is the end being changed?",
+      "endCorrectionCancel": "Keep the saved end"
     },
     "offlineLibrary": "⚠ Offline reference list — some option lists may be out of date",
     "offlineLibraryAsOf": "{message} (as of {date})",
@@ -1822,14 +1826,32 @@
       "resumeRemoveStops": "Remove stops",
       "resumeKeepStops": "Keep",
       "labsPill": "Labs · {count}",
-      "autoEndedNotice": "This case was ended automatically 48 hours after it started. Resume it if it is still running."
+      "autoEndedNotice": "This case was ended automatically 48 hours after it started. Resume it if it is still running.",
+      "vitalNotNow": "Not now",
+      "vitalLogIt": "Log it"
     },
     "allergiesUnchecked": "Not checked against drugs automatically:",
     "sidebar": {
       "title": "Anaesthesia",
       "duration": "Duration",
       "technique": "Technique"
-    }
+    },
+    "defibrillation": {
+      "button": "Defibrillation / cardioversion",
+      "title": "Shock",
+      "shockNumber": "Shock {n}",
+      "energy": "Energy",
+      "sync": "Synchronised",
+      "unsync": "Not synchronised",
+      "setEnergy": "Set the energy",
+      "chooseSync": "Choose synchronised or not",
+      "prefillHint": "Prefilled from the paediatric reference ({ref}). Check before saving.",
+      "save": "Save shock",
+      "cancel": "Cancel"
+    },
+    "complicationNoTime": "no time recorded",
+    "complicationOpen": "still logging",
+    "complicationsTimedHint": "Add a complication on the chart: click a time in the events lane, then Complications."
   },
   "postop": {
     "aldreteSection": "Modified Aldrete Score (on leaving theatre)",
@@ -2155,7 +2177,12 @@
     "thresholdsFrom": "Thresholds as set in Status.",
     "adults": "Adults",
     "cancelled": "Procedures cancelled before anaesthesia",
-    "cancellationReasons": "Reasons for cancelling"
+    "cancellationReasons": "Reasons for cancelling",
+    "s_vitalLimits": "Unusual vital signs",
+    "vitalLimitsHint": "The limits the vitals questions use, from this department’s own readings. A band uses its statistics once it has {min} cases; until then only the fixed rules ask.",
+    "bandCases": "Cases",
+    "fixedHr": "Fixed HR rule",
+    "collecting": "collecting"
   },
   "cancellation": {
     "button": "Procedure cancelled",

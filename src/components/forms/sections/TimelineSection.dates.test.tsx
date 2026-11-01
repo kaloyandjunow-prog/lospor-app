@@ -84,12 +84,17 @@ describe("the date beside the start and end of surgery", () => {
     />)
     const stepper = screen.getByTestId("intraop-end-day")
     expect(stepper.textContent).toContain("Yesterday")
+    // The case has ended: moving its end asks why before anything is saved (10.1.0).
+    const before = saves.length
     act(() => { fireEvent.click(stepper.querySelectorAll("button")[1]!) })
-    expect(saves.at(-1)).toMatchObject({ endedAt: "2026-10-16T20:50:00.000Z", endTimeNextDay: true })
+    expect(saves.length).toBe(before)
+    act(() => { fireEvent.click(screen.getByTestId("end-correction-WRONG_TIME_ENTERED")) })
+    expect(saves.at(-1)).toMatchObject({ endedAt: "2026-10-16T20:50:00.000Z", endTimeNextDay: true, endCorrectionReason: "WRONG_TIME_ENTERED" })
     // It cannot go before the start's date.
     const back = screen.getByTestId("intraop-end-day").querySelectorAll("button")[0] as HTMLButtonElement
     act(() => { fireEvent.click(back) })
-    expect(saves.at(-1)).toMatchObject({ endedAt: "2026-10-15T20:50:00.000Z", endTimeNextDay: false })
+    act(() => { fireEvent.click(screen.getByTestId("end-correction-DEVICE_CLOCK")) })
+    expect(saves.at(-1)).toMatchObject({ endedAt: "2026-10-15T20:50:00.000Z", endTimeNextDay: false, endCorrectionReason: "DEVICE_CLOCK" })
     expect((screen.getByTestId("intraop-end-day").querySelectorAll("button")[0] as HTMLButtonElement).disabled).toBe(true)
   })
 })

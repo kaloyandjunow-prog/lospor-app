@@ -19,6 +19,11 @@ const ANSWERS: Record<IntraopAttentionKind, { action: IntraopAttentionAction; la
     { action: "still_running", label: "stopStillRunning", yes: false },
     { action: "stopped", label: "stopConfirmedStopped", yes: true },
   ],
+  // 10.1.0: a reading outside its limits. Nothing is logged without the yes.
+  vital_deviation: [
+    { action: "not_now", label: "vitalNotNow", yes: false },
+    { action: "log_complication", label: "vitalLogIt", yes: true },
+  ],
 }
 
 export function IntraopAttentionPanel({ entries, onAnswer, endCase = false, refused = [], onDismissRefused }: {
@@ -61,6 +66,8 @@ export function IntraopAttentionPanel({ entries, onAnswer, endCase = false, refu
           <span className="flex-1 min-w-[12rem] break-words">
             {entry.time ? `${entry.time} · ` : ""}{entry.label}
             {entry.kind === "unconfirmed_stop" ? ` — ${tr("stopUnconfirmed")}` : ""}
+            {entry.detail ? <span className="block text-xs text-slate-600 dark:text-slate-300" data-testid={`attention-detail-${entry.key}`}>{entry.detail}</span> : null}
+            {entry.stop ? <span className="block text-xs text-slate-500 dark:text-slate-400">{entry.stop}</span> : null}
           </span>
           {ANSWERS[entry.kind].map(answer => (
             <button

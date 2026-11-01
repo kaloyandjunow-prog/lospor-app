@@ -55,6 +55,8 @@ export type EventPickerPopoverProps = {
   onSearchChange: (value: string) => void
   onToggleEvent: (event: EventOption, category: EventCategory, alreadyRecorded: boolean) => void
   onDismiss: () => void
+  /** A shock at this column (10.1.0), with its label. */
+  defibrillation?: { label: string; onOpen: () => void }
 }
 
 const POPOVER_WIDTH = 300
@@ -72,6 +74,7 @@ export function EventPickerPopover({
   onSearchChange,
   onToggleEvent,
   onDismiss,
+  defibrillation,
 }: EventPickerPopoverProps) {
   const copy = useIntraopUiCopy()
   if (typeof document === "undefined") return null
@@ -149,6 +152,13 @@ export function EventPickerPopover({
               </div>
             </div>
           ))}
+
+          {defibrillation && (
+            <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
+              className="w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {defibrillation.label}
+            </button>
+          )}
 
           {visibleCategories.length === 0 && (
             <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">{copy.eventPicker.none}</p>

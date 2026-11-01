@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   intraopAttentionItems,
   intraopAttentionText,
@@ -11,11 +11,18 @@ import {
 } from "@lospor/core/intraop-attention"
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
+import { vitalEpisodeOps, vitalQuestionText, type VitalQuestionContext } from "@lospor/core/vital-questions"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import { useCaseSaveState, type CaseSaveState } from "@/lib/use-case-save-state"
 import { serverNow } from "@/lib/intraop-clock"
 
-export type IntraopAttentionEntry = IntraopAttentionItem & { time: string; label: string }
+export type IntraopAttentionEntry = IntraopAttentionItem & {
+  time: string
+  label: string
+  /** A question from the vitals (10.1.0): why the reading is unusual, and when logging stops. */
+  detail?: string
+  stop?: string | null
+}
 
 /** A change the server refused for good, as listed above the chart. */
 export type RefusedLine = { key: string; time: string; text: string }
@@ -42,7 +49,7 @@ export type WebIntraopAttention = {
  * the PWA uses them, so the two cannot list or write differently; the web only
  * adds the time of day, in the case's own zone, and the event's label.
  */
-export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, locale = "en", onEventOps, readOnly }: {
+export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, locale = "en", onEventOps, readOnly, vitals = null }: {
   caseId?: string | null
   log: LogEvent[]
   /** The screen's language: the questions are said in it, from Core. */
@@ -51,6 +58,8 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   timeZone?: string | null
   onEventOps?: (ops: IntraopEventOps) => void | Promise<void>
   readOnly?: boolean
+  /** The vitals questions (10.1.0), when the hospital has them on and this screen holds the case. */
+  vitals?: VitalQuestionContext | null
 }): WebIntraopAttention {
   const [now, setNow] = useState(() => serverNow().getTime())
   useEffect(() => {
@@ -58,7 +67,10 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
     return () => clearInterval(timer)
   }, [])
   const minute = Math.floor(now / 60_000) * 60_000
-  const entries = useMemo(() => decorate(intraopAttentionItems(log, { now: minute, endedAt }), timeZone, locale), [log, minute, endedAt, timeZone, locale])
+  const entries = useMemo(
+    () => decorate(intraopAttentionItems(log, { now: minute, endedAt, vitals }), timeZone, locale, vitals?.keepLogging ?? true),
+    [log, minute, endedAt, timeZone, locale, vitals],
+  )
   const endCaseEntries = useMemo(
     () => decorate(intraopAttentionItems(log, { now: minute, endedAt: endedAt ?? minute }), timeZone, locale),
     [log, minute, endedAt, timeZone, locale],
@@ -70,9 +82,21 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
     const ops = intraopResolveAttention(log, key, action, {
       now: serverNow(),
       endedAt: endedAt ?? (atEndCase ? at : null),
+      vitals,
     })
     if (!isEmptyIntraopEventOps(ops)) void onEventOps(ops)
-  }, [endedAt, log, onEventOps, readOnly])
+  }, [endedAt, log, onEventOps, readOnly, vitals])
+
+  // An episode from the vitals questions closes at the first reading back
+  // inside both limits, or at the case end -- Core decides, one save at a time.
+  const closing = useRef(false)
+  useEffect(() => {
+    if (readOnly || !onEventOps || !vitals || closing.current) return
+    const ops = vitalEpisodeOps(log, vitals, endedAt)
+    if (isEmptyIntraopEventOps(ops)) return
+    closing.current = true
+    void Promise.resolve(onEventOps(ops)).finally(() => { closing.current = false })
+  }, [log, vitals, endedAt, onEventOps, readOnly])
 
   const saveState = useCaseSaveState(caseId)
   const refused = useMemo(() => saveState.refused.map(item => {
@@ -86,11 +110,15 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState, refused, timeZone: timeZone ?? null }
 }
 
-function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string): IntraopAttentionEntry[] {
-  return items.map(item => ({
-    ...item,
-    // The case's zone, never the machine's: a hosted server runs at GMT+1.
-    time: (timeZone ? localTimeOf(new Date(item.event.ts), timeZone) : null) ?? "",
-    label: intraopAttentionText(item, locale),
-  }))
+function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string, keepLogging = true): IntraopAttentionEntry[] {
+  return items.map(item => {
+    const vital = item.vital ? vitalQuestionText(item.vital, locale, keepLogging) : null
+    return {
+      ...item,
+      // The case's zone, never the machine's: a hosted server runs at GMT+1.
+      time: (timeZone ? localTimeOf(new Date(item.event.ts), timeZone) : null) ?? "",
+      label: intraopAttentionText(item, locale),
+      ...(vital ? { detail: vital.detail, stop: vital.stop } : {}),
+    }
+  })
 }

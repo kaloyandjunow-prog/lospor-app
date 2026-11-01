@@ -5,6 +5,7 @@ import { Controller, type Control, type UseFormWatch, type UseFormSetValue, type
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { TimePicker } from "@/components/forms/shared/TimePicker"
 import { DayStepper } from "@/components/forms/shared/DayStepper"
+import { EndCorrectionReasons } from "./EndCorrectionReasons"
 import { Label } from "@/components/ui/label"
 import type { IntraopFormFields, IntraopData } from "@/components/forms/IntraopForm"
 import {
@@ -113,6 +114,8 @@ export function TimelineSection({
   // day when the end clock time is earlier, until the clinician steps it.
   const [startDayKey, setStartDayKey] = useState<string | null>(null)
   const [endDayTouched, setEndDayTouched] = useState(false)
+  // Changing the end of a case that has ended asks why first (10.1.0).
+  const [pendingEnd, setPendingEnd] = useState<{ hhmm: string; dayOffset?: number } | null>(null)
   const dateLocale = locale === "bg" ? "bg" : "en"
   const formatDay = (key: string) => formatDateKeyShort(key, dateLocale) ?? key
 
@@ -159,6 +162,18 @@ export function TimelineSection({
     if (instant) applyStartInstant(instant)
   }
 
+  function requestEndWallClock(hhmm: string, dayOffset?: number) {
+    const zone = caseZone()
+    const startedAt = getValues("startedAt")
+    const start = startedAt ? new Date(startedAt) : null
+    if (savedEnd && zone && start && !Number.isNaN(start.getTime())) {
+      const offset = dayOffset ?? (savedStartKey && savedEndKey ? daysBetweenDateKeys(savedStartKey, savedEndKey) ?? 0 : defaultEndDayOffset(start, hhmm, zone))
+      const next = endInstantForWallClock(start, hhmm, zone, offset)
+      if (next && next.getTime() !== savedEnd.getTime()) { setPendingEnd({ hhmm, dayOffset }); return }
+    }
+    applyEndWallClock(hhmm, dayOffset)
+  }
+
   function applyEndWallClock(hhmm: string, dayOffset?: number) {
     const zone = caseZone()
     const startedAt = getValues("startedAt")
@@ -185,7 +200,7 @@ export function TimelineSection({
     if (offset == null || offset < 0) return
     setEndDayTouched(true)
     const endTime = getValues("endTime")
-    if (endTime) applyEndWallClock(endTime, offset)
+    if (endTime) requestEndWallClock(endTime, offset)
   }
 
   function applyTemplate(tpl: Template) {
@@ -325,7 +340,7 @@ export function TimelineSection({
               testId="intraop-end-day"
             />
             <Controller name="endTime" control={control} render={({ field }) => (
-              <TimePicker ref={endHourRef} value={field.value} onChange={applyEndWallClock} />
+              <TimePicker ref={endHourRef} value={field.value} onChange={hhmm => requestEndWallClock(hhmm)} />
             )} />
             {!watch("endTime") && (
               <button type="button"
@@ -335,6 +350,13 @@ export function TimelineSection({
               </button>
             )}
           </div>
+          {pendingEnd && (
+            <EndCorrectionReasons
+              t={t}
+              onChoose={reason => { setValue("endCorrectionReason", reason); applyEndWallClock(pendingEnd.hhmm, pendingEnd.dayOffset); setPendingEnd(null) }}
+              onCancel={() => setPendingEnd(null)}
+            />
+          )}
           {(durationMinutesBetween(savedStart, savedEnd) ?? 0) > 24 * 60 && (
             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400" data-testid="intraop-longer-than-day">{t("intraop.timeline.longerThanDay")}</p>
           )}
