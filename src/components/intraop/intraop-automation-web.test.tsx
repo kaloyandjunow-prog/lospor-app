@@ -144,7 +144,7 @@ describe("the limits in Unit indicators", () => {
     try {
       render(<VitalLimitsSection />)
       const headers = [...screen.getByTestId("vital-limits").querySelectorAll("th")].map(cell => cell.textContent)
-      expect(headers.slice(2, 6)).toEqual(["СЧ", "САН", "ДАН", "СрАН"])
+      expect(headers.slice(2, 6)).toEqual(["СЧ", "Сис", "Диас", "САН"])
       expect(screen.getByTestId("vital-limits-ADULT").querySelector("td")!.textContent).toBe("Възрастни (18–64 г.)")
     } finally {
       intl.locale = "en"
