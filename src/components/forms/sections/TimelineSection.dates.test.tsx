@@ -97,4 +97,22 @@ describe("the date beside the start and end of surgery", () => {
     expect(saves.at(-1)).toMatchObject({ endedAt: "2026-10-15T20:50:00.000Z", endTimeNextDay: false, endCorrectionReason: "DEVICE_CLOCK" })
     expect((screen.getByTestId("intraop-end-day").querySelectorAll("button")[0] as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it("keeps the saved end when the reason is cancelled, and asks nothing when the end does not move (10.1.0)", () => {
+    const saves: Record<string, unknown>[] = []
+    render(<Harness
+      defaults={{ startTime: "09:00", startedAt: "2026-10-16T06:00:00.000Z", endTime: "09:50", endedAt: "2026-10-16T06:50:00.000Z" } as never}
+      onSave={data => saves.push(data)}
+    />)
+    // The end picker is an hour and a minute select; the started case shows its start locked.
+    const selects = document.querySelectorAll("select")
+    const endTime = selects[selects.length - 1] as HTMLSelectElement
+    act(() => { fireEvent.change(endTime, { target: { value: "40" } }) })
+    expect(screen.getByTestId("end-correction-reasons")).toBeTruthy()
+    act(() => { fireEvent.click(screen.getByTestId("end-correction-cancel")) })
+    expect(screen.queryByTestId("end-correction-reasons")).toBeNull()
+    expect(saves).toEqual([])
+    act(() => { fireEvent.change(endTime, { target: { value: "50" } }) })
+    expect(screen.queryByTestId("end-correction-reasons")).toBeNull()
+  })
 })

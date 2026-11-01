@@ -2,8 +2,12 @@
 import { Controller, type Control, type UseFormWatch } from "react-hook-form"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { Textarea } from "@/components/ui/textarea"
-import { ALL_COMPLICATIONS } from "@lospor/core/complications"
-import { intraopComplicationList } from "@lospor/core/complication-events"
+import {
+  intraopComplicationList,
+  legacyComplications,
+  withLegacyComplicationNotes,
+  withoutLegacyComplication,
+} from "@lospor/core/complication-events"
 import { clinicalDisplayLabel } from "@lospor/core/display"
 import { isChartedIntraopEvent } from "@lospor/core/intraop-summary"
 import type { LogEvent } from "@lospor/core/intraop-types"
@@ -53,7 +57,8 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
                   <button type="button" data-testid={`complication-delete-${item.key}`} aria-label={t("intraop.deleteEvent")} title={t("intraop.deleteEvent")}
                     onClick={() => item.eventId
                       ? onDeleteEvent?.(item.eventId)
-                      : field.onChange((field.value ?? "").split(";").map((s: string) => s.trim()).filter((s: string) => s && s !== item.label).join("; "))}
+                      // Core reads both the web's "A; B; notes" and the PWA's "A; B — notes".
+                      : field.onChange(withoutLegacyComplication(field.value, item.label) ?? "")}
                     className="text-slate-400 hover:text-red-500 text-sm px-1">x</button>
                 )}
               </li>
@@ -62,18 +67,8 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
           <p className="text-xs text-slate-500">{t("intraop.complicationsTimedHint")}</p>
           <Textarea
             placeholder={t("intraop.complicationsNotesPlaceholder")}
-            value={
-              field.value
-                ? field.value.split(";").map((s: string) => s.trim()).filter((s: string) => s && !ALL_COMPLICATIONS.includes(s)).join("; ")
-                : ""
-            }
-            onChange={e => {
-              const structured = field.value
-                ? field.value.split(";").map((s: string) => s.trim()).filter((s: string) => ALL_COMPLICATIONS.includes(s))
-                : []
-              const combined = [...structured, ...(e.target.value.trim() ? [e.target.value.trim()] : [])].join("; ")
-              field.onChange(combined)
-            }}
+            value={legacyComplications(field.value).notes}
+            onChange={e => field.onChange(withLegacyComplicationNotes(field.value, e.target.value.trim()) ?? "")}
             maxLength={500}
             className="text-sm"
             rows={2}
