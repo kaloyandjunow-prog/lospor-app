@@ -9,7 +9,7 @@ import { MonitoringGroups } from "./MonitoringGroups"
 
 const REASON: Record<MonitoringReasonKey, string> = {
   airway: "reasonAirway", arterialLine: "reasonArterialLine", centralLine: "reasonCentralLine", relaxant: "reasonRelaxant",
-  tiva: "reasonTiva", longGeneral: "reasonLongGeneral", catheter: "reasonCatheter",
+  tiva: "reasonTiva", longGeneral: "reasonLongGeneral",
 }
 
 /**

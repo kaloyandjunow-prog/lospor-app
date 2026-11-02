@@ -638,7 +638,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const monitoringSuggestionList = monitoringSuggestions({
     monitoring: activeMonitoring, techniques, airway: airwayDeviceEntriesOf(getValues() as Record<string, unknown>), lines: vascularLines(), hidden: hiddenMonitors,
     relaxantAt: timelineLog.find(event => event.type === "drug" && !!event.name && isRelaxant(event.name))?.ts ?? null,
-    urinaryCatheter: false, startedAt: chartStartedAt ?? null, now: serverNow(),
+    startedAt: chartStartedAt ?? null, now: serverNow(),
     settings: suggestionContext?.settings ?? null, user: suggestionContext?.user ?? null,
   })
   function lastMonitorReading(field: string) {
