@@ -984,6 +984,14 @@
       "smartHint": "Opens on what is in place and adds a line in one panel, from the tab or from the timeline.",
       "legacy": "Legacy",
       "legacyHint": "The tab as it was."
+    },
+    "monitoringScreen": {
+      "title": "Monitoring tab",
+      "desc": "How the monitoring section of the intraoperative record looks. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "Standard monitoring in one switch, and monitors suggested from the case.",
+      "legacy": "Legacy",
+      "legacyHint": "Every monitor, grouped by what it tells you."
     }
   },
   "admin": {
@@ -2040,6 +2048,33 @@
       "addAccess": "Add access",
       "moreTypes": "More types ▾",
       "alreadyOnArrival": "Already in place on arrival"
+    },
+    "monitoringSmart": {
+      "standard": "Standard",
+      "standardHint": "ECG · SpO₂ · NIBP",
+      "onNow": "On now",
+      "nothingMore": "Nothing added beyond standard.",
+      "suggested": "Suggested for this case",
+      "noSuggestions": "No more suggestions.",
+      "add": "Add",
+      "hide": "Hide this suggestion",
+      "turnOff": "Turn off",
+      "more": "More monitors…",
+      "fewer": "Fewer monitors",
+      "due": "reading due",
+      "noReading": "no reading yet",
+      "reasonAirway": "An airway device is in place",
+      "reasonArterialLine": "Arterial line charted",
+      "reasonCentralLine": "Central line charted",
+      "reasonRelaxant": "A neuromuscular blocker was given",
+      "reasonTiva": "Technique: TIVA",
+      "reasonLongGeneral": "General anaesthesia over 30 minutes",
+      "reasonCatheter": "Urinary catheter charted",
+      "groupHeart": "Heart and circulation",
+      "groupBreathing": "Breathing",
+      "groupBrain": "Brain and depth",
+      "groupMuscle": "Muscle",
+      "groupTemperature": "Temperature and output"
     }
   },
   "postop": {

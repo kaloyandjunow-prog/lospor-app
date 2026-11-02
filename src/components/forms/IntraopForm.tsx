@@ -56,6 +56,9 @@ import { VASCULAR_EVENT_TYPE } from "@lospor/core/vascular-smart"
 import { VascularSmart } from "@/components/intraop/VascularSmart"
 import { VascularSmartPanel, type VascularSmartRequest } from "@/components/intraop/VascularSmartPanel"
 import { useVascularScreen } from "@/lib/use-vascular-screen"
+import { useMonitoringScreen } from "@/lib/use-monitoring-screen"
+import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
+import { MONITORING_READINGS, isRelaxant, monitoringSuggestions } from "@lospor/core/monitoring-smart"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
@@ -331,9 +334,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
   const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)
-  const [advancedMonOpen,      setAdvancedMonOpen]      = useState(() =>
-    typeof window !== "undefined" && localStorage.getItem("defaultMonitoring") === "advanced"
-  )
+  // The Legacy Monitoring section is one grouped list now; the setter stays for templates that expect it.
+  const [, setAdvancedMonOpen] = useState(false)
   const [airwayExpandedDevice, setAirwayExpandedDevice] = useState<string | null>(null)
   const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview")
   useScrollToReadiness(focus)
@@ -621,6 +623,32 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     <VascularSmart {...vascularProps} lines={vascularLines()} onChange={applyVascularLines} techniques={techniques} timeOf={smartTimeOf} />
   ) : undefined
 
+  // ── Smart selection for monitoring (10.2.0) ─────────────────────────────────
+  // Standard in one switch and the monitors this case calls for. What is suggested and when a reading is
+  // due is Core's (monitoring-smart); a monitor added sets the same flag the legacy section sets.
+  const monitoringScreen = useMonitoringScreen()
+  useWatch({ control, name: monitoringOptions.map(option => option.value as keyof IntraopFormFields) })
+  const [hiddenMonitors, setHiddenMonitors] = useState<string[]>([])
+  const activeMonitoring = monitoringOptions.filter(option => getValues(option.value as keyof IntraopFormFields)).map(option => option.value)
+  function applyMonitoring(next: string[]) {
+    for (const option of monitoringOptions) setValue(option.value as keyof IntraopFormFields, next.includes(option.value) as never, { shouldDirty: true })
+  }
+  const monitoringSuggestionList = monitoringSuggestions({
+    monitoring: activeMonitoring, techniques, airway: airwayDeviceEntriesOf(getValues() as Record<string, unknown>), lines: vascularLines(), hidden: hiddenMonitors,
+    relaxantAt: timelineLog.find(event => event.type === "drug" && !!event.name && isRelaxant(event.name))?.ts ?? null,
+    urinaryCatheter: false, startedAt: chartStartedAt ?? null, now: serverNow(),
+    settings: suggestionContext?.settings ?? null, user: suggestionContext?.user ?? null,
+  })
+  function lastMonitorReading(field: string) {
+    const key = ({ bisValue: "bis", tofRatio: "tofRatio", cvpMmHg: "cvp", etco2: "etco2", temp: "temp" } as const)[(MONITORING_READINGS[field]?.vital ?? "temp") as "bisValue" | "tofRatio" | "cvpMmHg" | "etco2" | "temp"]
+    const event = [...timelineLog].reverse().find(item => item.type === "vital" && typeof item[key] === "number")
+    return event ? { text: String(event[key]), at: event.ts } : null
+  }
+  const monitoringNode = monitoringScreen === "smart" && !readOnly ? (
+    <MonitoringSmart monitoring={activeMonitoring} onChange={applyMonitoring} monitoringOptions={monitoringOptions} suggestions={monitoringSuggestionList}
+      onHide={field => setHiddenMonitors(list => [...list, field])} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} />
+  ) : undefined
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -680,8 +708,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
       {/* Monitoring */}
       <div data-tour="intraop-monitoring" data-readiness="monitoring">
-      <MonitoringSection t={t} watch={watch} setValue={setValue} monitoringOptions={monitoringOptions}
-        advancedMonOpen={advancedMonOpen} setAdvancedMonOpen={setAdvancedMonOpen} />
+      <MonitoringSection t={t} watch={watch} setValue={setValue} monitoringOptions={monitoringOptions} smart={monitoringNode} />
       </div>{/* /intraop-monitoring */}
 
       {/* Anaesthesia technique */}
