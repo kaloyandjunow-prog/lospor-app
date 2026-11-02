@@ -1926,7 +1926,8 @@
         "planned": "Planned exchange",
         "failed_device": "Device failed",
         "unplanned_extubation": "Unplanned extubation"
-      }
+      },
+      "history": "Devices used"
     }
   },
   "postop": {

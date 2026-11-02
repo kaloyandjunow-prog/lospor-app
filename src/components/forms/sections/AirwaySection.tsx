@@ -1,6 +1,8 @@
 "use client"
 import { useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
+import { airwayDeviceEntryLines, parseAirwayDeviceEntries } from "@lospor/core/airway-device-entries"
+import { localTimeOf } from "@lospor/core/intraop-time"
 import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { RangeSelect } from "@/components/forms/shared/RangeSelect"
 import { Label } from "@/components/ui/label"
@@ -461,6 +463,24 @@ export function AirwaySection({
           placeholder={t("intraop.airway.notesPlaceholder")}
           rows={2} className="text-sm" />
       </div>
+      {(() => {
+        // 10.2.0: once a device has failed or been replaced, the list of every device used.
+        const entries = parseAirwayDeviceEntries(watch("airwayDeviceEntries"))
+        if (!entries.some(entry => entry.status !== "in_use")) return null
+        const zone = watch("timezone")
+        const lines = airwayDeviceEntryLines(entries, {
+          device: code => displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale),
+          attribute: code => displayClinicalCode("clinicalAttribute", code, locale),
+          status: status => t(`intraop.airwayExchange.${status}`),
+          time: iso => (zone ? localTimeOf(new Date(iso), zone) : null) ?? iso.slice(11, 16),
+        })
+        return (
+          <div className="space-y-0.5" data-testid="airway-device-history">
+            <Label>{t("intraop.airwayExchange.history")}</Label>
+            <ul className="text-sm">{lines.map((line, index) => <li key={entries[index]!.id}>{line}</li>)}</ul>
+          </div>
+        )
+      })()}
       </>}
     </SectionCard>
   )
