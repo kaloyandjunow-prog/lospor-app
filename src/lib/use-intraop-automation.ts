@@ -1,7 +1,17 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { DEFAULT_INTRAOP_AUTOMATION, parseIntraopAutomation, vitalQuestionsEnabled, type IntraopAutomationSettings } from "@lospor/core/intraop-automation"
+import {
+  AUTOMATION_GROUPS,
+  automationGroupEnabled,
+  DEFAULT_INTRAOP_AUTOMATION,
+  parseIntraopAutomation,
+  vitalQuestionsEnabled,
+  type IntraopAutomationSettings,
+  type UserAutomationSwitches,
+} from "@lospor/core/intraop-automation"
+import { suggestionFactsFromPreop, type SuggestionContext, type SuggestionPreopRecord } from "@lospor/core/intraop-suggestions"
+import type { LabResult } from "@lospor/core/labs"
 import { preopAgeDays, type VitalQuestionContext, type VitalStatsTable } from "@lospor/core/vital-questions"
 import { readWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 
@@ -50,13 +60,63 @@ type PreopAge = { ageValue?: number | null; ageUnit?: string | null; ageYears?: 
  */
 export function useVitalQuestionContext(preop: PreopAge, readOnly: boolean): VitalQuestionContext | null {
   const { settings, stats } = useIntraopAutomation()
-  const [keepLogging, setKeepLogging] = useState(() => readWebClinicalPreferences().vitalEpisodeAutoLog)
-  useEffect(() => {
-    void syncWebClinicalPreferences().then(preferences => setKeepLogging(preferences.vitalEpisodeAutoLog)).catch(() => {})
-  }, [])
+  const { keepLogging, user } = useAutomationPreferences()
   const ageDays = preopAgeDays(preop ?? null)
   return useMemo(() => {
-    if (readOnly || !vitalQuestionsEnabled(settings) || ageDays == null) return null
+    if (readOnly || !vitalQuestionsEnabled(settings, user) || ageDays == null) return null
     return { settings, stats, ageDays, keepLogging }
-  }, [readOnly, settings, stats, ageDays, keepLogging])
+  }, [readOnly, settings, stats, ageDays, keepLogging, user])
+}
+
+/** The clinician's own switches (Settings): keep logging, and the groups turned off (10.2.0). */
+function useAutomationPreferences(): { keepLogging: boolean; user: UserAutomationSwitches } {
+  const [preferences, setPreferences] = useState(() => readWebClinicalPreferences())
+  useEffect(() => {
+    void syncWebClinicalPreferences().then(setPreferences).catch(() => {})
+  }, [])
+  return useMemo(
+    () => ({ keepLogging: preferences.vitalEpisodeAutoLog, user: preferences.automationGroups ?? {} }),
+    [preferences],
+  )
+}
+
+/** What the screen knows of the case beyond the preop record. */
+export type SuggestionCaseFacts = {
+  idealWeightKg?: number | null
+  tofMonitor?: boolean | null
+  labs?: readonly LabResult[] | null
+  bloodLossMl?: number | null
+  startedAt?: string | null
+  endedAt?: string | null
+}
+
+/**
+ * What the suggestions (10.2.0) need on this form, or null when none are
+ * asked here: every group off (in Status, or by this clinician), or the case
+ * held on another screen. "now" is left to the attention hook, which ticks.
+ */
+export function useSuggestionContext(
+  preop: SuggestionPreopRecord | null | undefined,
+  facts: SuggestionCaseFacts,
+  readOnly: boolean,
+): Omit<SuggestionContext, "now"> | null {
+  const { settings } = useIntraopAutomation()
+  const { keepLogging, user } = useAutomationPreferences()
+  const { idealWeightKg, tofMonitor, labs, bloodLossMl, startedAt, endedAt } = facts
+  const base = useMemo(() => suggestionFactsFromPreop(preop, idealWeightKg), [preop, idealWeightKg])
+  return useMemo(() => {
+    if (readOnly || !AUTOMATION_GROUPS.some(group => automationGroupEnabled(settings, group, user))) return null
+    return {
+      settings,
+      user,
+      patient: base.patient,
+      preop: base.preop,
+      tofMonitor: tofMonitor === true,
+      keepLogging,
+      labs: labs ?? [],
+      bloodLossMl: bloodLossMl ?? null,
+      startedAt: startedAt ?? null,
+      endedAt: endedAt ?? null,
+    }
+  }, [readOnly, settings, user, base, tofMonitor, keepLogging, labs, bloodLossMl, startedAt, endedAt])
 }

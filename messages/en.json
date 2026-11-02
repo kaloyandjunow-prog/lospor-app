@@ -1828,7 +1828,8 @@
       "labsPill": "Labs · {count}",
       "autoEndedNotice": "This case was ended automatically 48 hours after it started. Resume it if it is still running.",
       "vitalNotNow": "Not now",
-      "vitalLogIt": "Log it"
+      "vitalLogIt": "Log it",
+      "suggestionOpen": "Open"
     },
     "allergiesUnchecked": "Not checked against drugs automatically:",
     "sidebar": {
@@ -1851,7 +1852,49 @@
     },
     "complicationNoTime": "no time recorded",
     "complicationOpen": "still logging",
-    "complicationsTimedHint": "Add a complication on the chart: click a time in the events lane, then Complications."
+    "complicationsTimedHint": "Add a complication on the chart: click a time in the events lane, then Complications.",
+    "suggestions": {
+      "open": "Open",
+      "notNow": "Not now",
+      "done": "Done",
+      "minimise": "Minimise",
+      "yes": "Yes",
+      "now": "Now",
+      "atTime": "At",
+      "stop": "Stop",
+      "nothingRunning": "Nothing running",
+      "noDose": "No dose suggested",
+      "openCard": "Open the card",
+      "sinceOnset": "{minutes} min since onset",
+      "step": "Dose {index} of {of}",
+      "total": "Total {amount} of {max} {unit}",
+      "tourniquetOff": "Log Tourniquet off now",
+      "give": "Give…",
+      "deepenNothing": "No running agent or infusion to deepen",
+      "markFailed": "Mark failed",
+      "whichFailed": "Which one failed?",
+      "newLine": "New line",
+      "latex": "Latex allergy",
+      "mhGive": "Give anyway",
+      "cancel": "Cancel",
+      "laMaxTitle": "Local anaesthetic maximum",
+      "laMaxExceeds": "This dose goes over the maximum. Give anyway?"
+    },
+    "airwayExchange": {
+      "title": "New airway",
+      "why": "Why?",
+      "which": "Which device comes out?",
+      "newDevice": "New device",
+      "cancel": "Cancel",
+      "save": "Save",
+      "failed": "failed",
+      "replaced": "replaced",
+      "reason": {
+        "planned": "Planned exchange",
+        "failed_device": "Device failed",
+        "unplanned_extubation": "Unplanned extubation"
+      }
+    }
   },
   "postop": {
     "aldreteSection": "Modified Aldrete Score (on leaving theatre)",

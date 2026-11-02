@@ -13,6 +13,7 @@ import { localTimeOf } from "@lospor/core/intraop-time"
 import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { vitalEpisodeOps, vitalQuestionText, type VitalQuestionContext } from "@lospor/core/vital-questions"
 import type { LogEvent } from "@lospor/core/intraop-types"
+import type { SuggestionContext } from "@lospor/core/intraop-suggestions"
 import { useCaseSaveState, type CaseSaveState } from "@/lib/use-case-save-state"
 import { serverNow } from "@/lib/intraop-clock"
 
@@ -32,7 +33,16 @@ export type WebIntraopAttention = {
   entries: IntraopAttentionEntry[]
   /** What End case would ask if the case ended this minute. */
   endCaseEntries: IntraopAttentionEntry[]
-  answer: (key: string, action: IntraopAttentionAction, atEndCase?: boolean) => void
+  answer: (key: string, action: IntraopAttentionAction, atEndCase?: boolean, choice?: string) => void
+  /** The suggestions (10.2.0) as the screen has them now, for a card to resolve against; null when none are asked. */
+  suggestions: SuggestionContext | null
+  /** Writes a card's own operations (a row saved, Done, a relabel) through the save path. */
+  applyOps: (ops: IntraopEventOps) => void
+  /** The saved log the questions were asked of. */
+  log: LogEvent[]
+  /** The suggestion line opened beside the chart (a card, a follow-up, a reminder), by key. */
+  opened: string | null
+  open: (key: string | null) => void
   /** False on a screen watching another screen's case: it shows, and writes nothing. */
   canAnswer: boolean
   /** Whether each change reached the server (9.13.0). */
@@ -49,7 +59,7 @@ export type WebIntraopAttention = {
  * the PWA uses them, so the two cannot list or write differently; the web only
  * adds the time of day, in the case's own zone, and the event's label.
  */
-export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, locale = "en", onEventOps, readOnly, vitals = null }: {
+export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, locale = "en", onEventOps, readOnly, vitals = null, suggestions: suggestionBase = null }: {
   caseId?: string | null
   log: LogEvent[]
   /** The screen's language: the questions are said in it, from Core. */
@@ -60,6 +70,8 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   readOnly?: boolean
   /** The vitals questions (10.1.0), when the hospital has them on and this screen holds the case. */
   vitals?: VitalQuestionContext | null
+  /** The suggestions (10.2.0), when any group is on and this screen holds the case. */
+  suggestions?: Omit<SuggestionContext, "now"> | null
 }): WebIntraopAttention {
   const [now, setNow] = useState(() => serverNow().getTime())
   useEffect(() => {
@@ -67,25 +79,53 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
     return () => clearInterval(timer)
   }, [])
   const minute = Math.floor(now / 60_000) * 60_000
+  const suggestions = useMemo<SuggestionContext | null>(
+    () => (suggestionBase ? { ...suggestionBase, now: minute } : null),
+    [suggestionBase, minute],
+  )
   const entries = useMemo(
-    () => decorate(intraopAttentionItems(log, { now: minute, endedAt, vitals }), timeZone, locale, vitals?.keepLogging ?? true),
-    [log, minute, endedAt, timeZone, locale, vitals],
+    () => decorate(intraopAttentionItems(log, { now: minute, endedAt, vitals, suggestions }), timeZone, locale, vitals?.keepLogging ?? true),
+    [log, minute, endedAt, timeZone, locale, vitals, suggestions],
   )
   const endCaseEntries = useMemo(
     () => decorate(intraopAttentionItems(log, { now: minute, endedAt: endedAt ?? minute }), timeZone, locale),
     [log, minute, endedAt, timeZone, locale],
   )
 
-  const answer = useCallback((key: string, action: IntraopAttentionAction, atEndCase = false) => {
+  const answer = useCallback((key: string, action: IntraopAttentionAction, atEndCase = false, choice?: string) => {
     if (readOnly || !onEventOps) return
     const at = new Date(Math.floor(serverNow().getTime() / 60_000) * 60_000)
     const ops = intraopResolveAttention(log, key, action, {
       now: serverNow(),
       endedAt: endedAt ?? (atEndCase ? at : null),
       vitals,
-    })
+      suggestions: suggestionBase ? { ...suggestionBase, now: serverNow() } : null,
+    }, choice)
     if (!isEmptyIntraopEventOps(ops)) void onEventOps(ops)
-  }, [endedAt, log, onEventOps, readOnly, vitals])
+  }, [endedAt, log, onEventOps, readOnly, vitals, suggestionBase])
+
+  // A card opens by itself for a complication just logged on this screen ("the
+  // picker you used turns into the card"); one already waiting when the
+  // screen opened stays a line in the list.
+  const [opened, open] = useState<string | null>(null)
+  const seen = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    const keys = entries.filter(entry => entry.suggestion?.item.type === "card").map(entry => entry.key)
+    if (seen.current == null) { seen.current = new Set(keys); return }
+    const fresh = entries.find(entry => {
+      const item = entry.suggestion?.item
+      if (item?.type !== "card" || seen.current!.has(entry.key)) return false
+      const recorded = Date.parse(item.complication.recordedAt ?? item.complication.ts)
+      return Number.isFinite(recorded) && serverNow().getTime() - recorded < 2 * 60_000
+    })
+    for (const key of keys) seen.current.add(key)
+    if (fresh && !readOnly) open(fresh.key)
+  }, [entries, readOnly])
+
+  const applyOps = useCallback((ops: IntraopEventOps) => {
+    if (readOnly || !onEventOps || isEmptyIntraopEventOps(ops)) return
+    void onEventOps(ops)
+  }, [onEventOps, readOnly])
 
   // An episode from the vitals questions closes at the first reading back
   // inside both limits, or at the case end -- Core decides, one save at a time.
@@ -107,7 +147,7 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
       text: entry.text,
     }
   }), [saveState.refused, locale, log, timeZone])
-  return { entries, endCaseEntries, answer, canAnswer: !readOnly && !!onEventOps, saveState, refused, timeZone: timeZone ?? null }
+  return { entries, endCaseEntries, answer, suggestions, applyOps, opened, open, log, canAnswer: !readOnly && !!onEventOps, saveState, refused, timeZone: timeZone ?? null }
 }
 
 function decorate(items: IntraopAttentionItem[], timeZone: string | null | undefined, locale: string, keepLogging = true): IntraopAttentionEntry[] {

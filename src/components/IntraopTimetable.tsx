@@ -59,6 +59,9 @@ import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/ti
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
 import { gridOriginMs, serverNow } from "@/lib/intraop-clock"
+import { localTimeOf } from "@lospor/core/intraop-time"
+import { SuggestionHost, type SuggestionSheets } from "@/components/intraop/SuggestionHost"
+import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
   AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
@@ -156,6 +159,8 @@ interface Props {
   /** The saved end instant: a reopened ended case can still be resumed (9.12.1). */
   endedAt?: string | null
   attention?: import("@/lib/use-intraop-attention").WebIntraopAttention // Core intraop-attention (9.13.0)
+  /** What the suggestions need from the form beyond the chart: the lines and the airway (10.2.0). */
+  suggestionForm?: Pick<SuggestionSheets, "linesOf" | "markLineFailed" | "openAirway">
   /** Ended automatically after 48 hours: Resume is offered with no time limit. */
   autoEnded?: boolean
   onPostopContinued?: (items: string[]) => void
@@ -225,7 +230,7 @@ export function IntraopTimetable({
   onChange,
   onEndCase, beforeEndCase,
   onResumeCase,
-  endedAt, attention,
+  endedAt, attention, suggestionForm,
   autoEnded = false,
   onPostopContinued,
   onInfusionTotals,
@@ -630,6 +635,7 @@ export function IntraopTimetable({
         inn: lib?.inn ?? undefined,
         route: fp.route,
         ...administrationAudit,
+        ...(fp.suggestion ? { suggestion: fp.suggestion } : {}),
       }],
     })
     setFp(null)
@@ -655,6 +661,7 @@ export function IntraopTimetable({
       ...(pending.bagVolumeMl != null ? { bagVolumeMl: pending.bagVolumeMl } : {}),
       ...(pending.rate != null ? { rate: pending.rate, unit: pending.unit ?? "mL/h" } : {}),
       ...(pending.concentration ? { concentration: pending.concentration } : {}),
+      ...(pending.suggestion ? { suggestion: pending.suggestion } : {}),
       ...clinicalProvenance(pending),
     }
   }
@@ -705,6 +712,7 @@ export function IntraopTimetable({
         ? { bagVolumeMl: Number(fp.dose) || 0 }
         : { rate: parsedRate, unit: "mL/h" as const }),
       ...(fp.concentration ? { concentration: fp.concentration } : {}),
+      ...(fp.suggestion ? { suggestion: fp.suggestion } : {}),
       ...clinicalProvenance(fp),
     }
     const anchor = fp.anchor
@@ -714,7 +722,8 @@ export function IntraopTimetable({
   }
   function fpCommitInfusion(record?: InfusionRecord) {
     if (!fp) return
-    const infusion = flyoutInfusion({ fp, record, id: `${fp.name}-${fp.col}-${uid()}`, configs: INFUSION_CONFIGS, libraryOptions: infusionLibOpts, weightBasis: INFUSION_WEIGHT_BASIS })
+    const built = flyoutInfusion({ fp, record, id: `${fp.name}-${fp.col}-${uid()}`, configs: INFUSION_CONFIGS, libraryOptions: infusionLibOpts, weightBasis: INFUSION_WEIGHT_BASIS })
+    const infusion = fp.suggestion ? { ...built, suggestion: fp.suggestion } : built
     onChange({ ...data, infusions: [...(data.infusions??[]), infusion] })
     setFp(null)
   }
@@ -1655,6 +1664,83 @@ export function IntraopTimetable({
     )
   }
 
+
+  // ── Suggestions (10.2.0) ────────────────────────────────────────────────────
+  // A card's row opens this chart's own sheet, prefilled, at the now row; the
+  // entry it saves carries the suggestion's tag. On an ended case the last row.
+  const sheetCol = nowCol ?? Math.max(0, colCount - 1)
+  const suggestionSheets: SuggestionSheets = {
+    nowIso: () => serverNow().toISOString(),
+    timeOf: iso => (attention?.timeZone ? localTimeOf(new Date(iso), attention.timeZone) : null) ?? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    openDrug: ({ name, mode, rect, amount, unit, route, suggestion }) => {
+      const next = buildDrugFlyoutState({
+        guidanceEnabled: prospectiveGuidanceEnabled, col: sheetCol, name, unit: unit ?? "mg", mode,
+        anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
+        surfaces: doseSurfaces, isPediatric, ibw, tbw, infusionConfigs: INFUSION_CONFIGS, infusionRoutes: INFUSION_ROUTES,
+        drugRoutes: DRUG_ROUTES, quickDoses: QUICK_DOSES, quickRates: QUICK_RATES, preset: flyoutPreset,
+      })
+      if (!next) return
+      setFp(suggestionPrefill(next, { amount, unit, route }, suggestion))
+    },
+    openFluid: ({ name, category, rect, amount, mode, concentration, suggestion }) => {
+      const fluid = name ?? suggestionFluidFor(category, data.fluids ?? [], fluidLibOpts)
+      if (!fluid) return
+      const next = buildFluidFlyoutState({
+        guidanceEnabled: prospectiveGuidanceEnabled, col: sheetCol, name: fluid, category: getFluidCategory(fluid),
+        anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
+        surfaces: doseSurfaces, clinicalMode, ibw, tbw, fluidColor: getFluidColor, preset: flyoutPreset,
+      })
+      setFp(suggestionFluidPrefill(next, { amount, mode, concentration }, suggestion))
+    },
+    openShock: () => setDefibCol(sheetCol),
+    openLab: () => onOpenLabDraw?.(serverNow().toISOString()),
+    openGas: (rect, fio2, fgf, air) => {
+      const running = gasSettings.find(seg => !seg.stopped && seg.startCol <= sheetCol && seg.endCol >= sheetCol)
+      if (running) openGasPickerForSeg(sheetCol, running, rect)
+      else openGasPickerEmpty(sheetCol, rect)
+      setPickerFio2(fio2)
+      setPickerFgf(fgf)
+      if (air) setPickerCarrierGas("air")
+    },
+    deepenTargets: () => [
+      ...agents.filter(seg => !seg.stopped && seg.startCol <= sheetCol).map(seg => ({
+        key: `agent-${seg.startCol}`, label: displayAgentName(seg.name),
+        open: (rect: DOMRect) => openPickerForSeg(seg.startCol, seg, rect, sheetCol),
+      })),
+      ...(data.infusions ?? []).filter(seg => !seg.stopped && seg.startCol <= sheetCol && DEEPEN_INFUSIONS.has(baseInfusionName(seg.name, seg.concentration))).map(seg => ({
+        key: `inf-${seg.id}`, label: displayInfusionName(seg.name),
+        open: (rect: DOMRect) => {
+          const baseDrugName = baseInfusionName(seg.name, seg.concentration)
+          const cfg = INFUSION_CONFIGS[baseDrugName] ?? DEFAULT_INF
+          setRateDialog({
+            segId: seg.id, name: baseDrugName, rate: Number(seg.rate) || 0, unit: seg.unit,
+            route: seg.route, ...rateDialogSurface({ name: baseDrugName, route: seg.route, runningUnit: seg.unit, cfg, guidance: prospectiveGuidanceEnabled, isPediatric, doseSurfaces, weights: { tbw, ibw, basis: INFUSION_WEIGHT_BASIS }, tciModel: seg.tciModel }),
+            color: seg.color, rect, step: "rate", timeH: "", timeM: "",
+            editFromCol: undefined, concentration: seg.concentration, baseDrugName,
+          })
+        },
+      })),
+    ],
+    stop: (event, suggestion) => {
+      if (!attention) return
+      const ts = serverNow().toISOString()
+      const base = { id: uid(), ts, recordedAt: ts, suggestion }
+      const stopEvent: import("@lospor/core/intraop-types").LogEvent | null = event.type === "infusion_start" && event.infId
+        ? { ...base, type: "infusion_stop", infId: event.infId, name: event.name, color: event.color }
+        : event.type === "fluid_start" && event.fluidId
+          ? { ...base, type: "fluid_end", fluidId: event.fluidId, name: event.name, color: event.color, fluidEntryMode: event.fluidEntryMode }
+          : event.type === "agent_start"
+            ? { ...base, type: "agent_stop", name: event.name }
+            : null
+      if (stopEvent) attention.applyOps({ add: [stopEvent], update: [], remove: [] })
+    },
+    displayName: event => event.type === "infusion_start" ? displayInfusionName(event.name ?? "")
+      : event.type === "fluid_start" ? displayFluidName(event.name ?? "")
+        : event.type === "agent_start" ? displayAgentName(event.name ?? "")
+          : event.name ?? "",
+    ...suggestionForm,
+  }
+
   return (
     <TciPatientContext.Provider value={tciPatient}>
     {/* A long press here picks a bar up rather than selecting its text (touch only). */}
@@ -1924,6 +2010,7 @@ export function IntraopTimetable({
         />
       )
     })()}
+    {attention?.opened && <SuggestionHost attention={attention} sheets={suggestionSheets} />}
     {/* ── Floating prompt portal ─────────────────────────────────────────────── */}
     <DosingFlyout
       fp={fp}

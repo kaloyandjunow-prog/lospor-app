@@ -4,8 +4,15 @@ import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { useIntraopEventTimeline } from "@/hooks/useIntraopEventTimeline"
 import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
 import { useIntraopAttention } from "@/lib/use-intraop-attention"
-import { useVitalQuestionContext } from "@/lib/use-intraop-automation"
+import { useSuggestionContext, useVitalQuestionContext } from "@/lib/use-intraop-automation"
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
+import { AirwayExchangeDialog } from "@/components/intraop/AirwayExchangeDialog"
+import { accessKindOf, replaceFailedLine, vascularLineText, type AccessKind, type VascularLine } from "@lospor/core/vascular-access-lines"
+import { airwayDeviceEntriesOf, legacyFieldsFromEntries, type AirwayDeviceEntry, type AirwayExchangeReason } from "@lospor/core/airway-device-entries"
+import { cardEventOps } from "@lospor/core/intraop-suggestions"
+import type { LogEvent as CoreLogEvent } from "@lospor/core/intraop-types"
+import { serverNow } from "@/lib/intraop-clock"
+import { displayClinicalCode, displayOption } from "@/lib/clinical-display"
 import { CaseSaveStateContext } from "@/lib/use-case-save-state"
 import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
@@ -158,7 +165,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     eventLog, startedAt: timelineStartedAt, startTime: timelineStartTime, timezone: timelineZone, endedAt: timelineEndedAt, onEventOps, readOnly, legacyTimetable: safeTimetable,
   })
   useIntraopEventAutofill({ log: timelineLog, chartStartMs, endedAt: timelineEndedAt, addEvents, disabled: readOnly })
-  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly) })
 
   const {
     snapshot: clinicalRulesSnapshot,
@@ -178,6 +184,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // cannot total the same infusion a few decimals apart (9.12.3).
   const calcIbw = ibwResolution.available ? ibwResolution.roundedKg : null
   const calcTbw = preop?.weightKg ?? null
+  const [watchedTof, watchedBloodLoss, watchedIntraopLabs] = useWatch({ control, name: ["tofMonitor", "bloodLossMl", "labResults"] })
+  const suggestionFacts = useMemo(() => ({
+    idealWeightKg: calcIbw, tofMonitor: watchedTof, bloodLossMl: watchedBloodLoss,
+    labs: (watchedIntraopLabs ?? []).map(lab => ({ ...lab, unit: lab.unit ?? "" })),
+    startedAt: chartStartedAt ?? null, endedAt: timelineEndedAt ?? null,
+  }), [calcIbw, watchedTof, watchedIntraopLabs, watchedBloodLoss, chartStartedAt, timelineEndedAt])
+  const suggestionContext = useSuggestionContext(preop, suggestionFacts, readOnly)
+  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly), suggestions: suggestionContext })
 
   // Arithmetic, not interface — see @/lib/intraop-drug-totals.
   const liveDrugTotals = useMemo(
@@ -472,6 +486,45 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     />
   ) : null
 
+
+  // ── Suggestions (10.2.0): failed lines and the embedded airway picker ──────
+  const [airwayDialog, setAirwayDialog] = useState<{ reason: AirwayExchangeReason | null; at: string; complication?: CoreLogEvent } | null>(null)
+  const suggestionForm = {
+    linesOf: (kind: AccessKind) => ((getValues("vascularAccesses") ?? []) as VascularLine[])
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => accessKindOf(line.site) === kind)
+      .map(({ line, index }) => ({ id: String(index), label: vascularLineText(line, { failed: "", time: () => "" }), failed: line.failed === true })),
+    markLineFailed: (id: string, failedAt: string) => {
+      setValue("vascularAccesses", replaceFailedLine((getValues("vascularAccesses") ?? []) as VascularLine[], Number(id), failedAt) as IntraopFormFields["vascularAccesses"], { shouldDirty: true })
+    },
+    openAirway: (_rect: DOMRect, complication: CoreLogEvent) => setAirwayDialog({ reason: "reintubation", at: serverNow().toISOString(), complication }),
+  }
+  // E6: Reintubation or Airway exchange charted on this screen opens the picker
+  // (Airway exchange asks why first); an event whose device is already on the list does not.
+  const seenAirwayEvents = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (readOnly) return
+    const events = timelineLog.filter(event => event.type === "clinical_event" && (event.label === "Reintubation" || event.label === "Airway exchange"))
+    if (seenAirwayEvents.current == null) { seenAirwayEvents.current = new Set(events.map(event => event.id)); return }
+    const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
+    const seen = seenAirwayEvents.current
+    const fresh = events.find(event => !seen.has(event.id)
+      && !entries.some(entry => entry.insertedAt === event.ts)
+      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
+    for (const event of events) seen.add(event.id)
+    if (fresh) setAirwayDialog({ reason: fresh.label === "Reintubation" ? "reintubation" : null, at: fresh.ts })
+  }, [timelineLog, readOnly, getValues])
+  function saveAirwayExchange(next: AirwayDeviceEntry[]) {
+    const dialog = airwayDialog
+    setAirwayDialog(null)
+    if (!dialog) return
+    setValue("airwayDeviceEntries", next as unknown as IntraopFormFields["airwayDeviceEntries"], { shouldDirty: true })
+    for (const [field, value] of Object.entries(legacyFieldsFromEntries(next))) {
+      setValue(field as keyof IntraopFormFields, (value ?? undefined) as never, { shouldDirty: true })
+    }
+    if (dialog.complication) void onEventOps?.(cardEventOps(dialog.complication, "Reintubation", "reintubate", dialog.at, serverNow()))
+  }
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -579,7 +632,18 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           aiOptIn={aiOptIn}
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
-        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
+        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
+        {airwayDialog && (
+          <AirwayExchangeDialog
+            entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)}
+            deviceOptions={airwayDeviceOptions.map(option => ({ value: option.value, label: displayOption("AIRWAY_MANAGEMENT", option, locale) }))}
+            deviceLabel={code => displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale)}
+            reason={airwayDialog.reason}
+            at={airwayDialog.at}
+            onSave={saveAirwayExchange}
+            onCancel={() => setAirwayDialog(null)}
+          />
+        )}
         <IntraopTimetable
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
@@ -604,7 +668,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           startTime={watchedStartTime || "08:00"}
           startedAt={chartStartedAt ?? undefined}
           endTime={watchedEndTime || undefined}
-          endedAt={timelineEndedAt ?? null} attention={attention} beforeEndCase={endCheck.before}
+          endedAt={timelineEndedAt ?? null} attention={attention} suggestionForm={readOnly ? undefined : suggestionForm} beforeEndCase={endCheck.before}
           autoEnded={autoEndedProp && !!timelineEndedAt && timelineEndedAt === defaultValues?.endedAt}
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
