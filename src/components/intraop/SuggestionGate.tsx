@@ -2,13 +2,14 @@
 
 import { useState, type ReactNode } from "react"
 import { useTranslations } from "next-intl"
-import { automationGroupEnabled } from "@lospor/core/intraop-automation"
+import { automationEnabled, automationGroupEnabled } from "@lospor/core/intraop-automation"
 import {
   latexBanner,
   localAnaestheticBudgetText,
   localAnaestheticCheck,
   mhHistoryWarning,
   MH_HISTORY_WARNING,
+  REMINDER_IDS,
   type SuggestionContext,
 } from "@lospor/core/intraop-suggestions"
 import type { LogEvent } from "@lospor/core/intraop-types"
@@ -28,17 +29,20 @@ export type GateWarning = { kind: "mh"; name: string } | { kind: "laMax"; name: 
  */
 export function newGateWarnings(context: Omit<SuggestionContext, "now">, log: LogEvent[], prev: Chart, next: Chart, now: string, locale: string): GateWarning[] {
   const warnings: GateWarning[] = []
+  // Each warning is its own automation: Status may switch one off and keep the rest.
+  const mhOn = automationEnabled(context.settings, "reminders", REMINDER_IDS.mhHistory, context.user)
+  const laOn = automationEnabled(context.settings, "reminders", REMINDER_IDS.localAnaestheticMax, context.user)
   const before = new Set(prev.drugs)
   const added = next.drugs.filter(dose => !before.has(dose))
   const agentsBefore = new Set((prev.agents ?? []).map(agent => `${agent.name}@${agent.startCol}`))
   const newAgents = (next.agents ?? []).filter(agent => !agentsBefore.has(`${agent.name}@${agent.startCol}`))
   for (const agent of newAgents) {
-    if (mhHistoryWarning(context.preop, { type: "agent_start", name: agent.name })) warnings.push({ kind: "mh", name: agent.name })
+    if (mhOn && mhHistoryWarning(context.preop, { type: "agent_start", name: agent.name })) warnings.push({ kind: "mh", name: agent.name })
   }
   for (const dose of added) {
-    if (mhHistoryWarning(context.preop, { type: "drug", name: dose.name, atcCode: dose.atcCode })) warnings.push({ kind: "mh", name: dose.name })
+    if (mhOn && mhHistoryWarning(context.preop, { type: "drug", name: dose.name, atcCode: dose.atcCode })) warnings.push({ kind: "mh", name: dose.name })
     const event: LogEvent = { id: "pending", ts: now, type: "drug", name: dose.name, dose: dose.dose, unit: dose.unit, drugRoute: dose.route, concentration: dose.concentration }
-    const check = localAnaestheticCheck(log, context.patient, event)
+    const check = laOn ? localAnaestheticCheck(log, context.patient, event) : null
     if (check?.wouldExceed) warnings.push({ kind: "laMax", name: dose.name, text: localAnaestheticBudgetText(check, dose.name, locale) })
   }
   return warnings
@@ -95,7 +99,7 @@ export function useSuggestionGate({ context, log, locale, now, ready = true }: {
     </div>
   ) : null
 
-  const latex = on && context ? latexBanner(context.preop, locale) : null
+  const latex = on && context && automationEnabled(context.settings, "reminders", REMINDER_IDS.latex, context.user) ? latexBanner(context.preop, locale) : null
   const banner = latex ? (
     <div role="status" data-testid="latex-banner" className="mb-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-800 dark:border-rose-500/50 dark:bg-rose-950/40 dark:text-rose-200">
       ⚠ {latex}

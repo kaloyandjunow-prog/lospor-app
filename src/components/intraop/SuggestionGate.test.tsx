@@ -43,6 +43,27 @@ describe("the MH-history warning and the local anaesthetic maximum (P1, E2)", ()
   })
 })
 
+describe("each warning is its own switch (10.2.0)", () => {
+  const off = (...ids: string[]) => context({ settings: parseIntraopAutomation({ enabled: true, groups: { reminders: true }, disabled: ids }), preop: { mhHistory: true } })
+  const log: LogEvent[] = [{ id: "b1", ts: "2026-11-02T10:00:00.000Z", type: "drug", name: "Bupivacaine", dose: "100", unit: "mg" }]
+  const both: Chart = { drugs: [{ name: "Bupivacaine", dose: "50", unit: "mg" }], agents: [{ name: "SEVOFLURANE", startCol: 2 }] }
+
+  it("switching the MH warning off keeps the local anaesthetic one, and the other way round", () => {
+    expect(newGateWarnings(off(), log, empty, both, NOW, "en").map(warning => warning.kind).sort()).toEqual(["laMax", "mh"])
+    expect(newGateWarnings(off("reminder:mhHistory"), log, empty, both, NOW, "en").map(warning => warning.kind)).toEqual(["laMax"])
+    expect(newGateWarnings(off("reminder:localAnaestheticMax"), log, empty, both, NOW, "en").map(warning => warning.kind)).toEqual(["mh"])
+  })
+
+  it("shows the latex banner unless that line is switched off", () => {
+    const latex = (...ids: string[]) => renderHook(() => useSuggestionGate({
+      context: context({ settings: parseIntraopAutomation({ enabled: true, groups: { reminders: true }, disabled: ids }), preop: { latexAllergy: true } }),
+      log: [], locale: "en", now: () => NOW,
+    })).result.current.banner
+    expect(latex()).not.toBeNull()
+    expect(latex("reminder:latex")).toBeNull()
+  })
+})
+
 describe("the gate on the chart", () => {
   it("holds the change until Give anyway, and lets everything through with the reminders off", () => {
     const apply = vi.fn()
