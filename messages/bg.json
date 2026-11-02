@@ -1513,7 +1513,7 @@
     "tubeSize": "Размер на тубуса (mm ID)",
     "cuffed": "С маншет",
     "ippv": "ИППВ",
-    "jetVentilation": "Джет вентилация",
+    "jetVentilation": "Jet вентилация",
     "peep": "ПЕЕП (смН₂О)",
     "volatileSection": "Инхалационен анестетик / газове",
     "volatileAgent": "Инхалационен анестетик",
@@ -1556,7 +1556,7 @@
       "ventSpontaneous": "Спонтанна",
       "ventAssisted": "Асистирана",
       "ventControlled": "Контролирана",
-      "ventJet": "Джет вентилация",
+      "ventJet": "Jet вентилация",
       "notApplicable": "Н/П",
       "sizePlaceholder": "— размер",
       "notesLabel": "Бележки за дихателните пътища",
@@ -1948,10 +1948,10 @@
       "history": "Използвани устройства"
     },
     "jet": {
-      "row": "Джет",
-      "start": "Начало на джет",
+      "row": "Jet",
+      "start": "Начало на Jet",
       "apply": "Приложи",
-      "stop": "Спиране на джет",
+      "stop": "Спиране на Jet",
       "pressure": "Работно налягане",
       "rate": "Честота",
       "tapToStart": "Докоснете за начало"
