@@ -118,16 +118,13 @@ test("charting Intubated on the timeline opens the same panel with that time alr
     const caseId = await startedCase(web.request)
     const page = await web.newPage()
     await page.goto(`/cases/new?continue=${caseId}&step=1`, { waitUntil: "domcontentloaded" })
-    // The form saves what it loaded once, a moment after it opens; a clinician charts after that.
-    await page.waitForTimeout(8000)
     await page.getByRole("tab", { name: "Chart" }).or(page.getByRole("button", { name: "Chart", exact: true })).first().click({ timeout: 30_000 })
     // As a clinician would: a cell of the events row, then the event.
     await page.locator("[data-testid^='events-lane-col-']").nth(3).click({ timeout: 30_000 })
     await page.getByRole("button", { name: "Intubated", exact: true }).click()
     await expect(page.getByTestId("airway-smart-panel")).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId("airway-smart-time-timeline")).toBeVisible()
-    // A clinician takes a moment over the panel; the chart's own save of the event has landed by then.
-    await page.waitForTimeout(2500)
+    // Added at once: the tube's save is queued behind the event's own, and must not clash with it.
     await page.getByTestId("airway-smart-add").click()
 
     // The tube went in at the time of the event on the chart.
