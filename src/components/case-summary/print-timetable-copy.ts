@@ -2,7 +2,7 @@
 export const CHART_STR = {
   en: {
     time: "Time", drugs: "Drugs", agent: "Agent", infusion: "Infusion", gas: "Gas", fluids: "Fluids", position: "Position",
-    bp: "BP", hr: "HR", spo2: "SpO₂", etco2: "EtCO₂", temp: "Temp",
+    bp: "BP", nibp: "NIBP", ibp: "IBP", hr: "HR", spo2: "SpO₂", etco2: "EtCO₂", temp: "Temp",
     sbp: "SBP", dbp: "DBP", units: "mmHg / bpm",
     noData: "No intraoperative data recorded",
   },
@@ -10,7 +10,7 @@ export const CHART_STR = {
     time: "Час", drugs: "Медикаменти", agent: "Агент", infusion: "Инфузия", gas: "Газова смес", fluids: "Флуиди", position: "Позиция",
     // Chart row labels stay abbreviated — the column is narrow. SpO₂/EtCO₂ are
     // written the same way in Bulgarian clinical practice.
-    bp: "АН", hr: "СЧ", spo2: "SpO₂", etco2: "EtCO₂", temp: "Темп",
+    bp: "АН", nibp: "NIBP", ibp: "IBP", hr: "СЧ", spo2: "SpO₂", etco2: "EtCO₂", temp: "Темп",
     sbp: "Сис", dbp: "Диас", units: "mmHg / удм",
     noData: "Няма записани интраоперативни данни",
   },

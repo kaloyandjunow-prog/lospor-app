@@ -175,7 +175,9 @@ function buildSVG(
 
   // Numeric grid rows (only those with any data in this window).
   const gridDefs: { k: string; f: (v: VitalsEntry) => string }[] = [
-    { k: S.bp,    f: (v: VitalsEntry) => (v.systolic != null && v.diastolic != null) ? `${v.systolic}/${v.diastolic}` : (v.systolic != null ? `${v.systolic}` : "") },
+    // The cuff is called NIBP once the arterial line has readings beside it (10.2.0).
+    { k: vitals.some((v, idx) => inRange(idx) && v?.ibpSystolic != null) ? S.nibp : S.bp, f: (v: VitalsEntry) => (v.systolic != null && v.diastolic != null) ? `${v.systolic}/${v.diastolic}` : (v.systolic != null ? `${v.systolic}` : "") },
+    { k: S.ibp,   f: (v: VitalsEntry) => (v.ibpSystolic != null && v.ibpDiastolic != null) ? `${v.ibpSystolic}/${v.ibpDiastolic}` : (v.ibpSystolic != null ? `${v.ibpSystolic}` : "") },
     { k: S.hr,    f: (v: VitalsEntry) => v.heartRate != null ? `${v.heartRate}` : "" },
     { k: S.spo2,  f: (v: VitalsEntry) => v.spO2 != null ? `${v.spO2}` : "" },
     { k: S.etco2, f: (v: VitalsEntry) => v.etco2 != null ? `${v.etco2}` : "" },
