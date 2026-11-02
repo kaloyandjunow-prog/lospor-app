@@ -30,8 +30,8 @@ import { SuggestionCardPanel, type SuggestionRowRequest } from "./SuggestionCard
 export type SuggestionSheets = {
   nowIso: () => string
   timeOf: (iso: string) => string
-  openDrug: (args: { name: string; mode: "bolus" | "infusion"; rect: DOMRect; amount: number | "catalogue" | null; unit?: string; route?: string; suggestion: string }) => void
-  openFluid: (args: { name?: string; category?: string; rect: DOMRect; amount: number | "catalogue" | null; mode?: "VOLUME" | "RATE"; concentration?: string; suggestion: string }) => void
+  openDrug: (args: { name: string; mode: "bolus" | "infusion"; rect: DOMRect; host?: HTMLElement | null; amount: number | "catalogue" | null; unit?: string; route?: string; suggestion: string }) => void
+  openFluid: (args: { name?: string; category?: string; rect: DOMRect; host?: HTMLElement | null; amount: number | "catalogue" | null; mode?: "VOLUME" | "RATE"; concentration?: string; suggestion: string }) => void
   openShock: () => void
   openLab: () => void
   openGas: (rect: DOMRect, fio2: number, fgf: number, air: boolean) => void
@@ -80,13 +80,13 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
   if (!opened || !suggestions) return null
   const close = () => open(null)
 
-  function onRow({ row, rect, complication }: SuggestionRowRequest) {
+  function onRow({ row, rect, complication, host }: SuggestionRowRequest) {
     const tag = cardSuggestionTag(complication.label ?? "", row.id)
     const prefill = row.prefill
     switch (row.def.kind) {
-      case "drug": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "bolus", rect, amount: prefill.amount, unit: prefill.unit, route: prefill.route, suggestion: tag }); return
-      case "infusion": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "infusion", rect, amount: prefill.amount, unit: prefill.unit, suggestion: tag }); return
-      case "fluid": sheets.openFluid({ name: prefill?.fluid, category: prefill?.category, rect, amount: prefill?.amount ?? null, mode: prefill?.mode, concentration: prefill?.concentration, suggestion: tag }); return
+      case "drug": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "bolus", rect, host, amount: prefill.amount, unit: prefill.unit, route: prefill.route, suggestion: tag }); return
+      case "infusion": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "infusion", rect, host, amount: prefill.amount, unit: prefill.unit, suggestion: tag }); return
+      case "fluid": sheets.openFluid({ name: prefill?.fluid, category: prefill?.category, rect, host, amount: prefill?.amount ?? null, mode: prefill?.mode, concentration: prefill?.concentration, suggestion: tag }); return
       case "gas": sheets.openGas(rect, row.def.fio2, row.def.fgf, !!row.def.stopNitrous); return
       case "shock": sheets.openShock(); return
       case "lab": sheets.openLab(); return

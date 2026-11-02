@@ -31,7 +31,8 @@ import { DantroleneVials } from "./DantroleneVials"
  */
 
 /** What a row asks of the chart: its sheets, the shock dial, the labs. */
-export type SuggestionRowRequest = { row: ResolvedRow; rect: DOMRect; complication: LogEvent }
+/** `host` is the empty slot under the row, where its dosing controls open in place. */
+export type SuggestionRowRequest = { row: ResolvedRow; rect: DOMRect; complication: LogEvent; host: HTMLElement | null }
 
 export function SuggestionCardPanel({
   card,
@@ -289,11 +290,13 @@ export function SuggestionCardPanel({
             <li key={row.id} data-testid={`card-row-${row.id}`} className="rounded-lg border border-slate-100 dark:border-[#262626] px-2 py-1.5">
               {opensSheet(row) ? (
                 <button type="button" disabled={readOnly} className="w-full disabled:opacity-60"
-                  onClick={event => onRow({ row, rect: event.currentTarget.getBoundingClientRect(), complication })}>
+                  onClick={event => onRow({ row, rect: event.currentTarget.getBoundingClientRect(), complication, host: event.currentTarget.closest("li")?.querySelector<HTMLElement>("[data-row-host]") ?? null })}>
                   {head}
                 </button>
               ) : head}
               {rowBody(row)}
+              {/* Where this row's own dosing controls open, in place: the card never changes screen. */}
+              <div data-row-host={row.id} data-testid={`card-host-${row.id}`} />
               {dantrolene && row.def.kind === "drug" && row.def.drug === "Dantrolene" && (
                 <DantroleneVials viewFor={dantrolene.viewFor} initialPerKg={dantrolene.initialPerKg} readOnly={readOnly}
                   onGive={(doseMg, rect) => dantrolene.give(doseMg, rect, row)} />

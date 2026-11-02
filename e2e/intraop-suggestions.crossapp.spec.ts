@@ -83,6 +83,9 @@ test("suggestions on the web: a waiting card opens, prefills a dose and tags wha
 
     // A drug row opens the dosing sheet, prefilled; saving tags the entry with the card.
     await page.getByTestId("card-row-ephedrine").locator("button").first().click()
+    // The controls open under the row, inside the card: the screen does not change.
+    await expect(page.getByTestId("card-row-ephedrine").getByTestId("card-inline-dose")).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId("suggestion-card")).toBeVisible()
     await page.getByRole("button", { name: /^administer$/i }).click({ timeout: 30_000 })
     await expect.poll(async () => (await events(web.request, caseId)).find(event => event.type === "drug" && event.name === "Ephedrine"), { timeout: 20_000 })
       .toMatchObject({ dose: "10", suggestion: "card:Hypotension:ephedrine" })

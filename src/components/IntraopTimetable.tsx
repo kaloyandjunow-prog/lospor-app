@@ -1690,6 +1690,8 @@ export function IntraopTimetable({
 
   // A death charted here (10.2.0) sets the postop destination to Deceased and
   // offers, as its own prompt, to end the case. One loaded with the case does not.
+  // Where a card row's own dosing controls open, in place (10.2.0).
+  const [suggestionHost, setSuggestionHost] = useState<{ tag: string; el: HTMLElement } | null>(null)
   const [tourniquetPicker, setTourniquetPicker] = useState<{ col: number; label: string; color: string } | null>(null)
   const [jetPicker, setJetPicker] = useState<{ col: number; seg: import("@lospor/core/intraop-types").JetSegment | null; rect: DOMRect } | null>(null)
   const [deathPrompt, setDeathPrompt] = useDeathPrompt(attention?.log, !!attention?.canAnswer, onDeath)
@@ -1701,7 +1703,10 @@ export function IntraopTimetable({
   const suggestionSheets: SuggestionSheets = {
     nowIso: () => serverNow().toISOString(),
     timeOf: iso => (attention?.timeZone ? localTimeOf(new Date(iso), attention.timeZone) : null) ?? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    openDrug: ({ name, mode, rect, amount, unit, route, suggestion }) => {
+    openDrug: ({ name, mode, rect, host, amount, unit, route, suggestion }) => {
+      // The same row again folds its controls away; another row replaces them.
+      if (host && fp?.suggestion === suggestion && suggestionHost?.el === host) { setFp(null); setSuggestionHost(null); return }
+      setSuggestionHost(host ? { tag: suggestion, el: host } : null)
       const next = buildDrugFlyoutState({
         guidanceEnabled: prospectiveGuidanceEnabled, col: sheetCol, name, unit: unit ?? "mg", mode,
         anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
@@ -1711,9 +1716,11 @@ export function IntraopTimetable({
       if (!next) return
       setFp(suggestionPrefill(next, { amount, unit, route }, suggestion))
     },
-    openFluid: ({ name, category, rect, amount, mode, concentration, suggestion }) => {
+    openFluid: ({ name, category, rect, host, amount, mode, concentration, suggestion }) => {
       const fluid = name ?? suggestionFluidFor(category, data.fluids ?? [], fluidLibOpts)
       if (!fluid) return
+      if (host && fp?.suggestion === suggestion && suggestionHost?.el === host) { setFp(null); setSuggestionHost(null); return }
+      setSuggestionHost(host ? { tag: suggestion, el: host } : null)
       const next = buildFluidFlyoutState({
         guidanceEnabled: prospectiveGuidanceEnabled, col: sheetCol, name: fluid, category: getFluidCategory(fluid),
         anchor: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width },
@@ -2121,6 +2128,7 @@ export function IntraopTimetable({
       pediatricRulesCachedAt={pediatricRulesCachedAt}
       pediatricRulesLoading={pediatricRulesLoading}
       pediatricRulesError={pediatricRulesError}
+      inlineHost={fp?.suggestion && suggestionHost?.tag === fp.suggestion ? suggestionHost.el : null}
     />
     {doseEditDrug && (
       <DoseEditPopover

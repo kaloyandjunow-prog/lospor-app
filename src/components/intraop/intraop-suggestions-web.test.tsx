@@ -132,6 +132,14 @@ describe("the card beside the chart", () => {
     expect(sheet.calls.openDrug[0][0]).toMatchObject({ name: "Ephedrine", mode: "bolus", amount: 10, unit: "mg", suggestion: "card:Hypotension:ephedrine" })
   }))
 
+  it("hands the row's own slot to the sheet, so its controls open under the row and not over the screen", () => withFakeNow(() => {
+    const { sheet } = openCard([hypotension])
+    const slot = screen.getByTestId("card-host-ephedrine")
+    expect(screen.getByTestId("card-row-ephedrine").contains(slot)).toBe(true)
+    fireEvent.click(screen.getByTestId("card-row-ephedrine").querySelector("button")!)
+    expect(sheet.calls.openDrug[0][0].host).toBe(slot)
+  }))
+
   it("a child gets the weight-based dose", () => withFakeNow(() => {
     openCard([hypotension], { patient: { ageDays: 6 * 365, weightKg: 20 } })
     expect(screen.getByTestId("card-row-ephedrine").textContent).toContain("2 mg")
