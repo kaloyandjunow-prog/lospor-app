@@ -82,7 +82,7 @@ export type { IntraopFormFields, IntraopData } from "./intraopSchema"
 
 import type { PreopSummary } from "@/components/forms/preop-summary"
 
-export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onEventOps, readOnly = false, autoEnded: autoEndedProp = false, caseId = null, aiOptIn = false, focus = null, stages }: {
+export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, onDeath, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onEventOps, readOnly = false, autoEnded: autoEndedProp = false, caseId = null, aiOptIn = false, focus = null, stages }: {
   /** Where the case is, for the case panel (sidebar layout). */
   stages?: CaseStages
   /**
@@ -101,6 +101,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   onBack: () => void
   onAutoSave?: (data: IntraopData) => void
   onPostopContinued?: (items: string[]) => void
+  /** A death charted in theatre (10.2.0): the postop destination becomes Deceased. */
+  onDeath?: () => void
   /** "sidebar": one scrolling page beside the case panel (10.0.0). */
   layoutMode?: "tabs" | "scroll" | "sidebar"
   caseStarted?: boolean
@@ -688,6 +690,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           }}
           onResumeCase={() => { setValue("endTime", ""); setValue("endTimeNextDay", false); setValue("endedAt", null) }}
           onPostopContinued={items => onPostopContinued?.(items)}
+          onDeath={onDeath}
         />
         </CaseSaveStateContext.Provider>
       </SectionCard>

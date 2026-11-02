@@ -1878,7 +1878,9 @@
       "mhGive": "Give anyway",
       "cancel": "Cancel",
       "laMaxTitle": "Local anaesthetic maximum",
-      "laMaxExceeds": "This dose goes over the maximum. Give anyway?"
+      "laMaxExceeds": "This dose goes over the maximum. Give anyway?",
+      "deathEndCase": "Death charted. The postop destination is set to Deceased. End the case now?",
+      "endCase": "End case"
     },
     "airwayExchange": {
       "title": "New airway",

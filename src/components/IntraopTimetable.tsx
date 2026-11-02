@@ -61,6 +61,7 @@ import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
 import { gridOriginMs, serverNow } from "@/lib/intraop-clock"
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { SuggestionHost, type SuggestionSheets } from "@/components/intraop/SuggestionHost"
+import { useDeathPrompt } from "@/lib/use-death-prompt"
 import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
@@ -154,6 +155,8 @@ interface Props {
   data: TimetableData
   onChange: (d: TimetableData) => void
   onEndCase?: () => void
+  /** A death charted in theatre (10.2.0): the postop destination becomes Deceased. */
+  onDeath?: () => void
   beforeEndCase?: () => boolean // checked by End now; false keeps the case running (1.5.0)
   onResumeCase?: () => void
   /** The saved end instant: a reopened ended case can still be resumed (9.12.1). */
@@ -228,7 +231,7 @@ export function IntraopTimetable({
   showAgentRow = false,
   data,
   onChange,
-  onEndCase, beforeEndCase,
+  onEndCase, beforeEndCase, onDeath,
   onResumeCase,
   endedAt, attention, suggestionForm,
   autoEnded = false,
@@ -1665,6 +1668,10 @@ export function IntraopTimetable({
   }
 
 
+  // A death charted here (10.2.0) sets the postop destination to Deceased and
+  // offers, as its own prompt, to end the case. One loaded with the case does not.
+  const [deathPrompt, setDeathPrompt] = useDeathPrompt(attention?.log, !!attention?.canAnswer, onDeath)
+
   // ── Suggestions (10.2.0) ────────────────────────────────────────────────────
   // A card's row opens this chart's own sheet, prefilled, at the now row; the
   // entry it saves carries the suggestion's tag. On an ended case the last row.
@@ -2011,6 +2018,19 @@ export function IntraopTimetable({
       )
     })()}
     {attention?.opened && <SuggestionHost attention={attention} sheets={suggestionSheets} />}
+    {deathPrompt && !endedAt && (
+      <div role="alertdialog" data-testid="death-end-case" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-2xl dark:bg-[#1e1e1e]">
+          <p className="text-sm font-semibold">{t("intraop.suggestions.deathEndCase")}</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setDeathPrompt(false)} className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm dark:border-slate-600">{t("intraop.suggestions.notNow")}</button>
+            <button type="button" data-testid="death-end-case-yes"
+              onClick={() => { setDeathPrompt(false); if (beforeEndCase?.() === false) return; setShowEndModal(true) }}
+              className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white dark:bg-slate-200 dark:text-slate-900">{t("intraop.suggestions.endCase")}</button>
+          </div>
+        </div>
+      </div>
+    )}
     {/* ── Floating prompt portal ─────────────────────────────────────────────── */}
     <DosingFlyout
       fp={fp}

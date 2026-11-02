@@ -682,6 +682,11 @@ export default function NewCasePage() {
             onBack={() => setStep(0)}
             onAutoSave={data => handleAutoSave("intraop", intraopAutosaveValues(data) as IntraopData)}
             onPostopContinued={items => setContinuedPostopItems(items)}
+            onDeath={() => {
+              const next = { ...(postopData ?? {}), disposition: "DECEASED" } as PostopData
+              setPostopData(next)
+              void saveSection("postop", next, {})
+            }}
             layoutMode={intraopLayout}
             stages={caseStages}
             eventLog={eventLog}

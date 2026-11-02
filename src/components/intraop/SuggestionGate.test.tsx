@@ -15,7 +15,8 @@ const context = (extra: Partial<Omit<SuggestionContext, "now">> = {}): Omit<Sugg
   settings: settings(true), user: {}, patient: { ageDays: 40 * 365, weightKg: 80, idealWeightKg: 70 }, preop: {},
   tofMonitor: false, keepLogging: true, labs: [], ...extra,
 })
-const empty = { drugs: [], agents: [] }
+type Chart = { drugs: { name: string; dose?: string; unit?: string }[]; agents?: { name: string; startCol: number }[] }
+const empty: Chart = { drugs: [], agents: [] }
 
 describe("the MH-history warning and the local anaesthetic maximum (P1, E2)", () => {
   it("warns before a volatile or suxamethonium when the preop record has an MH history, and only then", () => {
@@ -45,7 +46,7 @@ describe("the MH-history warning and the local anaesthetic maximum (P1, E2)", ()
 describe("the gate on the chart", () => {
   it("holds the change until Give anyway, and lets everything through with the reminders off", () => {
     const apply = vi.fn()
-    const next = { drugs: [], agents: [{ name: "SEVOFLURANE", startCol: 1 }] }
+    const next: Chart = { drugs: [], agents: [{ name: "SEVOFLURANE", startCol: 1 }] }
     const { result } = renderHook(() => useSuggestionGate({ context: context({ preop: { mhHistory: true } }), log: [], locale: "en", now: () => NOW }))
     act(() => result.current.guard(empty, apply)(next))
     expect(apply).not.toHaveBeenCalled()
