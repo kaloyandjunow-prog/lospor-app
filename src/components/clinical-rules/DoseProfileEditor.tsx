@@ -573,6 +573,9 @@ export function DoseProfileEditor({
             ) : null}
             {method !== "NONE" ? <NumberInput label={copy.autofillRoundTo} value={routeMode.doseCalc?.roundTo} onChange={value => updateDoseCalc({ roundTo: value })} /> : null}
             {method !== "NONE" ? <NumberInput label={copy.autofillCap} value={routeMode.doseCalc?.cap} onChange={value => updateDoseCalc({ cap: value })} /> : null}
+            {/* 10.2.0: per kilogram below a weight, a fixed dose from it (paracetamol 15 mg/kg, 1 g from 50 kg). */}
+            {method === "PER_KG" ? <NumberInput label={copy.flatFromKg} value={routeMode.doseCalc?.flatFromKg} onChange={value => updateDoseCalc({ flatFromKg: value })} /> : null}
+            {method === "PER_KG" && routeMode.doseCalc?.flatFromKg != null ? <NumberInput label={copy.flatFromKgDose} value={routeMode.doseCalc?.flat} onChange={value => updateDoseCalc({ flat: value })} /> : null}
           </div>
           {method !== "NONE" ? (
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
