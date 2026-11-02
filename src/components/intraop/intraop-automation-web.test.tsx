@@ -45,7 +45,7 @@ describe("vitals questions on the web (10.1.0)", () => {
     const log: LogEvent[] = [{ id: "r1", type: "vital", ts: "2026-11-01T09:00:00.000Z", heartRate: 45 }]
     const { result } = renderHook(() => useIntraopAttention({ log, timeZone: "Europe/Sofia", vitals: null, readOnly: true }))
     expect(result.current.entries).toEqual([])
-    expect(parseIntraopAutomationResponse(null)).toMatchObject({ settings: { enabled: false }, stats: null })
+    expect(parseIntraopAutomationResponse(null)).toMatchObject({ settings: { enabled: true, vitalQuestions: { enabled: false } }, stats: null })
   })
 })
 
