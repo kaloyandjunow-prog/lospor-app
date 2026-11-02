@@ -30,6 +30,11 @@ const vitalsRowSchema = z.object({
   tofRatio:  intraopNumber("tofRatio").nullable().optional(),
   // Always mmHg; the entry control converts if the clinician works in cmH2O.
   cvp:       intraopNumber("cvpMmHg").nullable().optional(),
+  // The arterial line and the cuff mean (10.2.0); systolic and diastolic above are the cuff (NIBP).
+  ibpSystolic:  z.coerce.number().nullable().optional(),
+  ibpDiastolic: z.coerce.number().nullable().optional(),
+  ibpMap:       z.coerce.number().nullable().optional(),
+  nibpMap:      z.coerce.number().nullable().optional(),
   note:      z.string().optional(),
 })
 
