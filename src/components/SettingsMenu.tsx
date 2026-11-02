@@ -29,6 +29,7 @@ import { VascularScreenSetting } from "@/components/settings/VascularScreenSetti
 import { MonitoringScreenSetting } from "@/components/settings/MonitoringScreenSetting"
 import { EquipmentScreenSetting } from "@/components/settings/EquipmentScreenSetting"
 import { TechniqueScreenSetting } from "@/components/settings/TechniqueScreenSetting"
+import { EventsScreenSetting } from "@/components/settings/EventsScreenSetting"
 import { BulgarianNamesSettings } from "@/components/settings/BulgarianNamesSettings"
 import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
@@ -521,6 +522,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     <MonitoringScreenSetting />
                     <EquipmentScreenSetting />
                     <TechniqueScreenSetting />
+                    <EventsScreenSetting />
 
                     {/* The case screens (10.0.0): the sidebar first, which overrides
                         the rest; without it, each screen sectioned or scrollable. */}

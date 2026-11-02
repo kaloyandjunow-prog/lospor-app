@@ -13,6 +13,7 @@ import {
 import { suggestionFactsFromPreop, type SuggestionContext, type SuggestionPreopRecord } from "@lospor/core/intraop-suggestions"
 import type { LabResult } from "@lospor/core/labs"
 import { preopAgeDays, type VitalQuestionContext, type VitalStatsTable } from "@lospor/core/vital-questions"
+import { likelyNext, parseSuccessionLinks, successionContext, type LikelyEvent, type SuccessionLink } from "@lospor/core/event-succession"
 import { readWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 
 /**
@@ -21,7 +22,7 @@ import { readWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/cl
  * against -- the same response the PWA reads. Off, or before the first read,
  * nothing is asked; the public demo has no Status and stays off.
  */
-type Automation = { settings: IntraopAutomationSettings; stats: VitalStatsTable | null }
+type Automation = { settings: IntraopAutomationSettings; stats: VitalStatsTable | null; succession: SuccessionLink[] }
 
 let cached: Automation | null = null
 
@@ -31,11 +32,12 @@ export function parseIntraopAutomationResponse(value: unknown): Automation {
   const stats = vitalQuestionsEnabled(settings) && typeof body.stats === "object" && body.stats !== null
     ? body.stats as VitalStatsTable
     : null
-  return { settings, stats }
+  // What usually comes next (10.2.0): the starting values and what the cases show, sent while the reminders are on.
+  return { settings, stats, succession: parseSuccessionLinks(body.succession) }
 }
 
 export function useIntraopAutomation(): Automation {
-  const [automation, setAutomation] = useState<Automation>(cached ?? { settings: DEFAULT_INTRAOP_AUTOMATION, stats: null })
+  const [automation, setAutomation] = useState<Automation>(cached ?? { settings: DEFAULT_INTRAOP_AUTOMATION, stats: null, succession: [] })
   useEffect(() => {
     let active = true
     fetch("/api/intraop/automation", { cache: "no-store" })
@@ -78,6 +80,36 @@ function useAutomationPreferences(): { keepLogging: boolean; user: UserAutomatio
     () => ({ keepLogging: preferences.vitalEpisodeAutoLog, user: preferences.automationGroups ?? {} }),
     [preferences],
   )
+}
+
+/**
+ * The events likely to come next on this case (10.2.0): at most two, only ones not yet charted, once the usual gap has
+ * passed after the event they follow. Nothing when the reminders are off in Status or for this clinician, or the case
+ * is held on another screen. What is likely, and why, is Core's (event-succession); this only hands it the case.
+ */
+export function useLikelyEvents(args: {
+  log: ReadonlyArray<{ type: string; label?: string | null; ts: string }>
+  techniques: readonly string[]
+  child: boolean
+  enabled: boolean
+}): { likely: LikelyEvent[]; dismiss: (event: string) => void } {
+  const { settings, succession } = useIntraopAutomation()
+  const { user } = useAutomationPreferences()
+  const [dismissed, setDismissed] = useState<string[]>([])
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
+  const { log, techniques, child, enabled } = args
+  const likely = useMemo(() => {
+    if (!enabled) return []
+    return likelyNext({
+      log: log.filter(event => event.type === "clinical_event").map(event => ({ label: event.label, ts: event.ts })),
+      context: successionContext(techniques, child), links: succession, now, dismissed, settings, user,
+    })
+  }, [enabled, log, techniques, child, succession, now, dismissed, settings, user])
+  return { likely, dismiss: (event: string) => setDismissed(current => (current.includes(event) ? current : [...current, event])) }
 }
 
 /** What the screen knows of the case beyond the preop record. */

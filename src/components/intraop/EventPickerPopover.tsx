@@ -1,7 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { createPortal } from "react-dom"
+import { useTranslations } from "next-intl"
+import { eventSearchScore } from "@lospor/core/event-synonyms"
 import { useIntraopUiCopy } from "./ui-copy"
+import { useEventSelector } from "./event-selector-context"
 
 /**
  * Logging what happened at a moment in the case.
@@ -15,8 +19,11 @@ import { useIntraopUiCopy } from "./ui-copy"
  * column removes it, which is how a mis-tap at 3am gets undone without hunting
  * for a delete control.
  *
- * Search matches both the English label and the clinician's own language, so a
- * Bulgarian user typing Bulgarian finds the same entry an English user does.
+ * Search matches the English label, the clinician's own language, and the words colleagues use in both (low bp, desat,
+ * кървене), so a Bulgarian user typing Bulgarian finds the same entry an English user does.
+ *
+ * Two looks (10.2.0, chosen in Settings): the new list (Smart), one quiet list with the likely next events and the
+ * categories one open at a time, or the coloured buttons as they were (Legacy).
  */
 
 export type EventOption = {
@@ -59,11 +66,7 @@ export type EventPickerPopoverProps = {
   defibrillation?: { label: string; onOpen: () => void }
 }
 
-const POPOVER_WIDTH = 300
-
-function matches(haystacks: string[], query: string) {
-  return haystacks.join(" ").toLowerCase().includes(query)
-}
+const POPOVER_WIDTH = 320
 
 export function EventPickerPopover({
   anchor,
@@ -77,21 +80,50 @@ export function EventPickerPopover({
   defibrillation,
 }: EventPickerPopoverProps) {
   const copy = useIntraopUiCopy()
+  const t = useTranslations("intraop.eventsSmart")
+  const { screen, likely, dismiss } = useEventSelector()
+  const [open, setOpen] = useState("")
+  const [openSystem, setOpenSystem] = useState("")
   if (typeof document === "undefined") return null
 
   const showAbove = window.innerHeight - anchor.bottom < 340
   const left = Math.max(8, Math.min(anchor.left, window.innerWidth - POPOVER_WIDTH - 8))
   const top = showAbove ? anchor.top - 4 : anchor.bottom + 4
 
-  const query = search.toLowerCase().trim()
+  const query = search.trim()
+  const scoreOf = (event: EventOption) => eventSearchScore(query, event.label, [event.displayLabel])
   const visibleCategories = query
     ? categories
-      .map(category => ({
-        ...category,
-        events: category.events.filter(event => matches([event.label, event.displayLabel], query)),
-      }))
+      .map(category => ({ ...category, events: category.events.filter(event => scoreOf(event) != null) }))
       .filter(category => category.events.length > 0)
     : categories
+
+  // The new list: the common complications are the first complication category, the systems follow it.
+  const firstComplication = categories.findIndex(category => category.isComplication)
+  const isSystem = (category: EventCategory, index: number) => category.isComplication && index !== firstComplication
+  const mainCategories = categories.filter((category, index) => !isSystem(category, index))
+  const systems = categories.filter((category, index) => isSystem(category, index))
+  const found = query
+    ? categories.flatMap(category => category.events.flatMap(event => { const score = scoreOf(event); return score == null ? [] : [{ event, category, score }] }))
+      .sort((a, b) => a.score - b.score).slice(0, 12)
+    : []
+  const likelyRows = likely.flatMap(item => {
+    const hit = categories.flatMap(category => category.events.map(event => ({ event, category }))).find(({ event, category }) => event.label === item.event && !category.isComplication)
+    return hit ? [{ item, ...hit }] : []
+  })
+  const row = "flex w-full min-h-11 items-center gap-2.5 border-b border-slate-100 px-3 text-left text-sm dark:border-[#2a2a2a]"
+  const eventRow = (event: EventOption, category: EventCategory, indent: string, sub?: string) => {
+    const recorded = recordedLabels.has(event.label)
+    return (
+      <button key={`${category.cat}:${event.label}`} type="button" data-testid={`event-${event.label}`} onClick={() => onToggleEvent(event, category, recorded)} className={`${row} ${indent}`}>
+        <span className="h-2 w-2 flex-none rounded-full" style={{ background: category.color }} />
+        <span className="min-w-0 flex-1">
+          <span className={`block ${recorded ? "font-bold text-emerald-700 dark:text-emerald-300" : ""}`}>{recorded ? "✓ " : ""}{event.displayLabel}</span>
+          {sub ? <span className="block text-[11px] text-slate-500">{sub}</span> : null}
+        </span>
+      </button>
+    )
+  }
 
   return createPortal(
     <>
@@ -123,6 +155,75 @@ export function EventPickerPopover({
           />
         </div>
 
+        {screen === "smart" ? (
+          <div className="max-h-96 overflow-y-auto p-2" data-testid="event-list">
+            {query ? (
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
+                {found.length === 0 ? <p data-testid="event-none" className="p-3 text-sm text-slate-500">{t("none")}</p> : found.map(({ event, category }) => eventRow(event, category, "", category.displayCat))}
+              </div>
+            ) : (
+              <>
+                {likelyRows.length > 0 ? (
+                  <>
+                    <p className="mb-1 mt-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("likely")}</p>
+                    <div data-testid="event-likely" className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
+                      {likelyRows.map(({ item, event, category }) => (
+                        <div key={item.event} className="flex min-h-12 items-center gap-2 border-b border-slate-100 px-3 py-1.5 last:border-b-0 dark:border-[#2a2a2a]">
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold">{event.displayLabel}</span>
+                            <span className="block text-[11.5px] font-semibold text-amber-600 dark:text-amber-400">{t("usually", { from: item.from, percent: Math.round(item.probability * 100) })}</span>
+                          </span>
+                          <button type="button" data-testid={`likely-dismiss-${item.event}`} aria-label={t("dismiss")} onClick={() => dismiss(item.event)} className="min-h-11 min-w-11 text-slate-400">✕</button>
+                          <button type="button" data-testid={`likely-log-${item.event}`} onClick={() => onToggleEvent(event, category, false)}
+                            className="min-h-11 rounded-xl border border-violet-500 bg-violet-50 px-4 text-sm font-bold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">{t("log")}</button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+                <p className="mb-1 mt-3 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("all")}</p>
+                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
+                  {mainCategories.map(category => {
+                    const isOpen = open === category.cat
+                    const total = category.events.length + (category.isComplication ? systems.reduce((sum, system) => sum + system.events.length, 0) : 0)
+                    return (
+                      <div key={category.cat}>
+                        <button type="button" data-testid={`event-category-${category.cat}`} aria-expanded={isOpen} onClick={() => { setOpen(isOpen ? "" : category.cat); setOpenSystem("") }} className={`${row} font-bold`}>
+                          <span className="h-2 w-2 flex-none rounded-full" style={{ background: category.color }} />
+                          <span className="flex-1">{category.displayCat}</span>
+                          <span className="text-xs font-normal text-slate-500">{total} {isOpen ? "▾" : "▸"}</span>
+                        </button>
+                        {isOpen ? (
+                          <div className="bg-slate-50 dark:bg-[#1b1b1b]">
+                            {category.events.map(event => eventRow(event, category, "pl-6"))}
+                            {category.isComplication ? systems.map(system => {
+                              const systemOpen = openSystem === system.cat
+                              return (
+                                <div key={system.cat}>
+                                  <button type="button" data-testid={`event-system-${system.cat}`} aria-expanded={systemOpen} onClick={() => setOpenSystem(systemOpen ? "" : system.cat)} className={`${row} min-h-12 pl-8 text-[13px] font-semibold`}>
+                                    <span className="flex-1">{system.displayCat}</span>
+                                    <span className="text-xs font-normal text-slate-500">{system.events.length} {systemOpen ? "▾" : "▸"}</span>
+                                  </button>
+                                  {systemOpen ? system.events.map(event => eventRow(event, system, "pl-12")) : null}
+                                </div>
+                              )
+                            }) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+            {defibrillation && (
+              <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
+                className="mt-3 w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                {defibrillation.label}
+              </button>
+            )}
+          </div>
+        ) : (
         <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
           {visibleCategories.map(category => (
             <div key={category.cat}>
@@ -164,6 +265,7 @@ export function EventPickerPopover({
             <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">{copy.eventPicker.none}</p>
           )}
         </div>
+        )}
       </div>
     </>,
     document.body,

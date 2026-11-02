@@ -4,7 +4,7 @@ import { useForm, useWatch, type Resolver } from "react-hook-form"
 import { useIntraopEventTimeline } from "@/hooks/useIntraopEventTimeline"
 import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
 import { useIntraopAttention } from "@/lib/use-intraop-attention"
-import { useSuggestionContext, useVitalQuestionContext } from "@/lib/use-intraop-automation"
+import { useLikelyEvents, useSuggestionContext, useVitalQuestionContext } from "@/lib/use-intraop-automation"
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
 import { AirwayExchangeDialog } from "@/components/intraop/AirwayExchangeDialog"
 import { accessKindOf, replaceFailedLine, vascularLineText, type AccessKind, type VascularLine } from "@lospor/core/vascular-access-lines"
@@ -58,6 +58,8 @@ import { VascularSmartPanel, type VascularSmartRequest } from "@/components/intr
 import { useVascularScreen } from "@/lib/use-vascular-screen"
 import { useMonitoringScreen } from "@/lib/use-monitoring-screen"
 import { useEquipmentScreen } from "@/lib/use-equipment-screen"
+import { useEventsScreen } from "@/lib/use-events-screen"
+import { EventSelectorContext } from "@/components/intraop/event-selector-context"
 import { useTechniqueScreen } from "@/lib/use-technique-screen"
 import { useRecentTechniques } from "@/lib/use-recent-techniques"
 import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
@@ -689,7 +691,15 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       planned={preop?.plannedTechniques ?? []} recents={recentTechniques.recents} />
   ) : undefined
 
+  // ── The event selector (10.2.0) ─────────────────────────────────────────────
+  // The new list or the Legacy buttons, and the events likely to come next (only ones not charted yet). What is likely
+  // is Core's (event-succession); the timetable's picker reads it from here.
+  const eventsScreen = useEventsScreen()
+  const likelyEvents = useLikelyEvents({ log: timelineLog, techniques, child: isPediatric, enabled: !readOnly && eventsScreen === "smart" })
+  const eventSelector = { screen: eventsScreen, likely: likelyEvents.likely, dismiss: likelyEvents.dismiss }
+
   return (
+    <EventSelectorContext.Provider value={eventSelector}>
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
       {/* Dual-mode layout — tabs or scroll, sharing the same section content */}
@@ -992,5 +1002,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         document.body
       )}
     </form>
+    </EventSelectorContext.Provider>
   )
 }

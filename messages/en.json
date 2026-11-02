@@ -1008,6 +1008,14 @@
       "smartHint": "Search, the preop plan, your usual techniques, and the side of a block.",
       "legacy": "Legacy",
       "legacyHint": "The list you drill down through, as it was."
+    },
+    "eventsScreen": {
+      "title": "Event selector",
+      "desc": "How the list of events looks when you tap a slot on the timeline. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "One quiet list with likely next events, searchable by the words colleagues use.",
+      "legacy": "Legacy",
+      "legacyHint": "The coloured buttons, as they were."
     }
   },
   "admin": {
@@ -2120,6 +2128,16 @@
       "left": "Left",
       "right": "Right",
       "both": "Both"
+    },
+    "eventsSmart": {
+      "results": "Results",
+      "none": "No event matches.",
+      "likely": "Likely now",
+      "all": "All events",
+      "log": "Log",
+      "dismiss": "Not now",
+      "usually": "Usually after {from}, {percent}% of cases",
+      "search": "Search events"
     }
   },
   "postop": {
