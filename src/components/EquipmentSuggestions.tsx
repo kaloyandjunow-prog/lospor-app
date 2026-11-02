@@ -7,6 +7,8 @@ import {
 import type { ClinicalMode } from "@lospor/core/pediatric"
 import { broselowZone } from "@lospor/core/broselow"
 import { BroselowBadge } from "@/components/BroselowBadge"
+import { EquipmentSmart } from "@/components/intraop/EquipmentSmart"
+import type { EquipmentFlagState } from "@lospor/core/equipment-smart"
 
 interface Props {
   clinicalMode: ClinicalMode
@@ -21,6 +23,13 @@ interface Props {
   neckMobility?: string | null
   mouthOpeningCm?: number | null
   cormackLehane?: string | null
+  /** Smart selection (10.2.0): the list as a set-up checklist. Without it this is the Legacy card. */
+  smart?: {
+    flags: EquipmentFlagState
+    airwayInUse: readonly string[]
+    onFlag: (field: "urinaryCatheter" | "stomachTube") => void
+    onUseAirway: (device: "ORAL_ETT" | "LMA") => void
+  }
 }
 
 const CATEGORY_STYLE: Record<string, string> = {
@@ -151,6 +160,11 @@ export function EquipmentSuggestions(props: Props) {
           </p>
         ) : null}
       </div>
+      {props.smart ? (
+        <EquipmentSmart categories={categories} {...props.smart}
+          categoryName={category => t(`intraop.equipment.categories.${category}`)}
+          labelOf={label => t(`intraop.equipment.labels.${label}`)} textOf={localizeText} />
+      ) : (
       <div className="grid grid-cols-1 divide-y divide-slate-100 dark:divide-[#2a2a2a] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3">
         {categories.map(category => (
           <div key={category.cat} className="space-y-1.5 p-3">
@@ -179,6 +193,7 @@ export function EquipmentSuggestions(props: Props) {
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }

@@ -57,6 +57,8 @@ import { VascularSmart } from "@/components/intraop/VascularSmart"
 import { VascularSmartPanel, type VascularSmartRequest } from "@/components/intraop/VascularSmartPanel"
 import { useVascularScreen } from "@/lib/use-vascular-screen"
 import { useMonitoringScreen } from "@/lib/use-monitoring-screen"
+import { useEquipmentScreen } from "@/lib/use-equipment-screen"
+import { addAirwayDevice, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
 import { MONITORING_READINGS, isRelaxant, monitoringSuggestions } from "@lospor/core/monitoring-smart"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
@@ -649,6 +651,24 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       onHide={field => setHiddenMonitors(list => [...list, field])} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} />
   ) : undefined
 
+  // ── Smart selection for equipment (10.2.0) ──────────────────────────────────
+  // The calculator list as a set-up checklist. The tube and LMA go to the Airway record when marked in use; the
+  // catheter and NGT set their case flag (what each item does is Core's).
+  const equipmentScreen = useEquipmentScreen()
+  const [catheterOn, ngtOn] = useWatch({ control, name: ["urinaryCatheter", "stomachTube"] })
+  const equipmentSmart = equipmentScreen === "smart" && !readOnly ? {
+    flags: { urinaryCatheter: !!catheterOn, stomachTube: !!ngtOn },
+    airwayInUse: airwayDeviceEntriesOf(getValues() as Record<string, unknown>).filter(entry => entry.status === "in_use").map(entry => entry.device),
+    onFlag: (field: "urinaryCatheter" | "stomachTube") => setValue(field, !getValues(field), { shouldDirty: true }),
+    onUseAirway: (device: "ORAL_ETT" | "LMA") => {
+      const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
+      applyAirwayEntries(addAirwayDevice(entries, {
+        id: `airway-${Date.now()}-${entries.length + 1}`, device, details: suggestedAirwayDetails(device, smartProps.patient),
+        insertedAt: resolveAirwayTime(entries.length === 0 ? "start" : "now", { startedAt: smartProps.startedAt, now: smartProps.now() }),
+      }))
+    },
+  } : undefined
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -660,6 +680,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Equipment suggestions */}
       {preop && isPediatric ? (
         <EquipmentSuggestions
+          smart={equipmentSmart}
           clinicalMode="PEDIATRIC"
           ageValue={preop.ageValue}
           ageUnit={preop.ageUnit}
@@ -675,6 +696,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         />
       ) : preop && (preop.weightKg || preop.heightCm || preop.ageYears) ? (
         <EquipmentSuggestions
+          smart={equipmentSmart}
           clinicalMode="ADULT"
           ageYears={preop.ageYears}
           weightKg={preop.weightKg}

@@ -992,6 +992,14 @@
       "smartHint": "Standard monitoring in one switch, and monitors suggested from the case.",
       "legacy": "Legacy",
       "legacyHint": "Every monitor, grouped by what it tells you."
+    },
+    "equipmentScreen": {
+      "title": "Equipment tab",
+      "desc": "How the equipment section of the intraoperative record looks. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "A set-up checklist. The tube and LMA can be marked in use, which charts them in Airway.",
+      "legacy": "Legacy",
+      "legacyHint": "The list of calculated equipment as it was."
     }
   },
   "admin": {
@@ -2079,6 +2087,13 @@
       "groupBrain": "Brain and depth",
       "groupMuscle": "Muscle",
       "groupTemperature": "Temperature and output"
+    },
+    "equipmentSmart": {
+      "setUp": "Set up",
+      "glance": "Airway, the six numbers",
+      "choose": "Choose",
+      "ready": "Ready",
+      "inUse": "In use"
     }
   },
   "postop": {
