@@ -5,23 +5,26 @@ import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { VascularAccessTree, type VascularAccess } from "@/components/VascularAccessTree"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 import { localTimeOf } from "@lospor/core/intraop-time"
+import type { ReactNode } from "react"
 
-export function VascularAccessSection({ control, watch }: {
+export function VascularAccessSection({ control, watch, smart }: {
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
+  /** Smart selection (10.2.0): when given, it stands in for the tree below; the legacy tab is untouched. */
+  smart?: ReactNode
 }) {
   const t = useTranslations()
   return (
-    <SectionCard title={t("intraop.vascularSection")} collapsible defaultCollapsed
+    <SectionCard title={t("intraop.vascularSection")} collapsible defaultCollapsed={!smart}
       badge={(() => { const a = (watch("vascularAccesses") ?? []) as VascularAccess[]; return a.length ? t("intraop.vascular.accessCount", { count: a.length }) : undefined })()}>
 
-      <Controller name="vascularAccesses" control={control} render={({ field }) => (
+      {smart ?? <Controller name="vascularAccesses" control={control} render={({ field }) => (
         <VascularAccessTree
           value={(field.value ?? []) as VascularAccess[]}
           onChange={field.onChange}
         />
-      )} />
-      {(() => {
+      )} />}
+      {!smart && (() => {
         // 10.2.0: a line that failed stays on the list, marked with the time.
         const failed = ((watch("vascularAccesses") ?? []) as (VascularAccess & { failed?: boolean; failedAt?: string | null })[]).filter(line => line.failed)
         if (failed.length === 0) return null

@@ -976,6 +976,14 @@
       "smartHint": "Opens on what is in place and adds a device in one panel, from the tab or from the timeline.",
       "legacy": "Legacy",
       "legacyHint": "The tab as it was: pills for tools, devices and ventilation."
+    },
+    "vascularScreen": {
+      "title": "Vascular access tab",
+      "desc": "How the vascular access section of the intraoperative record looks. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "Opens on what is in place and adds a line in one panel, from the tab or from the timeline.",
+      "legacy": "Legacy",
+      "legacyHint": "The tab as it was."
     }
   },
   "admin": {
@@ -1997,6 +2005,41 @@
       "now": "Now · {time}",
       "pickTime": "Pick a time",
       "add": "Add"
+    },
+    "vascularSmart": {
+      "peripheral": "Peripheral IV",
+      "arterial": "Arterial line",
+      "central": "Central line",
+      "picc": "PICC",
+      "oldStays": "The old line stays on the list as failed, so both are counted.",
+      "whoPlaced": "Who placed it",
+      "placedByUs": "Placed by us",
+      "alreadyInPlace": "Already in place (ward, preop)",
+      "type": "Type",
+      "site": "Site",
+      "size": "Size",
+      "suggested": "suggested",
+      "lumens": "Lumens",
+      "depth": "Depth (cm)",
+      "time": "Time",
+      "arrived": "Arrived with the patient",
+      "pickWhenPlaced": "Pick the time it was placed",
+      "fromTimeline": "From the timeline · {time}",
+      "startOfAnaesthesia": "Start of anaesthesia · {time}",
+      "now": "Now · {time}",
+      "pickTime": "Pick a time",
+      "cancel": "Cancel",
+      "add": "Add",
+      "inPlace": "In place",
+      "none": "No vascular access yet. Pick one below, or chart it on the timeline.",
+      "placedHere": "placed here",
+      "failed": "failed",
+      "failedButton": "Failed",
+      "lumenCount": "{count} lumens",
+      "arrivedShort": "arrived",
+      "addAccess": "Add access",
+      "moreTypes": "More types ▾",
+      "alreadyOnArrival": "Already in place on arrival"
     }
   },
   "postop": {

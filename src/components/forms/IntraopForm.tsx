@@ -52,6 +52,10 @@ import { localTimeOf } from "@lospor/core/intraop-time"
 import { AirwaySmart } from "@/components/intraop/AirwaySmart"
 import { AirwaySmartPanel, type AirwaySmartRequest } from "@/components/intraop/AirwaySmartPanel"
 import { useAirwayScreen } from "@/lib/use-airway-screen"
+import { VASCULAR_EVENT_TYPE } from "@lospor/core/vascular-smart"
+import { VascularSmart } from "@/components/intraop/VascularSmart"
+import { VascularSmartPanel, type VascularSmartRequest } from "@/components/intraop/VascularSmartPanel"
+import { useVascularScreen } from "@/lib/use-vascular-screen"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
@@ -584,6 +588,39 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       timeOf={smartTimeOf} />
   ) : undefined
 
+  // ── Smart selection for vascular access (10.2.0) ────────────────────────────
+  // The Vascular access tab that opens on what is in place. What it offers and how it saves is Core's
+  // (vascular-smart); this hands it the case and writes the result into the same list the legacy tab keeps.
+  const vascularScreen = useVascularScreen()
+  useWatch({ control, name: ["vascularAccesses"] })
+  const [vascularRequest, setVascularRequest] = useState<VascularSmartRequest | null>(null)
+  const vascularLines = () => ((getValues("vascularAccesses") ?? []) as unknown as VascularLine[])
+  function applyVascularLines(next: VascularLine[]) {
+    setValue("vascularAccesses", next as unknown as IntraopFormFields["vascularAccesses"], { shouldDirty: true })
+  }
+  const vascularProps = {
+    patient: { clinicalMode: preop?.clinicalMode ?? "ADULT", ageYears: preop?.ageYears ?? null },
+    startedAt: chartStartedAt ?? null, now: () => serverNow().toISOString(), timeZone: timelineZone ?? null,
+    siteLabel: (code: string) => displayClinicalCode("option:VASCULAR_ACCESS", code, locale),
+  }
+  // IV line in, Art line in, CVC in and PICC charted on the timeline open the same panel, with that time already set.
+  const seenVascularEvents = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (readOnly || vascularScreen !== "smart") return
+    const events = timelineLog.filter(event => event.type === "clinical_event" && event.label != null && VASCULAR_EVENT_TYPE[event.label])
+    if (seenVascularEvents.current == null) { seenVascularEvents.current = new Set(events.map(event => event.id)); return }
+    const lines = ((getValues("vascularAccesses") ?? []) as unknown as VascularLine[])
+    const seen = seenVascularEvents.current
+    const fresh = events.find(event => !seen.has(event.id)
+      && !lines.some(line => line.insertedAt === event.ts)
+      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
+    for (const event of events) seen.add(event.id)
+    if (fresh?.label) setVascularRequest({ ...VASCULAR_EVENT_TYPE[fresh.label]!, at: fresh.ts, source: "timeline" })
+  }, [timelineLog, readOnly, vascularScreen, getValues])
+  const vascularNode = vascularScreen === "smart" ? (
+    <VascularSmart {...vascularProps} lines={vascularLines()} onChange={applyVascularLines} techniques={techniques} timeOf={smartTimeOf} />
+  ) : undefined
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -668,7 +705,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           here so settings are tracked over time instead of set once statically. */}
 
       {/* Vascular access */}
-      <VascularAccessSection control={control} watch={watch} />
+      <VascularAccessSection control={control} watch={watch} smart={vascularNode} />
 
       {/* Premedication */}
       <PremedicationSection t={t} control={control} watch={watch} premedCategories={premedCategories} premedDoses={premedDoses}
@@ -693,6 +730,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
         {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
+        {vascularRequest && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setVascularRequest(null)}>
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>
+              <VascularSmartPanel {...vascularProps} request={vascularRequest} lines={vascularLines()}
+                onSave={next => { setVascularRequest(null); applyVascularLines(next) }} onClose={() => setVascularRequest(null)} />
+            </div>
+          </div>
+        )}
         {smartRequest && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setSmartRequest(null)}>
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>

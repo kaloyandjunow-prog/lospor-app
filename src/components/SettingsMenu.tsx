@@ -25,6 +25,7 @@ import { VitalEpisodeSetting } from "@/components/settings/VitalEpisodeSetting"
 import { AutomationGroupsSetting } from "@/components/settings/AutomationGroupsSetting"
 import { EnergyKnobSkinSetting } from "@/components/settings/EnergyKnobSkinSetting"
 import { AirwayScreenSetting } from "@/components/settings/AirwayScreenSetting"
+import { VascularScreenSetting } from "@/components/settings/VascularScreenSetting"
 import { BulgarianNamesSettings } from "@/components/settings/BulgarianNamesSettings"
 import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
@@ -512,6 +513,8 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     <EnergyKnobSkinSetting />
 
                     <AirwayScreenSetting />
+
+                    <VascularScreenSetting />
 
                     {/* The case screens (10.0.0): the sidebar first, which overrides
                         the rest; without it, each screen sectioned or scrollable. */}
