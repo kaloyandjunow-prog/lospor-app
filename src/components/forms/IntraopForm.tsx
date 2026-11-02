@@ -58,6 +58,10 @@ import { VascularSmartPanel, type VascularSmartRequest } from "@/components/intr
 import { useVascularScreen } from "@/lib/use-vascular-screen"
 import { useMonitoringScreen } from "@/lib/use-monitoring-screen"
 import { useEquipmentScreen } from "@/lib/use-equipment-screen"
+import { useTechniqueScreen } from "@/lib/use-technique-screen"
+import { useRecentTechniques } from "@/lib/use-recent-techniques"
+import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
+import { parseTechniqueSides, type TechniqueSide } from "@lospor/core/technique-smart"
 import { addAirwayDevice, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
 import { MONITORING_READINGS, isRelaxant, monitoringSuggestions } from "@lospor/core/monitoring-smart"
@@ -669,6 +673,22 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     },
   } : undefined
 
+  // ── Smart selection for technique (10.2.0) ──────────────────────────────────
+  // Search, the preop plan, the usual ones and the side of a block. The saved data is the list of technique codes with
+  // the side beside it; finding and sides are Core's (technique-smart).
+  const techniqueScreen = useTechniqueScreen()
+  const recentTechniques = useRecentTechniques()
+  const techniqueSides = parseTechniqueSides(useWatch({ control, name: "techniqueSides" }))
+  function applyTechniques(next: string[], sides: Record<string, TechniqueSide>, added: string[]) {
+    setValue("techniques", next, { shouldDirty: true })
+    setValue("techniqueSides", sides, { shouldDirty: true })
+    recentTechniques.remember(added)
+  }
+  const techniqueNode = techniqueScreen === "smart" && !readOnly ? (
+    <TechniqueSmart techniques={techniques} sides={techniqueSides} onChange={applyTechniques} tree={techniqueTree}
+      planned={preop?.plannedTechniques ?? []} recents={recentTechniques.recents} />
+  ) : undefined
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -736,7 +756,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {/* Anaesthesia technique */}
       <div data-tour="intraop-technique" data-readiness="technique airway vascular_access">
       <TechniqueSection t={t} control={control} techniques={techniques} techniqueTree={techniqueTree}
-        presentsIntubated={presentsIntubated} setPresentsIntubated={setPresentsIntubated} />
+        presentsIntubated={presentsIntubated} setPresentsIntubated={setPresentsIntubated} smart={techniqueNode} />
 
       <AirwaySection
         control={control} watch={watch} setValue={setValue} register={register}

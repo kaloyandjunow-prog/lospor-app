@@ -61,6 +61,8 @@ export const schema = z.object({
   positions: z.array(z.string()).catch([]).default([]),
 
   techniques:      z.array(z.string()).catch([]).default([]),
+  // The side of a block or unilateral spinal, by technique code (10.2.0); the server keeps a side only for a technique on the list.
+  techniqueSides:  z.record(z.string(), z.string()).catch({}).default({}),
   airwayDevices:   z.array(z.string()).catch([]).default([]),
   // 10.2.0: each airway device its own entry, a failed or replaced one kept (core airway-device-entries).
   airwayDeviceEntries: z.array(z.record(z.string(), z.unknown())).catch([]).optional(),

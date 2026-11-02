@@ -352,6 +352,7 @@ export function preopSummaryForIntraop(preop: PreopData): PreopSummary {
     plannedProcedure:      plannedProcedureText(preop.procedures) || null,
     emergencySurgery:      preop.emergencySurgery ?? null,
     pediatricFasting:      preop.pediatricFasting ?? null,
+    plannedTechniques:     preop.plannedAnaesthesia?.techniques ?? [],
   }
 }
 

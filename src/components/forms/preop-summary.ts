@@ -43,4 +43,6 @@ export type PreopSummary = {
   pediatricFasting?: { category: PediatricFastingCategory; hoursBefore: number }[] | null
   /** The premedication ordered at the preop visit; the record's premedication starts from it. */
   premedicationOrders?: PremedicationOrders | null
+  /** Technique codes planned at the preop visit (Core preop-plan). */
+  plannedTechniques?: string[]
 }

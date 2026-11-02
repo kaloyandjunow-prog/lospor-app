@@ -1000,6 +1000,14 @@
       "smartHint": "A set-up checklist. The tube and LMA can be marked in use, which charts them in Airway.",
       "legacy": "Legacy",
       "legacyHint": "The list of calculated equipment as it was."
+    },
+    "techniqueScreen": {
+      "title": "Technique tab",
+      "desc": "How the technique section of the intraoperative record looks. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "Search, the preop plan, your usual techniques, and the side of a block.",
+      "legacy": "Legacy",
+      "legacyHint": "The list you drill down through, as it was."
     }
   },
   "admin": {
@@ -2094,6 +2102,24 @@
       "choose": "Choose",
       "ready": "Ready",
       "inUse": "In use"
+    },
+    "techniqueSmart": {
+      "inUse": "In use",
+      "nothing": "Nothing selected yet.",
+      "plan": "From the preop plan",
+      "planned": "Planned",
+      "usePlan": "Use plan",
+      "find": "Find a technique",
+      "searchHint": "Search, for example femoral, TAP, spinal",
+      "noMatch": "No technique matches.",
+      "usual": "Your usual",
+      "all": "All techniques",
+      "selectedCount": "{count} selected",
+      "side": "Side",
+      "sideNeeded": "Side?",
+      "left": "Left",
+      "right": "Right",
+      "both": "Both"
     }
   },
   "postop": {
