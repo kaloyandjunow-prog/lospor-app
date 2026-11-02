@@ -137,7 +137,7 @@ describe("the card beside the chart", () => {
     const slot = screen.getByTestId("card-host-ephedrine")
     expect(screen.getByTestId("card-row-ephedrine").contains(slot)).toBe(true)
     fireEvent.click(screen.getByTestId("card-row-ephedrine").querySelector("button")!)
-    expect(sheet.calls.openDrug[0][0].host).toBe(slot)
+    expect((sheet.calls.openDrug[0][0] as { host?: unknown }).host).toBe(slot)
   }))
 
   it("a child gets the weight-based dose", () => withFakeNow(() => {
