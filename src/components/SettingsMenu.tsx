@@ -22,6 +22,7 @@ import {
 import { useAccountLocale } from "@/hooks/useAccountLocale"
 import { SettingRow, Toggle } from "@/components/settings/SettingControls"
 import { VitalEpisodeSetting } from "@/components/settings/VitalEpisodeSetting"
+import { AutomationGroupsSetting } from "@/components/settings/AutomationGroupsSetting"
 import { BulgarianNamesSettings } from "@/components/settings/BulgarianNamesSettings"
 import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
@@ -600,6 +601,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                 {category === "automation" && (
                   <>
                     <VitalEpisodeSetting />
+                    <AutomationGroupsSetting />
                     <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>
                       <Toggle value={autoFill} onChange={applyAutoFill} />
                     </SettingRow>

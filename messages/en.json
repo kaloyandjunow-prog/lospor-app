@@ -930,7 +930,38 @@
     "uiScaleDesc": "Text, buttons and spacing larger or smaller, on this device.",
     "uiScaleReset": "Reset",
     "vitalEpisodeAutoLog": "Keep logging while out of range",
-    "vitalEpisodeAutoLogDesc": "After you log a complication from a vitals question, it stays logged while the readings stay out of range. Off: you are asked at every out-of-range reading."
+    "vitalEpisodeAutoLogDesc": "After you log a complication from a vitals question, it stays logged while the readings stay out of range. Off: you are asked at every out-of-range reading.",
+    "automationGroups": {
+      "title": "Intraoperative suggestions",
+      "vitalQuestions": {
+        "label": "Questions from the vitals",
+        "desc": "Unusual heart rate and blood pressure readings ask whether to log the complication."
+      },
+      "treatmentSuggestions": {
+        "label": "Treatment suggestions",
+        "desc": "After a complication, a card or checklist with prefilled doses."
+      },
+      "reverseQuestions": {
+        "label": "Questions after a rescue drug",
+        "desc": "A rescue drug, fluid or shock asks whether to log its complication."
+      },
+      "readingQuestions": {
+        "label": "Questions from SpO₂, EtCO₂, temperature and TOF",
+        "desc": "Hypoxaemia, hypercapnia, a sudden EtCO₂ fall, hypothermia, the MH pattern and residual block."
+      },
+      "labQuestions": {
+        "label": "Questions from the labs",
+        "desc": "Intraoperative results outside their limits ask whether to log the complication."
+      },
+      "reminders": {
+        "label": "Reminders",
+        "desc": "MH history, latex, the local anaesthetic maximum, glucose in diabetes and ПОГП prophylaxis."
+      },
+      "timers": {
+        "label": "Follow-ups",
+        "desc": "Timed next steps after a treatment: arrest, lipid, anaphylaxis, dantrolene, tourniquet."
+      }
+    }
   },
   "admin": {
     "title": "Admin Panel",
