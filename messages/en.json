@@ -968,6 +968,14 @@
       "skinA": "Defibrillator knob",
       "skinB": "Metal knob, light ring",
       "skinC": "Selector with stops"
+    },
+    "airwayScreen": {
+      "title": "Airway tab",
+      "desc": "How the airway section of the intraoperative record looks. You can change it at any time.",
+      "smart": "Smart selection",
+      "smartHint": "Opens on what is in place and adds a device in one panel, from the tab or from the timeline.",
+      "legacy": "Legacy",
+      "legacyHint": "The tab as it was: pills for tools, devices and ventilation."
     }
   },
   "admin": {
@@ -1967,6 +1975,28 @@
       "nothing": "Nothing chosen yet",
       "save": "Save",
       "cancel": "Cancel"
+    },
+    "airwaySmart": {
+      "inPlace": "In place",
+      "none": "No airway device yet. Pick one below, or chart it on the timeline.",
+      "addDevice": "Add a device",
+      "moreDevices": "More devices ▾",
+      "via": "via {tools}",
+      "reintubate": "Reintubate",
+      "exchange": "Exchange",
+      "oldStays": "{device} stays on the list as {status}, so both are counted.",
+      "cuff": "Cuff",
+      "size": "Size",
+      "cuffed": "Cuffed",
+      "uncuffed": "Uncuffed",
+      "suggested": "suggested",
+      "how": "How, optional",
+      "time": "Time",
+      "fromTimeline": "From the timeline · {time}",
+      "startOfAnaesthesia": "Start of anaesthesia · {time}",
+      "now": "Now · {time}",
+      "pickTime": "Pick a time",
+      "add": "Add"
     }
   },
   "postop": {

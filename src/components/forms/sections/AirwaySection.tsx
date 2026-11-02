@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { airwayDeviceEntryLines, parseAirwayDeviceEntries } from "@lospor/core/airway-device-entries"
 import { localTimeOf } from "@lospor/core/intraop-time"
@@ -33,7 +33,7 @@ function asPath(name: string): Path<IntraopFormFields> { return name as Path<Int
 export function AirwaySection({
   control, watch, setValue, register, airwayToolOptions, airwayDeviceOptions,
   presentsIntubated, showAirway, techniquesLength, airwayOverride, setAirwayOverride,
-  airwayNA, setAirwayNA, airwayExpandedDevice, setAirwayExpandedDevice, expandAirwayDevice,
+  airwayNA, setAirwayNA, airwayExpandedDevice, setAirwayExpandedDevice, expandAirwayDevice, smart,
 }: {
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
@@ -51,6 +51,8 @@ export function AirwaySection({
   airwayExpandedDevice: string | null
   setAirwayExpandedDevice: (v: string | null) => void
   expandAirwayDevice: (v: string) => void
+  /** Smart selection (10.2.0): when given, it stands in for the tools and the device pills below; the legacy tab is untouched. */
+  smart?: ReactNode
 }) {
   const t = useTranslations()
   const locale = useLocale()
@@ -86,6 +88,8 @@ export function AirwaySection({
       </div>
 
       {!airwayNA && <>
+      {smart}
+      {!smart && <>
       {/* Airway management instruments — multi-select */}
       <div className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.instrumentsLabel")}</p>
@@ -109,6 +113,8 @@ export function AirwaySection({
         </div>
       </div>
 
+      </>}
+
       {/* Cormack-Lehane grade — shown when direct or video laryngoscopy performed */}
       {(watch("airwayTools") ?? []).some((t: string) => ["DIRECT_LARY","VIDEO_LARY"].includes(t)) && (
         <div className="space-y-2">
@@ -117,6 +123,7 @@ export function AirwaySection({
         </div>
       )}
 
+      {!smart && <>
       {/* Device — multi-select; devices with sub-options only confirm (and reach the DB) once complete */}
       {(() => {
         const devs: string[] = watch("airwayDevices") ?? []
@@ -354,6 +361,8 @@ export function AirwaySection({
         )
       })()}
 
+      </>}
+
       {/* Ventilation — hierarchical multi-select */}
       <div className="space-y-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("intraop.airway.ventilationMode")}</p>
@@ -466,7 +475,7 @@ export function AirwaySection({
       {(() => {
         // 10.2.0: once a device has failed or been replaced, the list of every device used.
         const entries = parseAirwayDeviceEntries(watch("airwayDeviceEntries"))
-        if (!entries.some(entry => entry.status !== "in_use")) return null
+        if (smart || !entries.some(entry => entry.status !== "in_use")) return null
         const zone = watch("timezone")
         const lines = airwayDeviceEntryLines(entries, {
           device: code => displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale),

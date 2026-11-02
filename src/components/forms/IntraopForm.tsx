@@ -45,7 +45,13 @@ import {
   syncAirwayDeviceSelection,
   type AirwayDeviceWithProfile,
   airwayAbsentReason,
+  airwayDeviceSummary,
 } from "@lospor/core/intraop"
+import { airwayRecordFields, type AirwayPatient } from "@lospor/core/airway-smart"
+import { localTimeOf } from "@lospor/core/intraop-time"
+import { AirwaySmart } from "@/components/intraop/AirwaySmart"
+import { AirwaySmartPanel, type AirwaySmartRequest } from "@/components/intraop/AirwaySmartPanel"
+import { useAirwayScreen } from "@/lib/use-airway-screen"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
@@ -530,6 +536,54 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     if (dialog.complication) void onEventOps?.(cardEventOps(dialog.complication, "Reintubation", "reintubate", dialog.at, serverNow()))
   }
 
+  // ── Smart selection (10.2.0) ────────────────────────────────────────────────
+  // The Airway tab that opens on what is in place. What it offers and how it saves
+  // is Core's (airway-smart); this only hands it the case and writes the result.
+  const airwayScreen = useAirwayScreen()
+  useWatch({ control, name: ["airwayDeviceEntries", "airwayDevices", "airwayTools"] })
+  const [smartRequest, setSmartRequest] = useState<AirwaySmartRequest | null>(null)
+  const smartPatient: AirwayPatient = {
+    clinicalMode: preop?.clinicalMode ?? "ADULT",
+    ageYears: preop?.ageYears ?? null,
+    age: preop?.ageValue != null && preop.ageUnit ? { value: preop.ageValue, unit: preop.ageUnit } : null,
+    weightKg: preop?.weightKg ?? null, heightCm: preop?.heightCm ?? null, sex: preop?.sex ?? null,
+  }
+  const airwayName = (code: string) => displayClinicalCode("option:AIRWAY_MANAGEMENT", code, locale)
+  const smartTimeOf = (iso: string) => (timelineZone ? localTimeOf(new Date(iso), timelineZone) : null) ?? iso.slice(11, 16)
+  function applyAirwayEntries(next: AirwayDeviceEntry[]) {
+    setValue("airwayDeviceEntries", next as unknown as IntraopFormFields["airwayDeviceEntries"], { shouldDirty: true })
+    for (const [field, value] of Object.entries(airwayRecordFields(next, (getValues("airwayTools") ?? []) as string[]))) {
+      if (field === "airwayDeviceEntries") continue
+      setValue(field as keyof IntraopFormFields, (value ?? undefined) as never, { shouldDirty: true })
+    }
+  }
+  const smartProps = {
+    patient: smartPatient, startedAt: chartStartedAt ?? null, now: () => serverNow().toISOString(), timeZone: timelineZone ?? null,
+    difficultAirway: preop?.mallampati === "III" || preop?.mallampati === "IV", deviceLabel: airwayName, toolLabel: airwayName,
+  }
+  // Intubated, LMA in and DLT placed charted on the timeline open the same panel, with that time already set.
+  const SMART_EVENT_DEVICE: Record<string, string> = { "Intubated": "ORAL_ETT", "LMA in": "LMA", "DLT placed": "DOUBLE_LUMEN_TUBE" }
+  const seenSmartEvents = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (readOnly || airwayScreen !== "smart") return
+    const events = timelineLog.filter(event => event.type === "clinical_event" && event.label != null && SMART_EVENT_DEVICE[event.label])
+    if (seenSmartEvents.current == null) { seenSmartEvents.current = new Set(events.map(event => event.id)); return }
+    const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
+    const seen = seenSmartEvents.current
+    const fresh = events.find(event => !seen.has(event.id)
+      && !entries.some(entry => entry.insertedAt === event.ts)
+      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
+    for (const event of events) seen.add(event.id)
+    if (fresh?.label) setSmartRequest({ device: SMART_EVENT_DEVICE[fresh.label]!, at: fresh.ts, source: "timeline" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timelineLog, readOnly, airwayScreen, getValues])
+  const smartNode = airwayScreen === "smart" ? (
+    <AirwaySmart {...smartProps} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)} onChange={applyAirwayEntries}
+      techniques={techniques}
+      describe={entry => airwayDeviceSummary(entry.device, entry.details, { device: airwayName, attribute: code => displayClinicalCode("clinicalAttribute", code, locale) }) ?? airwayName(entry.device)}
+      timeOf={smartTimeOf} />
+  ) : undefined
+
   return (
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
 
@@ -606,6 +660,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         airwayNA={airwayNA} setAirwayNA={setAirwayNA}
         airwayExpandedDevice={airwayExpandedDevice} setAirwayExpandedDevice={setAirwayExpandedDevice}
         expandAirwayDevice={expandAirwayDevice}
+        smart={smartNode}
       />
 
       {/* Volatile agent & gas settings are now a timetable lane (see IntraopTimetable's
@@ -638,6 +693,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
         {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
+        {smartRequest && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setSmartRequest(null)}>
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>
+              <AirwaySmartPanel {...smartProps} request={smartRequest} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)}
+                onSave={next => { setSmartRequest(null); applyAirwayEntries(next) }} onClose={() => setSmartRequest(null)} />
+            </div>
+          </div>
+        )}
         {airwayDialog && (
           <AirwayExchangeDialog
             entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)}
