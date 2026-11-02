@@ -35,6 +35,7 @@ import { broselowZone } from "@lospor/core/broselow"
 import { IntraopPreopSummary } from "@/components/intraop/IntraopPreopSummary"
 import { useEndCaseCheck } from "@/components/intraop/EndCaseReadiness"
 import { useAllergyGate } from "@/components/intraop/AllergyGate"
+import { useSuggestionGate } from "@/components/intraop/SuggestionGate"
 import { intraopFocusTab, scrollToReadiness, useScrollToReadiness } from "@/lib/readiness-focus"
 import {
   AIRWAY_DEVICE_REQUIRED_FIELDS,
@@ -387,6 +388,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
   // A dose that clashes with a recorded allergy is acknowledged before it is added (1.5.0).
   const allergyGate = useAllergyGate({ preop, locale: locale === "bg" ? "bg" : "en", ready: chartStartMs !== null })
+  // 10.2.0: the MH-history warning, the local anaesthetic maximum and the latex banner.
+  const suggestionGate = useSuggestionGate({ context: suggestionContext, log: timelineLog, locale, now: () => serverNow().toISOString(), ready: chartStartMs !== null })
   // The phone app's End case check, on web (1.5.0): blockers stop the end.
   const endCheck = useEndCaseCheck({
     record: () => ({ ...getValues(), timetableData: timetable, keyEvents: eventLog ?? [] }) as Record<string, unknown>,
@@ -620,7 +623,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabChart = (<>
 
       {/* Intraoperative timetable */}
-      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}{allergyGate.modal}
+      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}{suggestionGate.banner}{allergyGate.modal}{suggestionGate.modal}
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopLabsDialog
           open={labsDialog.open}
@@ -676,7 +679,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           ibw={calcIbw}
           tbw={preop?.weightKg ?? null}
           data={timetable}
-          onChange={allergyGate.guard(timetable, onTimetableChange)}
+          onChange={allergyGate.guard(timetable, suggestionGate.guard(timetable, onTimetableChange))}
           onEndCase={() => {
             const end = intraopEndCaseValuesNow(getValues("timezone"), getValues("startTime"))
             setValue("endTime", end.endTime)
