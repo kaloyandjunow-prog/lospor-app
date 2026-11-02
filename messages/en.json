@@ -961,6 +961,13 @@
         "label": "Follow-ups",
         "desc": "Timed next steps after a treatment: arrest, lipid, anaphylaxis, dantrolene, tourniquet."
       }
+    },
+    "energyKnob": {
+      "title": "Shock energy knob",
+      "desc": "How the energy knob looks in the shock dialog. Turn each to try it.",
+      "skinA": "Defibrillator knob",
+      "skinB": "Metal knob, light ring",
+      "skinC": "Selector with stops"
     }
   },
   "admin": {
