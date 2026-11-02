@@ -1937,6 +1937,18 @@
       "pressure": "Driving pressure",
       "rate": "Rate",
       "tapToStart": "Tap to start"
+    },
+    "tourniquet": {
+      "titleOn": "Tourniquet on: where?",
+      "titleOff": "Tourniquet off: which one?",
+      "hintOn": "Tap where the cuff went on: upper arm, forearm, thigh or calf.",
+      "hintOff": "Tap the cuff that was released.",
+      "right": "R",
+      "left": "L",
+      "since": "on {time} · {minutes} min",
+      "nothing": "Nothing chosen yet",
+      "save": "Save",
+      "cancel": "Cancel"
     }
   },
   "postop": {

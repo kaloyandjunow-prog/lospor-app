@@ -63,6 +63,9 @@ import { localTimeOf } from "@lospor/core/intraop-time"
 import { SuggestionHost, type SuggestionSheets } from "@/components/intraop/SuggestionHost"
 import { useDeathPrompt } from "@/lib/use-death-prompt"
 import { TimetableJetLane } from "@/components/intraop/TimetableJetLane"
+import { TourniquetPicker } from "@/components/intraop/TourniquetPicker"
+import { bodyBandFor } from "@lospor/core/tourniquet-body"
+import { tourniquetStatus, TOURNIQUET_MINUTES } from "@lospor/core/intraop-suggestions"
 import { JetPopover } from "@/components/intraop/JetPopover"
 import { changeJet, DEFAULT_JET_SETTINGS, jetSegmentAt, jetSettingsAtColumn, startJet, stopJet } from "@/components/intraop/jet-lane"
 import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
@@ -1687,6 +1690,7 @@ export function IntraopTimetable({
 
   // A death charted here (10.2.0) sets the postop destination to Deceased and
   // offers, as its own prompt, to end the case. One loaded with the case does not.
+  const [tourniquetPicker, setTourniquetPicker] = useState<{ col: number; label: string; color: string } | null>(null)
   const [jetPicker, setJetPicker] = useState<{ col: number; seg: import("@lospor/core/intraop-types").JetSegment | null; rect: DOMRect } | null>(null)
   const [deathPrompt, setDeathPrompt] = useDeathPrompt(attention?.log, !!attention?.canAnswer, onDeath)
 
@@ -1930,11 +1934,36 @@ export function IntraopTimetable({
           const ci = eventPicker.ci
           setEventPicker(null)
           if (recorded) removeClinicalEvent(ci, event.label)
+          // 10.2.0: a tourniquet asks where on the body first.
+          else if (event.label === "Tourniquet on" || event.label === "Tourniquet off") setTourniquetPicker({ col: ci, label: event.label, color: event.color })
           else addClinicalEvent(ci, event.label, event.color, category.isComplication)
         }}
         onDismiss={() => setEventPicker(null)}
       />
     )}
+    {tourniquetPicker && (() => {
+      const ageDays = isPediatric && pediatricAgeValue != null && pediatricAgeUnit
+        ? pediatricAgeUnit === "DAYS" ? pediatricAgeValue : pediatricAgeUnit === "MONTHS" ? pediatricAgeValue * 30.44 : pediatricAgeValue * 365.25
+        : null
+      const at = tsForCol(tourniquetPicker.col) ?? serverNow().toISOString()
+      const child = isPediatric
+      return (
+        <TourniquetPicker
+          band={isPediatric ? bodyBandFor({ ageDays: ageDays ?? 6 * 365 }) : bodyBandFor({ ageDays: null, sex: patientSex })}
+          mode={tourniquetPicker.label === "Tourniquet on" ? "on" : "off"}
+          statuses={tourniquetStatus(attention?.log ?? [], at)}
+          warnAtMinutes={(child ? TOURNIQUET_MINUTES.child : TOURNIQUET_MINUTES.adult).warning}
+          timeOf={suggestionSheets.timeOf}
+          locale={locale}
+          onSave={site => {
+            const d = data
+            onChange({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), { colIdx: tourniquetPicker.col, label: tourniquetPicker.label, color: tourniquetPicker.color, site }] })
+            setTourniquetPicker(null)
+          }}
+          onCancel={() => setTourniquetPicker(null)}
+        />
+      )
+    })()}
     {defibCol != null && (
       <DefibrillationDialog {...defibrillationDialogProps(data.clinicalEvents ?? [], defibCol, times[defibCol] ?? "", { ageValue: pediatricAgeValue, ageUnit: pediatricAgeUnit, weightKg: tbw })}
         onCancel={() => setDefibCol(null)} onSave={(energyJ, synchronized) => { addDefibrillation(defibCol, energyJ, synchronized); setDefibCol(null) }} />
