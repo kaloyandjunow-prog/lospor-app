@@ -75,3 +75,10 @@ describe("the MH card", () => {
     }
   })
 })
+
+describe("the vials already opened", () => {
+  it("says so when none have been", () => {
+    render(<DantroleneVials viewFor={viewFor([20])} initialPerKg={2} onGive={vi.fn()} />)
+    expect(screen.getByTestId("vials-so-far").textContent).toBe("vialsSoFarNone")
+  })
+})

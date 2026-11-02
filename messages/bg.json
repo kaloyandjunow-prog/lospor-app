@@ -1925,10 +1925,11 @@
       "vialsOpened": "{mg} mg отворени",
       "vialsLeft": "{mg} mg остават",
       "vialsNoneLeft": "нищо не остава",
-      "vialsSoFar": "Отворени досега: {count, plural, =0 {няма флакони} one {# флакон} other {# флакона}} за {mg} mg приложени",
+      "vialsSoFar": "Отворени досега: {count, plural, one {# флакон} other {# флакона}} за {mg} mg приложени",
       "vialsNote": "EMHG не определя горна граница; преоценка на диагнозата",
       "vialsTotal": "Общо с тази доза: {value} mg/kg",
-      "vialsGive": "Прилагане на {mg} mg…"
+      "vialsGive": "Прилагане на {mg} mg…",
+      "vialsSoFarNone": "Досега не са отваряни флакони"
     },
     "airwayExchange": {
       "title": "Нов дихателен път",

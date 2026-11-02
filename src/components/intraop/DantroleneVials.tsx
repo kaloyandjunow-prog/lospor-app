@@ -51,7 +51,7 @@ export function DantroleneVials({ viewFor, initialPerKg, onGive, readOnly = fals
       <p className="text-xs text-slate-500" data-testid="vials-detail">
         {t("vialsCount", { count: view.plan.count })} · {t("vialsOpened", { mg: view.plan.totalMg })} · {wasteMg > 0 ? t("vialsLeft", { mg: wasteMg }) : t("vialsNoneLeft")}
       </p>
-      <p className="text-xs text-slate-500" data-testid="vials-so-far">{t("vialsSoFar", { count: view.openedVials, mg: view.givenMg })}</p>
+      <p className="text-xs text-slate-500" data-testid="vials-so-far">{view.openedVials > 0 ? t("vialsSoFar", { count: view.openedVials, mg: view.givenMg }) : t("vialsSoFarNone")}</p>
       <p className={`text-xs ${view.reachesNoteAt10 ? "font-bold text-amber-600 dark:text-amber-400" : "text-slate-500"}`} data-testid="vials-total">
         {view.reachesNoteAt10 ? t("vialsNote") : t("vialsTotal", { value: view.afterMgPerKg })}
       </p>
