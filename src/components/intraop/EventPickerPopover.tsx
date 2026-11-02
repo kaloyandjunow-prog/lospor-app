@@ -89,6 +89,8 @@ export function EventPickerPopover({
   const showAbove = window.innerHeight - anchor.bottom < 340
   const left = Math.max(8, Math.min(anchor.left, window.innerWidth - POPOVER_WIDTH - 8))
   const top = showAbove ? anchor.top - 4 : anchor.bottom + 4
+  // The list scrolls inside the room the page has; the defibrillation button below it stays on screen.
+  const room = Math.max(180, (showAbove ? anchor.top : window.innerHeight - anchor.bottom) - 120)
 
   const query = search.trim()
   const scoreOf = (event: EventOption) => eventSearchScore(query, event.label, [event.displayLabel])
@@ -156,7 +158,7 @@ export function EventPickerPopover({
         </div>
 
         {screen === "smart" ? (
-          <div className="max-h-96 overflow-y-auto p-2" data-testid="event-list">
+          <div className="overflow-y-auto p-2 pb-0" data-testid="event-list" style={{ maxHeight: Math.min(384, room) }}>
             {query ? (
               <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
                 {found.length === 0 ? <p data-testid="event-none" className="p-3 text-sm text-slate-500">{t("none")}</p> : found.map(({ event, category }) => eventRow(event, category, "", category.displayCat))}
@@ -216,12 +218,7 @@ export function EventPickerPopover({
                 </div>
               </>
             )}
-            {defibrillation && (
-              <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
-                className="mt-3 w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                {defibrillation.label}
-              </button>
-            )}
+            <div className="h-2" />
           </div>
         ) : (
         <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
@@ -265,6 +262,14 @@ export function EventPickerPopover({
             <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">{copy.eventPicker.none}</p>
           )}
         </div>
+        )}
+        {screen === "smart" && defibrillation && (
+          <div className="border-t border-slate-100 p-2 dark:border-[#2a2a2a]">
+            <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
+              className="w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {defibrillation.label}
+            </button>
+          </div>
         )}
       </div>
     </>,

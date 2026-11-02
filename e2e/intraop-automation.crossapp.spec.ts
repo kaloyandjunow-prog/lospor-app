@@ -101,6 +101,8 @@ for (const locale of LOCALES) {
       // A timed complication from the slot sheet.
       await timetable(phone.page, locale)
       await nowSlot(phone.page)
+      // The selector is one quiet list (10.2.0): open Complications, then the event.
+      await phone.page.getByTestId("event-category-Complications").click()
       await phone.page.getByText(locale === "bg" ? "Ларингоспазъм" : "Laryngospasm", { exact: true }).click()
       await expect.poll(async () => (await events(web.request, caseA)).filter(event => event.type === "complication").length, { timeout: 20_000 }).toBe(2)
 

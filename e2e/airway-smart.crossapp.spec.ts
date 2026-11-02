@@ -121,7 +121,9 @@ test("charting Intubated on the timeline opens the same panel with that time alr
     await page.getByRole("tab", { name: "Chart" }).or(page.getByRole("button", { name: "Chart", exact: true })).first().click({ timeout: 30_000 })
     // As a clinician would: a cell of the events row, then the event.
     await page.locator("[data-testid^='events-lane-col-']").nth(3).click({ timeout: 30_000 })
-    await page.getByRole("button", { name: "Intubated", exact: true }).click()
+    // The selector is one quiet list (10.2.0): open the category, then the event.
+    await page.getByTestId("event-category-Airway").click()
+    await page.getByTestId("event-Intubated").click()
     await expect(page.getByTestId("airway-smart-panel")).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId("airway-smart-time-timeline")).toBeVisible()
     // Added at once: the tube's save is queued behind the event's own, and must not clash with it.
