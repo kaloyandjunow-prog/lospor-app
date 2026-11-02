@@ -62,6 +62,9 @@ import { gridOriginMs, serverNow } from "@/lib/intraop-clock"
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { SuggestionHost, type SuggestionSheets } from "@/components/intraop/SuggestionHost"
 import { useDeathPrompt } from "@/lib/use-death-prompt"
+import { TimetableJetLane } from "@/components/intraop/TimetableJetLane"
+import { JetPopover } from "@/components/intraop/JetPopover"
+import { changeJet, DEFAULT_JET_SETTINGS, jetSegmentAt, jetSettingsAtColumn, startJet, stopJet } from "@/components/intraop/jet-lane"
 import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type {
@@ -152,6 +155,8 @@ interface Props {
   ibw?: number | null
   tbw?: number | null
   showAgentRow?: boolean
+  /** Jet among the ventilation modes (10.2.0): the jet lane shows. */
+  showJetRow?: boolean
   data: TimetableData
   onChange: (d: TimetableData) => void
   onEndCase?: () => void
@@ -233,7 +238,7 @@ export function IntraopTimetable({
   onChange,
   onEndCase, beforeEndCase, onDeath,
   onResumeCase,
-  endedAt, attention, suggestionForm,
+  endedAt, attention, suggestionForm, showJetRow = false,
   autoEnded = false,
   onPostopContinued,
   onInfusionTotals,
@@ -1503,6 +1508,18 @@ export function IntraopTimetable({
               stopGas={stopGas}
             />
           )}
+          {(showJetRow || (data.jetSettings?.length ?? 0) > 0) && (
+            <TimetableJetLane
+              labelWidth={LABEL_W}
+              rowLabelClass={rowLabelCls}
+              rowCols={rowCols}
+              colStart={colStart}
+              colEnd={colEnd}
+              colW={colW}
+              segmentAt={col => jetSegmentAt(data, col)}
+              onOpen={(col, seg, rect) => setJetPicker({ col, seg, rect })}
+            />
+          )}
 
           {/* Under Events, because a draw is a thing that happened at a time
               like an event is -- and above Drugs, so the abnormal summary sits
@@ -1670,6 +1687,7 @@ export function IntraopTimetable({
 
   // A death charted here (10.2.0) sets the postop destination to Deceased and
   // offers, as its own prompt, to end the case. One loaded with the case does not.
+  const [jetPicker, setJetPicker] = useState<{ col: number; seg: import("@lospor/core/intraop-types").JetSegment | null; rect: DOMRect } | null>(null)
   const [deathPrompt, setDeathPrompt] = useDeathPrompt(attention?.log, !!attention?.canAnswer, onDeath)
 
   // ── Suggestions (10.2.0) ────────────────────────────────────────────────────
@@ -2018,6 +2036,25 @@ export function IntraopTimetable({
       )
     })()}
     {attention?.opened && <SuggestionHost attention={attention} sheets={suggestionSheets} />}
+    {jetPicker && (() => {
+      const running = jetPicker.seg && !jetPicker.seg.stopped ? jetPicker.seg : null
+      const last = (data.jetSettings ?? []).at(-1)
+      const initial = jetPicker.seg ? jetSettingsAtColumn(jetPicker.seg, jetPicker.col)
+        : last ? jetSettingsAtColumn(last, last.endCol) : DEFAULT_JET_SETTINGS
+      return (
+        <JetPopover
+          anchor={{ top: jetPicker.rect.top, bottom: jetPicker.rect.bottom, left: jetPicker.rect.left, right: jetPicker.rect.right, width: jetPicker.rect.width }}
+          initial={{ pressureBar: initial.pressureBar, rate: initial.rate, fio2: initial.fio2 }}
+          editing={!!running}
+          onApply={settings => {
+            onChange(running ? changeJet(data, running.id, jetPicker.col, settings) : startJet(data, jetPicker.col, settings, `jet-${jetPicker.col}-${uid()}`))
+            setJetPicker(null)
+          }}
+          onStop={running ? () => { onChange(stopJet(data, running.id, jetPicker.col)); setJetPicker(null) } : undefined}
+          onDismiss={() => setJetPicker(null)}
+        />
+      )
+    })()}
     {deathPrompt && !endedAt && (
       <div role="alertdialog" data-testid="death-end-case" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
         <div className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-2xl dark:bg-[#1e1e1e]">

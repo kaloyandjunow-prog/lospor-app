@@ -678,6 +678,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           caseStarted={caseStartedProp || !!watchedStartTime}
           monitoring={monitoring}
           showAgentRow={showGases}
+          showJetRow={(_wVM ?? []).includes("Jet")}
           ibw={calcIbw}
           tbw={preop?.weightKg ?? null}
           data={timetable}

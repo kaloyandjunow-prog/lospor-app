@@ -1928,6 +1928,15 @@
         "unplanned_extubation": "Unplanned extubation"
       },
       "history": "Devices used"
+    },
+    "jet": {
+      "row": "Jet",
+      "start": "Start jet",
+      "apply": "Apply",
+      "stop": "Stop jet",
+      "pressure": "Driving pressure",
+      "rate": "Rate",
+      "tapToStart": "Tap to start"
     }
   },
   "postop": {
