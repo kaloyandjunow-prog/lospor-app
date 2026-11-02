@@ -17,6 +17,8 @@ import {
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import { clinicalDisplayLabel } from "@lospor/core/display"
+import type { DantroleneVialsView } from "@lospor/core/intraop-suggestions"
+import { DantroleneVials } from "./DantroleneVials"
 
 /**
  * The follow-up card or next-steps checklist after a complication (10.2.0),
@@ -42,6 +44,7 @@ export function SuggestionCardPanel({
   onStop,
   onOps,
   onMinimise,
+  dantrolene,
   readOnly = false,
 }: {
   card: ResolvedCard
@@ -57,6 +60,8 @@ export function SuggestionCardPanel({
   onStop: (target: LogEvent, row: ResolvedRow) => void
   onOps: (ops: IntraopEventOps) => void
   onMinimise: () => void
+  /** The MH card's vials (10.2.0): the plan for a dose in mg/kg, and Give. */
+  dantrolene?: { viewFor: (perKg: number) => DantroleneVialsView | null; initialPerKg: number; give: (doseMg: number, rect: DOMRect, row: ResolvedRow) => void }
   readOnly?: boolean
 }) {
   const t = useTranslations("intraop.suggestions")
@@ -289,6 +294,10 @@ export function SuggestionCardPanel({
                 </button>
               ) : head}
               {rowBody(row)}
+              {dantrolene && row.def.kind === "drug" && row.def.drug === "Dantrolene" && (
+                <DantroleneVials viewFor={dantrolene.viewFor} initialPerKg={dantrolene.initialPerKg} readOnly={readOnly}
+                  onGive={(doseMg, rect) => dantrolene.give(doseMg, rect, row)} />
+              )}
             </li>
           )
         })}

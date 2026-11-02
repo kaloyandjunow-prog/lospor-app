@@ -1918,7 +1918,17 @@
       "laMaxTitle": "Local anaesthetic maximum",
       "laMaxExceeds": "This dose goes over the maximum. Give anyway?",
       "deathEndCase": "Death charted. The postop destination is set to Deceased. End the case now?",
-      "endCase": "End case"
+      "endCase": "End case",
+      "vialsLess": "Less",
+      "vialsMore": "More",
+      "vialsCount": "{count, plural, one {# vial} other {# vials}}",
+      "vialsOpened": "{mg} mg opened",
+      "vialsLeft": "{mg} mg left over",
+      "vialsNoneLeft": "nothing left over",
+      "vialsSoFar": "Opened so far: {count, plural, =0 {no vials} one {# vial} other {# vials}} for {mg} mg given",
+      "vialsNote": "EMHG sets no hard maximum; reconsider the diagnosis",
+      "vialsTotal": "Total with this dose: {value} mg/kg",
+      "vialsGive": "Give {mg} mg…"
     },
     "airwayExchange": {
       "title": "New airway",

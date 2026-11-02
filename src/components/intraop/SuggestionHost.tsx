@@ -7,6 +7,8 @@ import {
   accessEventLabels,
   cardEventOps,
   cardSuggestionTag,
+  dantroleneCardVials,
+  dantroleneDosesMg,
   resolveCard,
   stopRowTargets,
   suggestionCardFor,
@@ -151,6 +153,11 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
           onStop={(event, row) => sheets.stop(event, cardSuggestionTag(card.complication.label ?? "", row.id))}
           onOps={attention.applyOps}
           onMinimise={close}
+          dantrolene={card.complication.label === "Malignant hyperthermia" ? {
+            viewFor: perKg => dantroleneCardVials(log, card.complication, { patient: suggestions.patient, now: suggestions.now, dantroleneVialsMg: suggestions.settings.dantroleneVialsMg }, perKg),
+            initialPerKg: dantroleneDosesMg(log, card.complication, suggestions.now).length > 0 ? 1 : 2.5,
+            give: (doseMg, rect, row) => sheets.openDrug({ name: "Dantrolene", mode: "bolus", rect, amount: doseMg, unit: "mg", suggestion: cardSuggestionTag(card.complication.label ?? "", row.id) }),
+          } : undefined}
           readOnly={!attention.canAnswer}
         />
         {miniPanel}
