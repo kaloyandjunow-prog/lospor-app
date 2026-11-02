@@ -1,3 +1,4 @@
+import { convertDoseAmount } from "@lospor/core/intraop-suggestions"
 import type { TtFP } from "./timetable-types"
 
 /**
@@ -11,16 +12,7 @@ import type { TtFP } from "./timetable-types"
  * putting "50" beside the wrong unit.
  */
 
-const MASS_IN_MG: Record<string, number> = { g: 1000, mg: 1, mcg: 0.001, "µg": 0.001, ng: 0.000001 }
-
-/** The amount in another mass unit, or null when the two are not both masses (IU, mL). */
-export function convertDoseAmount(amount: number, from: string, to: string): number | null {
-  if (from === to) return amount
-  const a = MASS_IN_MG[from.toLowerCase()]
-  const b = MASS_IN_MG[to.toLowerCase()]
-  if (a == null || b == null) return null
-  return Math.round((amount * a / b) * 1e6) / 1e6
-}
+export { convertDoseAmount }
 
 /** The infusions a "Deepen anaesthesia" row offers to turn up, besides a running volatile. */
 export const DEEPEN_INFUSIONS: ReadonlySet<string> = new Set(["Propofol", "Remifentanil", "Sufentanil", "Dexmedetomidine"])
