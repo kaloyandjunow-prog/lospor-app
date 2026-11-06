@@ -1,5 +1,65 @@
 # Changelog - LOSPOR Web App
 
+## [10.2.0] - 2026-11-02
+
+### Added
+
+- **Smart intraoperative screens:** Smart and Legacy selection for airway,
+  vascular access, monitoring, equipment, technique, and events, including
+  block sides and the unilateral spinal.
+- **Fluid status summary:** added the Hybrid summary for web, keeping timetable
+  aggregates read-only and limiting editing to urine output and blood loss;
+  Legacy remains selectable in Settings.
+- **Event log timeline:** added the filterable Smart Timeline stream for web;
+  today’s chronological event list remains available as Legacy in Settings.
+- **Intraoperative suggestions:** Likely now, reminders, event search, and
+  suggestion cards are available in the web chart and settings.
+- **Context links:** reminder-scoped suggestions now connect local anaesthetic,
+  induction, TCI, volatile, airway, technique-side, and placement records to
+  exact techniques and clinical times. Induction flows ask Sedation or General
+  anaesthesia, then the exact technique and airway-device choice where needed.
+- **Per-suggestion settings:** every Status-enabled automation has its own
+  account-wide switch; new context links are opt-in for the clinician, while
+  prebundled lines keep their enabled default.
+- **Vital-question settings:** the Vital Questions group now exposes separate
+  account-wide switches for hypotension, hypertension, bradycardia and
+  tachycardia, without removing the group switch.
+- **Clinical display:** invasive-pressure lanes, BIS/TOF scan values, urinary
+  catheter and equipment actions, failed devices and lines, and the updated
+  event record are shown in the chart and summaries.
+
+### Fixed
+
+- **Airway selection consistency:** selecting «Без намеса в дихателния път»
+  clears selected airway devices and instruments, while recording a device
+  clears that state; Smart airway uses the same configured option list as
+  Legacy.
+- **Equipment reset and ambiguity:** Smart Equipment no longer uses a
+  misleading transient checklist; recorded devices/flags are compared with
+  suggestions, and preparation markers persist through the API.
+- **Airway autosave:** an explicit empty Smart airway list clears the legacy
+  compatibility fields as well, preventing removed devices from reappearing
+  after reload.
+- **Airway events:** the device details panel now opens inline beneath the
+  selected card row, and airway additions from both Smart and Legacy record
+  the corresponding intubation, reintubation, LMA, or DLT event.
+- **Vascular access events:** confirming a line placed by the anaesthesia team
+  now records IV line, arterial line, CVC, or PICC events; clicking the selected
+  access type again collapses its panel.
+- **Suggestion dismissal:** succession and context-link prompts use a
+  definitive, persisted case-scoped **Dismiss** action; ordinary clinical
+  questions retain **Not now**.
+
+### Changed
+
+- **Bulgarian UI copy:** the interactive chart is labelled «Времева линия»,
+  vital signs use «жизнени показатели», and Smart/Legacy labels and clinical
+  suggestions use the reviewed Bulgarian wording.
+- **Neutral clinical statuses:** airway and vascular summaries use
+  «неуспешен опит» and «подмяна» consistently.
+- **Cross-app contract:** web edits use the shared Core event projection and
+  remain compatible with the mobile app and canonical API field names.
+
 ## [10.0.2] - 2026-10-29
 
 ### Fixed

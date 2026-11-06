@@ -28,6 +28,7 @@ const ANSWERS: Record<IntraopAttentionKind, { action: IntraopAttentionAction; la
   // 10.2.0: a suggestion -- a card, follow-up or reminder opens; a question logs.
   suggestion: [
     { action: "not_now", label: "vitalNotNow", yes: false },
+    { action: "dismiss", label: "suggestionDismiss", yes: false },
     { action: "open", label: "suggestionOpen", yes: true },
     { action: "log_complication", label: "vitalLogIt", yes: true },
   ],

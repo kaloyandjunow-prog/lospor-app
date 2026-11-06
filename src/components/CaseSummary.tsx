@@ -55,7 +55,7 @@ import { MON, SummaryChip as Chip, SummaryField as F } from "@/components/case-s
 /** A failed or replaced device or line, in the sheet's language (10.2.0). */
 const STATE_WORDS = {
   en: { failed: "failed", replaced: "replaced" },
-  bg: { failed: "неуспешен", replaced: "сменен" },
+  bg: { failed: "неуспешен опит", replaced: "подмяна" },
 } as const
 
 function caseTime(i: CaseDetailIntraop | null | undefined) {

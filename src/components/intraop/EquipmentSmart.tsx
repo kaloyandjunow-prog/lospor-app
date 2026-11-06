@@ -3,113 +3,100 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import type { EquipmentCategory } from "@lospor/core/equipment"
+import type { AirwayDeviceEntry } from "@lospor/core/airway-device-entries"
 import {
-  EQUIPMENT_GLANCE, equipmentGroups, equipmentItemKey, equipmentNeedsChoice, equipmentRecordState, equipmentTapAction, equipmentTarget,
+  EQUIPMENT_TRACKED_LABELS,
+  equipmentItemKey,
+  equipmentPreparationGroups,
+  equipmentPreparationStatus,
+  equipmentRecordedValue,
+  equipmentReferenceGroups,
+  equipmentSuggestionStatus,
   type EquipmentFlagState,
+  type EquipmentSuggestionStatus,
 } from "@lospor/core/equipment-smart"
 
 /**
- * The Equipment card, Smart selection (10.2.0): the six airway numbers as a glance grid and every other
- * item as a checklist by group. A tap marks an item ready (kept in this browser tab). On the tube and
- * the LMA a second tap marks it in use, which writes the device to the Airway record. The urinary
- * catheter and the NGT set their case flag at once, and the flag is the tick. What each item does is
- * Core's (equipment-smart); the text is localised by the caller.
+ * Smart Equipment is intentionally not a second clinical record. The top
+ * cards compare calculated suggestions with the canonical Airway/monitoring
+ * state; the lower section is only a persisted preparation reference.
  */
-export function EquipmentSmart({ categories, flags, airwayInUse, onFlag, onUseAirway, categoryName, labelOf, textOf }: {
+export function EquipmentSmart({ categories, flags, airwayEntries, prepared, onFlag, onPreparedChange, onUseAirway, categoryName, labelOf, textOf }: {
   categories: readonly EquipmentCategory[]
   flags: EquipmentFlagState
-  airwayInUse: readonly string[]
+  airwayEntries: readonly AirwayDeviceEntry[]
+  prepared: Readonly<Record<string, boolean>>
   onFlag: (field: "urinaryCatheter" | "stomachTube") => void
+  onPreparedChange: (key: string, value: boolean) => void
   onUseAirway: (device: "ORAL_ETT" | "LMA") => void
   categoryName: (category: string) => string
   labelOf: (label: string) => string
   textOf: (value: string) => string
 }) {
   const t = useTranslations("intraop.equipmentSmart")
-  const [ready, setReady] = useState<Record<string, boolean>>({})
-  const [closed, setClosed] = useState<Record<string, boolean>>({})
-  const record = { flags, airwayInUse }
-  const items = categories.flatMap(category => category.items.map(item => ({ category: category.cat, item })))
-  const isInUse = (label: string) => equipmentRecordState(label, record) === "in_use"
-  const isDone = (category: string, label: string) => isInUse(label) || !!ready[equipmentItemKey(category, label)]
-  const done = items.filter(entry => isDone(entry.category, entry.item.label)).length
+  const [preparationOpen, setPreparationOpen] = useState(false)
+  const [referenceOpen, setReferenceOpen] = useState(false)
+  const record = { flags, airwayEntries }
+  const allItems = categories.flatMap(category => category.items.map(item => ({ category: category.cat, item })))
+  const tracked = EQUIPMENT_TRACKED_LABELS.flatMap(label => {
+    const found = allItems.find(entry => entry.item.label === label)
+    return found ? [found] : []
+  })
+  const preparationGroups = equipmentPreparationGroups(categories)
+  const referenceGroups = equipmentReferenceGroups(categories)
+  const matchedCount = tracked.filter(({ item }) => equipmentSuggestionStatus(item.label, item.value, record) === "matched").length
 
-  function tap(category: string, label: string, value: string) {
-    // A tube or LMA size left to the clinician cannot be written for them, so that item is only ticked ready.
-    // A catheter or NGT writes no size, so it still sets its flag.
-    const found = equipmentTarget(label)
-    const target = found?.kind === "airway" && equipmentNeedsChoice(value) ? null : found
-    const key = equipmentItemKey(category, label)
-    const action = target ? equipmentTapAction(label, { ready: !!ready[key], inUse: isInUse(label) }) : (ready[key] ? "unready" : "ready")
-    if (action === "ready") setReady(current => ({ ...current, [key]: true }))
-    else if (action === "unready") setReady(current => ({ ...current, [key]: false }))
-    else if (action === "use" && target?.kind === "airway") onUseAirway(target.device)
-    else if ((action === "flag" || action === "unflag") && target?.kind === "flag") onFlag(target.field)
+  const statusText = (status: EquipmentSuggestionStatus) => ({
+    matched: t("matched"),
+    recorded_incomplete: t("recordedIncomplete"),
+    different: t("different"),
+    not_recorded: t("notRecorded"),
+    prepared: t("prepared"),
+    reference: t("referenceOnly"),
+  })[status]
+
+  const statusClass = (status: EquipmentSuggestionStatus) => ({
+    matched: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300",
+    recorded_incomplete: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300",
+    different: "border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300",
+    not_recorded: "border-slate-200 bg-slate-50 text-slate-600 dark:border-[#333] dark:bg-[#191d25] dark:text-slate-400",
+    prepared: "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300",
+    reference: "border-slate-200 bg-slate-50 text-slate-600 dark:border-[#333] dark:bg-[#191d25] dark:text-slate-400",
+  })[status]
+  const actualText = (value: string | null) => value == null ? null : value === "Documented" ? t("documented") : value.replace(" cuffed", ` ${t("cuffedValue")}`).replace(" uncuffed", ` ${t("uncuffedValue")}`)
+
+  function trackedAction(label: string, status: EquipmentSuggestionStatus) {
+    if (label === "ETT size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-ETT-size" onClick={() => onUseAirway("ORAL_ETT")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
+    if (label === "LMA size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-LMA-size" onClick={() => onUseAirway("LMA")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
+    if ((label === "Urinary catheter" || label === "NGT") && status === "not_recorded") return <button type="button" data-testid={`equipment-record-${label}`} onClick={() => onFlag(label === "NGT" ? "stomachTube" : "urinaryCatheter")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("markInPlace")}</button>
+    if ((label === "Urinary catheter" || label === "NGT") && status === "recorded_incomplete") return <button type="button" data-testid={`equipment-remove-${label}`} onClick={() => onFlag(label === "NGT" ? "stomachTube" : "urinaryCatheter")} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-[#444] dark:text-slate-400 dark:hover:bg-[#222]">{t("removeFromRecord")}</button>
+    return null
   }
 
-  const airway = categories.find(category => category.cat === "Airway")
-  const groups = equipmentGroups(categories)
-
   return (
-    <div className="p-3" data-testid="equipment-smart">
-      <div className="flex justify-between text-xs text-slate-500">
-        <span>{t("setUp")}</span>
-        <span data-testid="equipment-progress">{done} / {items.length}</span>
-      </div>
-      <div className="mt-1 mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-[#2e2e2e]">
-        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${items.length ? (100 * done) / items.length : 0}%` }} />
-      </div>
-
-      {airway ? (
-        <>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("glance")}</p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {EQUIPMENT_GLANCE.map(label => {
-              const item = airway.items.find(entry => entry.label === label)
-              if (!item) return null
-              const choose = equipmentNeedsChoice(item.value)
-              const on = isDone("Airway", label)
-              return (
-                <button key={label} type="button" aria-pressed={on} data-testid={`equipment-cell-${label}`} onClick={() => tap("Airway", label, item.value)}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-xl border-2 p-2 text-center ${on ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-slate-200 dark:border-[#333]"}`}>
-                  <span className="text-[10.5px] text-slate-500">{labelOf(label)}</span>
-                  <span className={choose ? "text-xs font-bold text-amber-600 dark:text-amber-400" : "text-lg font-extrabold tabular-nums"}>{choose ? t("choose") : textOf(item.value)}</span>
-                  {isInUse(label) ? <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{t("inUse")}</span> : on ? <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{t("ready")}</span> : null}
-                </button>
-              )
-            })}
+    <div className="space-y-4 p-3" data-testid="equipment-smart">
+      <section data-testid="equipment-recorded">
+        <div className="mb-2 flex items-end justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{t("suggestedRecorded")}</h3><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t("suggestedRecordedHint")}</p></div><span data-testid="equipment-summary" className="shrink-0 text-xs font-bold text-slate-500 dark:text-slate-400">{matchedCount}/{tracked.length} {t("matchedShort")}</span></div>
+        <div className="space-y-2">{tracked.map(({ item }) => {
+          const status = equipmentSuggestionStatus(item.label, item.value, record)
+          const actual = equipmentRecordedValue(item.label, record)
+          return <div key={item.label} data-testid={`equipment-tracked-${item.label}`} className={`rounded-xl border p-3 ${statusClass(status)}`}>
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-bold">{labelOf(item.label)}</p><span className="mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">{statusText(status)}</span></div>{trackedAction(item.label, status)}</div>
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-current/10 pt-2"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide opacity-60">{t("suggested")}</p><p className="mt-0.5 break-words text-sm font-semibold">{textOf(item.value)}</p></div><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide opacity-60">{t("actual")}</p><p className="mt-0.5 break-words text-sm font-semibold">{actualText(actual) ?? t("notRecorded")}</p></div></div>
+            {status === "recorded_incomplete" ? <p className="mt-2 text-xs opacity-75">{t("detailsMissing")}</p> : null}{status === "different" ? <p className="mt-2 text-xs opacity-75">{t("differentHint")}</p> : null}
           </div>
-        </>
-      ) : null}
+        })}</div>
+      </section>
 
-      {groups.map(group => {
-        const count = group.items.filter(item => isDone(group.cat, item.label)).length
-        const open = !closed[group.cat]
-        return (
-          <div key={group.cat} className="mt-3" data-testid={`equipment-group-${group.cat}`}>
-            <button type="button" onClick={() => setClosed(current => ({ ...current, [group.cat]: open }))} className="flex min-h-11 w-full items-center gap-2 text-left text-sm font-bold">
-              <span className="h-3.5 w-0.5 rounded" style={{ background: group.color ?? "#64748b" }} />
-              <span className="flex-1">{categoryName(group.cat)}</span>
-              <span className={`text-xs ${count === group.items.length ? "text-emerald-600" : "text-slate-500"}`}>{count}/{group.items.length} {open ? "▾" : "▸"}</span>
-            </button>
-            {open ? group.items.map(item => {
-              const on = isDone(group.cat, item.label)
-              const choose = equipmentNeedsChoice(item.value)
-              return (
-                <button key={item.label} type="button" aria-pressed={on} data-testid={`equipment-row-${group.cat}-${item.label}`} onClick={() => tap(group.cat, item.label, item.value)}
-                  className={`mb-1.5 flex w-full items-start gap-3 rounded-xl border p-2.5 text-left ${on ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-slate-200 dark:border-[#333]"}`}>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block text-sm font-semibold ${on ? "line-through opacity-70" : ""}`}>{labelOf(item.label)}</span>
-                    <span className={`block text-sm ${choose ? "text-amber-600 dark:text-amber-400" : ""}`}>{textOf(item.value)}</span>
-                    {item.note ? <span className="mt-0.5 block text-[11.5px] leading-snug text-slate-500">{textOf(item.note)}</span> : null}
-                  </span>
-                  <span className={`grid h-7 w-7 flex-none place-items-center rounded-full border-2 text-sm font-bold ${on ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300"}`}>{on ? "✓" : ""}</span>
-                </button>
-              )
-            }) : null}
-          </div>
-        )
-      })}
+      <section className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]" data-testid="equipment-preparation">
+        <button type="button" data-testid="equipment-preparation-toggle" onClick={() => setPreparationOpen(open => !open)} aria-expanded={preparationOpen} className="flex min-h-14 w-full items-center gap-3 px-3 text-left hover:bg-slate-50 dark:hover:bg-[#1b1f28]"><span className="flex-1"><span className="block text-sm font-extrabold text-slate-800 dark:text-slate-100">{t("preparation")}</span><span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{t("preparationHint")}</span></span><span className="text-slate-400">{preparationOpen ? "▾" : "▸"}</span></button>
+        {preparationOpen ? <div className="border-t border-slate-200 p-3 dark:border-[#333]">{preparationGroups.map(group => <div key={group.cat} className="mb-4 last:mb-0" data-testid={`equipment-preparation-group-${group.cat}`}><p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{categoryName(group.cat)}</p><div className="space-y-1.5">{group.items.map(item => { const key = equipmentItemKey(group.cat, item.label); const on = equipmentPreparationStatus(group.cat, item.label, prepared) === "prepared"; return <button key={item.label} type="button" aria-pressed={on} data-testid={`equipment-preparation-${item.label}`} onClick={() => onPreparedChange(key, !on)} className={`flex w-full items-start gap-3 rounded-lg border p-2.5 text-left ${on ? "border-blue-400 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30" : "border-slate-200 dark:border-[#333]"}`}><span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border text-xs font-bold ${on ? "border-blue-500 bg-blue-500 text-white" : "border-slate-300 dark:border-[#555]"}`}>{on ? "✓" : ""}</span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">{labelOf(item.label)}</span><span className="block text-xs text-slate-500 dark:text-slate-400">{textOf(item.value)}</span></span></button> })}</div></div>)}</div> : null}
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]" data-testid="equipment-reference">
+        <button type="button" onClick={() => setReferenceOpen(open => !open)} aria-expanded={referenceOpen} className="flex min-h-12 w-full items-center gap-3 px-3 text-left hover:bg-slate-50 dark:hover:bg-[#1b1f28]"><span className="flex-1"><span className="block text-sm font-bold text-slate-700 dark:text-slate-200">{t("clinicalReference")}</span><span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{t("clinicalReferenceHint")}</span></span><span className="text-slate-400">{referenceOpen ? "▾" : "▸"}</span></button>
+        {referenceOpen ? <div className="space-y-3 border-t border-slate-200 p-3 dark:border-[#333]">{referenceGroups.map(group => <div key={group.cat} data-testid={`equipment-reference-group-${group.cat}`}><p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{categoryName(group.cat)}</p><div className="space-y-1">{group.items.map(item => <div key={item.label} className="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1.5 last:border-0 dark:border-[#2a2a2a]"><span className="text-xs text-slate-500 dark:text-slate-400">{labelOf(item.label)}</span><span className="text-right text-xs font-semibold text-slate-700 dark:text-slate-300">{textOf(item.value)}{item.note ? <span className="block text-[10px] font-normal text-slate-400 dark:text-slate-500">{textOf(item.note)}</span> : null}</span></div>)}</div></div>)}</div> : null}
+      </section>
     </div>
   )
 }

@@ -14,6 +14,16 @@ describe("useClinicalEventHandlers", () => {
     }))
   })
 
+  it("keeps likely-now provenance on the timeline marker", () => {
+    const data: TimetableData = { clinicalEvents: [] } as never
+    const onChange = vi.fn()
+    const { addClinicalEvent } = useClinicalEventHandlers({ current: data }, { current: onChange })
+    addClinicalEvent(3, "Incision", "#ef4444", false, "succession:Positioned>Incision")
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      clinicalEvents: [{ colIdx: 3, label: "Incision", color: "#ef4444", suggestion: "succession:Positioned>Incision" }],
+    }))
+  })
+
   it("charts a complication as one timed entry, marked as a complication (10.1.0)", () => {
     // Before 10.1.0 a complication went to the list only, without a time. Now
     // it is one entry: the timeline marker, the list and the event log all

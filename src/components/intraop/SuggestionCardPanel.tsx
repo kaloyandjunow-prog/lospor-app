@@ -105,7 +105,7 @@ export function SuggestionCardPanel({
         return (
           <div className="flex flex-wrap gap-1.5 mt-1">
             {def.choices.map(choice => (
-              <button key={choice} type="button" disabled={readOnly} data-testid={`card-relabel-${choice}`}
+              <button key={choice} type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-relabel-${choice}`}
                 onClick={() => write(cardRelabelOps(complication, choice, row.id))}
                 className="text-xs px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
                 {complicationName(choice)}
@@ -117,7 +117,7 @@ export function SuggestionCardPanel({
         return (
           <div className="flex flex-wrap gap-1.5 mt-1">
             {def.complications.map(choice => (
-              <button key={choice} type="button" disabled={readOnly || !!row.used} data-testid={`card-also-${choice}`}
+              <button key={choice} type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || !!row.used} data-testid={`card-also-${choice}`}
                 onClick={() => write(cardAlsoLogOps(complication, choice, row.id, nowIso()))}
                 className="text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-600 dark:text-red-300 disabled:opacity-50">
                 {complicationName(choice)}
@@ -129,7 +129,7 @@ export function SuggestionCardPanel({
         return (
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-xs text-slate-600 dark:text-slate-300">{say(def.prompt, locale)}</span>
-            <button type="button" disabled={readOnly || !!row.used} data-testid={`card-question-${row.id}`}
+            <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || !!row.used} data-testid={`card-question-${row.id}`}
               onClick={() => write(cardQuestionOps(complication, row.id, def.reveals, def.logs, nowIso()))}
               className="text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600 disabled:opacity-50">
               {t("yes")}
@@ -139,15 +139,15 @@ export function SuggestionCardPanel({
       case "resolve":
         return (
           <div className="flex flex-wrap items-center gap-2 mt-1">
-            <button type="button" disabled={readOnly} data-testid="card-resolve-now"
+            <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid="card-resolve-now"
               onClick={() => write(cardResolveOps(complication, nowIso()))}
               className="text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">
               {t("now")}
             </button>
-            <input value={resolveTime} onChange={event => setResolveTime(event.target.value)} placeholder="hh:mm" inputMode="numeric"
+            <input style={{ pointerEvents: "auto" }} value={resolveTime} onChange={event => setResolveTime(event.target.value)} placeholder="hh:mm" inputMode="numeric"
               aria-label={t("atTime")} data-testid="card-resolve-time"
               className="w-20 text-xs px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent" />
-            <button type="button" disabled={readOnly || typedInstant(resolveTime) == null}
+            <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || typedInstant(resolveTime) == null}
               onClick={() => { const at = typedInstant(resolveTime); if (at) write(cardResolveOps(complication, at)) }}
               className="text-xs px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 disabled:opacity-50">
               {t("atTime")}
@@ -156,7 +156,7 @@ export function SuggestionCardPanel({
         )
       case "event":
         return (
-          <button type="button" disabled={readOnly} data-testid={`card-event-${row.id}`}
+          <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-event-${row.id}`}
             onClick={() => write(cardEventOps(complication, def.label, row.id, nowIso(), nowIso()))}
             className="mt-1 text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">
             {t("now")}
@@ -164,7 +164,7 @@ export function SuggestionCardPanel({
         )
       case "openCard":
         return (
-          <button type="button" disabled={readOnly || !!row.used} data-testid={`card-open-${def.complication}`}
+          <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || !!row.used} data-testid={`card-open-${def.complication}`}
             onClick={() => write(cardAlsoLogOps(complication, def.complication, row.id, nowIso()))}
             className="mt-1 text-xs px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 disabled:opacity-50">
             {t("openCard")}
@@ -176,7 +176,7 @@ export function SuggestionCardPanel({
         return (
           <div className="flex flex-wrap gap-1.5 mt-1">
             {targets.map(target => (
-              <button key={target.event.id} type="button" disabled={readOnly} data-testid={`card-stop-${target.event.id}`}
+              <button key={target.event.id} type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-stop-${target.event.id}`}
                 onClick={() => onStop(target.event, row)}
                 className="text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-600 dark:text-red-300">
                 {t("stop")} · {target.label}
@@ -192,8 +192,8 @@ export function SuggestionCardPanel({
               const key = `${row.id}-${index}`
               return (
                 <li key={key}>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <input type="checkbox" checked={!!ticked[key]} onChange={event => setTicked(prev => ({ ...prev, [key]: event.target.checked }))} />
+                  <label style={{ pointerEvents: "auto" }} className="flex items-center gap-1.5 text-xs">
+                    <input style={{ pointerEvents: "auto" }} type="checkbox" checked={!!ticked[key]} onChange={event => setTicked(prev => ({ ...prev, [key]: event.target.checked }))} />
                     {say(item, locale)}
                   </label>
                 </li>
@@ -222,8 +222,9 @@ export function SuggestionCardPanel({
     <aside
       role="dialog"
       aria-label={name}
+      aria-modal="false"
       data-testid="suggestion-card"
-      className="fixed right-4 top-24 z-50 w-[min(26rem,calc(100%-2rem))] max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] shadow-2xl"
+      className="pointer-events-none fixed right-4 top-24 z-[80] w-[min(26rem,calc(100%-2rem))] max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] shadow-2xl"
     >
       {card.redStrip && (
         <div className="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-t-xl" data-testid="suggestion-card-strip">
@@ -237,7 +238,7 @@ export function SuggestionCardPanel({
             {timeOf(card.onset)}{card.question ? ` · ${say(card.question, locale)}` : ""}
           </p>
         </div>
-        <button type="button" onClick={onMinimise} aria-label={t("minimise")} data-testid="suggestion-card-minimise"
+        <button type="button" style={{ pointerEvents: "auto" }} onClick={onMinimise} aria-label={t("minimise")} data-testid="suggestion-card-minimise"
           className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
           {card.kind === "checklist" ? <Minus className="w-4 h-4" /> : <X className="w-4 h-4" />}
         </button>
@@ -247,7 +248,7 @@ export function SuggestionCardPanel({
           {card.branches.prompt && <p className="text-xs text-slate-500 mb-1">{say(card.branches.prompt, locale)}</p>}
           <div className="flex flex-wrap gap-1.5">
             {card.branches.options.map(option => (
-              <button key={option.id} type="button" data-testid={`card-branch-${option.id}`}
+              <button key={option.id} type="button" style={{ pointerEvents: "auto" }} data-testid={`card-branch-${option.id}`}
                 onClick={() => setBranch(option.id)}
                 className={`text-xs px-2.5 py-1 rounded-full border ${branch === option.id
                   ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-200"
@@ -289,7 +290,7 @@ export function SuggestionCardPanel({
           return (
             <li key={row.id} data-testid={`card-row-${row.id}`} className="rounded-lg border border-slate-100 dark:border-[#262626] px-2 py-1.5">
               {opensSheet(row) ? (
-                <button type="button" disabled={readOnly} className="w-full disabled:opacity-60"
+                <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} className="w-full disabled:opacity-60"
                   onClick={event => onRow({ row, rect: event.currentTarget.getBoundingClientRect(), complication, host: event.currentTarget.closest("li")?.querySelector<HTMLElement>("[data-row-host]") ?? null })}>
                   {head}
                 </button>
@@ -298,21 +299,23 @@ export function SuggestionCardPanel({
               {/* Where this row's own dosing controls open, in place: the card never changes screen. */}
               <div data-row-host={row.id} data-testid={`card-host-${row.id}`} />
               {dantrolene && row.def.kind === "drug" && row.def.drug === "Dantrolene" && (
-                <DantroleneVials viewFor={dantrolene.viewFor} initialPerKg={dantrolene.initialPerKg} readOnly={readOnly}
-                  onGive={(doseMg, rect) => dantrolene.give(doseMg, rect, row)} />
+                <div style={{ pointerEvents: "auto" }}>
+                  <DantroleneVials viewFor={dantrolene.viewFor} initialPerKg={dantrolene.initialPerKg} readOnly={readOnly}
+                    onGive={(doseMg, rect) => dantrolene.give(doseMg, rect, row)} />
+                </div>
               )}
             </li>
           )
         })}
       </ol>
       <div className="flex justify-end gap-2 px-3 pb-3">
-        <button type="button" disabled={readOnly} data-testid="suggestion-card-not-now"
+        <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid="suggestion-card-not-now"
           onClick={() => { write(cardCloseOps(complication, "not_now", nowIso())); onMinimise() }}
           className="text-xs px-3 py-1.5 rounded-full border border-red-300 text-red-500">
           {t("notNow")}
         </button>
         {card.kind === "checklist" && (
-          <button type="button" disabled={readOnly} data-testid="suggestion-card-done"
+          <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid="suggestion-card-done"
             onClick={() => { write(cardCloseOps(complication, "done", nowIso())); onMinimise() }}
             className="text-xs px-3 py-1.5 rounded-full border border-emerald-400 text-emerald-600">
             {t("done")}

@@ -10,6 +10,7 @@ import {
   type AirwayDeviceEntry,
   type AirwayExchangeReason,
 } from "@lospor/core/airway-device-entries"
+import { clinicalRecordId } from "@lospor/core/clinical-record-id"
 
 /**
  * The airway picker, embedded (10.2.0): opened by Reintubation, Airway
@@ -46,7 +47,7 @@ export function AirwayExchangeDialog({ entries, deviceOptions, deviceLabel, reas
 
   function save() {
     if (!device || !reason) return
-    const id = `airway-${Date.parse(at)}-${entries.length + 1}`
+    const id = clinicalRecordId("airway", at)
     const kept = Object.fromEntries(fields.filter(field => details[field] !== undefined && details[field] !== "").map(field => [field, details[field]]))
     onSave(replaceAirwayDevice(entries, outId, { id, device, details: kept, insertedAt: at }, reason))
   }

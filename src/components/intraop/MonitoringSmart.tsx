@@ -33,6 +33,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
   const [more, setMore] = useState(false)
   const name = (field: string) => { const option = monitoringOptions.find(item => item.value === field); return option ? displayOption("MONITORING", option, locale) : field }
   const extras = monitoring.filter(field => !STANDARD_MONITORING.includes(field))
+  const availableCount = monitoringOptions.filter(option => !monitoring.includes(option.value)).length
   const standard = standardMonitoringOn(monitoring)
   const toggle = (field: string) => onChange(monitoring.includes(field) ? monitoring.filter(item => item !== field) : [...monitoring, field])
   const eyebrow = "text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-4 mb-2"
@@ -66,7 +67,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
             {MONITORING_READINGS[field] ? (
               <span data-testid={`monitoring-reading-${field}`} className={`px-3 py-1 rounded-lg border text-sm font-bold tabular-nums ${due ? "border-amber-500 text-amber-600 dark:text-amber-400" : "border-violet-400 text-violet-700 dark:text-violet-300"}`}>{reading?.text ?? t("noReading")}</span>
             ) : null}
-            <button type="button" data-testid={`monitoring-off-${field}`} aria-label={t("turnOff")} onClick={() => toggle(field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>✕</button>
+            <button type="button" data-testid={`monitoring-off-${field}`} aria-label={t("turnOff")} onClick={() => toggle(field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("turnOff")}</button>
           </div>
         )
       })}
@@ -81,12 +82,12 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
             <span className="block text-xs text-amber-600 dark:text-amber-400">{t(REASON[item.reason])}</span>
           </span>
           <button type="button" data-testid={`monitoring-add-${item.field}`} onClick={() => toggle(item.field)} className={`${side} border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300`}>{t("add")}</button>
-          <button type="button" data-testid={`monitoring-hide-${item.field}`} aria-label={t("hide")} onClick={() => onHide(item.field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>✕</button>
+          <button type="button" data-testid={`monitoring-hide-${item.field}`} aria-label={t("hide")} onClick={() => onHide(item.field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("hide")}</button>
         </div>
       ))}
 
       <button type="button" data-testid="monitoring-more" onClick={() => setMore(value => !value)}
-        className="mt-1 mb-3 w-full min-h-11 rounded-xl border border-slate-300 dark:border-[#444] text-sm font-bold text-violet-700 dark:text-violet-300">{more ? t("fewer") : t("more")}</button>
+        className="mt-1 mb-3 w-full min-h-11 rounded-xl border border-slate-300 dark:border-[#444] text-sm font-bold text-violet-700 dark:text-violet-300">{more ? t("fewer") : t("more", { count: availableCount })}</button>
       {more ? <MonitoringGroups monitoring={monitoring} onToggle={toggle} monitoringOptions={monitoringOptions} /> : null}
     </div>
   )

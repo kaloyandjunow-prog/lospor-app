@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }))
+vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key, useLocale: () => "en" }))
 const patch = vi.fn(async () => ({}))
 vi.mock("@/lib/clinical-preferences-web", () => ({
   readWebClinicalPreferences: () => ({ automationGroups: { timers: false } }),
@@ -11,6 +11,7 @@ vi.mock("@/lib/clinical-preferences-web", () => ({
 }))
 
 import { AutomationGroupsSetting } from "./AutomationGroupsSetting"
+import { AUTOMATIONS } from "@lospor/core/intraop-suggestions"
 
 function hospital(settings: unknown) {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ settings, stats: null }) })))
@@ -41,5 +42,15 @@ describe("the clinician's own suggestion switches", () => {
     hospital({ enabled: false })
     await act(async () => { render(<AutomationGroupsSetting />) })
     expect(screen.queryByTestId("automation-groups-setting")).toBeNull()
+  })
+
+  it("lists and saves the four individual vital-question switches", async () => {
+    expect(AUTOMATIONS.filter(line => line.group === "vitalQuestions")).toHaveLength(4)
+    hospital({ enabled: true, vitalQuestions: { enabled: true } })
+    await act(async () => { render(<AutomationGroupsSetting />) })
+    expect(screen.getByTestId("automation-groups-setting").textContent).toContain("vitalLinesTitle")
+    const hypotension = screen.getByTestId("setting-automation-line-vital:hypotension")
+    await act(async () => { fireEvent.click(hypotension) })
+    expect(patch).toHaveBeenCalledWith({ automationLines: { "vital:hypotension": false } })
   })
 })

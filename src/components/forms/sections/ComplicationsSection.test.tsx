@@ -32,7 +32,7 @@ function Harness({ text, log, onDeleteEvent }: { text: string; log: IntraopLogEv
 
 function open_(props: Parameters<typeof Harness>[0]) {
   const view = render(<Harness {...props} />)
-  act(() => { fireEvent.click(screen.getByText("intraop.complicationsSection")) })
+  act(() => { fireEvent.click(screen.getByText("intraop.complicationsSummaryTitle")) })
   return view
 }
 const savedText = () => screen.getByTestId("saved-text").textContent
@@ -88,7 +88,7 @@ describe("the complications list on the web (10.1.0)", () => {
 
   it("never lists a Not now in the event log", () => {
     open_({ text: "", log: [episode, notNow] })
-    expect(screen.getByText("intraop.eventLog")).toBeTruthy()
+    expect(screen.getByTestId("event-log-timeline-stream")).toBeTruthy()
     expect(document.body.textContent).not.toMatch(/not_now|bradycardia/i)
   })
 })

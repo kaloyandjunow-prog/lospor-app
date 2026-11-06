@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { useTranslations } from "next-intl"
 import { airwayDevicesInUse, type AirwayDeviceEntry } from "@lospor/core/airway-device-entries"
 import { airwayChoices, suggestedAirwayDetails, type AirwayPatient } from "@lospor/core/airway-smart"
-import { AirwaySmartPanel, type AirwaySmartRequest } from "./AirwaySmartPanel"
+import { AirwaySmartPanel, type AirwaySmartChartEvent, type AirwaySmartRequest } from "./AirwaySmartPanel"
 
 /**
  * The Airway tab, Smart selection (10.2.0): what is in place first, then the
@@ -14,12 +14,16 @@ import { AirwaySmartPanel, type AirwaySmartRequest } from "./AirwaySmartPanel"
  * sizes and the saving are Core's (airway-smart).
  */
 export function AirwaySmart({
-  entries, onChange, patient, techniques, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, describe, timeOf,
+  entries, onChange, onEvent, onAtomicSave, patient, techniques, availableDevices, availableTools, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, describe, timeOf,
 }: {
   entries: readonly AirwayDeviceEntry[]
   onChange: (next: AirwayDeviceEntry[]) => void
+  onEvent?: (event: AirwaySmartChartEvent) => void
+  onAtomicSave?: (next: AirwayDeviceEntry[], event: AirwaySmartChartEvent) => void
   patient: AirwayPatient
   techniques: readonly string[]
+  availableDevices?: readonly string[]
+  availableTools?: readonly string[]
   startedAt: string | null
   now: () => string
   timeZone: string | null
@@ -35,9 +39,10 @@ export function AirwaySmart({
   const te = useTranslations("intraop.airwayExchange")
   const [request, setRequest] = useState<AirwaySmartRequest | null>(null)
   const [showOther, setShowOther] = useState(false)
-  const choices = airwayChoices(techniques)
+  const choices = airwayChoices(techniques, availableDevices)
   const live = airwayDevicesInUse(entries)
   const shown = [...entries].sort((a, b) => Number(a.status !== "in_use") - Number(b.status !== "in_use"))
+  const mainRows = Array.from({ length: Math.ceil(choices.main.length / 3) }, (_, index) => choices.main.slice(index * 3, index * 3 + 3))
 
   const card = (device: string) => {
     const suggestion = suggestedAirwayDetails(device, patient) as Record<string, unknown>
@@ -47,7 +52,7 @@ export function AirwaySmart({
     ].filter(item => item != null).join(" · ")
     return (
       <button key={device} type="button" data-testid={`airway-smart-card-${device}`} aria-pressed={request?.device === device}
-        onClick={() => setRequest({ device, source: "tab" })}
+        onClick={() => setRequest(current => current?.device === device && current.replaces == null ? null : { device, source: "tab" })}
         className={`min-h-[76px] rounded-2xl border-2 px-2 py-2 text-center font-semibold transition-all ${request?.device === device
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
           : "border-slate-200 dark:border-[#333] hover:border-violet-400"}`}>
@@ -56,6 +61,17 @@ export function AirwaySmart({
       </button>
     )
   }
+
+  const panel = request ? (
+    <AirwaySmartPanel key={`${request.device}-${request.replaces?.id ?? ""}`} request={request} entries={entries} patient={patient}
+      startedAt={startedAt} now={now} timeZone={timeZone} difficultAirway={difficultAirway} deviceLabel={deviceLabel} toolLabel={toolLabel}
+      toolCodes={availableTools}
+      onSave={(next, event) => {
+        setRequest(null)
+        if (event && onAtomicSave) onAtomicSave(next, event)
+        else { onChange(next); if (event) onEvent?.(event) }
+      }} onClose={() => setRequest(null)} />
+  ) : null
 
   return (
     <div className="space-y-4" data-testid="airway-smart">
@@ -88,24 +104,41 @@ export function AirwaySmart({
 
       <div className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("addDevice")}</p>
-        <div className="grid grid-cols-3 gap-2">{choices.main.map(card)}</div>
-        <div className="flex flex-wrap gap-2 items-center">
-          {showOther
-            ? choices.other.map(device => (
-              <button key={device} type="button" data-testid={`airway-smart-other-${device}`} onClick={() => setRequest({ device, source: "tab" })}
-                className="px-3 py-1.5 rounded-lg border-2 border-slate-200 dark:border-[#333] text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-violet-400">
-                {deviceLabel(device)}
-              </button>
-            ))
-            : <button type="button" data-testid="airway-smart-more" onClick={() => setShowOther(true)} className="text-sm text-violet-600 dark:text-violet-300 font-semibold px-2 py-1">{t("moreDevices")}</button>}
-        </div>
+        <div className="space-y-2">{mainRows.map((row, rowIndex) => (
+          <div key={`airway-smart-main-row-${rowIndex}`} className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">{row.map(card)}</div>
+            {request && row.includes(request.device) ? panel : null}
+          </div>
+        ))}</div>
+        {choices.other.length > 0 && (
+          <>
+            <button
+              type="button"
+              data-testid="airway-smart-more"
+              aria-expanded={showOther}
+              onClick={() => setShowOther(value => !value)}
+              className="flex min-h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-sm font-semibold text-violet-700 dark:border-[#333] dark:bg-[#171717] dark:text-violet-200"
+            >
+              <span>{t("moreDevices", { count: choices.other.length })}</span>
+              <span aria-hidden="true" className="text-lg text-slate-400">{showOther ? "⌃" : "⌄"}</span>
+            </button>
+            {showOther && (
+              <div className="flex flex-wrap items-center gap-2">
+                {choices.other.map(device => (
+                  <Fragment key={device}>
+                    <button type="button" data-testid={`airway-smart-other-${device}`} onClick={() => setRequest({ device, source: "tab" })}
+                      className="rounded-lg border-2 border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:border-violet-400 dark:border-[#333] dark:text-slate-300">
+                      {deviceLabel(device)}
+                    </button>
+                    {request?.device === device ? <div className="basis-full min-w-0">{panel}</div> : null}
+                  </Fragment>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {request && !choices.main.includes(request.device) && !choices.other.includes(request.device) ? panel : null}
       </div>
-
-      {request && (
-        <AirwaySmartPanel key={`${request.device}-${request.replaces?.id ?? ""}`} request={request} entries={entries} patient={patient}
-          startedAt={startedAt} now={now} timeZone={timeZone} difficultAirway={difficultAirway} deviceLabel={deviceLabel} toolLabel={toolLabel}
-          onSave={next => { setRequest(null); onChange(next) }} onClose={() => setRequest(null)} />
-      )}
     </div>
   )
 }

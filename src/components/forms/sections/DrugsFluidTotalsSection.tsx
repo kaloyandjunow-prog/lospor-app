@@ -4,22 +4,31 @@ import { SectionCard } from "@/components/forms/shared/SectionCard"
 import { Label } from "@/components/ui/label"
 import { NumberStepper } from "@/components/NumberStepper"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
+import { DrugsFluidTotalsHybrid } from "@/components/forms/sections/DrugsFluidTotalsHybrid"
 
-type DrugTotals = {
+export type DrugTotals = {
   bolusList: { name: string; total: number; unit: string; count: number; mgTotal: number | null }[]
   infusionList: { name: string; total: number; unit: string; display: string; mgTotal: number | null; weightUsed: number | null; weightBasis: "IBW" | "TBW" | "none" | null; volumeMl?: number | null
     tci?: { calculated: number | null; pump: number | null; unavailable?: "patient" | "model"; pumpNeedsStrength?: true } }[]
   weightNote: string | null
 }
 
-export function DrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, provisional = false }: {
+export type DrugsFluidTotalsProps = {
   /** Part of these totals is not yet on the server: "≈"; the numbers are unchanged (9.13.0). */
   provisional?: boolean
   t: (key: string, values?: Record<string, string | number>) => string
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
   liveDrugTotals: DrugTotals
-}) {
+  screen?: "smart" | "legacy"
+}
+
+export function DrugsFluidTotalsSection(props: DrugsFluidTotalsProps) {
+  if (props.screen !== "legacy") return <DrugsFluidTotalsHybrid {...props} />
+  return <LegacyDrugsFluidTotalsSection {...props} />
+}
+
+function LegacyDrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, provisional = false }: DrugsFluidTotalsProps) {
   return (
     <SectionCard title={t("intraop.fluidsSection")} collapsible defaultCollapsed
       badge={(() => { const n = liveDrugTotals.bolusList.length + liveDrugTotals.infusionList.length; return n ? t("intraop.totals.drugCount", { count: n }) : undefined })()}>

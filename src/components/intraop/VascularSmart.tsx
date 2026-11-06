@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import type { VascularLine } from "@lospor/core/vascular-access-lines"
 import { vascularChoices, vascularTypeOfSite, suggestedArterialGauge, suggestedPeripheralGauge, type VascularPatient, type VascularType } from "@lospor/core/vascular-smart"
-import { VascularSmartPanel, type VascularSmartRequest } from "./VascularSmartPanel"
+import { VascularSmartPanel, type VascularClinicalEvent, type VascularSmartRequest } from "./VascularSmartPanel"
 
 /**
  * The Vascular access tab, Smart selection (10.2.0): what is in place first (who placed each line,
@@ -14,10 +14,12 @@ import { VascularSmartPanel, type VascularSmartRequest } from "./VascularSmartPa
  * Core's (vascular-smart).
  */
 export function VascularSmart({
-  lines, onChange, patient, techniques, startedAt, now, timeZone, siteLabel, timeOf,
+  lines, onChange, onEvent, onAtomicSave, patient, techniques, startedAt, now, timeZone, siteLabel, timeOf,
 }: {
   lines: readonly VascularLine[]
   onChange: (next: VascularLine[]) => void
+  onEvent?: (event: VascularClinicalEvent) => void
+  onAtomicSave?: (next: VascularLine[], event: VascularClinicalEvent) => void
   patient: VascularPatient
   techniques: readonly string[]
   startedAt: string | null
@@ -34,11 +36,15 @@ export function VascularSmart({
   const ordered = lines.map((line, index) => ({ line, index })).sort((a, b) => Number(!!a.line.failed) - Number(!!b.line.failed) || b.index - a.index)
 
   const typeName = (type: VascularType, site?: string) => type === "CENTRAL" ? (site?.startsWith("PICC") ? t("picc") : t("central")) : t(type === "PERIPHERAL" ? "peripheral" : "arterial")
+  const toggleType = (type: VascularType) => {
+    const selected = request?.type === type && request.replacesIndex == null && !request.ward
+    setRequest(selected ? null : { type, source: "tab" })
+  }
   const card = (type: VascularType) => {
     const hint = type === "PERIPHERAL" ? `${suggestedPeripheralGauge(patient)}G` : type === "ARTERIAL" ? `${suggestedArterialGauge(patient)}G` : ""
     return (
       <button key={type} type="button" data-testid={`vascular-smart-card-${type}`} aria-pressed={request?.type === type && !request.ward && request.replacesIndex == null}
-        onClick={() => setRequest({ type, source: "tab" })}
+        onClick={() => toggleType(type)}
         className={`min-h-[76px] rounded-2xl border-2 px-2 py-2 text-center font-semibold transition-all ${request?.type === type && request.replacesIndex == null && !request.ward
           ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-slate-200 dark:border-[#333] hover:border-violet-400"}`}>
         <span className="block text-base">{typeName(type)}</span>
@@ -46,6 +52,16 @@ export function VascularSmart({
       </button>
     )
   }
+
+  const panel = request ? (
+    <VascularSmartPanel key={`${request.type}-${request.replacesIndex ?? ""}-${request.ward ? "w" : ""}`} request={request} lines={lines} patient={patient}
+      startedAt={startedAt} now={now} timeZone={timeZone} siteLabel={siteLabel}
+      onSave={(next, event) => {
+        setRequest(null)
+        if (event && onAtomicSave) onAtomicSave(next, event)
+        else { onChange(next); if (event) onEvent?.(event) }
+      }} onClose={() => setRequest(null)} />
+  ) : null
 
   return (
     <div className="space-y-4" data-testid="vascular-smart">
@@ -82,22 +98,21 @@ export function VascularSmart({
       <div className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("addAccess")}</p>
         <div className="grid grid-cols-3 gap-2">{choices.main.map(card)}</div>
+        {request && !request.ward && choices.main.includes(request.type) ? panel : null}
         <div className="flex flex-wrap gap-2 items-center">
           {choices.other.length > 0 && (showOther
             ? choices.other.map(type => (
-              <button key={type} type="button" data-testid={`vascular-smart-other-${type}`} onClick={() => setRequest({ type, source: "tab" })}
+              <button key={type} type="button" data-testid={`vascular-smart-other-${type}`} onClick={() => toggleType(type)}
                 className="px-3 py-1.5 rounded-lg border-2 border-slate-200 dark:border-[#333] text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-violet-400">{typeName(type)}</button>
             ))
             : <button type="button" data-testid="vascular-smart-more" onClick={() => setShowOther(true)} className="text-sm text-violet-600 dark:text-violet-300 font-semibold px-2 py-1">{t("moreTypes")}</button>)}
-          <button type="button" data-testid="vascular-smart-ward" onClick={() => setRequest({ type: "PERIPHERAL", source: "tab", ward: true })}
-            className="px-3 py-1.5 rounded-lg border-2 border-dashed border-amber-400 text-sm font-semibold text-amber-600 dark:text-amber-300">{t("alreadyOnArrival")}</button>
+          <button type="button" data-testid="vascular-smart-ward" onClick={() => setRequest(request?.ward ? null : { type: "PERIPHERAL", source: "tab", ward: true })}
+            className="px-3 py-1.5 rounded-lg border-2 border-dashed border-amber-400 text-sm font-semibold text-amber-600 dark:text-amber-300">{typeName("PERIPHERAL")} · {t("alreadyOnArrival")}</button>
         </div>
       </div>
 
-      {request && (
-        <VascularSmartPanel key={`${request.type}-${request.replacesIndex ?? ""}-${request.ward ? "w" : ""}`} request={request} lines={lines} patient={patient}
-          startedAt={startedAt} now={now} timeZone={timeZone} siteLabel={siteLabel}
-          onSave={next => { setRequest(null); onChange(next) }} onClose={() => setRequest(null)} />
+      {request && (request.ward || !choices.main.includes(request.type)) && (
+        panel
       )}
     </div>
   )

@@ -23,6 +23,6 @@ describe("the summary and printed record after a reintubation and a failed line 
   it("marks a failed line, in Bulgarian too", () => {
     const lines = [{ site: "VEN_PERIPHERAL", siteLabel: "Peripheral IV", size: "18", sizeUnit: "G", failed: true, failedAt: "2026-11-02T08:42:00.000Z" }, { site: "VEN_PERIPHERAL", siteLabel: "Peripheral IV", size: "20", sizeUnit: "G" }]
     expect(accessLabel(intraop({}), lines, "en")).toMatch(/18G · failed 10:42 · .*20G$/)
-    expect(accessLabel(intraop({}), lines, "bg")).toContain("неуспешен 10:42")
+    expect(accessLabel(intraop({}), lines, "bg")).toContain("неуспешен опит 10:42")
   })
 })

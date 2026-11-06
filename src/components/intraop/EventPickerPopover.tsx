@@ -4,8 +4,10 @@ import { useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
 import { eventSearchScore } from "@lospor/core/event-synonyms"
+import { successionAutomationId } from "@lospor/core/event-succession"
 import { useIntraopUiCopy } from "./ui-copy"
 import { useEventSelector } from "./event-selector-context"
+import { OverflowCueScroll } from "@/components/ui/OverflowCueScroll"
 
 /**
  * Logging what happened at a moment in the case.
@@ -60,7 +62,7 @@ export type EventPickerPopoverProps = {
     searchEvents: string
   }
   onSearchChange: (value: string) => void
-  onToggleEvent: (event: EventOption, category: EventCategory, alreadyRecorded: boolean) => void
+  onToggleEvent: (event: EventOption, category: EventCategory, alreadyRecorded: boolean, suggestion?: string) => void
   onDismiss: () => void
   /** A shock at this column (10.1.0), with its label. */
   defibrillation?: { label: string; onOpen: () => void }
@@ -158,7 +160,14 @@ export function EventPickerPopover({
         </div>
 
         {screen === "smart" ? (
-          <div className="overflow-y-auto p-2 pb-0" data-testid="event-list" style={{ maxHeight: Math.min(384, room) }}>
+          <OverflowCueScroll
+            testId="event-list"
+            style={{ maxHeight: Math.min(384, room) }}
+            contentClassName="p-2 pb-0"
+            startLabel="Scroll event list up"
+            endLabel="Scroll event list down"
+            edgeClassName="from-white dark:from-[#1e1e1e]"
+          >
             {query ? (
               <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
                 {found.length === 0 ? <p data-testid="event-none" className="p-3 text-sm text-slate-500">{t("none")}</p> : found.map(({ event, category }) => eventRow(event, category, "", category.displayCat))}
@@ -175,8 +184,8 @@ export function EventPickerPopover({
                             <span className="block text-sm font-bold">{event.displayLabel}</span>
                             <span className="block text-[11.5px] font-semibold text-amber-600 dark:text-amber-400">{t("usually", { from: item.from, percent: Math.round(item.probability * 100) })}</span>
                           </span>
-                          <button type="button" data-testid={`likely-dismiss-${item.event}`} aria-label={t("dismiss")} onClick={() => dismiss(item.event)} className="min-h-11 min-w-11 text-slate-400">✕</button>
-                          <button type="button" data-testid={`likely-log-${item.event}`} onClick={() => onToggleEvent(event, category, false)}
+                          <button type="button" data-testid={`likely-dismiss-${item.event}`} aria-label={t("dismiss")} onClick={() => dismiss(successionAutomationId(item.from, item.event))} className="min-h-11 rounded-lg px-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">{t("dismiss")}</button>
+                          <button type="button" data-testid={`likely-log-${item.event}`} onClick={() => onToggleEvent(event, category, false, successionAutomationId(item.from, item.event))}
                             className="min-h-11 rounded-xl border border-violet-500 bg-violet-50 px-4 text-sm font-bold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">{t("log")}</button>
                         </div>
                       ))}
@@ -218,10 +227,25 @@ export function EventPickerPopover({
                 </div>
               </>
             )}
+            {defibrillation && (
+              <div className="mt-2 border-t border-slate-100 p-2 dark:border-[#2a2a2a]">
+                <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
+                  className="w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  {defibrillation.label}
+                </button>
+              </div>
+            )}
             <div className="h-2" />
-          </div>
+          </OverflowCueScroll>
         ) : (
-        <div className="max-h-72 overflow-y-auto p-2 space-y-2.5">
+        <OverflowCueScroll
+          style={{ maxHeight: "18rem" }}
+          contentClassName="p-2 space-y-2.5"
+          testId="event-legacy-list"
+          startLabel="Scroll event list up"
+          endLabel="Scroll event list down"
+          edgeClassName="from-white dark:from-[#1e1e1e]"
+        >
           {visibleCategories.map(category => (
             <div key={category.cat}>
               <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: category.color }}>
@@ -261,15 +285,7 @@ export function EventPickerPopover({
           {visibleCategories.length === 0 && (
             <p className="text-xs text-slate-400 dark:text-[#666] text-center py-4">{copy.eventPicker.none}</p>
           )}
-        </div>
-        )}
-        {screen === "smart" && defibrillation && (
-          <div className="border-t border-slate-100 p-2 dark:border-[#2a2a2a]">
-            <button type="button" data-testid="event-picker-defibrillation" onClick={defibrillation.onOpen}
-              className="w-full rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-              {defibrillation.label}
-            </button>
-          </div>
+        </OverflowCueScroll>
         )}
       </div>
     </>,

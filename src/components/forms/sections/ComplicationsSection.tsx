@@ -17,8 +17,9 @@ import { useLocale } from "next-intl"
 import { describeIntraopEvent } from "@lospor/core/intraop-summary"
 import { resolveIntraopEventLabel } from "@lospor/core/clinical-display"
 import { groupLabsByDraw, labDrawSummary, type LabResult } from "@lospor/core/labs"
+import { EventLogTimelineStream } from "@/components/forms/sections/EventLogTimelineStream"
 
-export function ComplicationsSection({ t, control, watch, eventLog, labResults = [], onDeleteEvent }: {
+export function ComplicationsSection({ t, control, watch, eventLog, labResults = [], onDeleteEvent, eventLogScreen = "smart" }: {
   t: (key: string) => string
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
@@ -26,6 +27,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
   /** Lab draws are listed with the events by time, though they are not events. */
   labResults?: LabResult[]
   onDeleteEvent?: (id: string) => void
+  eventLogScreen?: "smart" | "legacy"
 }) {
   const locale = useLocale()
   const draws = groupLabsByDraw(labResults).filter(draw => draw.takenAt)
@@ -43,7 +45,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
     : item.endTs && item.endTs !== item.ts ? `${hhmmOf(item.ts)}–${hhmmOf(item.endTs)}`
     : item.open ? `${hhmmOf(item.ts)} · ${t("intraop.complicationOpen")}` : hhmmOf(item.ts)
   return (
-    <SectionCard title={t("intraop.complicationsSection")} collapsible defaultCollapsed
+    <SectionCard title={t("intraop.complicationsSummaryTitle")} collapsible defaultCollapsed
       badge={watch("complications") ? t("intraop.documented") : undefined}>
       <Controller name="complications" control={control} render={({ field }) => (
         <div className="space-y-3">
@@ -76,8 +78,8 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
         </div>
       )} />
 
-      {/* Mobile event log (read-only timeline) */}
-      {entries.length > 0 && (
+      {/* Legacy event log (read-only timeline) */}
+      {eventLogScreen !== "smart" && entries.length > 0 && (
         <div className="mt-5 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">{t("intraop.eventLog")}</p>
           <div className="space-y-0">
@@ -115,7 +117,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
                       className="opacity-40 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-sm leading-none px-1 py-0.5 rounded"
                       title={t("intraop.deleteEvent")}
                       aria-label={t("intraop.deleteEvent")}
-                    >x</button>
+                    >{t("intraop.deleteEvent")}</button>
                   )}
                 </div>
               )
@@ -123,6 +125,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
           </div>
         </div>
       )}
+      {eventLogScreen === "smart" && <EventLogTimelineStream t={t} eventLog={eventLog} labResults={labResults} onDeleteEvent={onDeleteEvent} />}
     </SectionCard>
   )
 }

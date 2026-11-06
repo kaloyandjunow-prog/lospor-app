@@ -17,7 +17,7 @@ import { EventsScreenSetting } from "./EventsScreenSetting"
 describe("the event selector setting on the web", () => {
   it("offers Smart selection and Legacy and saves the one picked", () => {
     render(<EventsScreenSetting />)
-    expect(screen.getByTestId("events-screen-smart").getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByTestId("events-screen-smart").getAttribute("aria-checked")).toBe("true")
     fireEvent.click(screen.getByTestId("events-screen-legacy"))
     expect(patchWebClinicalPreferences).toHaveBeenCalledWith({ eventsScreen: "legacy" })
   })

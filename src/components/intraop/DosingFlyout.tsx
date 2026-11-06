@@ -14,6 +14,7 @@ import type { InfusionRecord } from "@lospor/core/infusion-entry"
 import { drugSelectorAtomicState } from "@/lib/drug-selector-surface"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
 import { doseConfirmProblem } from "@lospor/core/infusion-entry"
+import { OverflowCueScroll } from "@/components/ui/OverflowCueScroll"
 
 /**
  * The quick-entry flyout: the panel that opens on a cell and takes a dose.
@@ -151,12 +152,22 @@ export function DosingFlyout({
         return (
           <div
             data-testid={inlineHost ? "card-inline-dose" : undefined}
-            style={inlineHost ? undefined : { position:"fixed", left, top, width:POP_W, zIndex:9999, transform: showAbove ? "translateY(-100%)" : undefined }}
+            style={inlineHost
+              ? { pointerEvents: "auto" }
+              : { position:"fixed", left, top, width:POP_W, zIndex:9999, transform: showAbove ? "translateY(-100%)" : undefined }}
             className={inlineHost
-              ? "mt-2 bg-slate-50 dark:bg-[#171717] border border-slate-200 dark:border-[#333] rounded-lg p-3 space-y-2"
-              : "max-h-[calc(100vh-16px)] overflow-y-auto bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2"}
+              ? "mt-2 bg-slate-50 dark:bg-[#171717] border border-slate-200 dark:border-[#333] rounded-lg"
+              : "bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl"}
             onClick={e => e.stopPropagation()}
           >
+            <OverflowCueScroll
+              className={inlineHost ? "max-h-[min(70vh,32rem)]" : "max-h-[calc(100vh-16px)]"}
+              contentClassName="space-y-2 p-3"
+              testId={inlineHost ? "card-inline-dose-scroll" : "dose-flyout-scroll"}
+              startLabel="Scroll dose picker up"
+              endLabel="Scroll dose picker down"
+              edgeClassName="from-white dark:from-[#1e1e1e]"
+            >
             <DosingFlyoutHeader
               title={fp.mode === "bolus" ? displayDrugName(fp.name) : fp.mode === "infusion" ? displayInfusionName(fp.name) : displayFluidName(fp.name)}
               atLabel={copy.at} time={times[fp.col]} onClose={() => setFp(null)}
@@ -326,6 +337,7 @@ export function DosingFlyout({
               <InfusionDoseFields fp={fp} setFp={setFp} doseSurfaces={doseSurfaces} isPediatric={isPediatric}
                 laConcentrations={laConcentrations} infusionWeightBasis={infusionWeightBasis} ibw={ibw} tbw={tbw} onConfirm={fpCommitInfusion} />
             )}
+            </OverflowCueScroll>
           </div>
         )
       })()}

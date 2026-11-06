@@ -94,13 +94,13 @@ describe("likely now on the web (10.2.0)", () => {
     const { onToggleEvent } = setup({ likely: LIKELY })
     expect(screen.getByTestId("event-likely")).toBeTruthy()
     fireEvent.click(screen.getByTestId("likely-log-Incision"))
-    expect(onToggleEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Incision" }), expect.objectContaining({ cat: "Surgical" }), false)
+    expect(onToggleEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Incision" }), expect.objectContaining({ cat: "Surgical" }), false, "succession:Positioned>Incision")
   })
 
   it("sets one aside with the cross, and ignores one that is not in the list or is a complication", () => {
     const { dismiss } = setup({ likely: [...LIKELY, { ...LIKELY[0]!, event: "Hypotension" }, { ...LIKELY[0]!, event: "Not an event" }] })
     fireEvent.click(screen.getByTestId("likely-dismiss-Incision"))
-    expect(dismiss).toHaveBeenCalledWith("Incision")
+    expect(dismiss).toHaveBeenCalledWith("succession:Positioned>Incision")
     expect(screen.queryByTestId("likely-log-Hypotension")).toBeNull()
     expect(screen.queryByTestId("likely-log-Not an event")).toBeNull()
   })

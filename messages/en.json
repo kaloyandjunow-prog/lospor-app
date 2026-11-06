@@ -844,6 +844,9 @@
     "searchInstitution": "Search institution…",
     "viewProfile": "View Profile",
     "accountSettings": "Account & Settings",
+    "accountWideInterface": "Account-wide · the same choice is used on web and mobile",
+    "scrollUp": "Scroll settings up",
+    "scrollDown": "Scroll settings down",
     "cats": {
       "ui": "UI Options",
       "units": "Units",
@@ -933,6 +936,13 @@
     "vitalEpisodeAutoLogDesc": "After you log a complication from a vitals question, it stays logged while the readings stay out of range. Off: you are asked at every out-of-range reading.",
     "automationGroups": {
       "title": "Intraoperative suggestions",
+      "individualTitle": "Individual suggestions",
+      "individualDesc": "These account-wide switches affect only your suggestions. New context links start off until you enable them.",
+      "contextLinksTitle": "Context links (under reminders)",
+      "vitalLinesTitle": "Individual vital questions",
+      "unavailable": "Intraoperative automation is unavailable",
+      "unavailableDesc": "The hospital policy could not be read. Suggestions remain off until the connection is restored.",
+      "retry": "Try again",
       "vitalQuestions": {
         "label": "Questions from the vitals",
         "desc": "Unusual heart rate and blood pressure readings ask whether to log the complication."
@@ -972,7 +982,7 @@
     "airwayScreen": {
       "title": "Airway tab",
       "desc": "How the airway section of the intraoperative record looks. You can change it at any time.",
-      "smart": "Smart selection",
+      "smart": "Smart view",
       "smartHint": "Opens on what is in place and adds a device in one panel, from the tab or from the timeline.",
       "legacy": "Legacy",
       "legacyHint": "The tab as it was: pills for tools, devices and ventilation."
@@ -980,7 +990,7 @@
     "vascularScreen": {
       "title": "Vascular access tab",
       "desc": "How the vascular access section of the intraoperative record looks. You can change it at any time.",
-      "smart": "Smart selection",
+      "smart": "Smart view",
       "smartHint": "Opens on what is in place and adds a line in one panel, from the tab or from the timeline.",
       "legacy": "Legacy",
       "legacyHint": "The tab as it was."
@@ -988,7 +998,7 @@
     "monitoringScreen": {
       "title": "Monitoring tab",
       "desc": "How the monitoring section of the intraoperative record looks. You can change it at any time.",
-      "smart": "Smart selection",
+      "smart": "Smart view",
       "smartHint": "Standard monitoring in one switch, and monitors suggested from the case.",
       "legacy": "Legacy",
       "legacyHint": "Every monitor, grouped by what it tells you."
@@ -996,15 +1006,15 @@
     "equipmentScreen": {
       "title": "Equipment tab",
       "desc": "How the equipment section of the intraoperative record looks. You can change it at any time.",
-      "smart": "Smart selection",
-      "smartHint": "A set-up checklist. The tube and LMA can be marked in use, which charts them in Airway.",
+      "smart": "Smart view",
+      "smartHint": "Suggested sizes compared with the Airway record, plus an optional preparation reference.",
       "legacy": "Legacy",
       "legacyHint": "The list of calculated equipment as it was."
     },
     "techniqueScreen": {
       "title": "Technique tab",
       "desc": "How the technique section of the intraoperative record looks. You can change it at any time.",
-      "smart": "Smart selection",
+      "smart": "Smart view",
       "smartHint": "Search, the preop plan, your usual techniques, and the side of a block.",
       "legacy": "Legacy",
       "legacyHint": "The list you drill down through, as it was."
@@ -1012,10 +1022,26 @@
     "eventsScreen": {
       "title": "Event selector",
       "desc": "How the list of events looks when you tap a slot on the timeline. You can change it at any time.",
-      "smart": "Smart selection",
+      "smart": "Smart view",
       "smartHint": "One quiet list with likely next events, searchable by the words colleagues use.",
       "legacy": "Legacy",
       "legacyHint": "The coloured buttons, as they were."
+    },
+    "fluidsScreen": {
+      "title": "Fluid status tab",
+      "desc": "How the fluid status section looks in the intraoperative record. You can change it at any time.",
+      "smart": "Hybrid summary",
+      "smartHint": "A compact read-only summary of timetable totals, with urine and blood loss as the only editable measurements.",
+      "legacy": "Legacy",
+      "legacyHint": "The fluid status tab, as it was."
+    },
+    "eventLogScreen": {
+      "title": "Event log",
+      "desc": "How recorded events appear in the intraoperative record. You can change it at any time.",
+      "smart": "Timeline stream",
+      "smartHint": "The same chronological log with lightweight filters for vitals, events, labs, and complications.",
+      "legacy": "Legacy",
+      "legacyHint": "The event log, as it was."
     }
   },
   "admin": {
@@ -1606,6 +1632,7 @@
       "ventControlled": "Controlled",
       "ventJet": "Jet ventilation",
       "notApplicable": "N/A",
+      "clearRecorded": "Selecting No airway intervention will clear the recorded airway devices and instruments. Continue?",
       "sizePlaceholder": "— size",
       "notesLabel": "Airway notes",
       "notesPlaceholder": "No patient-identifying information — difficult airway plan, technique used, Cormack–Lehane grade at laryngoscopy, complications during intubation…",
@@ -1641,6 +1668,12 @@
     },
     "complicationsNotesPlaceholder": "No patient-identifying information — additional notes…",
     "eventLog": "Event log",
+    "eventLogFilterAll": "All",
+    "eventLogFilterVitals": "Vitals",
+    "eventLogFilterEvents": "Events",
+    "eventLogFilterLabs": "Labs",
+    "eventLogFilterComplications": "Complications",
+    "eventLogShowing": "Showing {count} entries",
     "deleteEvent": "Delete event",
     "documented": "Documented",
     "cvkSite": "Central venous catheter (CVK) site",
@@ -1692,6 +1725,16 @@
       "bolusDrugs": "Bolus drugs",
       "doseCount": "{count, plural, one {# dose} other {# doses}}",
       "fluidBalance": "Fluid balance",
+      "recordedIn": "Input",
+      "recordedHint": "Input, output, blood loss and net balance; timetable totals are read-only.",
+      "output": "Output",
+      "bloodLossSummary": "Blood loss",
+      "netBalance": "Net balance",
+      "notMeasured": "Not measured",
+      "losses": "Blood loss details",
+      "edit": "Edit",
+      "done": "Done",
+      "noCatheterHint": "Add a urinary catheter in Monitoring to record urine output.",
       "tciPump": "(from the pump; the model calculates {calculated} {unit})",
       "tciCalculated": "(calculated by the TCI model)",
       "tciPumpNeedsStrength": "(the pump total is in mL but no syringe strength was recorded, so the model's amount is used)",
@@ -1702,10 +1745,12 @@
     "colloids": "Colloids (mL)",
     "bloodTransfusion": "Blood products transfusion (mL)",
     "drugInfusions": "Drug infusions (mL)",
-    "totalIn": "Total in (mL)",
+      "totalIn": "Input (mL)",
     "urineOutput": "Urine output (mL)",
     "bloodLoss": "Estimated blood loss (mL)",
+    "bloodLossOptionalHint": "Optional — the case can be completed without it.",
     "complicationsSection": "Complications & Event Log",
+    "complicationsSummaryTitle": "Complications summary",
     "complicationsPlaceholder": "No patient-identifying information — additional notes…",
     "continuePostop": "Continue to Postoperative",
     "techniquePicker": {
@@ -1919,7 +1964,8 @@
       "autoEndedNotice": "This case was ended automatically 48 hours after it started. Resume it if it is still running.",
       "vitalNotNow": "Not now",
       "vitalLogIt": "Log it",
-      "suggestionOpen": "Open"
+      "suggestionOpen": "Open",
+      "suggestionDismiss": "Dismiss"
     },
     "allergiesUnchecked": "Not checked against drugs automatically:",
     "sidebar": {
@@ -1946,6 +1992,18 @@
     "suggestions": {
       "open": "Open",
       "notNow": "Not now",
+      "dismiss": "Dismiss",
+      "contextYes": "Yes",
+      "contextNo": "No",
+    "contextChooseKind": "Choose sedation or general anaesthesia",
+    "contextSedation": "Sedation",
+    "contextGeneral": "General anaesthesia",
+      "contextChooseTechnique": "Choose the exact technique",
+      "contextChooseSide": "Choose the side",
+      "contextChooseAirway": "Was an airway device introduced?",
+      "contextRecord": "Record",
+      "contextReviewAirway": "Review airway record",
+      "contextTime": "Clinical time",
       "done": "Done",
       "minimise": "Minimise",
       "yes": "Yes",
@@ -2024,7 +2082,7 @@
       "inPlace": "In place",
       "none": "No airway device yet. Pick one below, or chart it on the timeline.",
       "addDevice": "Add a device",
-      "moreDevices": "More devices ▾",
+      "moreDevices": "Other airway devices ({count}) ▾",
       "via": "via {tools}",
       "reintubate": "Reintubate",
       "exchange": "Exchange",
@@ -2087,7 +2145,7 @@
       "add": "Add",
       "hide": "Hide this suggestion",
       "turnOff": "Turn off",
-      "more": "More monitors…",
+      "more": "More monitors ({count})…",
       "fewer": "Fewer monitors",
       "due": "reading due",
       "noReading": "no reading yet",
@@ -2101,7 +2159,7 @@
       "groupHeart": "Heart and circulation",
       "groupBreathing": "Breathing",
       "groupBrain": "Brain and depth",
-      "groupMuscle": "Muscle",
+      "groupMuscle": "Neuromuscular relaxation",
       "groupTemperature": "Temperature and output"
     },
     "equipmentSmart": {
@@ -2109,7 +2167,30 @@
       "glance": "Airway, the six numbers",
       "choose": "Choose",
       "ready": "Ready",
-      "inUse": "In use"
+      "inUse": "In use",
+      "suggestedRecorded": "Suggested and recorded",
+      "suggestedRecordedHint": "Calculated guidance compared with what is actually recorded.",
+      "matchedShort": "matched",
+      "suggested": "Suggested",
+      "actual": "Actual",
+      "documented": "Documented",
+      "cuffedValue": "cuffed",
+      "uncuffedValue": "uncuffed",
+      "matched": "Matches",
+      "recordedIncomplete": "Recorded · details missing",
+      "different": "Different from suggestion",
+      "notRecorded": "Not recorded",
+      "prepared": "Prepared",
+      "referenceOnly": "Reference only",
+      "recordInAirway": "Record in Airway",
+      "markInPlace": "Mark in place",
+      "removeFromRecord": "Remove from record",
+      "detailsMissing": "The device is recorded, but size/cuff details are not complete.",
+      "differentHint": "Review the actual device in Airway; the calculation is only a suggestion.",
+      "preparation": "Preparation reference",
+      "preparationHint": "Optional reminders. They do not mean the item was used.",
+      "clinicalReference": "Clinical reference",
+      "clinicalReferenceHint": "Calculated values for orientation; nothing here is logged by tapping."
     },
     "techniqueSmart": {
       "inUse": "In use",
@@ -2135,7 +2216,7 @@
       "likely": "Likely now",
       "all": "All events",
       "log": "Log",
-      "dismiss": "Not now",
+      "dismiss": "Dismiss",
       "usually": "Usually after {from}, {percent}% of cases",
       "search": "Search events"
     }

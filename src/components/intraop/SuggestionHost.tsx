@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { useLocale, useTranslations } from "next-intl"
 import { X } from "lucide-react"
 import {
@@ -22,6 +23,7 @@ import { clinicalDisplayLabel } from "@lospor/core/display"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import type { WebIntraopAttention } from "@/lib/use-intraop-attention"
 import { SuggestionCardPanel, type SuggestionRowRequest } from "./SuggestionCardPanel"
+import { ContextLinkPanel } from "./ContextLinkPanel"
 
 /**
  * What the chart offers a suggestion (10.2.0): its own sheets, prefilled.
@@ -99,7 +101,7 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
   const miniPanel = mini && (
     <div data-testid={`suggestion-mini-${mini.kind}`}
       style={{ top: Math.min(mini.rect.bottom + 4, (typeof window !== "undefined" ? window.innerHeight : 800) - 200), left: Math.max(8, mini.rect.left - 220) }}
-      className="fixed z-[60] w-64 rounded-lg border border-slate-200 dark:border-[#333] bg-white dark:bg-[#1b1b1b] shadow-xl p-2 space-y-1">
+      className="fixed z-[90] w-64 rounded-lg border border-slate-200 dark:border-[#333] bg-white dark:bg-[#1b1b1b] shadow-xl p-2 space-y-1">
       {mini.kind === "deepen" && (() => {
         const targets = sheets.deepenTargets()
         if (targets.length === 0) return <p className="text-xs text-slate-500">{t("deepenNothing")}</p>
@@ -140,7 +142,7 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
 
   if (card) {
     const context = { log, patient: suggestions.patient, preop: suggestions.preop, complication: card.complication, tofMonitor: suggestions.tofMonitor }
-    return (
+    const panel = (
       <>
         <SuggestionCardPanel
           card={card.card}
@@ -163,10 +165,22 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
         {miniPanel}
       </>
     )
+    // Suggestions are a chart-level overlay, not a child of the timetable
+    // grid. Portalling the rail to body prevents a desktop sidebar or a
+    // scroll/overflow ancestor from sitting above its controls and stealing
+    // clicks from the clinician.
+    return typeof document === "undefined" ? null : createPortal(panel, document.body)
   }
 
   if (!entry?.suggestion) return null
-  return <FollowUpPanel entry={entry} attention={attention} sheets={sheets} context={suggestions} onClose={close} />
+  if (entry.suggestion.item.type === "context") {
+    return typeof document === "undefined"
+      ? null
+      : createPortal(<ContextLinkPanel key={entry.key} entry={entry} attention={attention} sheets={sheets} onClose={close} />, document.body)
+  }
+  return typeof document === "undefined"
+    ? null
+    : createPortal(<FollowUpPanel entry={entry} attention={attention} sheets={sheets} context={suggestions} onClose={close} />, document.body)
 }
 
 /** A follow-up, reminder or lab suggestion opened from its line: what it says and what it offers. */
@@ -181,7 +195,7 @@ function FollowUpPanel({ entry, attention, sheets, context, onClose }: {
   const locale = useLocale()
   const item = entry.suggestion!.item
   const tag = `${item.type}:${entry.key}`
-  const button = "text-sm px-3 py-1.5 rounded-full border border-emerald-400 text-emerald-700 dark:text-emerald-300"
+  const button = "pointer-events-auto text-sm px-3 py-1.5 rounded-full border border-emerald-400 text-emerald-700 dark:text-emerald-300"
   const drug = (name: string, amount: number | "catalogue" | null = "catalogue", unit?: string) => (event: React.MouseEvent<HTMLButtonElement>) => {
     sheets.openDrug({ name, mode: "bolus", rect: event.currentTarget.getBoundingClientRect(), amount, unit, suggestion: tag })
     onClose()
@@ -221,17 +235,17 @@ function FollowUpPanel({ entry, attention, sheets, context, onClose }: {
   }
   void context
   return (
-    <aside role="dialog" data-testid="suggestion-follow-up"
-      className="fixed right-4 top-24 z-50 w-[min(24rem,calc(100%-2rem))] rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] shadow-2xl p-3 space-y-3">
+    <aside role="dialog" aria-modal="false" data-testid="suggestion-follow-up"
+      className="pointer-events-none fixed right-4 top-24 z-[80] w-[min(24rem,calc(100%-2rem))] rounded-xl border border-slate-200 dark:border-[#333] bg-white dark:bg-[#161616] shadow-2xl p-3 space-y-3">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm font-semibold break-words">
           {entry.time ? `${entry.time} · ` : ""}{intraopAttentionText(entry, locale)}
         </p>
-        <button type="button" onClick={onClose} aria-label={t("minimise")} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4" /></button>
+        <button type="button" style={{ pointerEvents: "auto" }} onClick={onClose} aria-label={t("minimise")} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex flex-wrap gap-2">{offers}</div>
       <div className="flex justify-end">
-        <button type="button" data-testid="follow-up-not-now" disabled={!attention.canAnswer}
+        <button type="button" style={{ pointerEvents: "auto" }} data-testid="follow-up-not-now" disabled={!attention.canAnswer}
           onClick={() => { attention.answer(entry.key, "not_now"); onClose() }}
           className="text-xs px-3 py-1.5 rounded-full border border-red-300 text-red-500">{t("notNow")}</button>
       </div>

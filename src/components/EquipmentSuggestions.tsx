@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl"
 import {
   calcEquipment,
 } from "@lospor/core/equipment"
+import type { AirwayDeviceEntry } from "@lospor/core/airway-device-entries"
 import type { ClinicalMode } from "@lospor/core/pediatric"
 import { broselowZone } from "@lospor/core/broselow"
 import { BroselowBadge } from "@/components/BroselowBadge"
@@ -23,11 +24,13 @@ interface Props {
   neckMobility?: string | null
   mouthOpeningCm?: number | null
   cormackLehane?: string | null
-  /** Smart selection (10.2.0): the list as a set-up checklist. Without it this is the Legacy card. */
+  /** Smart selection (10.2.0): recorded clinical state plus a persisted preparation reference. */
   smart?: {
     flags: EquipmentFlagState
-    airwayInUse: readonly string[]
+    airwayEntries: readonly AirwayDeviceEntry[]
+    prepared: Readonly<Record<string, boolean>>
     onFlag: (field: "urinaryCatheter" | "stomachTube") => void
+    onPreparedChange: (key: string, value: boolean) => void
     onUseAirway: (device: "ORAL_ETT" | "LMA") => void
   }
 }

@@ -59,13 +59,16 @@ async function events(request: APIRequestContext, caseId: string): Promise<Recor
 
 /** The phone opens on its first tab; the questions and the rows live on the timetable. */
 async function timetable(page: Page, locale: Locale) {
-  await page.getByText(locale === "bg" ? "График" : "Timetable", { exact: true }).first().click()
+  await page.getByText(locale === "bg" ? "Времева линия" : "Timetable", { exact: true }).first().click()
   await page.waitForTimeout(600)
 }
 
 /** Opens the current slot, unless a save has left it open already. */
 async function nowSlot(page: Page) {
-  if (await page.getByTestId("timetable-quick-add-event").count() === 0) await page.getByTestId("timetable-row-now").click()
+  // The PWA draws the live now-line inside this row and updates its position
+  // continuously. A normal Playwright click waits for a stable bounding box
+  // forever even though the TouchableOpacity itself is the intended target.
+  if (await page.getByTestId("timetable-quick-add-event").count() === 0) await page.getByTestId("timetable-row-now").click({ force: true })
   await page.getByTestId("timetable-quick-add-event").click()
 }
 
@@ -129,8 +132,11 @@ for (const locale of LOCALES) {
       await phone.context.close()
 
       // ── Phone: End at, for a case charted three days later ──
-      const start = new Date(Date.now() - 3 * 86_400_000)
-      start.setUTCHours(7, 0, 0, 0)
+      // Pick three calendar days back in the case zone. Subtracting 72 UTC
+      // hours crosses the wrong local date when the run starts near midnight.
+      const start = new Date()
+      start.setDate(start.getDate() - 3)
+      start.setHours(9, 0, 0, 0)
       const caseB = await startedCase(web.request, start.toISOString())
       const late = await phoneIn(browser, web.request, locale)
       await openPhoneIntraop(late.page, caseB, locale)

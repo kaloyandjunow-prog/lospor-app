@@ -5,6 +5,14 @@ import type { TechniqueSide } from "@lospor/core/technique-smart"
 import type { TechniqueNode } from "@/components/TechniqueTree"
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key, useLocale: () => "en" }))
+vi.mock("@/lib/clinical-display", () => ({
+  displayClinicalCode: (_axis: string, code: string) => ({
+    GENERAL: "General Anaesthesia",
+    GENERAL_INHALATION: "General Anaesthesia · Inhalational",
+    GENERAL_BALANCED: "General Anaesthesia · Balanced (inhaled + IV)",
+    BLOCK_TAP: "Regional Anaesthesia · TAP block",
+  }[code] ?? code),
+}))
 
 import { TechniqueSmart } from "./TechniqueSmart"
 
@@ -76,6 +84,18 @@ describe("Smart selection, the Technique section (10.2.0)", () => {
     const { onChange } = setup({ recents: ["SPINAL_SINGLE_LUMBAR", "BLOCK_TAP"] })
     fireEvent.click(screen.getByTestId("technique-recent-BLOCK_TAP"))
     expect(onChange).toHaveBeenCalledWith(["GENERAL_BALANCED", "BLOCK_TAP"], {}, ["BLOCK_TAP"])
+  })
+
+  it("keeps usual-technique pills to the leaf name because the breadcrumb has the path", () => {
+    setup({ recents: ["GENERAL_BALANCED"] })
+    expect(screen.getByTestId("technique-recent-GENERAL_BALANCED").textContent).toBe("Balanced (inhaled + IV)")
+  })
+
+  it("keeps browse rows to their local label while retaining the full path for assistive technology", () => {
+    setup({ techniques: [] })
+    fireEvent.click(screen.getByTestId("technique-node-GENERAL"))
+    expect(screen.getByTestId("technique-leaf-GENERAL_INHALATION").textContent).toBe("Inhalational")
+    expect(screen.getByTestId("technique-leaf-GENERAL_INHALATION").getAttribute("aria-label")).toBe("General Anaesthesia · Inhalational")
   })
 
   it("opens the full list in place under a group and picks a leaf", () => {

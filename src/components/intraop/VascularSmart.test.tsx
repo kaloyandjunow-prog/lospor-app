@@ -79,6 +79,18 @@ describe("Smart selection, the Vascular access tab (10.2.0)", () => {
     expect(saved(onChange)[0]).toMatchObject({ site: "CVK_IJV", sizeUnit: "Fr", size: "8", lumens: "2", depthCm: "14" })
   })
 
+  it("collapses a selected kind when clicked again and charts CVC in on confirmation", () => {
+    const onEvent = vi.fn()
+    setup({ onEvent })
+    fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
+    expect(screen.getByTestId("vascular-smart-panel")).toBeTruthy()
+    fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
+    expect(screen.queryByTestId("vascular-smart-panel")).toBeNull()
+    fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
+    fireEvent.click(screen.getByTestId("vascular-smart-add"))
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "CVC in", ts: START, intraopPatch: expect.objectContaining({ vascularAccesses: expect.any(Array) }) }))
+  })
+
   it("adds more than one line, and Failed keeps both: the first struck through, the second in place", () => {
     const first: VascularLine = { id: "v1", site: "VEN_PERIPHERAL", siteLabel: "Venous › Peripheral IV", size: "18", sizeUnit: "G", insertedAt: START }
     const { onChange } = setup({ lines: [first] })

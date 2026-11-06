@@ -66,6 +66,8 @@ export const schema = z.object({
   airwayDevices:   z.array(z.string()).catch([]).default([]),
   // 10.2.0: each airway device its own entry, a failed or replaced one kept (core airway-device-entries).
   airwayDeviceEntries: z.array(z.record(z.string(), z.unknown())).catch([]).optional(),
+  // Smart Equipment preparation markers are not clinical use records.
+  equipmentPrepared: z.record(z.string(), z.boolean()).catch({}).optional(),
   // Why this case has no airway device of its own. Both were useState here and
   // nowhere else: they relaxed the finalisation gate and were then thrown away,
   // so the saved record showed no airway device and no reason for it.

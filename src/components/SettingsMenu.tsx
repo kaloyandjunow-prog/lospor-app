@@ -30,9 +30,12 @@ import { MonitoringScreenSetting } from "@/components/settings/MonitoringScreenS
 import { EquipmentScreenSetting } from "@/components/settings/EquipmentScreenSetting"
 import { TechniqueScreenSetting } from "@/components/settings/TechniqueScreenSetting"
 import { EventsScreenSetting } from "@/components/settings/EventsScreenSetting"
+import { FluidScreenSetting } from "@/components/settings/FluidScreenSetting"
+import { EventLogScreenSetting } from "@/components/settings/EventLogScreenSetting"
 import { BulgarianNamesSettings } from "@/components/settings/BulgarianNamesSettings"
 import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
+import { OverflowCueScroll } from "@/components/ui/OverflowCueScroll"
 
 type Category = "ui" | "units" | "automation" | "access" | "privacy"
 
@@ -495,7 +498,13 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6">
+              <OverflowCueScroll
+                className="flex-1"
+                contentClassName="h-full px-6"
+                testId="settings-content"
+                startLabel={t("settings.scrollUp")}
+                endLabel={t("settings.scrollDown")}
+              >
                 {category === "ui" && (
                   <>
                     <SettingRow label={t("settings.theme")}>
@@ -515,7 +524,6 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     </SettingRow>
 
                     <EnergyKnobSkinSetting />
-
                     <AirwayScreenSetting />
 
                     <VascularScreenSetting />
@@ -523,6 +531,8 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     <EquipmentScreenSetting />
                     <TechniqueScreenSetting />
                     <EventsScreenSetting />
+                    <FluidScreenSetting />
+                    <EventLogScreenSetting />
 
                     {/* The case screens (10.0.0): the sidebar first, which overrides
                         the rest; without it, each screen sectioned or scrollable. */}
@@ -814,7 +824,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     </div>
                   </div>
                 )}
-              </div>
+              </OverflowCueScroll>
             </div>
           </div>
         </div>

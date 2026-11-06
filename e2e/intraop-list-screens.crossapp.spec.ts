@@ -1,6 +1,6 @@
 import path from "path"
 import { mkdirSync } from "fs"
-import { test, type APIRequestContext, type Page } from "@playwright/test"
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test"
 import { contextFor, JSON_HEADERS } from "./roles"
 import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop } from "./pwa"
@@ -37,6 +37,7 @@ function outDir(kind: "web" | "phone") {
 }
 
 async function shot(page: Page, kind: "web" | "phone", name: string, fullPage = false) {
+  await expect(page.getByText("Loading draft…", { exact: true })).toHaveCount(0, { timeout: 30_000 })
   await page.waitForTimeout(900)
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" }).catch(() => {})
   await page.screenshot({ path: path.join(outDir(kind), `${name}.png`), fullPage })

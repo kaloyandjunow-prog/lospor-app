@@ -86,7 +86,7 @@ export async function openPhonePreop(
 
 const INTRAOP_LABELS = {
   en: { title: "Intraoperative", timetable: "Timetable" },
-  bg: { title: "Интраоперативно", timetable: "График" },
+  bg: { title: "Интраоперативно", timetable: "Времева линия" },
 }
 
 /** Opens the real PWA intraoperative surface and waits for server hydration. */

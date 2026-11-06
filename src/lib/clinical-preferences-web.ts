@@ -11,6 +11,8 @@ import {
 import { setBulgarianNameSwitches } from "@lospor/core/display"
 import { CLINICAL_PREFERENCES_SNAPSHOT_KEY as SNAPSHOT_KEY } from "./bulgarian-names-web"
 const DIRTY_KEY = "losporClinicalPreferencesDirtyV1"
+const OWNER_KEY = "losporClinicalPreferencesOwnerV1"
+const QUARANTINE_KEY = "losporClinicalPreferencesQuarantineV1"
 const LEGACY_KEYS = [
   "heightUnit",
   "weightUnit",
@@ -22,11 +24,52 @@ const LEGACY_KEYS = [
   "autoFillBackground",
 ] as const
 
-export function clearWebClinicalPreferences(): void {
-  if (typeof window === "undefined") return
+// The browser is shared in hospitals.  Do not let a local snapshot become the
+// identity of whoever signs in next; the server account is the authority.
+let activeOwnerId: string | null = null
+
+function clearStoredPreferenceValues(): void {
   localStorage.removeItem(SNAPSHOT_KEY)
   localStorage.removeItem(DIRTY_KEY)
   for (const key of LEGACY_KEYS) localStorage.removeItem(key)
+}
+
+function prepareOwner(ownerId: string): void {
+  const storedOwner = localStorage.getItem(OWNER_KEY)
+  if (storedOwner !== ownerId) {
+    const oldSnapshot = localStorage.getItem(SNAPSHOT_KEY)
+    const oldDirty = localStorage.getItem(DIRTY_KEY)
+    if (oldSnapshot || oldDirty) {
+      // Preserve the previous account's device copy without making it active
+      // for the new account.  It can be recovered or discarded explicitly by
+      // a later cache-management flow.
+      localStorage.setItem(QUARANTINE_KEY, JSON.stringify({
+        owner: storedOwner,
+        snapshot: oldSnapshot,
+        dirty: oldDirty,
+      }))
+    }
+    clearStoredPreferenceValues()
+  }
+  localStorage.setItem(OWNER_KEY, ownerId)
+  activeOwnerId = ownerId
+}
+
+export function setWebClinicalPreferencesOwner(ownerId: string | null): void {
+  if (!ownerId) {
+    activeOwnerId = null
+    clearStoredPreferenceValues()
+    localStorage.removeItem(OWNER_KEY)
+  } else {
+    prepareOwner(ownerId)
+  }
+}
+
+export function clearWebClinicalPreferences(): void {
+  if (typeof window === "undefined") return
+  clearStoredPreferenceValues()
+  localStorage.removeItem(OWNER_KEY)
+  activeOwnerId = null
 }
 
 function readPendingPatch(): ClinicalPreferencesPatch | null {
@@ -62,6 +105,9 @@ function readSnapshot(): ClinicalPreferences | null {
 
 export function readWebClinicalPreferences(): ClinicalPreferences {
   if (typeof window === "undefined") return normalizeClinicalPreferences({})
+  if (!activeOwnerId || localStorage.getItem(OWNER_KEY) !== activeOwnerId) {
+    return normalizeClinicalPreferences({})
+  }
   return readSnapshot() ?? normalizeClinicalPreferences({
     heightUnit: localStorage.getItem("heightUnit"),
     weightUnit: localStorage.getItem("weightUnit"),
@@ -78,6 +124,7 @@ export function writeWebClinicalPreferences(
   preferences: ClinicalPreferences,
 ): void {
   if (typeof window === "undefined") return
+  if (!activeOwnerId) return
   const normalized = normalizeClinicalPreferences(preferences)
   localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(normalized))
   setBulgarianNameSwitches(normalized.bulgarianNames)
@@ -121,13 +168,21 @@ async function pushPreferences(
 }
 
 export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences> {
-  const local = readWebClinicalPreferences()
-  const dirtyRaw = localStorage.getItem(DIRTY_KEY)
-  const pending = readPendingPatch()
   try {
     const response = await fetch("/api/user", { cache: "no-store" })
-    if (!response.ok) return local
-    const data = await response.json() as { preferences?: unknown }
+    if (!response.ok) {
+      if (response.status === 401) setWebClinicalPreferencesOwner(null)
+      return activeOwnerId ? readWebClinicalPreferences() : normalizeClinicalPreferences({})
+    }
+    const data = await response.json() as { id?: unknown; preferences?: unknown }
+    if (typeof data.id !== "string" || !data.id) {
+      setWebClinicalPreferencesOwner(null)
+      return normalizeClinicalPreferences({})
+    }
+    prepareOwner(data.id)
+    const local = readWebClinicalPreferences()
+    const dirtyRaw = localStorage.getItem(DIRTY_KEY)
+    const pending = readPendingPatch()
     const merged = dirtyRaw === "true"
       ? applyClinicalPreferencesPatch(
           mergeClinicalPreferences(data.preferences, local),
@@ -145,13 +200,15 @@ export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences>
     }
     return merged
   } catch {
-    return local
+    return activeOwnerId ? readWebClinicalPreferences() : normalizeClinicalPreferences({})
   }
 }
 
 export async function patchWebClinicalPreferences(
   patch: ClinicalPreferencesPatch,
 ): Promise<ClinicalPreferences> {
+  if (!activeOwnerId) await syncWebClinicalPreferences()
+  if (!activeOwnerId) return normalizeClinicalPreferences({})
   const next = applyClinicalPreferencesPatch(
     readWebClinicalPreferences(),
     patch,

@@ -1937,13 +1937,13 @@ export function IntraopTimetable({
           searchEvents: t("intraop.timetable.searchEvents"),
         }}
         onSearchChange={setEvSearch}
-        onToggleEvent={(event, category, recorded) => {
+        onToggleEvent={(event, category, recorded, suggestion) => {
           const ci = eventPicker.ci
           setEventPicker(null)
           if (recorded) removeClinicalEvent(ci, event.label)
           // 10.2.0: a tourniquet asks where on the body first.
           else if (event.label === "Tourniquet on" || event.label === "Tourniquet off") setTourniquetPicker({ col: ci, label: event.label, color: event.color })
-          else addClinicalEvent(ci, event.label, event.color, category.isComplication)
+          else addClinicalEvent(ci, event.label, event.color, category.isComplication, suggestion)
         }}
         onDismiss={() => setEventPicker(null)}
       />

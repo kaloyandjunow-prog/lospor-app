@@ -12,13 +12,16 @@ import {
   addAirwayDevice,
   airwayAsks,
   airwayAsksHow,
+  airwayClinicalEvent,
   airwayHowOrder,
+  airwayRecordFields,
   resolveAirwayTime,
   suggestedAirwayDetails,
   type AirwayPatient,
   type AirwayTimeChoice,
 } from "@lospor/core/airway-smart"
 import { instantFromLocalTime, localTimeOf } from "@lospor/core/intraop-time"
+import { clinicalRecordId } from "@lospor/core/clinical-record-id"
 
 /**
  * The one panel Smart selection adds a device with (10.2.0): size and cuff
@@ -33,16 +36,20 @@ export type AirwaySmartRequest = {
   /** The time the timeline cell stands for, when opened from the timeline. */
   at?: string | null
   source: "tab" | "timeline"
+  eventId?: string
+  eventLabel?: string
   /** The device being taken out, and why: Reintubate and Exchange. */
   replaces?: { id: string; reason: AirwayExchangeReason } | null
 }
+
+export type AirwaySmartChartEvent = { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }
 
 const WHY: readonly Exclude<AirwayExchangeReason, "reintubation">[] = ["failed_device", "planned", "unplanned_extubation"]
 
 type Details = Record<string, string | number | boolean | null | undefined>
 
 export function AirwaySmartPanel({
-  request, entries, patient, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, onSave, onClose,
+  request, entries, patient, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, toolCodes, onSave, onClose,
 }: {
   request: AirwaySmartRequest
   entries: readonly AirwayDeviceEntry[]
@@ -53,7 +60,8 @@ export function AirwaySmartPanel({
   difficultAirway: boolean
   deviceLabel: (code: string) => string
   toolLabel: (code: string) => string
-  onSave: (next: AirwayDeviceEntry[]) => void
+  toolCodes?: readonly string[]
+  onSave: (next: AirwayDeviceEntry[], event?: AirwaySmartChartEvent) => void
   onClose: () => void
 }) {
   const t = useTranslations("intraop.airwaySmart")
@@ -83,12 +91,19 @@ export function AirwaySmartPanel({
   function save() {
     if (request.replaces && !reason) return
     const at = instant()
-    const id = `airway-${Date.parse(at)}-${entries.length + 1}`
+    const id = clinicalRecordId("airway", at)
     const kept = Object.fromEntries(asks.filter(ask => details[ask.field] !== undefined && details[ask.field] !== "").map(ask => [ask.field, details[ask.field]]))
-    onSave(addAirwayDevice(entries, {
+    const next = addAirwayDevice(entries, {
       id, device: request.device, details: kept, insertedAt: at, instruments: how,
       replaces: request.replaces ? { id: request.replaces.id, reason: reason ?? request.replaces.reason } : null,
-    }))
+    })
+    const priorTrachealTube = entries.some(entry => entry.device === "ORAL_ETT" || entry.device === "NASAL_ETT")
+    const eventLabel = request.source === "timeline"
+      ? request.eventLabel ?? null
+      : airwayClinicalEvent(request.device, { replaces: !!request.replaces, priorTrachealTube })
+    onSave(next, eventLabel
+      ? { ...(request.eventId ? { id: request.eventId } : {}), label: eventLabel, ts: at, intraopPatch: airwayRecordFields(next) }
+      : undefined)
   }
 
   const pill = (active: boolean) => `px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${active
@@ -145,7 +160,7 @@ export function AirwaySmartPanel({
         <div className="space-y-1.5">
           {label(t("how"))}
           <div className="flex flex-wrap gap-2">
-            {airwayHowOrder(difficultAirway).map(code => (
+            {airwayHowOrder(difficultAirway, toolCodes).map(code => (
               <button key={code} type="button" data-testid={`airway-smart-how-${code}`} className={pill(how.includes(code))}
                 onClick={() => setHow(prev => prev.includes(code) ? prev.filter(item => item !== code) : [...prev, code])}>
                 {toolLabel(code)}

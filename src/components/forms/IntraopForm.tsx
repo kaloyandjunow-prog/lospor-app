@@ -8,7 +8,7 @@ import { useLikelyEvents, useSuggestionContext, useVitalQuestionContext } from "
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
 import { AirwayExchangeDialog } from "@/components/intraop/AirwayExchangeDialog"
 import { accessKindOf, replaceFailedLine, vascularLineText, type AccessKind, type VascularLine } from "@lospor/core/vascular-access-lines"
-import { airwayDeviceEntriesOf, legacyFieldsFromEntries, type AirwayDeviceEntry, type AirwayExchangeReason } from "@lospor/core/airway-device-entries"
+import { airwayDeviceEntriesOf, type AirwayDeviceEntry, type AirwayExchangeReason } from "@lospor/core/airway-device-entries"
 import { cardEventOps } from "@lospor/core/intraop-suggestions"
 import type { LogEvent as CoreLogEvent } from "@lospor/core/intraop-types"
 import { serverNow } from "@/lib/intraop-clock"
@@ -18,7 +18,7 @@ import { totalsProvisional } from "@lospor/core/intraop-save-state"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals, infusionsVolumeMl, tciPatientFrom } from "@/lib/intraop-drug-totals"
 import { buildIntraopSubmission, intraopEndCaseValuesNow, intraopTimeErrors } from "@/lib/intraop-submit"
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,15 @@ import type { WeightBasisMap } from "@/lib/infusion-calc"
 import { buildTree as buildTechniqueTree, techniqueDisplayLabel, techniqueIsGeneral, techniqueUsesGas } from "@/components/TechniqueTree"
 import { CaseSidebar, sidebarPatientOf, type CaseStages } from "@/components/forms/CaseSidebar"
 import { broselowZone } from "@lospor/core/broselow"
+import { clinicalRecordId } from "@lospor/core/clinical-record-id"
+
+const AIRWAY_EVENT_COLORS: Record<string, string> = {
+  Intubated: "#6366f1", Reintubation: "#f97316", "LMA in": "#6366f1", "DLT placed": "#6366f1", "Airway exchange": "#f97316",
+  "Mask vent": "#0891b2", "OPA in": "#6366f1", "NPA in": "#6366f1", "Endobronchial tube in": "#6366f1", "Surgical airway in": "#dc2626", "Airway device in": "#6366f1",
+}
+const VASCULAR_EVENT_COLORS: Record<string, string> = {
+  "IV line in": "#a67cff", "Art line in": "#22c55e", "CVC in": "#a67cff", PICC: "#a67cff",
+}
 import { IntraopPreopSummary } from "@/components/intraop/IntraopPreopSummary"
 import { useEndCaseCheck } from "@/components/intraop/EndCaseReadiness"
 import { useAllergyGate } from "@/components/intraop/AllergyGate"
@@ -47,8 +56,9 @@ import {
   airwayAbsentReason,
   airwayDeviceSummary,
 } from "@lospor/core/intraop"
-import { airwayRecordFields, type AirwayPatient } from "@lospor/core/airway-smart"
+import { AIRWAY_EVENT_DEVICE, airwayRecordFields, type AirwayPatient } from "@lospor/core/airway-smart"
 import { localTimeOf } from "@lospor/core/intraop-time"
+import { randomId } from "@/lib/random-id"
 import { AirwaySmart } from "@/components/intraop/AirwaySmart"
 import { AirwaySmartPanel, type AirwaySmartRequest } from "@/components/intraop/AirwaySmartPanel"
 import { useAirwayScreen } from "@/lib/use-airway-screen"
@@ -59,12 +69,14 @@ import { useVascularScreen } from "@/lib/use-vascular-screen"
 import { useMonitoringScreen } from "@/lib/use-monitoring-screen"
 import { useEquipmentScreen } from "@/lib/use-equipment-screen"
 import { useEventsScreen } from "@/lib/use-events-screen"
+import { useFluidsScreen } from "@/lib/use-fluids-screen"
+import { useEventLogScreen } from "@/lib/use-event-log-screen"
 import { EventSelectorContext } from "@/components/intraop/event-selector-context"
 import { useTechniqueScreen } from "@/lib/use-technique-screen"
 import { useRecentTechniques } from "@/lib/use-recent-techniques"
 import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
-import { parseTechniqueSides, type TechniqueSide } from "@lospor/core/technique-smart"
-import { addAirwayDevice, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
+import { parseTechniqueSides, techniquesAfterTciStart, type TechniqueSide } from "@lospor/core/technique-smart"
+import { addAirwayDevice, airwayClinicalEvent, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
 import { MONITORING_READINGS, isRelaxant, monitoringSuggestions } from "@lospor/core/monitoring-smart"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
@@ -209,11 +221,19 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcIbw = ibwResolution.available ? ibwResolution.roundedKg : null
   const calcTbw = preop?.weightKg ?? null
   const [watchedTof, watchedBloodLoss, watchedIntraopLabs] = useWatch({ control, name: ["tofMonitor", "bloodLossMl", "labResults"] })
+  const [watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions] = useWatch({
+    control, name: ["techniques", "techniqueSides", "airwayDevices", "airwayDeviceEntries"],
+  })
   const suggestionFacts = useMemo(() => ({
     idealWeightKg: calcIbw, tofMonitor: watchedTof, bloodLossMl: watchedBloodLoss,
     labs: (watchedIntraopLabs ?? []).map(lab => ({ ...lab, unit: lab.unit ?? "" })),
     startedAt: chartStartedAt ?? null, endedAt: timelineEndedAt ?? null,
-  }), [calcIbw, watchedTof, watchedIntraopLabs, watchedBloodLoss, chartStartedAt, timelineEndedAt])
+    timeZone: timelineZone ?? null,
+    techniques: (watchedTechniquesForSuggestions ?? []) as string[],
+    techniqueSides: (watchedTechniqueSidesForSuggestions ?? {}) as Record<string, "LEFT" | "RIGHT" | "BOTH">,
+    airwayDevices: (watchedAirwayDevicesForSuggestions ?? []) as string[],
+    airwayDeviceEntries: (watchedAirwayEntriesForSuggestions ?? []) as Record<string, unknown>[],
+  }), [calcIbw, watchedTof, watchedIntraopLabs, watchedBloodLoss, chartStartedAt, timelineEndedAt, timelineZone, watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions])
   const suggestionContext = useSuggestionContext(preop, suggestionFacts, readOnly)
   const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly), suggestions: suggestionContext })
 
@@ -252,8 +272,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }, [preop, setValue, timetable.fluids, timetable.infusions])
 
   // Smart monitoring defaults — fire once when technique first selected
-  const watchedTechniques = useWatch({ control, name: "techniques" })
-  const techniques = useMemo(() => watchedTechniques ?? [], [watchedTechniques])
+  const techniques = useMemo(() => (watchedTechniquesForSuggestions ?? []) as string[], [watchedTechniquesForSuggestions])
 
   useEffect(() => {
     if (!techniques.length) return
@@ -267,6 +286,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const mountedRef   = useRef(false)
   // Keep a ref to the latest save function so the unmount effect can call it
   const pendingSaveRef = useRef<(() => void) | null>(null)
+  // A structured airway/vascular action already persists its form patch and
+  // event atomically. The next form snapshot is therefore suppressed once.
+  const atomicAirwayEventPendingRef = useRef(false)
+  const atomicVascularEventPendingRef = useRef(false)
 
   const allValues = useWatch({ control })
   // Watch array fields explicitly so their changes always trigger auto-save
@@ -299,6 +322,15 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return }
     if (!onAutoSave) return
+    // A legacy airway addition carries its structured record and clinical
+    // event through one idempotent event operation. Do not immediately replay
+    // the same snapshot through the slower form PATCH path.
+    if (atomicAirwayEventPendingRef.current || atomicVascularEventPendingRef.current) {
+      atomicAirwayEventPendingRef.current = false
+      atomicVascularEventPendingRef.current = false
+      pendingSaveRef.current = null
+      return
+    }
     const payload = { ...getValues() }
     const save = () => onAutoSave(payload)
     pendingSaveRef.current = save                    // always keep latest snapshot
@@ -336,9 +368,28 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     })
     setValue("presentsIntubated", next.presentsIntubated, { shouldDirty: true })
     setValue("airwayNotApplicable", next.airwayNotApplicable, { shouldDirty: true })
+    if (next.airwayNotApplicable) {
+      // “No airway intervention” is mutually exclusive with every selected
+      // airway device and instrument, including the Smart airway entries.
+      for (const [field, value] of Object.entries(airwayRecordFields([]))) {
+        setValue(field as keyof IntraopFormFields, value as never, { shouldDirty: true })
+      }
+    }
   }
   const setPresentsIntubated = () => applyAirwayAbsentReason("presentsIntubated")
-  const setAirwayNA = () => applyAirwayAbsentReason("airwayNotApplicable")
+  const setAirwayNA = () => {
+    if (!airwayNA) {
+      const values = getValues()
+      const hasRecordedAirway = (values.airwayDevices?.length ?? 0) > 0
+        || (values.airwayDeviceEntries?.length ?? 0) > 0
+        || (values.airwayTools?.length ?? 0) > 0
+      if (hasRecordedAirway && typeof window !== "undefined" && !window.confirm(t("intraop.airway.clearRecorded"))) return
+    }
+    applyAirwayAbsentReason("airwayNotApplicable")
+  }
+  const clearAirwayNotApplicable = () => {
+    if (airwayNA) setValue("airwayNotApplicable", false, { shouldDirty: true })
+  }
   const [timeErrors,           setTimeErrors]           = useState<{ startTime?: boolean; endTime?: boolean }>({})
   const [incompleteItems,      setIncompleteItems]      = useState<string[] | null>(null)
   const [canContinueIncomplete, setCanContinueIncomplete] = useState(true)
@@ -351,6 +402,67 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const monDefaultsApplied      = useRef(false)
   const deviceWasCompleteOnOpen = useRef(false)
   const timelineSectionRef = useRef<HTMLDivElement>(null)
+
+  const chartAirwayEvent = useCallback((event: { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }): boolean => {
+    if (!onEventOps) return false
+    const existing = timelineLog.find(item => item.type === "clinical_event" && (event.id ? item.id === event.id : item.label === event.label && item.ts === event.ts))
+    if (existing) {
+      if (!event.intraopPatch) return false
+      void onEventOps({
+        add: [],
+        update: [{ ...existing, ...event, id: existing.id, recordedAt: serverNow().toISOString() }],
+        remove: [],
+      })
+      return true
+    }
+    void onEventOps({
+      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: AIRWAY_EVENT_COLORS[event.label] ?? "#6366f1", recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
+      update: [], remove: [],
+    })
+    return true
+  }, [onEventOps, timelineLog])
+  const legacyAirwayPatch = useCallback((nextDevices: readonly string[]) => {
+    const values = getValues()
+    return {
+      airwayDevices: [...nextDevices],
+      airwayNotApplicable: false,
+      airwayTools: values.airwayTools ?? [],
+      lmaSize: values.lmaSize ?? null,
+      oralTubeSize: values.oralTubeSize ?? null,
+      oralCuffed: values.oralCuffed ?? null,
+      nasalTubeSize: values.nasalTubeSize ?? null,
+      nasalCuffed: values.nasalCuffed ?? null,
+      dltType: values.dltType ?? null,
+      dltSide: values.dltSide ?? null,
+      dltSize: values.dltSize ?? null,
+      endobronchialSize: values.endobronchialSize ?? null,
+    }
+  }, [getValues])
+  const chartLegacyAirwayDevice = useCallback((device: string, previousDevices: readonly string[], patch?: Record<string, unknown>): boolean => {
+    if (readOnly) return false
+    const label = airwayClinicalEvent(device, {
+      priorTrachealTube: previousDevices.some(item => item === "ORAL_ETT" || item === "NASAL_ETT"),
+    })
+    if (!label) return false
+    const nextDevices = Array.isArray(patch?.airwayDevices) ? patch.airwayDevices.filter((value): value is string => typeof value === "string") : [...previousDevices, device]
+    const eventPatch = { ...legacyAirwayPatch(nextDevices), ...(patch ?? {}), airwayDevices: nextDevices, airwayNotApplicable: false }
+    const added = chartAirwayEvent({ label, ts: serverNow().toISOString(), intraopPatch: eventPatch })
+    if (added) atomicAirwayEventPendingRef.current = true
+    return added
+  }, [chartAirwayEvent, legacyAirwayPatch, readOnly])
+  function chartVascularEvent(event: { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }) {
+    if (!onEventOps) return
+    const existing = timelineLog.find(item => item.type === "clinical_event" && (event.id ? item.id === event.id : item.label === event.label && item.ts === event.ts))
+    if (existing) {
+      if (!event.intraopPatch) return
+      void onEventOps({ add: [], update: [{ ...existing, ...event, id: existing.id, recordedAt: serverNow().toISOString() }], remove: [] })
+      return
+    }
+    void onEventOps({
+      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: VASCULAR_EVENT_COLORS[event.label] ?? "#a67cff", recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
+      update: [], remove: [],
+    })
+  }
 
   function expandAirwayDevice(v: string) {
     const vals = getValues()
@@ -383,9 +495,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     const nextDevices = syncAirwayDeviceSelection(devs, airwayExpandedDevice, complete)
     if (nextDevices !== devs) {
       setValue("airwayDevices", nextDevices)
+      if (complete && !devs.includes(airwayExpandedDevice)) chartLegacyAirwayDevice(airwayExpandedDevice, devs, legacyAirwayPatch([...devs, airwayExpandedDevice]))
     }
     if (complete && !deviceWasCompleteOnOpen.current) setAirwayExpandedDevice(null)
-  }, [_wDltSide, _wDltSize, _wDltType, _wEbSize, _wLmaSize, _wNasalCuffed, _wNasalTubeSize, _wOralCuffed, _wOralTubeSize, airwayExpandedDevice, getValues, setValue])
+  }, [_wDltSide, _wDltSize, _wDltType, _wEbSize, _wLmaSize, _wNasalCuffed, _wNasalTubeSize, _wOralCuffed, _wOralTubeSize, airwayExpandedDevice, chartLegacyAirwayDevice, getValues, legacyAirwayPatch, setValue])
 
   const watchedStartTime = useWatch({ control, name: "startTime" })
   const watchedEndTime = useWatch({ control, name: "endTime" })
@@ -513,7 +626,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
 
   // ── Suggestions (10.2.0): failed lines and the embedded airway picker ──────
-  const [airwayDialog, setAirwayDialog] = useState<{ reason: AirwayExchangeReason | null; at: string; complication?: CoreLogEvent } | null>(null)
+  const [airwayDialog, setAirwayDialog] = useState<{ reason: AirwayExchangeReason | null; at: string; eventId?: string; eventLabel?: string; complication?: CoreLogEvent } | null>(null)
   const suggestionForm = {
     linesOf: (kind: AccessKind) => ((getValues("vascularAccesses") ?? []) as VascularLine[])
       .map((line, index) => ({ line, index }))
@@ -537,17 +650,25 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       && !entries.some(entry => entry.insertedAt === event.ts)
       && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
     for (const event of events) seen.add(event.id)
-    if (fresh) setAirwayDialog({ reason: fresh.label === "Reintubation" ? "reintubation" : null, at: fresh.ts })
+    if (fresh) setAirwayDialog({ reason: fresh.label === "Reintubation" ? "reintubation" : null, at: fresh.ts, eventId: fresh.id, eventLabel: fresh.label })
   }, [timelineLog, readOnly, getValues])
   function saveAirwayExchange(next: AirwayDeviceEntry[]) {
     const dialog = airwayDialog
     setAirwayDialog(null)
     if (!dialog) return
+    const patch = airwayRecordFields(next, (getValues("airwayTools") ?? []) as string[])
+    const hasAtomicEvent = !!onEventOps && (!!dialog.complication || (!!dialog.eventId && !!dialog.eventLabel))
+    if (hasAtomicEvent) atomicAirwayEventPendingRef.current = true
     setValue("airwayDeviceEntries", next as unknown as IntraopFormFields["airwayDeviceEntries"], { shouldDirty: true })
-    for (const [field, value] of Object.entries(legacyFieldsFromEntries(next))) {
+    for (const [field, value] of Object.entries(patch)) {
+      if (field === "airwayDeviceEntries") continue
       setValue(field as keyof IntraopFormFields, (value ?? undefined) as never, { shouldDirty: true })
     }
-    if (dialog.complication) void onEventOps?.(cardEventOps(dialog.complication, "Reintubation", "reintubate", dialog.at, serverNow()))
+    if (dialog.complication && onEventOps) {
+      void onEventOps(cardEventOps(dialog.complication, "Reintubation", "reintubate", dialog.at, serverNow(), { intraopPatch: patch }))
+    } else if (dialog.eventId && dialog.eventLabel) {
+      chartAirwayEvent({ id: dialog.eventId, label: dialog.eventLabel, ts: dialog.at, intraopPatch: patch })
+    }
   }
 
   // ── Smart selection (10.2.0) ────────────────────────────────────────────────
@@ -566,6 +687,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const smartTimeOf = (iso: string) => (timelineZone ? localTimeOf(new Date(iso), timelineZone) : null) ?? iso.slice(11, 16)
   function applyAirwayEntries(next: AirwayDeviceEntry[]) {
     setValue("airwayDeviceEntries", next as unknown as IntraopFormFields["airwayDeviceEntries"], { shouldDirty: true })
+    if (next.length > 0) setValue("airwayNotApplicable", false, { shouldDirty: true })
     for (const [field, value] of Object.entries(airwayRecordFields(next, (getValues("airwayTools") ?? []) as string[]))) {
       if (field === "airwayDeviceEntries") continue
       setValue(field as keyof IntraopFormFields, (value ?? undefined) as never, { shouldDirty: true })
@@ -574,9 +696,10 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const smartProps = {
     patient: smartPatient, startedAt: chartStartedAt ?? null, now: () => serverNow().toISOString(), timeZone: timelineZone ?? null,
     difficultAirway: preop?.mallampati === "III" || preop?.mallampati === "IV", deviceLabel: airwayName, toolLabel: airwayName,
+    availableDevices: airwayDeviceOptions.map(option => option.value), availableTools: airwayToolOptions.map(option => option.value),
   }
   // Intubated, LMA in and DLT placed charted on the timeline open the same panel, with that time already set.
-  const SMART_EVENT_DEVICE: Record<string, string> = { "Intubated": "ORAL_ETT", "LMA in": "LMA", "DLT placed": "DOUBLE_LUMEN_TUBE" }
+  const SMART_EVENT_DEVICE = AIRWAY_EVENT_DEVICE
   const seenSmartEvents = useRef<Set<string> | null>(null)
   useEffect(() => {
     if (readOnly || airwayScreen !== "smart") return
@@ -588,11 +711,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       && !entries.some(entry => entry.insertedAt === event.ts)
       && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
     for (const event of events) seen.add(event.id)
-    if (fresh?.label) setSmartRequest({ device: SMART_EVENT_DEVICE[fresh.label]!, at: fresh.ts, source: "timeline" })
+    if (fresh?.label) setSmartRequest({ device: SMART_EVENT_DEVICE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineLog, readOnly, airwayScreen, getValues])
   const smartNode = airwayScreen === "smart" ? (
-    <AirwaySmart {...smartProps} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)} onChange={applyAirwayEntries}
+    <AirwaySmart {...smartProps} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)} onChange={applyAirwayEntries} onEvent={chartAirwayEvent}
+      onAtomicSave={(next, event) => {
+        atomicAirwayEventPendingRef.current = true
+        applyAirwayEntries(next)
+        chartAirwayEvent(event)
+      }}
       techniques={techniques}
       describe={entry => airwayDeviceSummary(entry.device, entry.details, { device: airwayName, attribute: code => displayClinicalCode("clinicalAttribute", code, locale) }) ?? airwayName(entry.device)}
       timeOf={smartTimeOf} />
@@ -605,7 +733,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   useWatch({ control, name: ["vascularAccesses"] })
   const [vascularRequest, setVascularRequest] = useState<VascularSmartRequest | null>(null)
   const vascularLines = () => ((getValues("vascularAccesses") ?? []) as unknown as VascularLine[])
-  function applyVascularLines(next: VascularLine[]) {
+  function applyVascularLines(next: VascularLine[], event?: { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }) {
+    if (event) atomicVascularEventPendingRef.current = true
     setValue("vascularAccesses", next as unknown as IntraopFormFields["vascularAccesses"], { shouldDirty: true })
   }
   const vascularProps = {
@@ -625,10 +754,11 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       && !lines.some(line => line.insertedAt === event.ts)
       && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
     for (const event of events) seen.add(event.id)
-    if (fresh?.label) setVascularRequest({ ...VASCULAR_EVENT_TYPE[fresh.label]!, at: fresh.ts, source: "timeline" })
+    if (fresh?.label) setVascularRequest({ ...VASCULAR_EVENT_TYPE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
   }, [timelineLog, readOnly, vascularScreen, getValues])
   const vascularNode = vascularScreen === "smart" ? (
-    <VascularSmart {...vascularProps} lines={vascularLines()} onChange={applyVascularLines} techniques={techniques} timeOf={smartTimeOf} />
+    <VascularSmart {...vascularProps} lines={vascularLines()} onChange={applyVascularLines} onEvent={chartVascularEvent}
+      onAtomicSave={(next, event) => { applyVascularLines(next, event); chartVascularEvent(event) }} techniques={techniques} timeOf={smartTimeOf} />
   ) : undefined
 
   // ── Smart selection for monitoring (10.2.0) ─────────────────────────────────
@@ -658,20 +788,28 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   ) : undefined
 
   // ── Smart selection for equipment (10.2.0) ──────────────────────────────────
-  // The calculator list as a set-up checklist. The tube and LMA go to the Airway record when marked in use; the
-  // catheter and NGT set their case flag (what each item does is Core's).
+  // Calculated suggestions compare with the canonical Airway/monitoring record;
+  // preparation markers are persisted separately and never imply clinical use.
   const equipmentScreen = useEquipmentScreen()
-  const [catheterOn, ngtOn] = useWatch({ control, name: ["urinaryCatheter", "stomachTube"] })
+  const [catheterOn, ngtOn, equipmentPrepared] = useWatch({ control, name: ["urinaryCatheter", "stomachTube", "equipmentPrepared"] })
+  const equipmentAirwayEntries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
   const equipmentSmart = equipmentScreen === "smart" && !readOnly ? {
     flags: { urinaryCatheter: !!catheterOn, stomachTube: !!ngtOn },
-    airwayInUse: airwayDeviceEntriesOf(getValues() as Record<string, unknown>).filter(entry => entry.status === "in_use").map(entry => entry.device),
+    airwayEntries: equipmentAirwayEntries,
+    prepared: (equipmentPrepared ?? {}) as Record<string, boolean>,
     onFlag: (field: "urinaryCatheter" | "stomachTube") => setValue(field, !getValues(field), { shouldDirty: true }),
+    onPreparedChange: (key: string, value: boolean) => setValue("equipmentPrepared", { ...(getValues("equipmentPrepared") ?? {}), [key]: value }, { shouldDirty: true }),
     onUseAirway: (device: "ORAL_ETT" | "LMA") => {
       const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
-      applyAirwayEntries(addAirwayDevice(entries, {
-        id: `airway-${Date.now()}-${entries.length + 1}`, device, details: suggestedAirwayDetails(device, smartProps.patient),
+      const next = addAirwayDevice(entries, {
+        id: clinicalRecordId("airway"), device, details: suggestedAirwayDetails(device, smartProps.patient),
         insertedAt: resolveAirwayTime(entries.length === 0 ? "start" : "now", { startedAt: smartProps.startedAt, now: smartProps.now() }),
-      }))
+      })
+      applyAirwayEntries(next)
+      const label = airwayClinicalEvent(device, {
+        priorTrachealTube: entries.some(entry => entry.device === "ORAL_ETT" || entry.device === "NASAL_ETT"),
+      })
+      if (label) chartAirwayEvent({ label, ts: next[next.length - 1]?.insertedAt ?? smartProps.now(), intraopPatch: airwayRecordFields(next) })
     },
   } : undefined
 
@@ -686,6 +824,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     setValue("techniqueSides", sides, { shouldDirty: true })
     recentTechniques.remember(added)
   }
+  function onTimetableChangeWithTci(after: TimetableData) {
+    const beforeIds = new Set((timetable.infusions ?? []).map(infusion => infusion.startEventId ?? infusion.id))
+    const newTci = (after.infusions ?? []).find(infusion =>
+      !beforeIds.has(infusion.startEventId ?? infusion.id)
+      && techniquesAfterTciStart(techniques, infusion.tciModel).length > techniques.length,
+    )
+    const committed = onTimetableChange(after)
+    if (!committed || !newTci) return
+    setValue("techniques", techniquesAfterTciStart(techniques, newTci.tciModel), { shouldDirty: true })
+  }
   const techniqueNode = techniqueScreen === "smart" && !readOnly ? (
     <TechniqueSmart techniques={techniques} sides={techniqueSides} onChange={applyTechniques} tree={techniqueTree}
       planned={preop?.plannedTechniques ?? []} recents={recentTechniques.recents} />
@@ -695,7 +843,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // The new list or the Legacy buttons, and the events likely to come next (only ones not charted yet). What is likely
   // is Core's (event-succession); the timetable's picker reads it from here.
   const eventsScreen = useEventsScreen()
-  const likelyEvents = useLikelyEvents({ log: timelineLog, techniques, child: isPediatric, enabled: !readOnly && eventsScreen === "smart" })
+  const fluidsScreen = useFluidsScreen()
+  const eventLogScreen = useEventLogScreen()
+  const likelyEvents = useLikelyEvents({
+    log: timelineLog,
+    structured: { airway: airwayDeviceEntriesOf(getValues() as Record<string, unknown>), vascular: (getValues("vascularAccesses") ?? []) as unknown as ReadonlyArray<Record<string, unknown>> },
+    techniques,
+    child: isPediatric,
+    enabled: !readOnly && eventsScreen === "smart",
+    onEventOps,
+  })
   const eventSelector = { screen: eventsScreen, likely: likelyEvents.likely, dismiss: likelyEvents.dismiss }
 
   return (
@@ -774,6 +931,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         presentsIntubated={presentsIntubated} showAirway={showAirway} techniquesLength={techniques.length}
         airwayOverride={airwayOverride} setAirwayOverride={setAirwayOverride}
         airwayNA={airwayNA} setAirwayNA={setAirwayNA}
+        onAirwayInterventionSelected={clearAirwayNotApplicable}
+        onAirwayDeviceConfirmed={chartLegacyAirwayDevice}
         airwayExpandedDevice={airwayExpandedDevice} setAirwayExpandedDevice={setAirwayExpandedDevice}
         expandAirwayDevice={expandAirwayDevice}
         smart={smartNode}
@@ -813,7 +972,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setVascularRequest(null)}>
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>
               <VascularSmartPanel {...vascularProps} request={vascularRequest} lines={vascularLines()}
-                onSave={next => { setVascularRequest(null); applyVascularLines(next) }} onClose={() => setVascularRequest(null)} />
+              onSave={(next, event) => { setVascularRequest(null); applyVascularLines(next, event); if (event) chartVascularEvent(event) }} onClose={() => setVascularRequest(null)} />
             </div>
           </div>
         )}
@@ -821,7 +980,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setSmartRequest(null)}>
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>
               <AirwaySmartPanel {...smartProps} request={smartRequest} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)}
-                onSave={next => { setSmartRequest(null); applyAirwayEntries(next) }} onClose={() => setSmartRequest(null)} />
+              onSave={(next, event) => {
+                setSmartRequest(null)
+                if (event) {
+                  atomicAirwayEventPendingRef.current = true
+                }
+                applyAirwayEntries(next)
+                if (event) chartAirwayEvent(event)
+              }} onClose={() => setSmartRequest(null)} />
             </div>
           </div>
         )}
@@ -869,7 +1035,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           ibw={calcIbw}
           tbw={preop?.weightKg ?? null}
           data={timetable}
-          onChange={allergyGate.guard(timetable, suggestionGate.guard(timetable, onTimetableChange))}
+          onChange={allergyGate.guard(timetable, suggestionGate.guard(timetable, onTimetableChangeWithTci))}
           onEndCase={() => {
             const end = intraopEndCaseValuesNow(getValues("timezone"), getValues("startTime"))
             setValue("endTime", end.endTime)
@@ -884,14 +1050,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       </SectionCard>
 
       {/* Drugs and Fluid Balance Totals */}
-      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} provisional={totalsProvisional(timetable, attention.saveState)} />
+      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} provisional={totalsProvisional(timetable, attention.saveState)} screen={fluidsScreen} />
       </div>{/* /intraop-timetable */}
 
         </>)
         const tabFinish = (<>
 
       {/* Complications */}
-      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} />
+      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} eventLogScreen={eventLogScreen} />
 
         </>)
         if (layoutMode === "sidebar") return (

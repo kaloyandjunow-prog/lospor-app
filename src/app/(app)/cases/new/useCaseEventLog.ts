@@ -64,6 +64,24 @@ export function useCaseEventLog(caseIdRef: { current: string | null }, t: (key: 
     setEventLog(prev => applyIntraopEventOps(prev as Parameters<typeof applyIntraopEventOps>[0], ops) as LogEvent[])
     const base = () => autosaveManager.getRevision(caseId, "intraop")
     try {
+      const operationCount = ops.add.length + ops.update.length + ops.remove.length
+      if (operationCount > 1) {
+        await autosaveManager.stageEventMutation({
+          operationId: `web-batch-${randomId()}`,
+          caseId,
+          kind: "event.batch",
+          eventId: `web-batch-${randomId()}`,
+          ops: {
+            add: ops.add as unknown as Record<string, unknown>[],
+            update: ops.update as unknown as Record<string, unknown>[],
+            remove: [...ops.remove],
+          },
+          baseRevision: base(),
+          queuedAt: serverNow().toISOString(),
+        })
+        await settleEventSave(caseId)
+        return
+      }
       for (const eventId of ops.remove) {
         await autosaveManager.stageEventMutation({
           operationId: `web-delete-${randomId()}`, caseId, kind: "event.delete", eventId,

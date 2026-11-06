@@ -63,7 +63,7 @@ continuation first; no session exists until TOTP/recovery verification succeeds.
 | Case detail | `app/(app)/cases/[id].tsx` | Read-only summary, all three sections, action buttons |
 | New case (preop) | `app/(app)/cases/new.tsx` | Full preop form, presence lock, IBW/ABW badges, risk scores |
 | Edit case (preop) | `app/(app)/cases/edit/[id].tsx` | Pre-filled preop form, presence lock |
-| Intraop | `app/(app)/cases/intraop/[id].tsx` | Timetable, gas, airway, monitoring, swipe tabs, end-case flow |
+| Intraop | `app/(app)/cases/intraop/[id].tsx` | Timetable, gas, airway, monitoring, Smart/Legacy selectors, swipe tabs, end-case flow |
 | Postop | `app/(app)/cases/postop/[id].tsx` | Aldrete, recovery vitals, grouped handover checklist, presence lock |
 | Settings | `app/(app)/settings.tsx` | Sign out, language, theme |
 | Audit logs | `app/(app)/audit-logs.tsx` | Paginated audit event list |
@@ -113,14 +113,14 @@ The intraop screen is the most important mobile UX surface. It is designed for a
 
 ### Navigation
 
-The intraop content is divided into tabs navigated by horizontal swipe or by tapping the section rail. The active tab auto-centres in the rail. Tabs include: Timing, Technique, Gas & Airway, Monitoring, Vascular Access, Fluids, Drugs, Timetable, Complications.
+The intraop content is divided into tabs navigated by horizontal swipe or by tapping the section rail. The active tab auto-centres in the rail. Tabs include: Timing, Technique, Gas & Airway, Monitoring, Vascular Access, Fluids, Drugs, Timetable, Complications. Airway, vascular access, monitoring, equipment, technique, and event entry each follow the clinician's Smart or Legacy preference; both modes use the same API fields.
 
 ### Timetable
 
 The timetable is a 5-minute-per-column timeline covering the full case duration.
 
 - **Now-line** — an orange marker advances every 10 seconds, always visible.
-- **Vitals lane** — rows for BP (systolic/diastolic), HR, SpO₂, EtCO₂, temperature. Rows appear based on which monitors are selected. Tapping a filled vitals cell opens a "Change vitals" modal that replaces the existing event (no duplicates).
+- **Vitals lane** — separate rows for NIBP (cuff systolic/diastolic), IBP (arterial systolic/diastolic/MAP), HR, SpO₂, EtCO₂, temperature, BIS, and TOF as applicable. Rows appear based on which monitors are selected. Tapping a filled vitals cell opens a "Change vitals" modal that replaces the existing event (no duplicates).
 - **Drugs lane** — bolus pills per column; tap to add, drag to move, Del to remove, → to copy, 0–9 to enter dose. IBW-pre-filled doses for 28 common drugs.
 - **Infusions lane** — continuous colour bars; add drug, rate, and unit; stop at any column; rate-change markers.
 - **Fluids lane** — 12 fluid types as continuous colour bars; total volume summarised.
@@ -141,10 +141,21 @@ These map to the canonical fields `fgfLitersPerMin`, `carrierGas`, and `fio2Perc
 ### Airway
 
 Airway section: device picker, tube size, cuff toggle, PEEP stepper, ventilation mode toggles (Assisted and Controlled groups are mutually exclusive). Ventilation mode toggles use the functional state updater to prevent rapid-tap stale-state bugs.
+Repeated attempts are retained as separate device entries, including failed and replaced airway devices.
 
 ### Monitoring
 
 18 monitor cards in 4 groups, matching the web app. Selecting a monitor adds the corresponding vital row to the timetable.
+The monitor-photo scan keeps NIBP and IBP separate and can also read BIS and TOF. Urinary catheter is a distinct monitoring/equipment concept.
+
+### Technique sides and suggestions
+
+Block techniques can record left, right, or both sides, and the technique
+selector supports a unilateral spinal. Intraoperative suggestions, Likely now
+events, reminders, and timed follow-ups are prompts only: they require a
+clinician action and never chart by themselves. Case reminders are enabled by
+default when available; they are documentation prompts rather than clinical
+alarms.
 
 ### End-Case Flow
 

@@ -52,8 +52,10 @@ describe("web clinical preference synchronization", () => {
     const {
       patchWebClinicalPreferences,
       syncWebClinicalPreferences,
+      setWebClinicalPreferencesOwner,
     } = await import("./clinical-preferences-web")
 
+    setWebClinicalPreferencesOwner("user-1")
     await patchWebClinicalPreferences({ units: { height: "in" } })
     expect(storage.getItem("losporClinicalPreferencesDirtyV1"))
       .toContain('"height":"in"')
@@ -62,6 +64,7 @@ describe("web clinical preference synchronization", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          id: "user-1",
           preferences: { units: { height: "cm", weight: "lb" } },
         }),
       } as Response)
@@ -71,5 +74,20 @@ describe("web clinical preference synchronization", () => {
 
     expect(synced.units).toMatchObject({ height: "in", weight: "lb" })
     expect(storage.getItem("losporClinicalPreferencesDirtyV1")).toBeNull()
+  })
+
+  it("does not carry a previous account's local settings into the next account", async () => {
+    const preferencesModule = await import("./clinical-preferences-web")
+    preferencesModule.setWebClinicalPreferencesOwner("user-a")
+    await preferencesModule.patchWebClinicalPreferences({ units: { height: "in" } })
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "user-b", preferences: { units: { height: "cm", weight: "kg" } } }),
+    } as Response)
+    const synced = await preferencesModule.syncWebClinicalPreferences()
+
+    expect(synced.units).toMatchObject({ height: "cm", weight: "kg" })
+    expect(storage.getItem("losporClinicalPreferencesOwnerV1")).toBe("user-b")
   })
 })

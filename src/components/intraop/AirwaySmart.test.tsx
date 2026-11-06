@@ -24,12 +24,11 @@ function setup(overrides: Partial<Parameters<typeof AirwaySmart>[0]> = {}) {
 }
 
 describe("Smart selection, the Airway tab (10.2.0)", () => {
-  it("leads with the tube, the LMA and the mask for general anaesthesia, and keeps every other device behind More devices", () => {
+  it("leads with the tube, the LMA and the mask, with the other devices behind one disclosure", () => {
     setup()
     expect(screen.getByTestId("airway-smart-card-ORAL_ETT")).toBeTruthy()
     expect(screen.getByTestId("airway-smart-card-LMA")).toBeTruthy()
     expect(screen.getByTestId("airway-smart-card-FACE_MASK")).toBeTruthy()
-    expect(screen.queryByTestId("airway-smart-other-NASAL_ETT")).toBeNull()
     fireEvent.click(screen.getByTestId("airway-smart-more"))
     for (const device of ["NASAL_ETT", "DOUBLE_LUMEN_TUBE", "ENDOBRONCHIAL_TUBE", "SURGICAL_AIRWAY", "OPA", "NPA"]) expect(screen.getByTestId(`airway-smart-other-${device}`)).toBeTruthy()
   })
@@ -41,7 +40,8 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
   })
 
   it("opens the panel with this patient's size and cuff, and adds the tube at the start of anaesthesia", () => {
-    const { onChange } = setup()
+    const onEvent = vi.fn()
+    const { onChange } = setup({ onEvent })
     fireEvent.click(screen.getByTestId("airway-smart-card-ORAL_ETT"))
     expect(screen.getByTestId("airway-smart-panel")).toBeTruthy()
     fireEvent.click(screen.getByTestId("airway-smart-how-VIDEO_LARY"))
@@ -49,6 +49,7 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     const next = onChange.mock.calls[0]![0] as AirwayDeviceEntry[]
     expect(next).toHaveLength(1)
     expect(next[0]).toMatchObject({ device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, instruments: ["VIDEO_LARY"], status: "in_use" })
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Intubated", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
   })
 
   it("takes a size picked instead of the suggestion, and the time now", () => {
@@ -70,13 +71,24 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
 
   it("Reintubate asks why, then keeps both tubes: the first failed, the second in use", () => {
     const first: AirwayDeviceEntry = { id: "a1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, status: "in_use" }
-    const { onChange } = setup({ entries: [first] })
+    const onEvent = vi.fn()
+    const { onChange } = setup({ entries: [first], onEvent })
     fireEvent.click(screen.getByTestId("airway-smart-reintubate-a1"))
     expect((screen.getByTestId("airway-smart-add") as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(screen.getByTestId("airway-smart-add"))
     const next = onChange.mock.calls[0]![0] as AirwayDeviceEntry[]
     expect(next.map(entry => [entry.id, entry.status])).toEqual([["a1", "failed"], [expect.stringMatching(/^airway-/), "in_use"]])
     expect(next[0]!.endedAt).toBe(NOW)
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Reintubation", ts: NOW, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
+  })
+
+  it("calls a second tracheal tube reintubation even when chosen directly", () => {
+    const first: AirwayDeviceEntry = { id: "a1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, status: "failed" }
+    const onEvent = vi.fn()
+    setup({ entries: [first], onEvent })
+    fireEvent.click(screen.getByTestId("airway-smart-card-ORAL_ETT"))
+    fireEvent.click(screen.getByTestId("airway-smart-add"))
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Reintubation", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
   })
 
   it("shows what is in place first, a failed device struck and marked, and the tools that placed it", () => {

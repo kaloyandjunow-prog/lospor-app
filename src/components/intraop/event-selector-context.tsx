@@ -11,7 +11,8 @@ import type { LikelyEvent } from "@lospor/core/event-succession"
 export type EventSelectorState = {
   screen: "smart" | "legacy"
   likely: readonly LikelyEvent[]
-  dismiss: (event: string) => void
+  /** The exact succession automation id, persisted as a case answer. */
+  dismiss: (suggestionId: string) => void
 }
 
 const DEFAULT: EventSelectorState = { screen: "smart", likely: [], dismiss: () => {} }

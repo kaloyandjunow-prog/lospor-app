@@ -8,72 +8,60 @@ vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key, useLo
 import { EquipmentSmart } from "./EquipmentSmart"
 
 const adult = calcEquipment({ clinicalMode: "ADULT", age: null, ageYears: 44, weightKg: 82, heightCm: 182, sex: "MALE", airway: { mallampati: "III", neckMobility: "REDUCED", mouthOpeningCm: 3, cormackLehane: null } } as never)
-const child = calcEquipment({ clinicalMode: "PEDIATRIC", age: { value: 4, unit: "YEARS" }, ageYears: null, weightKg: 16, heightCm: 102, sex: "FEMALE", airway: { mallampati: null, neckMobility: null, mouthOpeningCm: null, cormackLehane: null } } as never)
 
 function setup(overrides: Partial<Parameters<typeof EquipmentSmart>[0]> = {}) {
   const onFlag = vi.fn()
+  const onPreparedChange = vi.fn()
   const onUseAirway = vi.fn()
-  render(<EquipmentSmart categories={adult} flags={{ urinaryCatheter: false, stomachTube: false }} airwayInUse={[]} onFlag={onFlag} onUseAirway={onUseAirway}
+  render(<EquipmentSmart categories={adult} flags={{ urinaryCatheter: false, stomachTube: false }} airwayEntries={[]} prepared={{}} onFlag={onFlag} onPreparedChange={onPreparedChange} onUseAirway={onUseAirway}
     categoryName={name => name} labelOf={label => label} textOf={text => text} {...overrides} />)
-  return { onFlag, onUseAirway }
+  return { onFlag, onPreparedChange, onUseAirway }
 }
 
 describe("Smart selection, the Equipment card (10.2.0)", () => {
-  it("shows the six airway numbers, the difficult airway group and a progress count", () => {
+  it("shows recorded-vs-suggested cards and keeps preparation/reference collapsed", () => {
     setup()
-    for (const label of ["ETT size", "ETT depth (lip)", "LMA size", "Laryngoscope", "Guedel OPA", "Suction catheter"]) expect(screen.getByTestId(`equipment-cell-${label}`)).toBeTruthy()
-    expect(screen.getByTestId("equipment-group-Difficult Airway")).toBeTruthy()
-    expect(screen.queryByTestId("equipment-group-Airway")).toBeNull()
-    expect(screen.getByTestId("equipment-progress").textContent).toMatch(/^0 \/ \d+$/)
+    for (const label of ["ETT size", "LMA size", "Urinary catheter", "NGT"]) expect(screen.getByTestId(`equipment-tracked-${label}`)).toBeTruthy()
+    expect(screen.getByTestId("equipment-preparation")).toBeTruthy()
+    expect(screen.queryByTestId("equipment-preparation-group-Airway")).toBeNull()
+    expect(screen.queryByTestId("equipment-progress")).toBeNull()
   })
 
-  it("a first tap on the tube only marks it ready; a second marks it in use and writes it", () => {
+  it("records a suggested tube directly in Airway with an explicit action", () => {
     const { onUseAirway } = setup()
-    fireEvent.click(screen.getByTestId("equipment-cell-ETT size"))
-    expect(onUseAirway).not.toHaveBeenCalled()
-    expect(screen.getByTestId("equipment-cell-ETT size").getAttribute("aria-pressed")).toBe("true")
-    fireEvent.click(screen.getByTestId("equipment-cell-ETT size"))
+    fireEvent.click(screen.getByTestId("equipment-record-ETT-size"))
     expect(onUseAirway).toHaveBeenCalledWith("ORAL_ETT")
   })
 
-  it("the LMA writes the LMA, and a tube already in use is not written again", () => {
-    const { onUseAirway } = setup({ airwayInUse: ["ORAL_ETT"] })
-    fireEvent.click(screen.getByTestId("equipment-cell-LMA size"))
-    fireEvent.click(screen.getByTestId("equipment-cell-LMA size"))
+  it("shows an actual match when a recorded airway entry has the suggested details", () => {
+    const { onUseAirway } = setup({ airwayEntries: [{ id: "ett-1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, status: "in_use" }] })
+    expect(screen.getByTestId("equipment-tracked-ETT size").textContent).toContain("matched")
+    expect(onUseAirway).not.toHaveBeenCalled()
+  })
+
+  it("the LMA has an explicit record action", () => {
+    const { onUseAirway } = setup()
+    fireEvent.click(screen.getByTestId("equipment-record-LMA-size"))
     expect(onUseAirway).toHaveBeenCalledWith("LMA")
-    onUseAirway.mockClear()
-    fireEvent.click(screen.getByTestId("equipment-cell-ETT size"))
-    expect(onUseAirway).not.toHaveBeenCalled()
   })
 
-  it("the catheter and the NGT set their flag at once, and the flag is the tick", () => {
+  it("the catheter and NGT use explicit clinical actions", () => {
     const { onFlag } = setup()
-    fireEvent.click(screen.getByTestId("equipment-row-Catheters-NGT"))
+    fireEvent.click(screen.getByTestId("equipment-record-NGT"))
     expect(onFlag).toHaveBeenCalledWith("stomachTube")
-    fireEvent.click(screen.getByTestId("equipment-row-Catheters-Urinary catheter"))
+    fireEvent.click(screen.getByTestId("equipment-record-Urinary catheter"))
     expect(onFlag).toHaveBeenCalledWith("urinaryCatheter")
   })
 
-  it("shows a flag that is already set as ticked", () => {
+  it("shows a recorded flag as incomplete rather than pretending a size was charted", () => {
     setup({ flags: { urinaryCatheter: true, stomachTube: false } })
-    expect(screen.getByTestId("equipment-row-Catheters-Urinary catheter").getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByTestId("equipment-tracked-Urinary catheter").textContent).toContain("recordedIncomplete")
   })
 
-  it("any other item is a plain tick that writes nothing", () => {
-    const { onFlag, onUseAirway } = setup()
-    fireEvent.click(screen.getByTestId("equipment-cell-Guedel OPA"))
-    fireEvent.click(screen.getByTestId("equipment-row-Ventilation-PEEP"))
-    expect(onFlag).not.toHaveBeenCalled()
-    expect(onUseAirway).not.toHaveBeenCalled()
-    expect(screen.getByTestId("equipment-row-Ventilation-PEEP").getAttribute("aria-pressed")).toBe("true")
-  })
-
-  it("never writes a size the calculator leaves to the clinician, but a child catheter still sets its flag", () => {
-    const { onFlag, onUseAirway } = setup({ categories: child })
-    fireEvent.click(screen.getByTestId("equipment-cell-Laryngoscope"))
-    fireEvent.click(screen.getByTestId("equipment-cell-Laryngoscope"))
-    expect(onUseAirway).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByTestId("equipment-row-Catheters-Urinary catheter"))
-    expect(onFlag).toHaveBeenCalledWith("urinaryCatheter")
+  it("keeps preparation as a separate persisted reference", () => {
+    const { onPreparedChange } = setup()
+    fireEvent.click(screen.getByTestId("equipment-preparation-toggle"))
+    fireEvent.click(screen.getByTestId("equipment-preparation-Laryngoscope"))
+    expect(onPreparedChange).toHaveBeenCalledWith("Airway|Laryngoscope", true)
   })
 })

@@ -34,6 +34,7 @@ export function AirwaySection({
   control, watch, setValue, register, airwayToolOptions, airwayDeviceOptions,
   presentsIntubated, showAirway, techniquesLength, airwayOverride, setAirwayOverride,
   airwayNA, setAirwayNA, airwayExpandedDevice, setAirwayExpandedDevice, expandAirwayDevice, smart,
+  onAirwayInterventionSelected, onAirwayDeviceConfirmed,
 }: {
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
@@ -48,6 +49,9 @@ export function AirwaySection({
   setAirwayOverride: (v: boolean) => void
   airwayNA: boolean
   setAirwayNA: () => void
+  onAirwayInterventionSelected: () => void
+  /** Reports a newly confirmed legacy device; Smart reports its own timed event. */
+  onAirwayDeviceConfirmed?: (device: string, previousDevices: readonly string[], airwayPatch?: Record<string, unknown>) => void
   airwayExpandedDevice: string | null
   setAirwayExpandedDevice: (v: string | null) => void
   expandAirwayDevice: (v: string) => void
@@ -101,7 +105,10 @@ export function AirwaySection({
             const on = tools.includes(v)
             return (
               <button key={v} type="button"
-                onClick={() => setValue("airwayTools", on ? tools.filter(t => t !== v) : [...tools, v])}
+                onClick={() => {
+                  if (!on) onAirwayInterventionSelected()
+                  setValue("airwayTools", on ? tools.filter(t => t !== v) : [...tools, v])
+                }}
                 className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${
                   on ? "bg-slate-800 border-slate-700 text-white dark:bg-[#2e2e2e] dark:border-[#555] dark:text-white"
                      : "border-slate-200 dark:border-[#333] text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-[#444] hover:bg-slate-50 dark:hover:bg-[#1e1e1e]"
@@ -156,6 +163,10 @@ export function AirwaySection({
 
         function handleSimpleDeviceClick(v: string) {
           const isOn = devs.includes(v)
+          if (!isOn) {
+            onAirwayInterventionSelected()
+            onAirwayDeviceConfirmed?.(v, devs, { airwayDevices: [...devs, v], airwayNotApplicable: false })
+          }
           setValue("airwayDevices", isOn ? devs.filter(d => d !== v) : [...devs, v])
         }
 
@@ -195,7 +206,11 @@ export function AirwaySection({
                 return (
                   <span key={v} className="inline-flex items-stretch">
                   <button type="button"
-                    onClick={() => isExpanded ? setAirwayExpandedDevice(null) : expandAirwayDevice(v)}
+                    onClick={() => {
+                      if (!isExpanded && !confirmed) onAirwayInterventionSelected()
+                      if (isExpanded) setAirwayExpandedDevice(null)
+                      else expandAirwayDevice(v)
+                    }}
                     onContextMenu={e => { e.preventDefault(); removeComplexDevice(v) }}
                     title={confirmed ? t(isExpanded ? "intraop.airway.deviceHintOpen" : "intraop.airway.deviceHintClosed") : t("intraop.airway.deviceHintNew")}
                     className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${

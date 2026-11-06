@@ -51,7 +51,8 @@ test("Smart selection on the web: a tube added from the tab reaches the record, 
     const page = await web.newPage()
     await webAirway(page, caseId)
 
-    // The cards lead with the tube, the LMA and the mask; the rest is one tap away.
+    // Smart keeps the common airway choices visible and puts the longer legacy
+    // catalogue behind one explicit disclosure on both web and mobile.
     await expect(page.getByTestId("airway-smart")).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId("airway-smart-empty")).toBeVisible()
     await expect(page.getByTestId("airway-smart-card-ORAL_ETT")).toBeVisible()
@@ -100,6 +101,7 @@ test("Smart selection on the phone: a device added from the tab reaches the reco
     await openPhoneIntraop(phone.page, caseId, "en")
     await phone.page.getByText("Airway", { exact: true }).first().click()
     await expect(phone.page.getByTestId("airway-smart")).toBeVisible({ timeout: 30_000 })
+    await phone.page.getByTestId("airway-smart-more").click()
     await phone.page.getByTestId("airway-smart-card-LMA").click()
     await phone.page.getByTestId("airway-smart-add").click()
     await expect.poll(async () => (await intraopOf(web.request, caseId)).airwayDeviceEntries?.[0]?.device, { timeout: 30_000 }).toBe("LMA")
