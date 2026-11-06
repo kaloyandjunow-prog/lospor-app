@@ -9,7 +9,7 @@ import { useIntraopAutomation } from "@/lib/use-intraop-automation"
 import { SettingRow, Toggle } from "./SettingControls"
 
 /**
- * The intraoperative suggestions a clinician keeps (10.2.0). Only what the
+ * The SPS automations a clinician keeps (10.2.0). Only what the
  * hospital switched on in Status is listed: off there is off for everyone.
  * Each is on until turned off here; the same account setting the PWA shows.
  * The whole set is sent each time, so one switch never clears another.

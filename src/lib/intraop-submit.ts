@@ -105,11 +105,19 @@ export function intraopTimeErrors(blockerCodes: Iterable<string>): {
  * refreshed the case, and the refresh saved again, several times a second.
  * Continue still sends the chart's values once, through the submission.
  */
-export function intraopAutosaveValues<T extends { vitals?: unknown; drugsAdministered?: unknown }>(
+export function intraopAutosaveValues<T extends {
+  vitals?: unknown
+  drugsAdministered?: unknown
+  crystalloidsMl?: unknown
+  colloidsMl?: unknown
+  bloodMl?: unknown
+  infusionsMl?: unknown
+}>(
   values: T,
-): Omit<T, "vitals" | "drugsAdministered"> {
+): Omit<T, "vitals" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl"> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { vitals, drugsAdministered, ...rest } = values
+  const { vitals, drugsAdministered, crystalloidsMl, colloidsMl, bloodMl, infusionsMl, ...rest } = values
+  void vitals; void drugsAdministered; void crystalloidsMl; void colloidsMl; void bloodMl; void infusionsMl
   return rest
 }
 

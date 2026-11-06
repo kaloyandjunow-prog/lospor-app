@@ -70,6 +70,12 @@ export function VascularSmartPanel({
   const clock = (iso: string | null | undefined) => (iso && timeZone ? localTimeOf(new Date(iso), timeZone) : null) ?? iso?.slice(11, 16) ?? ""
   const [picked, setPicked] = useState<string>(() => clock(request.at ?? now()))
   const replaced = request.replacesIndex != null ? lines[request.replacesIndex] : null
+  const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked)
+    ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null
+    : null
+  const timeMissing = origin === "here" && ((choice === "start" && startedAt == null)
+    || (choice === "timeline" && !request.at)
+    || (choice === "pick" && !pickedInstant))
 
   function chooseOrigin(next: "here" | "ward") {
     setOrigin(next)
@@ -77,16 +83,22 @@ export function VascularSmartPanel({
   }
 
   function save() {
-    const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked) ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null : null
+    // A timeline event must be updated atomically with its structured line.
+    if (request.source === "timeline" && !request.eventId) return
     const at = resolveVascularTime(choice, { startedAt, now: now(), picked: choice === "timeline" ? request.at ?? null : pickedInstant })
+    const eventLabel = at && (request.source !== "timeline" || request.eventId)
+      ? vascularClinicalEvent(request.type, site) || request.eventLabel || "IV line in"
+      : null
+    const eventId = eventLabel ? (request.eventId ?? clinicalRecordId("vascular-event", at ?? now())) : undefined
     // A line that arrived with the patient has no time of ours; "pick" on it records the time the ward placed it.
     const next = addVascularLine(lines, {
       id: clinicalRecordId("vascular", at ?? now()), type: request.type, site,
       size, depthCm: depth, lumens: request.type === "CENTRAL" ? lumens : undefined,
       origin, insertedAt: at, replacesIndex: request.replacesIndex ?? null,
+      ...(eventId ? { sourceEventId: eventId } : {}),
     })
-    const event = at && (request.source !== "timeline" || request.eventId)
-      ? { ...(request.eventId ? { id: request.eventId } : {}), label: vascularClinicalEvent(request.type, site) || request.eventLabel || "IV line in", ts: at, intraopPatch: { vascularAccesses: next } }
+    const event = eventLabel && eventId
+      ? { id: eventId, label: eventLabel, ts: at!, intraopPatch: { vascularAccesses: next } }
       : undefined
     onSave(next, event)
   }
@@ -189,10 +201,11 @@ export function VascularSmartPanel({
         </div>
       </div>
 
+      {timeMissing && <p data-testid="vascular-smart-time-missing" className="rounded-lg border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200">{t("timeMissing")}</p>}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onClose} className="text-xs px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-600">{t("cancel")}</button>
-        <button type="button" data-testid="vascular-smart-add" onClick={save}
-          className="text-xs px-4 py-1.5 rounded-full bg-violet-600 text-white font-semibold">{t("add")}</button>
+        <button type="button" data-testid="vascular-smart-add" onClick={save} disabled={timeMissing}
+          className="text-xs px-4 py-1.5 rounded-full bg-violet-600 text-white font-semibold disabled:opacity-50">{t("add")}</button>
       </div>
     </section>
   )

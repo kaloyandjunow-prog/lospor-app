@@ -151,7 +151,7 @@ The monitor-photo scan keeps NIBP and IBP separate and can also read BIS and TOF
 ### Technique sides and suggestions
 
 Block techniques can record left, right, or both sides, and the technique
-selector supports a unilateral spinal. Intraoperative suggestions, Likely now
+selector supports a unilateral spinal. SPS, Likely now
 events, reminders, and timed follow-ups are prompts only: they require a
 clinician action and never chart by themselves. Case reminders are enabled by
 default when available; they are documentation prompts rather than clinical

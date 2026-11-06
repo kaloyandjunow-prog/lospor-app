@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   intraopAttentionItems,
   intraopAttentionText,
@@ -10,7 +10,7 @@ import {
   type IntraopAttentionItem,
 } from "@lospor/core/intraop-attention"
 import { localTimeOf } from "@lospor/core/intraop-time"
-import { isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
+import { applyIntraopEventOps, isEmptyIntraopEventOps, type IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { vitalEpisodeOps, vitalQuestionText, type VitalQuestionContext } from "@lospor/core/vital-questions"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import type { SuggestionContext } from "@lospor/core/intraop-suggestions"
@@ -92,17 +92,66 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
     [log, minute, endedAt, timeZone, locale],
   )
 
+  // Attention actions can be answered from a sheet while the chart is also
+  // receiving a device/timetable write. Keep the newest inputs in refs and
+  // serialize the writes so two answers cannot both derive from the same old
+  // log snapshot.
+  const logRef = useRef(log)
+  const endedAtRef = useRef(endedAt)
+  const vitalsRef = useRef(vitals)
+  const suggestionsRef = useRef(suggestionBase)
+  const onEventOpsRef = useRef(onEventOps)
+  const writeQueue = useRef<Promise<void> | null>(null)
+  useLayoutEffect(() => {
+    logRef.current = log
+    endedAtRef.current = endedAt
+    vitalsRef.current = vitals
+    suggestionsRef.current = suggestionBase
+    onEventOpsRef.current = onEventOps
+  }, [log, endedAt, vitals, suggestionBase, onEventOps])
+  const enqueue = useCallback((produce: () => IntraopEventOps | null | undefined | Promise<IntraopEventOps | null | undefined>) => {
+    const apply = (ops: IntraopEventOps | null | undefined): void | Promise<void> => {
+      if (!ops || isEmptyIntraopEventOps(ops)) return
+      // Keep the next queued action based on the latest local projection even
+      // when React has not rendered the server acknowledgement yet.
+      logRef.current = applyIntraopEventOps(logRef.current, ops) as LogEvent[]
+      return onEventOpsRef.current?.(ops)
+    }
+    const run = async () => apply(await produce())
+    if (writeQueue.current) {
+      const queued = writeQueue.current.then(run)
+      writeQueue.current = queued.then(() => undefined, () => undefined)
+      return queued
+    }
+
+    // Keep the first action synchronous when Core produces its operations
+    // synchronously. This preserves immediate UI feedback while a Promise
+    // returned by the save path still keeps later actions serialized.
+    const produced = produce()
+    if (produced && typeof produced === "object" && "then" in produced) {
+      const started = Promise.resolve(produced).then(apply)
+      writeQueue.current = started.then(() => undefined, () => undefined)
+      return started
+    }
+    const callback = apply(produced)
+    if (callback && typeof callback === "object" && "then" in callback) {
+      const started = Promise.resolve(callback)
+      writeQueue.current = started.then(() => undefined, () => undefined)
+      return started
+    }
+    return Promise.resolve()
+  }, [])
+
   const answer = useCallback((key: string, action: IntraopAttentionAction, atEndCase = false, choice?: string) => {
-    if (readOnly || !onEventOps) return
+    if (readOnly || !onEventOpsRef.current) return
     const at = new Date(Math.floor(serverNow().getTime() / 60_000) * 60_000)
-    const ops = intraopResolveAttention(log, key, action, {
+    enqueue(() => intraopResolveAttention(logRef.current, key, action, {
       now: serverNow(),
-      endedAt: endedAt ?? (atEndCase ? at : null),
-      vitals,
-      suggestions: suggestionBase ? { ...suggestionBase, now: serverNow() } : null,
-    }, choice)
-    if (!isEmptyIntraopEventOps(ops)) void onEventOps(ops)
-  }, [endedAt, log, onEventOps, readOnly, vitals, suggestionBase])
+      endedAt: endedAtRef.current ?? (atEndCase ? at : null),
+      vitals: vitalsRef.current,
+      suggestions: suggestionsRef.current ? { ...suggestionsRef.current, now: serverNow() } : null,
+    }, choice))
+  }, [enqueue, readOnly])
 
   // A card opens by itself for a complication just logged on this screen ("the
   // picker you used turns into the card"); one already waiting when the
@@ -123,20 +172,19 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   }, [entries, readOnly])
 
   const applyOps = useCallback((ops: IntraopEventOps) => {
-    if (readOnly || !onEventOps || isEmptyIntraopEventOps(ops)) return
-    void onEventOps(ops)
-  }, [onEventOps, readOnly])
+    if (readOnly || !onEventOpsRef.current || isEmptyIntraopEventOps(ops)) return
+    enqueue(() => ops)
+  }, [enqueue, readOnly])
 
   // An episode from the vitals questions closes at the first reading back
   // inside both limits, or at the case end -- Core decides, one save at a time.
   const closing = useRef(false)
   useEffect(() => {
     if (readOnly || !onEventOps || !vitals || closing.current) return
-    const ops = vitalEpisodeOps(log, vitals, endedAt)
-    if (isEmptyIntraopEventOps(ops)) return
     closing.current = true
-    void Promise.resolve(onEventOps(ops)).finally(() => { closing.current = false })
-  }, [log, vitals, endedAt, onEventOps, readOnly])
+    const run = enqueue(() => vitalEpisodeOps(logRef.current, vitalsRef.current, endedAtRef.current))
+    void run.finally(() => { closing.current = false })
+  }, [log, vitals, endedAt, readOnly])
 
   const saveState = useCaseSaveState(caseId)
   const refused = useMemo(() => saveState.refused.map(item => {

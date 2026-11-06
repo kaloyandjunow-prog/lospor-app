@@ -4,7 +4,9 @@ import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { X } from "lucide-react"
 import {
+  airwayPrimaryConflict,
   airwayDevicesInUse,
+  hasActiveTrachealTube,
   type AirwayDeviceEntry,
   type AirwayExchangeReason,
 } from "@lospor/core/airway-device-entries"
@@ -81,28 +83,39 @@ export function AirwaySmartPanel({
   const nowLabel = timeZone ? localTimeOf(new Date(now()), timeZone) : null
   const timelineLabel = request.at && timeZone ? localTimeOf(new Date(request.at), timeZone) : null
 
-  function instant(): string {
-    const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked)
-      ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null
-      : null
+  const conflict = request.replaces ? null : airwayPrimaryConflict(entries, request.device)
+  const replacementId = request.replaces?.id ?? conflict?.id ?? null
+  const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked)
+    ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null
+    : null
+  const timeMissing = (choice === "start" && startedAt == null)
+    || (choice === "timeline" && !request.at)
+    || (choice === "pick" && !pickedInstant)
+
+  function instant(): string | null {
     return resolveAirwayTime(choice, { startedAt, now: now(), picked: choice === "timeline" ? request.at ?? null : pickedInstant })
   }
 
   function save() {
-    if (request.replaces && !reason) return
+    if (replacementId && !reason) return
     const at = instant()
+    if (!at) return
     const id = clinicalRecordId("airway", at)
+    const priorTrachealTube = hasActiveTrachealTube(entries)
+    const eventLabel = request.source === "timeline"
+      ? replacementId
+        ? airwayClinicalEvent(request.device, { replaces: true, priorTrachealTube })
+        : request.eventLabel ?? null
+      : airwayClinicalEvent(request.device, { replaces: !!replacementId, priorTrachealTube })
+    const eventId = eventLabel ? (request.eventId ?? clinicalRecordId("airway-event", at)) : undefined
     const kept = Object.fromEntries(asks.filter(ask => details[ask.field] !== undefined && details[ask.field] !== "").map(ask => [ask.field, details[ask.field]]))
     const next = addAirwayDevice(entries, {
       id, device: request.device, details: kept, insertedAt: at, instruments: how,
-      replaces: request.replaces ? { id: request.replaces.id, reason: reason ?? request.replaces.reason } : null,
+      ...(eventId ? { sourceEventId: eventId } : {}),
+      replaces: replacementId ? { id: replacementId, reason: reason ?? request.replaces?.reason ?? "planned" } : null,
     })
-    const priorTrachealTube = entries.some(entry => entry.device === "ORAL_ETT" || entry.device === "NASAL_ETT")
-    const eventLabel = request.source === "timeline"
-      ? request.eventLabel ?? null
-      : airwayClinicalEvent(request.device, { replaces: !!request.replaces, priorTrachealTube })
     onSave(next, eventLabel
-      ? { ...(request.eventId ? { id: request.eventId } : {}), label: eventLabel, ts: at, intraopPatch: airwayRecordFields(next) }
+      ? { id: eventId, label: eventLabel, ts: at, intraopPatch: airwayRecordFields(next) }
       : undefined)
   }
 
@@ -111,7 +124,7 @@ export function AirwaySmartPanel({
     : "border-slate-200 dark:border-[#333] text-slate-600 dark:text-slate-300 hover:border-violet-400"}`
   const label = (text: string) => <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{text}</p>
   const inUse = airwayDevicesInUse(entries)
-  const replaced = request.replaces ? inUse.find(entry => entry.id === request.replaces!.id) : null
+  const replaced = replacementId ? inUse.find(entry => entry.id === replacementId) : null
 
   return (
     <section role="group" aria-label={deviceLabel(request.device)} data-testid="airway-smart-panel"
@@ -121,8 +134,11 @@ export function AirwaySmartPanel({
         <button type="button" onClick={onClose} aria-label={te("cancel")} className="p-1"><X className="w-4 h-4" /></button>
       </header>
 
-      {request.replaces && (
+      {(request.replaces || conflict) && (
         <div className="space-y-1.5">
+          {conflict && <p data-testid="airway-smart-active-conflict" className="rounded-lg border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("activePrimaryConflict", { device: deviceLabel(conflict.device) })}
+          </p>}
           {label(te("why"))}
           <div className="flex flex-wrap gap-2">
             {WHY.map(option => (
@@ -195,7 +211,8 @@ export function AirwaySmartPanel({
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onClose} className="text-xs px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-600">{te("cancel")}</button>
-        <button type="button" data-testid="airway-smart-add" disabled={!!request.replaces && !reason} onClick={save}
+        {timeMissing && <p data-testid="airway-smart-time-missing" className="rounded-lg border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200">{t("timeMissing")}</p>}
+        <button type="button" data-testid="airway-smart-add" disabled={(!!replacementId && !reason) || timeMissing} onClick={save}
           className="text-xs px-4 py-1.5 rounded-full bg-violet-600 text-white font-semibold disabled:opacity-50">{t("add")}</button>
       </div>
     </section>

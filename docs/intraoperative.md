@@ -214,9 +214,9 @@ default when the deployment exposes reminders and can be set to 3, 5, 10, or
 recording a set of vitals resets its timer. The installed app can notify in the
 background; the PWA can notify while it is open and the browser permits it.
 
-### Intraoperative suggestions
+### SPS — Smart Prediction System
 
-When the deployment enables suggestion groups, the chart can show Likely now
+When the deployment enables SPS groups, the chart can show Likely now
 events, event-search synonyms, treatment cards, reading questions, reminders,
 and timed follow-ups. Suggestions never write a clinical record by themselves:
 the clinician must open and confirm an action. Ordinary clinical questions can

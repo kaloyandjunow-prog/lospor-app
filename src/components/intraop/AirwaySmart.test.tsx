@@ -49,7 +49,10 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     const next = onChange.mock.calls[0]![0] as AirwayDeviceEntry[]
     expect(next).toHaveLength(1)
     expect(next[0]).toMatchObject({ device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, instruments: ["VIDEO_LARY"], status: "in_use" })
-    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Intubated", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
+    const event = onEvent.mock.calls[0]![0]
+    expect(event).toMatchObject({ label: "Intubated", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) })
+    expect(next[0]!.sourceEventId).toBe(event.id)
+    expect(event.id).toEqual(expect.any(String))
   })
 
   it("takes a size picked instead of the suggestion, and the time now", () => {
@@ -60,6 +63,28 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     fireEvent.click(screen.getByTestId("airway-smart-time-now"))
     fireEvent.click(screen.getByTestId("airway-smart-add"))
     expect((onChange.mock.calls[0]![0] as AirwayDeviceEntry[])[0]).toMatchObject({ details: { oralTubeSize: 7.5, oralCuffed: false }, insertedAt: NOW })
+  })
+
+  it("does not silently use now when the anesthesia start is missing", () => {
+    const { onChange } = setup({ startedAt: null })
+    fireEvent.click(screen.getByTestId("airway-smart-card-ORAL_ETT"))
+    expect(screen.getByTestId("airway-smart-time-missing")).toBeTruthy()
+    expect((screen.getByTestId("airway-smart-add") as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByTestId("airway-smart-time-now"))
+    fireEvent.click(screen.getByTestId("airway-smart-add"))
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  it("requires an exchange reason before adding a second active primary airway", () => {
+    const first: AirwayDeviceEntry = { id: "a1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, status: "in_use" }
+    const onEvent = vi.fn()
+    setup({ entries: [first], onEvent })
+    fireEvent.click(screen.getByTestId("airway-smart-card-LMA"))
+    expect(screen.getByText("activePrimaryConflict")).toBeTruthy()
+    expect((screen.getByTestId("airway-smart-add") as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByTestId("airway-smart-why-planned"))
+    fireEvent.click(screen.getByTestId("airway-smart-add"))
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Airway exchange", ts: START }))
   })
 
   it("a child gets the child's size and the LMA from weight", () => {
@@ -82,13 +107,13 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Reintubation", ts: NOW, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
   })
 
-  it("calls a second tracheal tube reintubation even when chosen directly", () => {
+  it("does not call a failed first attempt a reintubation when chosen directly", () => {
     const first: AirwayDeviceEntry = { id: "a1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, status: "failed" }
     const onEvent = vi.fn()
     setup({ entries: [first], onEvent })
     fireEvent.click(screen.getByTestId("airway-smart-card-ORAL_ETT"))
     fireEvent.click(screen.getByTestId("airway-smart-add"))
-    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Reintubation", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "Intubated", ts: START, intraopPatch: expect.objectContaining({ airwayDeviceEntries: expect.any(Array) }) }))
   })
 
   it("shows what is in place first, a failed device struck and marked, and the tools that placed it", () => {

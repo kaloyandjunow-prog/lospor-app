@@ -6,6 +6,7 @@ import { useIntraopLibraryConfig } from "@/lib/use-intraop-library-config"
 import { useDarkTheme } from "@/lib/drug-tone"
 import { nowMarkerGeometry } from "@/lib/timetable-clock"
 import { clinicalProvenance } from "@/lib/intraop-provenance"
+import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, ChevronDown, ChevronRight } from "lucide-react"
@@ -538,6 +539,12 @@ export function IntraopTimetable({
     }
     window.addEventListener("storage", h)
     return () => window.removeEventListener("storage", h)
+  }, [])
+  useEffect(() => {
+    void syncWebClinicalPreferences().then(preferences => {
+      setLayout(preferences.timetableLayout)
+      setChartOpen(preferences.vitalsChartExpanded)
+    }).catch(() => {})
   }, [])
 
   // Reset inline-discontinue state when selection changes
@@ -1783,7 +1790,11 @@ export function IntraopTimetable({
     <div ref={touchDragRoot} data-touch-drag-ready={touchDragReady ? "true" : "loading"} className="space-y-3 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none]">
       {/* Chart toggle + layout toggle on same row */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button type="button" onClick={() => setChartOpen(o => !o)}
+        <button type="button" onClick={() => setChartOpen(o => {
+          const next = !o
+          void patchWebClinicalPreferences({ vitalsChartExpanded: next })
+          return next
+        })}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors select-none ${
             chartOpen
               ? "bg-slate-700 dark:bg-[#3a3a3a] border-slate-600 dark:border-[#555] text-white dark:text-slate-100"

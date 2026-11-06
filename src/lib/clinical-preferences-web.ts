@@ -5,10 +5,12 @@ import {
   combineClinicalPreferencesPatches,
   mergeClinicalPreferences,
   normalizeClinicalPreferences,
+  parseClinicalPreferencesPatch,
   type ClinicalPreferences,
   type ClinicalPreferencesPatch,
 } from "@lospor/core/clinical-preferences"
 import { setBulgarianNameSwitches } from "@lospor/core/display"
+import { readCaseLayout } from "./case-layout"
 import { CLINICAL_PREFERENCES_SNAPSHOT_KEY as SNAPSHOT_KEY } from "./bulgarian-names-web"
 const DIRTY_KEY = "losporClinicalPreferencesDirtyV1"
 const OWNER_KEY = "losporClinicalPreferencesOwnerV1"
@@ -22,11 +24,19 @@ const LEGACY_KEYS = [
   "autoFillVitals",
   "autoFillBP",
   "autoFillBackground",
+  "cvpUnit",
+  "caseSidebar",
+  "preopLayout",
+  "layoutMode",
+  "postopLayout",
+  "timetableLayout",
+  "vitalsExpanded",
 ] as const
 
 // The browser is shared in hospitals.  Do not let a local snapshot become the
 // identity of whoever signs in next; the server account is the authority.
 let activeOwnerId: string | null = null
+let serverPreferencesRevision: number | null = null
 
 function clearStoredPreferenceValues(): void {
   localStorage.removeItem(SNAPSHOT_KEY)
@@ -37,6 +47,7 @@ function clearStoredPreferenceValues(): void {
 function prepareOwner(ownerId: string): void {
   const storedOwner = localStorage.getItem(OWNER_KEY)
   if (storedOwner !== ownerId) {
+    serverPreferencesRevision = null
     const oldSnapshot = localStorage.getItem(SNAPSHOT_KEY)
     const oldDirty = localStorage.getItem(DIRTY_KEY)
     if (oldSnapshot || oldDirty) {
@@ -58,6 +69,7 @@ function prepareOwner(ownerId: string): void {
 export function setWebClinicalPreferencesOwner(ownerId: string | null): void {
   if (!ownerId) {
     activeOwnerId = null
+    serverPreferencesRevision = null
     clearStoredPreferenceValues()
     localStorage.removeItem(OWNER_KEY)
   } else {
@@ -70,6 +82,7 @@ export function clearWebClinicalPreferences(): void {
   clearStoredPreferenceValues()
   localStorage.removeItem(OWNER_KEY)
   activeOwnerId = null
+  serverPreferencesRevision = null
 }
 
 function readPendingPatch(): ClinicalPreferencesPatch | null {
@@ -94,13 +107,38 @@ function enabled(key: string): boolean {
   return localStorage.getItem(key) === "on"
 }
 
-function readSnapshot(): ClinicalPreferences | null {
+function readSnapshotPatch(): ClinicalPreferencesPatch | null {
   try {
     const raw = localStorage.getItem(SNAPSHOT_KEY)
-    return raw ? normalizeClinicalPreferences(JSON.parse(raw)) : null
+    return raw ? parseClinicalPreferencesPatch(JSON.parse(raw)) : null
   } catch {
     return null
   }
+}
+
+function readLegacyPatch(): ClinicalPreferencesPatch {
+  const timetableLayout = localStorage.getItem("timetableLayout")
+  const vitalsExpanded = localStorage.getItem("vitalsExpanded")
+  return combineClinicalPreferencesPatches({
+    heightUnit: localStorage.getItem("heightUnit"),
+    weightUnit: localStorage.getItem("weightUnit"),
+    temperatureUnit: localStorage.getItem("temperatureUnit"),
+    etco2Unit: localStorage.getItem("etco2Unit"),
+    cvpUnit: localStorage.getItem("cvpUnit"),
+    defaultMonitoring: localStorage.getItem("defaultMonitoring"),
+    autoFillVitals: enabled("autoFillVitals"),
+    autoFillBP: enabled("autoFillBP"),
+    autoFillBackground: enabled("autoFillBackground"),
+    caseLayout: readCaseLayout(key => localStorage.getItem(key)),
+    ...(timetableLayout === "expand" || timetableLayout === "scroll" ? { timetableLayout } : {}),
+    ...(vitalsExpanded === "true" || vitalsExpanded === "false"
+      ? { vitalsChartExpanded: vitalsExpanded === "true" }
+      : {}),
+  })
+}
+
+function readStoredPatch(): ClinicalPreferencesPatch {
+  return combineClinicalPreferencesPatches(readSnapshotPatch(), readLegacyPatch())
 }
 
 export function readWebClinicalPreferences(): ClinicalPreferences {
@@ -108,16 +146,7 @@ export function readWebClinicalPreferences(): ClinicalPreferences {
   if (!activeOwnerId || localStorage.getItem(OWNER_KEY) !== activeOwnerId) {
     return normalizeClinicalPreferences({})
   }
-  return readSnapshot() ?? normalizeClinicalPreferences({
-    heightUnit: localStorage.getItem("heightUnit"),
-    weightUnit: localStorage.getItem("weightUnit"),
-    temperatureUnit: localStorage.getItem("temperatureUnit"),
-    etco2Unit: localStorage.getItem("etco2Unit"),
-    defaultMonitoring: localStorage.getItem("defaultMonitoring"),
-    autoFillVitals: enabled("autoFillVitals"),
-    autoFillBP: enabled("autoFillBP"),
-    autoFillBackground: enabled("autoFillBackground"),
-  })
+  return normalizeClinicalPreferences(readStoredPatch())
 }
 
 export function writeWebClinicalPreferences(
@@ -140,6 +169,12 @@ export function writeWebClinicalPreferences(
       normalized.autoFillVitals.includeBloodPressure ? "on" : "off",
     autoFillBackground:
       normalized.autoFillVitals.backfillOnReopen ? "on" : "off",
+    caseSidebar: normalized.caseLayout.sidebar ? "on" : "off",
+    preopLayout: normalized.caseLayout.preop,
+    layoutMode: normalized.caseLayout.intraop,
+    postopLayout: normalized.caseLayout.postop,
+    timetableLayout: normalized.timetableLayout,
+    vitalsExpanded: normalized.vitalsChartExpanded ? "true" : "false",
   }
   for (const [key, value] of Object.entries(values)) {
     localStorage.setItem(key, value)
@@ -152,13 +187,32 @@ export function writeWebClinicalPreferences(
 
 async function pushPreferences(
   preferences: ClinicalPreferences | ClinicalPreferencesPatch,
+  retryOnConflict = true,
 ): Promise<boolean> {
   try {
     const response = await fetch("/api/user", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preferences }),
+      body: JSON.stringify({
+        preferences,
+        ...(serverPreferencesRevision != null
+          ? { preferencesRevision: serverPreferencesRevision }
+          : {}),
+      }),
     })
+    const data = await response.json().catch(() => null) as { preferencesRevision?: unknown } | null
+    if (typeof data?.preferencesRevision === "number"
+      && Number.isInteger(data.preferencesRevision)
+      && data.preferencesRevision >= 0) {
+      serverPreferencesRevision = data.preferencesRevision
+    }
+    if (response.status === 409 && retryOnConflict
+      && typeof data?.preferencesRevision === "number") {
+      // A normal settings edit is a patch, so it can be safely replayed on the
+      // latest server revision without clobbering another device's unrelated
+      // fields. Full legacy snapshots deliberately do not retry here.
+      return pushPreferences(preferences, false)
+    }
     if (!response.ok) return false
     localStorage.removeItem(DIRTY_KEY)
     return true
@@ -174,28 +228,33 @@ export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences>
       if (response.status === 401) setWebClinicalPreferencesOwner(null)
       return activeOwnerId ? readWebClinicalPreferences() : normalizeClinicalPreferences({})
     }
-    const data = await response.json() as { id?: unknown; preferences?: unknown }
+    const data = await response.json() as {
+      id?: unknown
+      preferences?: unknown
+      preferencesRevision?: unknown
+    }
     if (typeof data.id !== "string" || !data.id) {
       setWebClinicalPreferencesOwner(null)
       return normalizeClinicalPreferences({})
     }
+    if (typeof data.preferencesRevision === "number"
+      && Number.isInteger(data.preferencesRevision)
+      && data.preferencesRevision >= 0) {
+      serverPreferencesRevision = data.preferencesRevision
+    }
     prepareOwner(data.id)
-    const local = readWebClinicalPreferences()
+    const localPatch = readStoredPatch()
     const dirtyRaw = localStorage.getItem(DIRTY_KEY)
     const pending = readPendingPatch()
-    const merged = dirtyRaw === "true"
+    const localIntent = dirtyRaw === "true" ? localPatch : pending
+    const merged = localIntent
       ? applyClinicalPreferencesPatch(
-          mergeClinicalPreferences(data.preferences, local),
-          local,
+          mergeClinicalPreferences(data.preferences, {}),
+          localIntent,
         )
-      : pending
-        ? applyClinicalPreferencesPatch(
-            mergeClinicalPreferences(data.preferences, local),
-            pending,
-          )
-      : mergeClinicalPreferences(data.preferences, local)
+      : mergeClinicalPreferences(data.preferences, {})
     writeWebClinicalPreferences(merged)
-    if (!await pushPreferences(pending ?? merged)) {
+    if (localIntent && !await pushPreferences(pending ?? localPatch, dirtyRaw !== "true")) {
       if (!dirtyRaw) writePendingPatch(merged)
     }
     return merged

@@ -4,7 +4,7 @@ import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop } from "./pwa"
 import { withIntraopAutomation } from "./automation-setup"
 
-// Intraoperative suggestions (10.2.0) across both apps and the API: a waiting
+// SPS (10.2.0) across both apps and the API: a waiting
 // card that opens, a dose the card prefills and the entry it saves with the
 // card's tag, the dantrolene vials, the jet bar, and the clinician's own
 // switches -- each charted in one app and read back from the API.

@@ -23,7 +23,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
   onChange: (next: string[]) => void
   monitoringOptions: readonly LibraryOption[]
   suggestions: readonly MonitoringSuggestion[]
-  onHide: (field: string) => void
+  onHide: (suggestion: MonitoringSuggestion) => void
   /** The last reading charted for a monitor: its text and when it was taken. */
   lastReading: (field: string) => { text: string; at: string } | null
   now: () => string
@@ -82,7 +82,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
             <span className="block text-xs text-amber-600 dark:text-amber-400">{t(REASON[item.reason])}</span>
           </span>
           <button type="button" data-testid={`monitoring-add-${item.field}`} onClick={() => toggle(item.field)} className={`${side} border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300`}>{t("add")}</button>
-          <button type="button" data-testid={`monitoring-hide-${item.field}`} aria-label={t("hide")} onClick={() => onHide(item.field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("hide")}</button>
+          <button type="button" data-testid={`monitoring-hide-${item.field}`} aria-label={t("hide")} onClick={() => onHide(item)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("hide")}</button>
         </div>
       ))}
 

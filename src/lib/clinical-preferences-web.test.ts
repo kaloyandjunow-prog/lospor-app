@@ -68,7 +68,7 @@ describe("web clinical preference synchronization", () => {
           preferences: { units: { height: "cm", weight: "lb" } },
         }),
       } as Response)
-      .mockResolvedValueOnce({ ok: true } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ preferencesRevision: 1 }) } as Response)
 
     const synced = await syncWebClinicalPreferences()
 

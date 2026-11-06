@@ -28,7 +28,7 @@ export function EquipmentSmart({ categories, flags, airwayEntries, prepared, onF
   prepared: Readonly<Record<string, boolean>>
   onFlag: (field: "urinaryCatheter" | "stomachTube") => void
   onPreparedChange: (key: string, value: boolean) => void
-  onUseAirway: (device: "ORAL_ETT" | "LMA") => void
+  onUseAirway: (device: "ORAL_ETT" | "LMA") => boolean
   categoryName: (category: string) => string
   labelOf: (label: string) => string
   textOf: (value: string) => string
@@ -36,6 +36,7 @@ export function EquipmentSmart({ categories, flags, airwayEntries, prepared, onF
   const t = useTranslations("intraop.equipmentSmart")
   const [preparationOpen, setPreparationOpen] = useState(false)
   const [referenceOpen, setReferenceOpen] = useState(false)
+  const [airwayActionBlocked, setAirwayActionBlocked] = useState(false)
   const record = { flags, airwayEntries }
   const allItems = categories.flatMap(category => category.items.map(item => ({ category: category.cat, item })))
   const tracked = EQUIPMENT_TRACKED_LABELS.flatMap(label => {
@@ -64,10 +65,13 @@ export function EquipmentSmart({ categories, flags, airwayEntries, prepared, onF
     reference: "border-slate-200 bg-slate-50 text-slate-600 dark:border-[#333] dark:bg-[#191d25] dark:text-slate-400",
   })[status]
   const actualText = (value: string | null) => value == null ? null : value === "Documented" ? t("documented") : value.replace(" cuffed", ` ${t("cuffedValue")}`).replace(" uncuffed", ` ${t("uncuffedValue")}`)
+  const recordAirway = (device: "ORAL_ETT" | "LMA") => {
+    setAirwayActionBlocked(onUseAirway(device) === false)
+  }
 
   function trackedAction(label: string, status: EquipmentSuggestionStatus) {
-    if (label === "ETT size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-ETT-size" onClick={() => onUseAirway("ORAL_ETT")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
-    if (label === "LMA size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-LMA-size" onClick={() => onUseAirway("LMA")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
+    if (label === "ETT size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-ETT-size" onClick={() => recordAirway("ORAL_ETT")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
+    if (label === "LMA size" && status === "not_recorded") return <button type="button" data-testid="equipment-record-LMA-size" onClick={() => recordAirway("LMA")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("recordInAirway")}</button>
     if ((label === "Urinary catheter" || label === "NGT") && status === "not_recorded") return <button type="button" data-testid={`equipment-record-${label}`} onClick={() => onFlag(label === "NGT" ? "stomachTube" : "urinaryCatheter")} className="rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/30">{t("markInPlace")}</button>
     if ((label === "Urinary catheter" || label === "NGT") && status === "recorded_incomplete") return <button type="button" data-testid={`equipment-remove-${label}`} onClick={() => onFlag(label === "NGT" ? "stomachTube" : "urinaryCatheter")} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-[#444] dark:text-slate-400 dark:hover:bg-[#222]">{t("removeFromRecord")}</button>
     return null
@@ -77,6 +81,7 @@ export function EquipmentSmart({ categories, flags, airwayEntries, prepared, onF
     <div className="space-y-4 p-3" data-testid="equipment-smart">
       <section data-testid="equipment-recorded">
         <div className="mb-2 flex items-end justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{t("suggestedRecorded")}</h3><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t("suggestedRecordedHint")}</p></div><span data-testid="equipment-summary" className="shrink-0 text-xs font-bold text-slate-500 dark:text-slate-400">{matchedCount}/{tracked.length} {t("matchedShort")}</span></div>
+        {airwayActionBlocked ? <p data-testid="equipment-airway-action-blocked" className="mb-2 rounded-lg border border-amber-300/60 bg-amber-50 px-2.5 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200">{t("airwayActionBlocked")}</p> : null}
         <div className="space-y-2">{tracked.map(({ item }) => {
           const status = equipmentSuggestionStatus(item.label, item.value, record)
           const actual = equipmentRecordedValue(item.label, record)

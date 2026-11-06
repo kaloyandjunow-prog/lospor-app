@@ -31,7 +31,8 @@ interface Props {
     prepared: Readonly<Record<string, boolean>>
     onFlag: (field: "urinaryCatheter" | "stomachTube") => void
     onPreparedChange: (key: string, value: boolean) => void
-    onUseAirway: (device: "ORAL_ETT" | "LMA") => void
+    /** Returns false when the shortcut needs an explicit time or replacement decision in Airway. */
+    onUseAirway: (device: "ORAL_ETT" | "LMA") => boolean
   }
 }
 

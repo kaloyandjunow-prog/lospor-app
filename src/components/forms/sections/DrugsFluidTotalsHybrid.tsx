@@ -11,14 +11,15 @@ import { SectionCard } from "@/components/forms/shared/SectionCard"
  * Aggregation-first fluid view. The values from the timetable are display-only;
  * the two clinician-measured fields are the only ones with an edit affordance.
  */
-export function DrugsFluidTotalsHybrid({ t, control, watch, liveDrugTotals, provisional = false }: DrugsFluidTotalsProps) {
+export function DrugsFluidTotalsHybrid({ t, control, watch, liveDrugTotals, liveFluidTotals, provisional = false }: DrugsFluidTotalsProps) {
   const [open, setOpen] = useState<"given" | "output" | "losses" | null>(null)
   const [editing, setEditing] = useState<"urine" | "blood" | null>(null)
-  const crystalloids = Number(watch("crystalloidsMl")) || 0
-  const colloids = Number(watch("colloidsMl")) || 0
-  const blood = Number(watch("bloodMl")) || 0
-  const infusions = Number(watch("infusionsMl")) || 0
-  const totalIn = [watch("crystalloidsMl"), watch("colloidsMl"), watch("bloodMl"), watch("infusionsMl")].every(value => value == null)
+  const fluidValue = (field: "crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl") => liveFluidTotals?.[field] ?? watch(field)
+  const crystalloids = Number(fluidValue("crystalloidsMl")) || 0
+  const colloids = Number(fluidValue("colloidsMl")) || 0
+  const blood = Number(fluidValue("bloodMl")) || 0
+  const infusions = Number(fluidValue("infusionsMl")) || 0
+  const totalIn = [fluidValue("crystalloidsMl"), fluidValue("colloidsMl"), fluidValue("bloodMl"), fluidValue("infusionsMl")].every(value => value == null)
     ? null : crystalloids + colloids + blood + infusions
   const urine = watch("urineMl")
   const bloodLoss = watch("bloodLossMl")

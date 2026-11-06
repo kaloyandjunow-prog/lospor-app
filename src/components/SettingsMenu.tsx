@@ -37,7 +37,7 @@ import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
 import { OverflowCueScroll } from "@/components/ui/OverflowCueScroll"
 
-type Category = "ui" | "units" | "automation" | "access" | "privacy"
+type Category = "account" | "appearance" | "units" | "clinicalDefaults" | "smartFunctions" | "access" | "privacy"
 
 type RoleReq = { id: string; status: string; requestedAt: string; resolvedAt: string | null } | null
 
@@ -52,7 +52,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   const t = useTranslations()
   const [open, setOpen]                     = useState(false)
   const [modalOpen, setModalOpen]           = useState(false)
-  const [category, setCategory]             = useState<Category>("ui")
+  const [category, setCategory]             = useState<Category>("account")
   const [instEdit, setInstEdit]             = useState(false)
   const [instList, setInstList]             = useState<{ id: string; name: string; city: string }[]>([])
   const [instQuery, setInstQuery]           = useState("")
@@ -190,6 +190,8 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
 
     void syncWebClinicalPreferences().then(preferences => {
       setDefMon(preferences.defaultMonitoring)
+      setTtLayout(preferences.timetableLayout)
+      setVitalsExp(preferences.vitalsChartExpanded)
       setAutoFill(preferences.autoFillVitals.enabled)
       setAutoFillBP(preferences.autoFillVitals.includeBloodPressure)
       setAutoFillBg(preferences.autoFillVitals.backfillOnReopen)
@@ -229,12 +231,20 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
     setSetting("theme", next ? "dark" : "light")
     document.cookie = `theme=${next ? "dark" : "light"}; path=/; max-age=31536000; SameSite=Lax`
   }
-  function applyTtLayout(mode: "expand" | "scroll") { setTtLayout(mode); setSetting("timetableLayout", mode) }
+  function applyTtLayout(mode: "expand" | "scroll") {
+    setTtLayout(mode)
+    setSetting("timetableLayout", mode)
+    void patchWebClinicalPreferences({ timetableLayout: mode })
+  }
   function applyDefMon(mode: "standard" | "advanced") {
     setDefMon(mode)
     void patchWebClinicalPreferences({ defaultMonitoring: mode })
   }
-  function applyVitalsExp(val: boolean) { setVitalsExp(val); setSetting("vitalsExpanded", val ? "true" : "false") }
+  function applyVitalsExp(val: boolean) {
+    setVitalsExp(val)
+    setSetting("vitalsExpanded", val ? "true" : "false")
+    void patchWebClinicalPreferences({ vitalsChartExpanded: val })
+  }
   function applyAutoFill(val: boolean) {
     setAutoFill(val)
     if (!val) {
@@ -307,9 +317,11 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   }
 
   const CATS: { id: Category; label: string }[] = [
-    { id: "ui",         label: t("settings.cats.ui")         },
+    { id: "account", label: t("settings.cats.account") },
+    { id: "smartFunctions", label: t("settings.cats.smartFunctions") },
+    { id: "clinicalDefaults", label: t("settings.cats.clinicalDefaults") },
+    { id: "appearance", label: t("settings.cats.appearance") },
     { id: "units",      label: t("settings.cats.units")        },
-    { id: "automation", label: t("settings.cats.automation")  },
     ...(role !== "ADMIN" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
     { id: "privacy",    label: t("settings.cats.privacy")    },
   ]
@@ -505,7 +517,20 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                 startLabel={t("settings.scrollUp")}
                 endLabel={t("settings.scrollDown")}
               >
-                {category === "ui" && (
+                {category === "account" && (
+                  <div className="py-4 space-y-4">
+                    <div className="rounded-xl bg-slate-50 dark:bg-[#1a1a1a] border border-slate-100 dark:border-[#2a2a2a] px-4 py-4">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{userName || institutionName || "—"}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.profileAccountDesc")}</p>
+                    </div>
+                    <button type="button" onClick={() => { setModalOpen(false); router.push("/account") }}
+                      className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">
+                      {t("settings.viewProfile")}
+                    </button>
+                  </div>
+                )}
+
+                {category === "appearance" && (
                   <>
                     <SettingRow label={t("settings.theme")}>
                       <PillGroup value={dark ? "dark" : "light"} onChange={v => applyTheme(v === "dark")}
@@ -524,41 +549,21 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     </SettingRow>
 
                     <EnergyKnobSkinSetting />
-                    <AirwayScreenSetting />
-
-                    <VascularScreenSetting />
-                    <MonitoringScreenSetting />
-                    <EquipmentScreenSetting />
-                    <TechniqueScreenSetting />
-                    <EventsScreenSetting />
-                    <FluidScreenSetting />
-                    <EventLogScreenSetting />
-
-                    {/* The case screens (10.0.0): the sidebar first, which overrides
-                        the rest; without it, each screen sectioned or scrollable. */}
-                    <SettingRow label={t("settings.caseLayout")} description={t("settings.caseLayoutDesc")}>
-                      <PillGroup value={caseLayout.sidebar ? "sidebar" : "none"} onChange={v => setCaseLayout({ sidebar: v === "sidebar" })}
-                        options={[
-                          { value: "sidebar", label: t("settings.layoutSidebar"), icon: <PanelRight className="h-3 w-3" /> },
-                          { value: "none",    label: t("settings.layoutNoSidebar"), icon: <Rows3 className="h-3 w-3" /> },
-                        ]} />
-                    </SettingRow>
-
-                    {!caseLayout.sidebar && (["preop", "intraop", "postop"] as const).map(screen => (
-                      <SettingRow key={screen} label={t(`settings.screenLayout.${screen}`)}>
-                        <PillGroup value={caseLayout[screen]} onChange={v => setCaseLayout({ [screen]: v as ScreenLayout })}
-                          options={[
-                            { value: "tabs",   label: t("settings.layoutSectioned"), icon: <LayoutList className="h-3 w-3" /> },
-                            { value: "scroll", label: t("settings.layoutScrollable"), icon: <Rows3 className="h-3 w-3" /> },
-                          ]} />
-                      </SettingRow>
-                    ))}
 
                     {/* Everything on the page larger or smaller, on this device (10.0.0). */}
                     <SettingRow label={t("settings.uiScale")} description={t("settings.uiScaleDesc")}>
                       <UiScaleSetting value={uiScale} onChange={changeUiScale} />
                     </SettingRow>
 
+                    <BulgarianNamesSettings />
+                  </>
+                )}
+
+                {category === "clinicalDefaults" && (
+                  <>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 pt-2 pb-1 leading-relaxed">
+                      {t("settings.clinicalDefaultsDesc")}
+                    </p>
                     <SettingRow label={t("settings.timetableLayout")} description={t("settings.timetableLayoutDesc")}>
                       <PillGroup value={ttLayout} onChange={v => applyTtLayout(v as "expand" | "scroll")}
                         options={[
@@ -566,7 +571,6 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                           { value: "scroll", label: t("settings.layoutScrollable") },
                         ]} />
                     </SettingRow>
-
                     <SettingRow label={t("settings.defaultMonitoring")} description={t("settings.defaultMonitoringDesc")}>
                       <PillGroup value={defMon} onChange={v => applyDefMon(v as "standard" | "advanced")}
                         options={[
@@ -574,11 +578,9 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                           { value: "advanced", label: t("settings.monitoringAdvanced") },
                         ]} />
                     </SettingRow>
-
                     <SettingRow label={t("settings.vitalsChart")} description={t("settings.vitalsChartDesc")}>
                       <Toggle value={vitalsExp} onChange={applyVitalsExp} />
                     </SettingRow>
-                    <BulgarianNamesSettings />
                   </>
                 )}
 
@@ -625,8 +627,40 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                   </>
                 )}
 
-                {category === "automation" && (
+                {category === "smartFunctions" && (
                   <>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 pt-2 pb-1 leading-relaxed">
+                      {t("settings.smartFunctionsDesc")}
+                    </p>
+                    <AirwayScreenSetting />
+                    <VascularScreenSetting />
+                    <MonitoringScreenSetting />
+                    <EquipmentScreenSetting />
+                    <TechniqueScreenSetting />
+                    <EventsScreenSetting />
+                    <FluidScreenSetting />
+                    <EventLogScreenSetting />
+
+                    {/* Account-wide case layout choices belong with the section
+                        layouts and SPS controls rather than general appearance. */}
+                    <SettingRow label={t("settings.caseLayout")} description={t("settings.caseLayoutDesc")}>
+                      <PillGroup value={caseLayout.sidebar ? "sidebar" : "none"} onChange={v => setCaseLayout({ sidebar: v === "sidebar" })}
+                        options={[
+                          { value: "sidebar", label: t("settings.layoutSidebar"), icon: <PanelRight className="h-3 w-3" /> },
+                          { value: "none",    label: t("settings.layoutNoSidebar"), icon: <Rows3 className="h-3 w-3" /> },
+                        ]} />
+                    </SettingRow>
+
+                    {(["preop", "intraop", "postop"] as const).map(screen => (
+                      <SettingRow key={screen} label={t(`settings.screenLayout.${screen}`)} description={caseLayout.sidebar ? t("settings.layoutOverridden") : undefined}>
+                        <PillGroup disabled={caseLayout.sidebar} value={caseLayout[screen]} onChange={v => setCaseLayout({ [screen]: v as ScreenLayout })}
+                          options={[
+                            { value: "tabs",   label: t("settings.layoutSectioned"), icon: <LayoutList className="h-3 w-3" /> },
+                            { value: "scroll", label: t("settings.layoutScrollable"), icon: <Rows3 className="h-3 w-3" /> },
+                          ]} />
+                      </SettingRow>
+                    ))}
+
                     <VitalEpisodeSetting />
                     <AutomationGroupsSetting />
                     <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>

@@ -20,6 +20,7 @@ export type DrugsFluidTotalsProps = {
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
   liveDrugTotals: DrugTotals
+  liveFluidTotals?: Partial<Record<"crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl", number | null>> | null
   screen?: "smart" | "legacy"
 }
 
@@ -28,7 +29,8 @@ export function DrugsFluidTotalsSection(props: DrugsFluidTotalsProps) {
   return <LegacyDrugsFluidTotalsSection {...props} />
 }
 
-function LegacyDrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, provisional = false }: DrugsFluidTotalsProps) {
+function LegacyDrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, liveFluidTotals, provisional = false }: DrugsFluidTotalsProps) {
+  const fluidValue = (field: "crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl") => liveFluidTotals?.[field] ?? watch(field)
   return (
     <SectionCard title={t("intraop.fluidsSection")} collapsible defaultCollapsed
       badge={(() => { const n = liveDrugTotals.bolusList.length + liveDrugTotals.infusionList.length; return n ? t("intraop.totals.drugCount", { count: n }) : undefined })()}>
@@ -93,14 +95,14 @@ function LegacyDrugsFluidTotalsSection({ t, control, watch, liveDrugTotals, prov
             <div key={field} className="space-y-1">
               <Label>{label}</Label>
               <div className="flex h-9 items-center rounded-md border border-slate-100 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#1e1e1e] px-3 text-sm font-medium text-slate-700 dark:text-slate-200">
-                {watch(field) ? `${watch(field)} mL` : <span className="text-slate-400">0 mL</span>}
+                {fluidValue(field) ? `${fluidValue(field)} mL` : <span className="text-slate-400">0 mL</span>}
               </div>
             </div>
           ))}
           <div className="space-y-1">
             <Label>{t("intraop.totalIn")}</Label>
             <div className="flex h-9 items-center rounded-md border border-slate-100 dark:border-[#2e2e2e] bg-slate-50 dark:bg-[#1e1e1e] px-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {(["crystalloidsMl", "colloidsMl", "bloodMl", "infusionsMl"] as const).reduce((sum, field) => sum + (Number(watch(field)) || 0), 0)} mL
+              {(["crystalloidsMl", "colloidsMl", "bloodMl", "infusionsMl"] as const).reduce((sum, field) => sum + (Number(fluidValue(field)) || 0), 0)} mL
             </div>
           </div>
           {watch("urinaryCatheter") && (

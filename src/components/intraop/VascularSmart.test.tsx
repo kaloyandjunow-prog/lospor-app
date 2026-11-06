@@ -81,14 +81,17 @@ describe("Smart selection, the Vascular access tab (10.2.0)", () => {
 
   it("collapses a selected kind when clicked again and charts CVC in on confirmation", () => {
     const onEvent = vi.fn()
-    setup({ onEvent })
+    const { onChange } = setup({ onEvent })
     fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
     expect(screen.getByTestId("vascular-smart-panel")).toBeTruthy()
     fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
     expect(screen.queryByTestId("vascular-smart-panel")).toBeNull()
     fireEvent.click(screen.getByTestId("vascular-smart-card-CENTRAL"))
     fireEvent.click(screen.getByTestId("vascular-smart-add"))
-    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ label: "CVC in", ts: START, intraopPatch: expect.objectContaining({ vascularAccesses: expect.any(Array) }) }))
+    const event = onEvent.mock.calls[0]![0]
+    expect(event).toMatchObject({ label: "CVC in", ts: START, intraopPatch: expect.objectContaining({ vascularAccesses: expect.any(Array) }) })
+    expect(saved(onChange)[0]!.sourceEventId).toBe(event.id)
+    expect(event.id).toEqual(expect.any(String))
   })
 
   it("adds more than one line, and Failed keeps both: the first struck through, the second in place", () => {

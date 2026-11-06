@@ -29,7 +29,7 @@ export type PreopSummary = {
   allergyDetails?: { label: string; inn?: string; atcCode?: string; source?: string }[]
   comorbidities?: { label: string; sub?: string; code?: string }[]
   currentMedications?: { label: string; atcCode?: string }[]
-  // What the intraoperative suggestions read (10.2.0): P1 MH, P4 latex, P3 ПОГП.
+  // What SPS reads (10.2.0): P1 MH, P4 latex, P3 ПОГП.
   malignantHyperthermiaHistory?: boolean | null
   familyAnesthesiaProblems?: boolean | null
   latexAllergy?: boolean | null

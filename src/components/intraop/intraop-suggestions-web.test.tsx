@@ -16,7 +16,7 @@ import { AirwayExchangeDialog } from "./AirwayExchangeDialog"
 import { convertDoseAmount, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "./suggestion-prefill"
 import type { TtFP } from "./timetable-types"
 
-// The intraoperative suggestions on the web (10.2.0). What is listed and
+// SPS on the web (10.2.0). What is listed and
 // what each answer writes are Core's; these check the web lays them out and
 // routes each row to the right sheet, with the suggestion's tag.
 

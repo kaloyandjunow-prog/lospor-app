@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   AUTOMATION_GROUPS,
   automationGroupEnabled,
@@ -14,8 +14,8 @@ import { suggestionFactsFromPreop, type SuggestionContext, type SuggestionPreopR
 import type { LabResult } from "@lospor/core/labs"
 import { preopAgeDays, type VitalQuestionContext, type VitalStatsTable } from "@lospor/core/vital-questions"
 import { likelyNext, parseSuccessionLinks, successionContext, successionDismissedIds, SUCCESSION_ANSWER_KIND, SUCCESSION_DISMISS_ANSWER, type LikelyEvent, type SuccessionLink, type SuccessionStructuredRecords } from "@lospor/core/event-succession"
+import { successionDismissalEventId } from "@lospor/core/intraop-automation-actions"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
-import { randomId } from "@/lib/random-id"
 import { serverNow } from "@/lib/intraop-clock"
 import { readWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 
@@ -142,6 +142,7 @@ export function useLikelyEvents(args: {
   const { settings, succession, ready } = useIntraopAutomation()
   const { user } = useAutomationPreferences()
   const [now, setNow] = useState(() => Date.now())
+  const dismissalInFlight = useRef(new Set<string>())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000)
     return () => clearInterval(timer)
@@ -159,9 +160,11 @@ export function useLikelyEvents(args: {
     likely,
     dismiss: suggestionId => {
       if (!args.onEventOps || !suggestionId.startsWith("succession:")) return
+      if (dismissalInFlight.current.has(suggestionId)) return
+      dismissalInFlight.current.add(suggestionId)
       const ts = serverNow().toISOString()
       void args.onEventOps({
-        add: [{ id: randomId(), ts, type: "prompt_answer", answerKind: SUCCESSION_ANSWER_KIND, answerFor: suggestionId, answer: SUCCESSION_DISMISS_ANSWER, suggestion: suggestionId, recordedAt: ts }],
+        add: [{ id: successionDismissalEventId(suggestionId), ts, type: "prompt_answer", answerKind: SUCCESSION_ANSWER_KIND, answerFor: suggestionId, answer: SUCCESSION_DISMISS_ANSWER, suggestion: suggestionId, recordedAt: ts }],
         update: [], remove: [],
       })
     },
@@ -180,6 +183,7 @@ export type SuggestionCaseFacts = {
   techniqueSides?: Record<string, "LEFT" | "RIGHT" | "BOTH">
   airwayDevices?: readonly string[]
   airwayDeviceEntries?: readonly Record<string, unknown>[]
+  presentsIntubated?: boolean
   timeZone?: string | null
 }
 
@@ -195,7 +199,7 @@ export function useSuggestionContext(
 ): Omit<SuggestionContext, "now"> | null {
   const { settings, ready } = useIntraopAutomation()
   const { keepLogging, user } = useAutomationPreferences()
-  const { idealWeightKg, tofMonitor, labs, bloodLossMl, startedAt, endedAt, techniques, techniqueSides, airwayDevices, airwayDeviceEntries, timeZone } = facts
+  const { idealWeightKg, tofMonitor, labs, bloodLossMl, startedAt, endedAt, techniques, techniqueSides, airwayDevices, airwayDeviceEntries, presentsIntubated, timeZone } = facts
   const base = useMemo(() => suggestionFactsFromPreop(preop, idealWeightKg), [preop, idealWeightKg])
   return useMemo(() => {
     if (ready === false || readOnly || !AUTOMATION_GROUPS.some(group => automationGroupEnabled(settings, group, user))) return null
@@ -214,7 +218,8 @@ export function useSuggestionContext(
       techniqueSides,
       airwayDevices,
       airwayDeviceEntries,
+      presentsIntubated,
       timeZone: timeZone ?? null,
     }
-  }, [ready, readOnly, settings, user, base, tofMonitor, keepLogging, labs, bloodLossMl, startedAt, endedAt, techniques, techniqueSides, airwayDevices, airwayDeviceEntries, timeZone])
+  }, [ready, readOnly, settings, user, base, tofMonitor, keepLogging, labs, bloodLossMl, startedAt, endedAt, techniques, techniqueSides, airwayDevices, airwayDeviceEntries, presentsIntubated, timeZone])
 }

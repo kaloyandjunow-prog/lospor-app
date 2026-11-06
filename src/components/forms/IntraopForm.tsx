@@ -8,7 +8,7 @@ import { useLikelyEvents, useSuggestionContext, useVitalQuestionContext } from "
 import { IntraopAttentionPanel } from "@/components/intraop/IntraopAttentionPanel"
 import { AirwayExchangeDialog } from "@/components/intraop/AirwayExchangeDialog"
 import { accessKindOf, replaceFailedLine, vascularLineText, type AccessKind, type VascularLine } from "@lospor/core/vascular-access-lines"
-import { airwayDeviceEntriesOf, type AirwayDeviceEntry, type AirwayExchangeReason } from "@lospor/core/airway-device-entries"
+import { airwayDeviceEntriesOf, airwayPrimaryConflict, hasActiveTrachealTube, type AirwayDeviceEntry, type AirwayExchangeReason } from "@lospor/core/airway-device-entries"
 import { cardEventOps } from "@lospor/core/intraop-suggestions"
 import type { LogEvent as CoreLogEvent } from "@lospor/core/intraop-types"
 import { serverNow } from "@/lib/intraop-clock"
@@ -33,6 +33,7 @@ import { buildTree as buildTechniqueTree, techniqueDisplayLabel, techniqueIsGene
 import { CaseSidebar, sidebarPatientOf, type CaseStages } from "@/components/forms/CaseSidebar"
 import { broselowZone } from "@lospor/core/broselow"
 import { clinicalRecordId } from "@lospor/core/clinical-record-id"
+import { clinicalRelationForEventLabel } from "@lospor/core/intraop-automation-actions"
 
 const AIRWAY_EVENT_COLORS: Record<string, string> = {
   Intubated: "#6366f1", Reintubation: "#f97316", "LMA in": "#6366f1", "DLT placed": "#6366f1", "Airway exchange": "#f97316",
@@ -78,7 +79,8 @@ import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
 import { parseTechniqueSides, techniquesAfterTciStart, type TechniqueSide } from "@lospor/core/technique-smart"
 import { addAirwayDevice, airwayClinicalEvent, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
-import { MONITORING_READINGS, isRelaxant, monitoringSuggestions } from "@lospor/core/monitoring-smart"
+import { MONITORING_READINGS, isRelaxant, monitoringAutomationId, monitoringSuggestionKey, monitoringSuggestions, type MonitoringSuggestion } from "@lospor/core/monitoring-smart"
+import { monitoringDismissalEventId } from "@lospor/core/intraop-automation-actions"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
@@ -221,8 +223,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcIbw = ibwResolution.available ? ibwResolution.roundedKg : null
   const calcTbw = preop?.weightKg ?? null
   const [watchedTof, watchedBloodLoss, watchedIntraopLabs] = useWatch({ control, name: ["tofMonitor", "bloodLossMl", "labResults"] })
-  const [watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions] = useWatch({
-    control, name: ["techniques", "techniqueSides", "airwayDevices", "airwayDeviceEntries"],
+  const [watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions, watchedPresentsIntubatedForSuggestions] = useWatch({
+    control, name: ["techniques", "techniqueSides", "airwayDevices", "airwayDeviceEntries", "presentsIntubated"],
   })
   const suggestionFacts = useMemo(() => ({
     idealWeightKg: calcIbw, tofMonitor: watchedTof, bloodLossMl: watchedBloodLoss,
@@ -233,7 +235,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     techniqueSides: (watchedTechniqueSidesForSuggestions ?? {}) as Record<string, "LEFT" | "RIGHT" | "BOTH">,
     airwayDevices: (watchedAirwayDevicesForSuggestions ?? []) as string[],
     airwayDeviceEntries: (watchedAirwayEntriesForSuggestions ?? []) as Record<string, unknown>[],
-  }), [calcIbw, watchedTof, watchedIntraopLabs, watchedBloodLoss, chartStartedAt, timelineEndedAt, timelineZone, watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions])
+    presentsIntubated: watchedPresentsIntubatedForSuggestions === true,
+  }), [calcIbw, watchedTof, watchedIntraopLabs, watchedBloodLoss, chartStartedAt, timelineEndedAt, timelineZone, watchedTechniquesForSuggestions, watchedTechniqueSidesForSuggestions, watchedAirwayDevicesForSuggestions, watchedAirwayEntriesForSuggestions, watchedPresentsIntubatedForSuggestions])
   const suggestionContext = useSuggestionContext(preop, suggestionFacts, readOnly)
   const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly), suggestions: suggestionContext })
 
@@ -245,6 +248,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // Auto-calculate fluid totals from the one canonical delivered-volume path.
   // Running rate entries advance against the real clock; bag entries retain
   // their selected size until a full/partial actual amount is confirmed.
+  const [liveFluidTotals, setLiveFluidTotals] = useState<Partial<Record<"crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl", number | null>> | null>(null)
   useEffect(() => {
     function updateFluidTotals() {
       const asOf = new Date()
@@ -257,9 +261,15 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         else if (category === "Colloids") colloids += volume
         else if (category === "Blood products") blood += volume
       }
-      setValue("crystalloidsMl", crystalloids || undefined)
-      setValue("colloidsMl",     colloids     || undefined)
-      setValue("bloodMl",        blood        || undefined); setValue("infusionsMl", infusionsVolumeMl(timetable.infusions, asOf, tciPatientFrom(preop ?? {})) || undefined)
+      // These are derived display values. They must not enter the form state:
+      // doing so makes the 30-second clock look like a clinician edit and
+      // sends a full PATCH whose mapper intentionally ignores these columns.
+      setLiveFluidTotals({
+        crystalloidsMl: crystalloids || null,
+        colloidsMl: colloids || null,
+        bloodMl: blood || null,
+        infusionsMl: infusionsVolumeMl(timetable.infusions, asOf, tciPatientFrom(preop ?? {})) || null,
+      })
     }
 
     updateFluidTotals()
@@ -403,20 +413,20 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const deviceWasCompleteOnOpen = useRef(false)
   const timelineSectionRef = useRef<HTMLDivElement>(null)
 
-  const chartAirwayEvent = useCallback((event: { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }): boolean => {
+  const chartAirwayEvent = useCallback((event: { id?: string; label: string; ts: string; clinicalRelation?: string; intraopPatch?: Record<string, unknown> }): boolean => {
     if (!onEventOps) return false
     const existing = timelineLog.find(item => item.type === "clinical_event" && (event.id ? item.id === event.id : item.label === event.label && item.ts === event.ts))
     if (existing) {
       if (!event.intraopPatch) return false
       void onEventOps({
         add: [],
-        update: [{ ...existing, ...event, id: existing.id, recordedAt: serverNow().toISOString() }],
+        update: [{ ...existing, ...event, id: existing.id, clinicalRelation: event.clinicalRelation ?? clinicalRelationForEventLabel(event.label) ?? undefined, recordedAt: serverNow().toISOString() }],
         remove: [],
       })
       return true
     }
     void onEventOps({
-      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: AIRWAY_EVENT_COLORS[event.label] ?? "#6366f1", recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
+      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: AIRWAY_EVENT_COLORS[event.label] ?? "#6366f1", clinicalRelation: event.clinicalRelation ?? clinicalRelationForEventLabel(event.label) ?? undefined, recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
       update: [], remove: [],
     })
     return true
@@ -441,7 +451,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const chartLegacyAirwayDevice = useCallback((device: string, previousDevices: readonly string[], patch?: Record<string, unknown>): boolean => {
     if (readOnly) return false
     const label = airwayClinicalEvent(device, {
-      priorTrachealTube: previousDevices.some(item => item === "ORAL_ETT" || item === "NASAL_ETT"),
+      priorTrachealTube: hasActiveTrachealTube(airwayDeviceEntriesOf({ airwayDevices: previousDevices })),
     })
     if (!label) return false
     const nextDevices = Array.isArray(patch?.airwayDevices) ? patch.airwayDevices.filter((value): value is string => typeof value === "string") : [...previousDevices, device]
@@ -450,16 +460,16 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     if (added) atomicAirwayEventPendingRef.current = true
     return added
   }, [chartAirwayEvent, legacyAirwayPatch, readOnly])
-  function chartVascularEvent(event: { id?: string; label: string; ts: string; intraopPatch?: Record<string, unknown> }) {
+  function chartVascularEvent(event: { id?: string; label: string; ts: string; clinicalRelation?: string; intraopPatch?: Record<string, unknown> }) {
     if (!onEventOps) return
     const existing = timelineLog.find(item => item.type === "clinical_event" && (event.id ? item.id === event.id : item.label === event.label && item.ts === event.ts))
     if (existing) {
       if (!event.intraopPatch) return
-      void onEventOps({ add: [], update: [{ ...existing, ...event, id: existing.id, recordedAt: serverNow().toISOString() }], remove: [] })
+      void onEventOps({ add: [], update: [{ ...existing, ...event, id: existing.id, clinicalRelation: event.clinicalRelation ?? clinicalRelationForEventLabel(event.label) ?? undefined, recordedAt: serverNow().toISOString() }], remove: [] })
       return
     }
     void onEventOps({
-      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: VASCULAR_EVENT_COLORS[event.label] ?? "#a67cff", recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
+      add: [{ id: event.id ?? randomId(), ts: event.ts, type: "clinical_event", label: event.label, color: VASCULAR_EVENT_COLORS[event.label] ?? "#a67cff", clinicalRelation: event.clinicalRelation ?? clinicalRelationForEventLabel(event.label) ?? undefined, recordedAt: serverNow().toISOString(), ...(event.intraopPatch ? { intraopPatch: event.intraopPatch } : {}) }],
       update: [], remove: [],
     })
   }
@@ -640,18 +650,33 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // E6: Reintubation or Airway exchange charted on this screen opens the picker
   // (Airway exchange asks why first); an event whose device is already on the list does not.
   const seenAirwayEvents = useRef<Set<string> | null>(null)
+  const pendingAirwayEvents = useRef<Map<string, CoreLogEvent>>(new Map())
+  const openedAirwayEvents = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (readOnly) return
     const events = timelineLog.filter(event => event.type === "clinical_event" && (event.label === "Reintubation" || event.label === "Airway exchange"))
     if (seenAirwayEvents.current == null) { seenAirwayEvents.current = new Set(events.map(event => event.id)); return }
     const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
     const seen = seenAirwayEvents.current
-    const fresh = events.find(event => !seen.has(event.id)
-      && !entries.some(entry => entry.insertedAt === event.ts)
-      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
-    for (const event of events) seen.add(event.id)
-    if (fresh) setAirwayDialog({ reason: fresh.label === "Reintubation" ? "reintubation" : null, at: fresh.ts, eventId: fresh.id, eventLabel: fresh.label })
-  }, [timelineLog, readOnly, getValues])
+    for (const event of events) {
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      const exactLink = entries.some(entry => entry.sourceEventId === event.id)
+      const legacyMatches = entries.filter(entry => entry.insertedAt === event.ts)
+      const linked = exactLink || Array.isArray(event.intraopPatch?.airwayDeviceEntries)
+        || (!event.sourceEventId && legacyMatches.length === 1)
+      if (!linked) pendingAirwayEvents.current.set(event.id, event)
+    }
+    if (airwayDialog) return
+    const fresh = [...pendingAirwayEvents.current.values()]
+      .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts))
+      .find(event => !openedAirwayEvents.current.has(event.id))
+    if (fresh) {
+      openedAirwayEvents.current.add(fresh.id)
+      pendingAirwayEvents.current.delete(fresh.id)
+      setAirwayDialog({ reason: fresh.label === "Reintubation" ? "reintubation" : null, at: fresh.ts, eventId: fresh.id, eventLabel: fresh.label })
+    }
+  }, [timelineLog, readOnly, airwayDialog, getValues])
   function saveAirwayExchange(next: AirwayDeviceEntry[]) {
     const dialog = airwayDialog
     setAirwayDialog(null)
@@ -701,17 +726,32 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // Intubated, LMA in and DLT placed charted on the timeline open the same panel, with that time already set.
   const SMART_EVENT_DEVICE = AIRWAY_EVENT_DEVICE
   const seenSmartEvents = useRef<Set<string> | null>(null)
+  const pendingSmartEvents = useRef<Map<string, CoreLogEvent>>(new Map())
+  const openedSmartEvents = useRef<Set<string>>(new Set())
   useEffect(() => {
-    if (readOnly || airwayScreen !== "smart") return
+    if (readOnly) return
     const events = timelineLog.filter(event => event.type === "clinical_event" && event.label != null && SMART_EVENT_DEVICE[event.label])
     if (seenSmartEvents.current == null) { seenSmartEvents.current = new Set(events.map(event => event.id)); return }
     const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
     const seen = seenSmartEvents.current
-    const fresh = events.find(event => !seen.has(event.id)
-      && !entries.some(entry => entry.insertedAt === event.ts)
-      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
-    for (const event of events) seen.add(event.id)
-    if (fresh?.label) setSmartRequest({ device: SMART_EVENT_DEVICE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
+    for (const event of events) {
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      const exactLink = entries.some(entry => entry.sourceEventId === event.id)
+      const legacyMatches = entries.filter(entry => entry.insertedAt === event.ts)
+      const linked = exactLink || Array.isArray(event.intraopPatch?.airwayDeviceEntries)
+        || (!event.sourceEventId && legacyMatches.length === 1)
+      if (!linked) pendingSmartEvents.current.set(event.id, event)
+    }
+    if (airwayScreen !== "smart") return
+    const fresh = [...pendingSmartEvents.current.values()]
+      .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts))
+      .find(event => !openedSmartEvents.current.has(event.id))
+    if (fresh?.label) {
+      openedSmartEvents.current.add(fresh.id)
+      pendingSmartEvents.current.delete(fresh.id)
+      setSmartRequest({ device: SMART_EVENT_DEVICE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineLog, readOnly, airwayScreen, getValues])
   const smartNode = airwayScreen === "smart" ? (
@@ -744,17 +784,32 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }
   // IV line in, Art line in, CVC in and PICC charted on the timeline open the same panel, with that time already set.
   const seenVascularEvents = useRef<Set<string> | null>(null)
+  const pendingVascularEvents = useRef<Map<string, CoreLogEvent>>(new Map())
+  const openedVascularEvents = useRef<Set<string>>(new Set())
   useEffect(() => {
-    if (readOnly || vascularScreen !== "smart") return
+    if (readOnly) return
     const events = timelineLog.filter(event => event.type === "clinical_event" && event.label != null && VASCULAR_EVENT_TYPE[event.label])
     if (seenVascularEvents.current == null) { seenVascularEvents.current = new Set(events.map(event => event.id)); return }
     const lines = ((getValues("vascularAccesses") ?? []) as unknown as VascularLine[])
     const seen = seenVascularEvents.current
-    const fresh = events.find(event => !seen.has(event.id)
-      && !lines.some(line => line.insertedAt === event.ts)
-      && serverNow().getTime() - Date.parse(event.recordedAt ?? event.ts) < 2 * 60_000)
-    for (const event of events) seen.add(event.id)
-    if (fresh?.label) setVascularRequest({ ...VASCULAR_EVENT_TYPE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
+    for (const event of events) {
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      const exactLink = lines.some(line => line.sourceEventId === event.id)
+      const legacyMatches = lines.filter(line => line.insertedAt === event.ts)
+      const linked = exactLink || Array.isArray(event.intraopPatch?.vascularAccesses)
+        || (!event.sourceEventId && legacyMatches.length === 1)
+      if (!linked) pendingVascularEvents.current.set(event.id, event)
+    }
+    if (vascularScreen !== "smart") return
+    const fresh = [...pendingVascularEvents.current.values()]
+      .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts))
+      .find(event => !openedVascularEvents.current.has(event.id))
+    if (fresh?.label) {
+      openedVascularEvents.current.add(fresh.id)
+      pendingVascularEvents.current.delete(fresh.id)
+      setVascularRequest({ ...VASCULAR_EVENT_TYPE[fresh.label]!, at: fresh.ts, source: "timeline", eventId: fresh.id, eventLabel: fresh.label })
+    }
   }, [timelineLog, readOnly, vascularScreen, getValues])
   const vascularNode = vascularScreen === "smart" ? (
     <VascularSmart {...vascularProps} lines={vascularLines()} onChange={applyVascularLines} onEvent={chartVascularEvent}
@@ -766,7 +821,9 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // due is Core's (monitoring-smart); a monitor added sets the same flag the legacy section sets.
   const monitoringScreen = useMonitoringScreen()
   useWatch({ control, name: monitoringOptions.map(option => option.value as keyof IntraopFormFields) })
-  const [hiddenMonitors, setHiddenMonitors] = useState<string[]>([])
+  const hiddenMonitors = useMemo(() => timelineLog
+    .filter(event => event.type === "prompt_answer" && event.answer === "not_now" && event.answerKind?.startsWith("monitor:") && typeof event.answerFor === "string")
+    .map(event => event.answerFor as string), [timelineLog])
   const activeMonitoring = monitoringOptions.filter(option => getValues(option.value as keyof IntraopFormFields)).map(option => option.value)
   function applyMonitoring(next: string[]) {
     for (const option of monitoringOptions) setValue(option.value as keyof IntraopFormFields, next.includes(option.value) as never, { shouldDirty: true })
@@ -777,6 +834,24 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     startedAt: chartStartedAt ?? null, now: serverNow(),
     settings: suggestionContext?.settings ?? null, user: suggestionContext?.user ?? null,
   })
+  const dismissMonitoringSuggestion = useCallback((suggestion: MonitoringSuggestion) => {
+    if (!onEventOps) return
+    const occurrence = suggestion.key ?? monitoringSuggestionKey(suggestion.field, suggestion.at)
+    const nowIso = serverNow().toISOString()
+    void onEventOps({
+      add: [{
+        id: monitoringDismissalEventId(suggestion.field, occurrence),
+        ts: nowIso,
+        type: "prompt_answer",
+        answerKind: monitoringAutomationId(suggestion.field),
+        answerFor: occurrence,
+        answer: "not_now",
+        suggestion: monitoringAutomationId(suggestion.field),
+        recordedAt: nowIso,
+      }],
+      update: [], remove: [],
+    })
+  }, [onEventOps])
   function lastMonitorReading(field: string) {
     const key = ({ bisValue: "bis", tofRatio: "tofRatio", cvpMmHg: "cvp", etco2: "etco2", temp: "temp" } as const)[(MONITORING_READINGS[field]?.vital ?? "temp") as "bisValue" | "tofRatio" | "cvpMmHg" | "etco2" | "temp"]
     const event = [...timelineLog].reverse().find(item => item.type === "vital" && typeof item[key] === "number")
@@ -784,7 +859,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }
   const monitoringNode = monitoringScreen === "smart" && !readOnly ? (
     <MonitoringSmart monitoring={activeMonitoring} onChange={applyMonitoring} monitoringOptions={monitoringOptions} suggestions={monitoringSuggestionList}
-      onHide={field => setHiddenMonitors(list => [...list, field])} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} />
+      onHide={dismissMonitoringSuggestion} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} />
   ) : undefined
 
   // ── Smart selection for equipment (10.2.0) ──────────────────────────────────
@@ -801,15 +876,24 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     onPreparedChange: (key: string, value: boolean) => setValue("equipmentPrepared", { ...(getValues("equipmentPrepared") ?? {}), [key]: value }, { shouldDirty: true }),
     onUseAirway: (device: "ORAL_ETT" | "LMA") => {
       const entries = airwayDeviceEntriesOf(getValues() as Record<string, unknown>)
+      if (airwayPrimaryConflict(entries, device)) return false
+      // The equipment shortcut is still a clinical airway record. Do not
+      // silently stamp a later device with "now" when the case has no start.
+      const insertedAt = resolveAirwayTime("start", { startedAt: smartProps.startedAt, now: smartProps.now() })
+      if (!insertedAt) return false
+      const eventId = clinicalRecordId("airway-event", insertedAt)
       const next = addAirwayDevice(entries, {
-        id: clinicalRecordId("airway"), device, details: suggestedAirwayDetails(device, smartProps.patient),
-        insertedAt: resolveAirwayTime(entries.length === 0 ? "start" : "now", { startedAt: smartProps.startedAt, now: smartProps.now() }),
+        id: clinicalRecordId("airway", insertedAt), device, details: suggestedAirwayDetails(device, smartProps.patient),
+        insertedAt,
+        sourceEventId: eventId,
       })
+      atomicAirwayEventPendingRef.current = true
       applyAirwayEntries(next)
       const label = airwayClinicalEvent(device, {
-        priorTrachealTube: entries.some(entry => entry.device === "ORAL_ETT" || entry.device === "NASAL_ETT"),
+        priorTrachealTube: hasActiveTrachealTube(entries),
       })
-      if (label) chartAirwayEvent({ label, ts: next[next.length - 1]?.insertedAt ?? smartProps.now(), intraopPatch: airwayRecordFields(next) })
+      if (label) chartAirwayEvent({ id: eventId, label, ts: insertedAt, intraopPatch: airwayRecordFields(next) })
+      return true
     },
   } : undefined
 
@@ -863,6 +947,19 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       {(() => {
         const tabOverview = (<>
 
+      {/* Timing is the first clinical surface: every time-dependent shortcut
+          must have a documented start before it can write an event. */}
+      <div ref={timelineSectionRef} data-tour="intraop-timing" data-readiness="times position">
+      <TimelineSection
+        t={t} control={control} watch={watch} setValue={setValue} getValues={getValues}
+        onAutoSave={onAutoSave}
+        timeErrors={timeErrors} setTimeErrors={setTimeErrors}
+        monDefaultsAppliedRef={monDefaultsApplied}
+        setAdvancedMonOpen={setAdvancedMonOpen} setAirwayExpandedDevice={setAirwayExpandedDevice}
+        onEndCorrectionOpen={setEndCorrectionOpen}
+      />
+      </div>
+
       {preop ? <IntraopPreopSummary preop={preop} ibw={calcIbw} isPediatric={isPediatric} surgeryStart={timelineStartedAt} timezone={timelineZone} /> : null}
       {/* Equipment suggestions */}
       {preop && isPediatric ? (
@@ -896,18 +993,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           cormackLehane={preop.cormackLehane}
         />
       ) : null}
-
-      {/* Timeline */}
-      <div ref={timelineSectionRef} data-tour="intraop-timing" data-readiness="times position">
-      <TimelineSection
-        t={t} control={control} watch={watch} setValue={setValue} getValues={getValues}
-        onAutoSave={onAutoSave}
-        timeErrors={timeErrors} setTimeErrors={setTimeErrors}
-        monDefaultsAppliedRef={monDefaultsApplied}
-        setAdvancedMonOpen={setAdvancedMonOpen} setAirwayExpandedDevice={setAirwayExpandedDevice}
-        onEndCorrectionOpen={setEndCorrectionOpen}
-      />
-      </div>
 
       {/* Positions (multi-select) */}
       <PositionSection t={t} control={control} watch={watch} positionOptions={positionOptions} />
@@ -1050,7 +1135,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       </SectionCard>
 
       {/* Drugs and Fluid Balance Totals */}
-      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} provisional={totalsProvisional(timetable, attention.saveState)} screen={fluidsScreen} />
+      <DrugsFluidTotalsSection t={t} control={control} watch={watch} liveDrugTotals={liveDrugTotals} liveFluidTotals={liveFluidTotals} provisional={totalsProvisional(timetable, attention.saveState)} screen={fluidsScreen} />
       </div>{/* /intraop-timetable */}
 
         </>)

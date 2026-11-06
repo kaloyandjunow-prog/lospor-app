@@ -4,6 +4,10 @@
 
 ### Added
 
+- **Shared settings IA:** profile/account, Smart Functions, clinical defaults,
+  appearance, units, access, and privacy are grouped consistently; account-wide
+  case and timetable layout choices are synchronized through the API.
+
 - **Smart intraoperative screens:** Smart and Legacy selection for airway,
   vascular access, monitoring, equipment, technique, and events, including
   block sides and the unilateral spinal.
@@ -12,7 +16,7 @@
   Legacy remains selectable in Settings.
 - **Event log timeline:** added the filterable Smart Timeline stream for web;
   today’s chronological event list remains available as Legacy in Settings.
-- **Intraoperative suggestions:** Likely now, reminders, event search, and
+- **SPS — Smart Prediction System:** Likely now, reminders, event search, and
   suggestion cards are available in the web chart and settings.
 - **Context links:** reminder-scoped suggestions now connect local anaesthetic,
   induction, TCI, volatile, airway, technique-side, and placement records to
@@ -49,6 +53,11 @@
 - **Suggestion dismissal:** succession and context-link prompts use a
   definitive, persisted case-scoped **Dismiss** action; ordinary clinical
   questions retain **Not now**.
+
+- **Automation collision handling:** linked airway/vascular writes are sent
+  atomically with their clinical events, and rapid suggestion answers are
+  serialized against the latest local event log so one answer cannot erase
+  another.
 
 ### Changed
 
