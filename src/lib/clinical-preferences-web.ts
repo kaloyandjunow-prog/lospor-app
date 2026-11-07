@@ -1,5 +1,7 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
+
 import {
   applyClinicalPreferencesPatch,
   combineClinicalPreferencesPatches,
@@ -37,6 +39,30 @@ const LEGACY_KEYS = [
 // identity of whoever signs in next; the server account is the authority.
 let activeOwnerId: string | null = null
 let serverPreferencesRevision: number | null = null
+let ownerEpoch = 0
+const ownerListeners = new Set<() => void>()
+
+export function getWebClinicalPreferencesOwner(): string | null {
+  return activeOwnerId
+}
+
+export function subscribeWebClinicalPreferencesOwner(listener: () => void): () => void {
+  ownerListeners.add(listener)
+  return () => ownerListeners.delete(listener)
+}
+
+export function useWebClinicalPreferencesOwner(): string | null {
+  return useSyncExternalStore(subscribeWebClinicalPreferencesOwner, getWebClinicalPreferencesOwner, () => null)
+}
+
+function notifyOwnerChanged(): void {
+  ownerEpoch += 1
+  for (const listener of ownerListeners) listener()
+}
+
+function currentOwner(epoch: number, ownerId: string): boolean {
+  return ownerEpoch === epoch && activeOwnerId === ownerId
+}
 
 function clearStoredPreferenceValues(): void {
   localStorage.removeItem(SNAPSHOT_KEY)
@@ -67,6 +93,7 @@ function prepareOwner(ownerId: string): void {
 }
 
 export function setWebClinicalPreferencesOwner(ownerId: string | null): void {
+  const previous = activeOwnerId
   if (!ownerId) {
     activeOwnerId = null
     serverPreferencesRevision = null
@@ -75,6 +102,7 @@ export function setWebClinicalPreferencesOwner(ownerId: string | null): void {
   } else {
     prepareOwner(ownerId)
   }
+  if (previous !== activeOwnerId) notifyOwnerChanged()
 }
 
 export function clearWebClinicalPreferences(): void {
@@ -83,6 +111,7 @@ export function clearWebClinicalPreferences(): void {
   localStorage.removeItem(OWNER_KEY)
   activeOwnerId = null
   serverPreferencesRevision = null
+  notifyOwnerChanged()
 }
 
 function readPendingPatch(): ClinicalPreferencesPatch | null {
@@ -188,7 +217,9 @@ export function writeWebClinicalPreferences(
 async function pushPreferences(
   preferences: ClinicalPreferences | ClinicalPreferencesPatch,
   retryOnConflict = true,
+  guard?: { epoch: number; ownerId: string },
 ): Promise<boolean> {
+  if (guard && !currentOwner(guard.epoch, guard.ownerId)) return false
   try {
     const response = await fetch("/api/user", {
       method: "PATCH",
@@ -201,6 +232,7 @@ async function pushPreferences(
       }),
     })
     const data = await response.json().catch(() => null) as { preferencesRevision?: unknown } | null
+    if (guard && !currentOwner(guard.epoch, guard.ownerId)) return false
     if (typeof data?.preferencesRevision === "number"
       && Number.isInteger(data.preferencesRevision)
       && data.preferencesRevision >= 0) {
@@ -211,7 +243,7 @@ async function pushPreferences(
       // A normal settings edit is a patch, so it can be safely replayed on the
       // latest server revision without clobbering another device's unrelated
       // fields. Full legacy snapshots deliberately do not retry here.
-      return pushPreferences(preferences, false)
+      return pushPreferences(preferences, false, guard)
     }
     if (!response.ok) return false
     localStorage.removeItem(DIRTY_KEY)
@@ -222,6 +254,7 @@ async function pushPreferences(
 }
 
 export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences> {
+  const requestEpoch = ownerEpoch
   try {
     const response = await fetch("/api/user", { cache: "no-store" })
     if (!response.ok) {
@@ -237,12 +270,20 @@ export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences>
       setWebClinicalPreferencesOwner(null)
       return normalizeClinicalPreferences({})
     }
+    // A response from an account that was replaced while the request was in
+    // flight must not adopt that account's preferences into the current tab.
+    // The only permitted owner change here is the initial unauthenticated
+    // bootstrap, when no owner has been established yet.
+    if (ownerEpoch !== requestEpoch) {
+      return activeOwnerId ? readWebClinicalPreferences() : normalizeClinicalPreferences({})
+    }
     if (typeof data.preferencesRevision === "number"
       && Number.isInteger(data.preferencesRevision)
       && data.preferencesRevision >= 0) {
       serverPreferencesRevision = data.preferencesRevision
     }
-    prepareOwner(data.id)
+    if (activeOwnerId !== data.id) setWebClinicalPreferencesOwner(data.id)
+    const guard = { epoch: ownerEpoch, ownerId: data.id }
     const localPatch = readStoredPatch()
     const dirtyRaw = localStorage.getItem(DIRTY_KEY)
     const pending = readPendingPatch()
@@ -253,9 +294,10 @@ export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences>
           localIntent,
         )
       : mergeClinicalPreferences(data.preferences, {})
+    if (!currentOwner(guard.epoch, guard.ownerId)) return readWebClinicalPreferences()
     writeWebClinicalPreferences(merged)
-    if (localIntent && !await pushPreferences(pending ?? localPatch, dirtyRaw !== "true")) {
-      if (!dirtyRaw) writePendingPatch(merged)
+    if (localIntent && !await pushPreferences(pending ?? localPatch, dirtyRaw !== "true", guard)) {
+      if (!dirtyRaw && currentOwner(guard.epoch, guard.ownerId)) writePendingPatch(merged)
     }
     return merged
   } catch {
@@ -268,13 +310,15 @@ export async function patchWebClinicalPreferences(
 ): Promise<ClinicalPreferences> {
   if (!activeOwnerId) await syncWebClinicalPreferences()
   if (!activeOwnerId) return normalizeClinicalPreferences({})
+  const guard = { epoch: ownerEpoch, ownerId: activeOwnerId }
   const next = applyClinicalPreferencesPatch(
     readWebClinicalPreferences(),
     patch,
   )
+  if (!currentOwner(guard.epoch, guard.ownerId)) return readWebClinicalPreferences()
   writeWebClinicalPreferences(next)
   writePendingPatch(patch)
-  if (await pushPreferences(patch)) {
+  if (await pushPreferences(patch, true, guard)) {
     localStorage.removeItem(DIRTY_KEY)
   }
   return next

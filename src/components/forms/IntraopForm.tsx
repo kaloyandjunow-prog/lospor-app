@@ -19,6 +19,7 @@ import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { computeLiveDrugTotals, infusionsVolumeMl, tciPatientFrom } from "@/lib/intraop-drug-totals"
 import { buildIntraopSubmission, intraopEndCaseValuesNow, intraopTimeErrors } from "@/lib/intraop-submit"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { toast } from "sonner"
 import { createPortal } from "react-dom"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
@@ -57,7 +58,7 @@ import {
   airwayAbsentReason,
   airwayDeviceSummary,
 } from "@lospor/core/intraop"
-import { AIRWAY_EVENT_DEVICE, airwayRecordFields, type AirwayPatient } from "@lospor/core/airway-smart"
+import { AIRWAY_EVENT_DEVICE, airwayRecordFields, AIRWAY_RECORD_PATCH_KEYS, stripAirwayRecordPatch, type AirwayPatient } from "@lospor/core/airway-smart"
 import { localTimeOf } from "@lospor/core/intraop-time"
 import { randomId } from "@/lib/random-id"
 import { AirwaySmart } from "@/components/intraop/AirwaySmart"
@@ -76,7 +77,7 @@ import { EventSelectorContext } from "@/components/intraop/event-selector-contex
 import { useTechniqueScreen } from "@/lib/use-technique-screen"
 import { useRecentTechniques } from "@/lib/use-recent-techniques"
 import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
-import { parseTechniqueSides, techniquesAfterTciStart, type TechniqueSide } from "@lospor/core/technique-smart"
+import { parseTechniqueSides, techniqueSidesFor, techniquesAfterTciStart, type TechniqueSide } from "@lospor/core/technique-smart"
 import { addAirwayDevice, airwayClinicalEvent, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
 import { MONITORING_READINGS, isRelaxant, monitoringAutomationId, monitoringSuggestionKey, monitoringSuggestions, type MonitoringSuggestion } from "@lospor/core/monitoring-smart"
@@ -384,6 +385,30 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       for (const [field, value] of Object.entries(airwayRecordFields([]))) {
         setValue(field as keyof IntraopFormFields, value as never, { shouldDirty: true })
       }
+      if (which === "airwayNotApplicable" && onEventOps) {
+        const update: CoreLogEvent[] = []
+        const remove: string[] = []
+        for (const event of timelineLog) {
+          if (event.type !== "clinical_event") continue
+          const rawPatch = event.intraopPatch
+          const patch = rawPatch && typeof rawPatch === "object" ? rawPatch as Record<string, unknown> : null
+          const hasAirway = event.clinicalRelation === "airway-record"
+            || AIRWAY_EVENT_COLORS[event.label ?? ""] != null
+            || !!patch && Object.keys(patch).some(key => AIRWAY_RECORD_PATCH_KEYS.includes(key))
+          if (!hasAirway) continue
+          if (!patch) {
+            if (event.id) remove.push(event.id)
+            continue
+          }
+          const stripped = stripAirwayRecordPatch(patch)
+          if (Object.keys(stripped).length === 0) {
+            if (event.id) remove.push(event.id)
+          } else {
+            update.push({ ...event, intraopPatch: stripped } as unknown as CoreLogEvent)
+          }
+        }
+        if (update.length > 0 || remove.length > 0) void onEventOps({ add: [], update, remove })
+      }
     }
   }
   const setPresentsIntubated = () => applyAirwayAbsentReason("presentsIntubated")
@@ -412,6 +437,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const monDefaultsApplied      = useRef(false)
   const deviceWasCompleteOnOpen = useRef(false)
   const timelineSectionRef = useRef<HTMLDivElement>(null)
+  const pendingLegacyAirwayEventsRef = useRef(new Map<string, { previousDevices: string[]; airwayPatch: Record<string, unknown> }>())
 
   const chartAirwayEvent = useCallback((event: { id?: string; label: string; ts: string; clinicalRelation?: string; intraopPatch?: Record<string, unknown> }): boolean => {
     if (!onEventOps) return false
@@ -450,16 +476,23 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   }, [getValues])
   const chartLegacyAirwayDevice = useCallback((device: string, previousDevices: readonly string[], patch?: Record<string, unknown>): boolean => {
     if (readOnly) return false
+    const insertedAt = resolveAirwayTime("start", { startedAt: chartStartedAt ?? null, now: serverNow().toISOString() })
+    if (!insertedAt) {
+      pendingLegacyAirwayEventsRef.current.set(device, { previousDevices: [...previousDevices], airwayPatch: { ...(patch ?? {}) } })
+      toast.error(t("intraop.airway.missingStart"))
+      return false
+    }
+    pendingLegacyAirwayEventsRef.current.delete(device)
     const label = airwayClinicalEvent(device, {
       priorTrachealTube: hasActiveTrachealTube(airwayDeviceEntriesOf({ airwayDevices: previousDevices })),
     })
     if (!label) return false
     const nextDevices = Array.isArray(patch?.airwayDevices) ? patch.airwayDevices.filter((value): value is string => typeof value === "string") : [...previousDevices, device]
-    const eventPatch = { ...legacyAirwayPatch(nextDevices), ...(patch ?? {}), airwayDevices: nextDevices, airwayNotApplicable: false }
-    const added = chartAirwayEvent({ label, ts: serverNow().toISOString(), intraopPatch: eventPatch })
+    const eventPatch = { ...legacyAirwayPatch(nextDevices), ...(patch ?? {}), airwayDevices: nextDevices, airwayNotApplicable: false, airwayEventDevice: device }
+    const added = chartAirwayEvent({ id: clinicalRecordId("airway-event", insertedAt), label, ts: insertedAt, intraopPatch: eventPatch })
     if (added) atomicAirwayEventPendingRef.current = true
     return added
-  }, [chartAirwayEvent, legacyAirwayPatch, readOnly])
+  }, [chartAirwayEvent, chartStartedAt, legacyAirwayPatch, readOnly, t])
   function chartVascularEvent(event: { id?: string; label: string; ts: string; clinicalRelation?: string; intraopPatch?: Record<string, unknown> }) {
     if (!onEventOps) return
     const existing = timelineLog.find(item => item.type === "clinical_event" && (event.id ? item.id === event.id : item.label === event.label && item.ts === event.ts))
@@ -718,6 +751,29 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
       setValue(field as keyof IntraopFormFields, (value ?? undefined) as never, { shouldDirty: true })
     }
   }
+  function removeSmartAirwayEntry(entry: AirwayDeviceEntry, next: AirwayDeviceEntry[]) {
+    applyAirwayEntries(next)
+    if (entry.sourceEventId && onEventOps) void onEventOps({ add: [], update: [], remove: [entry.sourceEventId] })
+  }
+  const removeLegacyAirwayEvents = (device: string) => {
+    pendingLegacyAirwayEventsRef.current.delete(device)
+    if (!onEventOps) return
+    const ids = timelineLog
+      .filter(event => event.type === "clinical_event" && event.intraopPatch?.airwayEventDevice === device)
+      .map(event => event.id)
+    if (ids.length > 0) void onEventOps({ add: [], update: [], remove: ids })
+  }
+  useEffect(() => {
+    if (!chartStartedAt || readOnly || airwayScreen !== "legacy" || pendingLegacyAirwayEventsRef.current.size === 0) return
+    const devices = new Set(getValues("airwayDevices") ?? [])
+    for (const [device, pending] of [...pendingLegacyAirwayEventsRef.current.entries()]) {
+      if (!devices.has(device)) {
+        pendingLegacyAirwayEventsRef.current.delete(device)
+        continue
+      }
+      chartLegacyAirwayDevice(device, pending.previousDevices, legacyAirwayPatch([...devices]))
+    }
+  }, [airwayScreen, chartStartedAt, chartLegacyAirwayDevice, getValues, legacyAirwayPatch, readOnly])
   const smartProps = {
     patient: smartPatient, startedAt: chartStartedAt ?? null, now: () => serverNow().toISOString(), timeZone: timelineZone ?? null,
     difficultAirway: preop?.mallampati === "III" || preop?.mallampati === "IV", deviceLabel: airwayName, toolLabel: airwayName,
@@ -755,7 +811,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineLog, readOnly, airwayScreen, getValues])
   const smartNode = airwayScreen === "smart" ? (
-    <AirwaySmart {...smartProps} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)} onChange={applyAirwayEntries} onEvent={chartAirwayEvent}
+    <AirwaySmart {...smartProps} entries={airwayDeviceEntriesOf(getValues() as Record<string, unknown>)} onChange={applyAirwayEntries} onRemove={removeSmartAirwayEntry} onEvent={chartAirwayEvent}
       onAtomicSave={(next, event) => {
         atomicAirwayEventPendingRef.current = true
         applyAirwayEntries(next)
@@ -918,6 +974,21 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     if (!committed || !newTci) return
     setValue("techniques", techniquesAfterTciStart(techniques, newTci.tciModel), { shouldDirty: true })
   }
+  // The timetable callback covers a start made from this form. The event log
+  // effect covers a start that was already present when the form opened or was
+  // written by another device, so the account-wide TCI rule is convergent.
+  const seenTciStartIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (readOnly) return
+    const starts = timelineLog.filter(event => event.type === "infusion_start" && event.tciModel)
+    const fresh = starts.filter(event => !seenTciStartIds.current.has(event.id))
+    if (fresh.length === 0) return
+    for (const event of fresh) seenTciStartIds.current.add(event.id)
+    const next = fresh.reduce((current, event) => techniquesAfterTciStart(current, event.tciModel), techniques)
+    if (next.length === techniques.length) return
+    setValue("techniques", next, { shouldDirty: true })
+    setValue("techniqueSides", techniqueSidesFor(next, techniqueSides), { shouldDirty: true })
+  }, [readOnly, setValue, techniqueSides, techniques, timelineLog])
   const techniqueNode = techniqueScreen === "smart" && !readOnly ? (
     <TechniqueSmart techniques={techniques} sides={techniqueSides} onChange={applyTechniques} tree={techniqueTree}
       planned={preop?.plannedTechniques ?? []} recents={recentTechniques.recents} />
@@ -1018,6 +1089,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         airwayNA={airwayNA} setAirwayNA={setAirwayNA}
         onAirwayInterventionSelected={clearAirwayNotApplicable}
         onAirwayDeviceConfirmed={chartLegacyAirwayDevice}
+        onAirwayDeviceRemoved={removeLegacyAirwayEvents}
         airwayExpandedDevice={airwayExpandedDevice} setAirwayExpandedDevice={setAirwayExpandedDevice}
         expandAirwayDevice={expandAirwayDevice}
         smart={smartNode}

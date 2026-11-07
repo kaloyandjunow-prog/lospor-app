@@ -35,6 +35,7 @@ export function AirwaySection({
   presentsIntubated, showAirway, techniquesLength, airwayOverride, setAirwayOverride,
   airwayNA, setAirwayNA, airwayExpandedDevice, setAirwayExpandedDevice, expandAirwayDevice, smart,
   onAirwayInterventionSelected, onAirwayDeviceConfirmed,
+  onAirwayDeviceRemoved,
 }: {
   control: Control<IntraopFormFields>
   watch: UseFormWatch<IntraopFormFields>
@@ -52,6 +53,8 @@ export function AirwaySection({
   onAirwayInterventionSelected: () => void
   /** Reports a newly confirmed legacy device; Smart reports its own timed event. */
   onAirwayDeviceConfirmed?: (device: string, previousDevices: readonly string[], airwayPatch?: Record<string, unknown>) => void
+  /** Removes the matching event when a legacy device is removed from the record. */
+  onAirwayDeviceRemoved?: (device: string) => void
   airwayExpandedDevice: string | null
   setAirwayExpandedDevice: (v: string | null) => void
   expandAirwayDevice: (v: string) => void
@@ -166,6 +169,8 @@ export function AirwaySection({
           if (!isOn) {
             onAirwayInterventionSelected()
             onAirwayDeviceConfirmed?.(v, devs, { airwayDevices: [...devs, v], airwayNotApplicable: false })
+          } else {
+            onAirwayDeviceRemoved?.(v)
           }
           setValue("airwayDevices", isOn ? devs.filter(d => d !== v) : [...devs, v])
         }
@@ -175,6 +180,7 @@ export function AirwaySection({
         // from whatever was entered last time.
         function removeComplexDevice(v: string) {
           if (devs.includes(v)) setValue("airwayDevices", devs.filter(d => d !== v))
+          onAirwayDeviceRemoved?.(v)
           if (airwayExpandedDevice === v) setAirwayExpandedDevice(null)
           for (const field of AIRWAY_DEVICE_REQUIRED_FIELDS[v as AirwayDeviceWithProfile] ?? []) {
             setValue(asPath(field), undefined)

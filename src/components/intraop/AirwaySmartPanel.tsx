@@ -88,7 +88,7 @@ export function AirwaySmartPanel({
   const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked)
     ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null
     : null
-  const timeMissing = (choice === "start" && startedAt == null)
+  const timeMissing = ((choice === "start" || choice === "now") && startedAt == null)
     || (choice === "timeline" && !request.at)
     || (choice === "pick" && !pickedInstant)
 

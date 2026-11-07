@@ -127,6 +127,7 @@ export const schema = z.object({
   // differs. Each entry carries its own takenAt, which is what makes two
   // haemoglobins an hour apart a trend rather than one that looks corrected.
   labResults: z.array(z.object({
+    id:    z.string().max(200).optional(),
     test:  z.string(),
     value: z.string(),
     unit:  z.string().optional(),

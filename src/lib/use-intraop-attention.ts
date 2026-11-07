@@ -53,6 +53,21 @@ export type WebIntraopAttention = {
   timeZone: string | null
 }
 
+function comparableAttentionEvent(event: LogEvent): string {
+  return JSON.stringify({
+    id: event.id, ts: event.ts, type: event.type, label: event.label, name: event.name,
+    answer: event.answer, answerFor: event.answerFor, answerKind: event.answerKind,
+    endTs: event.endTs, intraopPatch: event.intraopPatch,
+  })
+}
+
+function attentionOpsAcknowledged(current: LogEvent[], ops: IntraopEventOps): boolean {
+  const byId = new Map(current.map(event => [event.id, event]))
+  return ops.add.every(event => byId.has(event.id))
+    && ops.update.every(event => comparableAttentionEvent(byId.get(event.id) ?? ({} as LogEvent)) === comparableAttentionEvent(event))
+    && ops.remove.every(id => !byId.has(id))
+}
+
 /**
  * The questions the timeline is waiting on, for the web form (9.13.0). The
  * items and what each answer writes are Core's (intraop-attention), exactly as
@@ -102,8 +117,18 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   const suggestionsRef = useRef(suggestionBase)
   const onEventOpsRef = useRef(onEventOps)
   const writeQueue = useRef<Promise<void> | null>(null)
+  const baseLogRef = useRef(log)
+  const optimisticOps = useRef<IntraopEventOps[]>([])
   useLayoutEffect(() => {
-    logRef.current = log
+    baseLogRef.current = log
+    optimisticOps.current = optimisticOps.current.filter(ops => !attentionOpsAcknowledged(log, ops))
+    // Reapply writes that are still waiting for the parent projection. This
+    // prevents an unrelated render carrying the previous `log` prop from
+    // replacing the local answer before the API acknowledgement arrives.
+    logRef.current = optimisticOps.current.reduce(
+      (current, ops) => applyIntraopEventOps(current, ops) as LogEvent[],
+      log,
+    )
     endedAtRef.current = endedAt
     vitalsRef.current = vitals
     suggestionsRef.current = suggestionBase
@@ -112,10 +137,32 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   const enqueue = useCallback((produce: () => IntraopEventOps | null | undefined | Promise<IntraopEventOps | null | undefined>) => {
     const apply = (ops: IntraopEventOps | null | undefined): void | Promise<void> => {
       if (!ops || isEmptyIntraopEventOps(ops)) return
+      const callback = onEventOpsRef.current
+      if (!callback) return
       // Keep the next queued action based on the latest local projection even
       // when React has not rendered the server acknowledgement yet.
+      optimisticOps.current.push(ops)
       logRef.current = applyIntraopEventOps(logRef.current, ops) as LogEvent[]
-      return onEventOpsRef.current?.(ops)
+      const removeOnFailure = () => {
+        optimisticOps.current = optimisticOps.current.filter(item => item !== ops)
+        logRef.current = optimisticOps.current.reduce(
+          (current, pending) => applyIntraopEventOps(current, pending) as LogEvent[],
+          baseLogRef.current,
+        )
+      }
+      try {
+        const result = callback(ops)
+        if (result && typeof result === "object" && "then" in result) {
+          return Promise.resolve(result).catch(error => {
+            removeOnFailure()
+            throw error
+          })
+        }
+        return result
+      } catch (error) {
+        removeOnFailure()
+        throw error
+      }
     }
     const run = async () => apply(await produce())
     if (writeQueue.current) {
@@ -180,11 +227,11 @@ export function useIntraopAttention({ caseId = null, log, endedAt, timeZone, loc
   // inside both limits, or at the case end -- Core decides, one save at a time.
   const closing = useRef(false)
   useEffect(() => {
-    if (readOnly || !onEventOps || !vitals || closing.current) return
+    if (readOnly || !onEventOpsRef.current || !vitals || closing.current) return
     closing.current = true
     const run = enqueue(() => vitalEpisodeOps(logRef.current, vitalsRef.current, endedAtRef.current))
     void run.finally(() => { closing.current = false })
-  }, [log, vitals, endedAt, readOnly])
+  }, [log, vitals, endedAt, readOnly, enqueue])
 
   const saveState = useCaseSaveState(caseId)
   const refused = useMemo(() => saveState.refused.map(item => {

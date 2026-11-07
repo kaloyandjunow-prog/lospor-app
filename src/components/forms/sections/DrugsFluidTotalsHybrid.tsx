@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Controller, type Control } from "react-hook-form"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { NumberStepper } from "@/components/NumberStepper"
 import type { IntraopFormFields } from "@/components/forms/IntraopForm"
 import type { DrugsFluidTotalsProps, DrugTotals } from "@/components/forms/sections/DrugsFluidTotalsSection"
@@ -44,7 +45,7 @@ export function DrugsFluidTotalsHybrid({ t, control, watch, liveDrugTotals, live
         </div>
       </div>
 
-      <SummaryGroup testId="fluid-given-toggle" label={t("intraop.totals.recordedIn")} value={value(totalIn)} open={open === "given"} onClick={() => toggle("given")} tone="text-cyan-500">
+      <SummaryGroup testId="fluid-given-toggle" label={t("intraop.totals.recordedIn")} open={open === "given"} onClick={() => toggle("given")} tone="text-cyan-500" expandLabel={t("intraop.totals.expandDetails")} collapseLabel={t("intraop.totals.collapseDetails")}>
         {[
           [t("intraop.crystalloids"), crystalloids],
           [t("intraop.colloids"), colloids],
@@ -55,7 +56,7 @@ export function DrugsFluidTotalsHybrid({ t, control, watch, liveDrugTotals, live
         {liveDrugTotals.bolusList.length > 0 && <ReadOnlyDrugList title={`${provisional ? "≈ " : ""}${t("intraop.totals.bolusDrugs")}`} rows={liveDrugTotals.bolusList} />}
       </SummaryGroup>
 
-      <SummaryGroup testId="fluid-output-toggle" label={t("intraop.totals.output")} value={catheter ? value(urine) : "—"} open={open === "output"} onClick={() => toggle("output")} tone="text-violet-500">
+      <SummaryGroup testId="fluid-output-toggle" label={t("intraop.totals.output")} open={open === "output"} onClick={() => toggle("output")} tone="text-violet-500" expandLabel={t("intraop.totals.expandDetails")} collapseLabel={t("intraop.totals.collapseDetails")}>
         {catheter ? (editing === "urine" ? (
           <MeasurementEditor testId="fluid-urine-editor" label={t("intraop.urineOutput")} name="urineMl" control={control} onDone={() => setEditing(null)} doneLabel={t("intraop.totals.done")} />
         ) : (
@@ -63,7 +64,7 @@ export function DrugsFluidTotalsHybrid({ t, control, watch, liveDrugTotals, live
         )) : <p className="text-xs leading-5 text-slate-500">{t("intraop.totals.noCatheterHint")}</p>}
       </SummaryGroup>
 
-      <SummaryGroup testId="fluid-losses-toggle" label={t("intraop.totals.bloodLossSummary")} value={value(bloodLoss)} open={open === "losses"} onClick={() => toggle("losses")} tone="text-rose-500">
+      <SummaryGroup testId="fluid-losses-toggle" label={t("intraop.totals.bloodLossSummary")} open={open === "losses"} onClick={() => toggle("losses")} tone="text-rose-500" expandLabel={t("intraop.totals.expandDetails")} collapseLabel={t("intraop.totals.collapseDetails")}>
         {editing === "blood" ? (
           <MeasurementEditor testId="fluid-blood-loss-editor" label={t("intraop.bloodLoss")} name="bloodLossMl" control={control} onDone={() => setEditing(null)} doneLabel={t("intraop.totals.done")} bloodLoss />
         ) : (
@@ -85,11 +86,11 @@ function SummaryMetric({ testId, label, value, tone }: { testId?: string; label:
   )
 }
 
-function SummaryGroup({ testId, label, value, open, onClick, tone, children }: { testId: string; label: string; value: string; open: boolean; onClick: () => void; tone: string; children: React.ReactNode }) {
+function SummaryGroup({ testId, label, open, onClick, tone, expandLabel, collapseLabel, children }: { testId: string; label: string; open: boolean; onClick: () => void; tone: string; expandLabel: string; collapseLabel: string; children: React.ReactNode }) {
   return <div className="border-t border-slate-200 dark:border-[#333] first:border-t-0">
-    <button type="button" data-testid={testId} aria-expanded={open} onClick={onClick} className="w-full min-h-[58px] px-4 py-3 flex items-center justify-between text-left bg-white dark:bg-[#101010] hover:bg-slate-50 dark:hover:bg-[#171717]">
-      <span><span className={`block text-[10px] font-semibold uppercase tracking-wide ${tone}`}>{label}</span><span className="block text-[11px] text-slate-400 mt-1">{open ? "⌃" : "⌄"}</span></span>
-      <span className="font-extrabold tabular-nums text-slate-800 dark:text-slate-100">{value}</span>
+    <button type="button" data-testid={testId} aria-expanded={open} aria-label={`${label}. ${open ? collapseLabel : expandLabel}`} onClick={onClick} className="w-full min-h-[58px] px-4 py-3 flex items-center justify-between text-left bg-white dark:bg-[#101010] hover:bg-slate-50 dark:hover:bg-[#171717]">
+      <span className="flex-1"><span className={`block text-[10px] font-semibold uppercase tracking-wide ${tone}`}>{label}</span></span>
+      {open ? <ChevronUp aria-hidden="true" className="h-5 w-5 text-slate-400" /> : <ChevronDown aria-hidden="true" className="h-5 w-5 text-slate-400" />}
     </button>
     {open && <div className="px-4 py-3 bg-slate-50/60 dark:bg-[#0c0c0c]">{children}</div>}
   </div>

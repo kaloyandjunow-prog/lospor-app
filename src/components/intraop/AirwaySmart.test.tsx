@@ -72,7 +72,7 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     expect((screen.getByTestId("airway-smart-add") as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByTestId("airway-smart-time-now"))
     fireEvent.click(screen.getByTestId("airway-smart-add"))
-    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).not.toHaveBeenCalled()
   })
 
   it("requires an exchange reason before adding a second active primary airway", () => {
@@ -127,6 +127,14 @@ describe("Smart selection, the Airway tab (10.2.0)", () => {
     expect(screen.getByTestId("airway-smart-entry-a1").textContent).toContain("failed")
     expect(screen.getByTestId("airway-smart-entry-a1").textContent).toContain("via")
     expect(screen.queryByTestId("airway-smart-empty")).toBeNull()
+  })
+
+  it("offers an explicit remove action for a recorded device", () => {
+    const entry: AirwayDeviceEntry = { id: "a1", device: "ORAL_ETT", details: { oralTubeSize: 8, oralCuffed: true }, insertedAt: START, status: "in_use" }
+    const onRemove = vi.fn()
+    setup({ entries: [entry], onRemove })
+    fireEvent.click(screen.getByTestId("airway-smart-remove-a1"))
+    expect(onRemove).toHaveBeenCalledWith(entry, [])
   })
 
   it("says so when nothing is in place yet", () => {

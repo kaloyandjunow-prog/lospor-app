@@ -73,7 +73,7 @@ export function VascularSmartPanel({
   const pickedInstant = timeZone && /^\d{1,2}:\d{2}$/.test(picked)
     ? instantFromLocalTime(new Date(startedAt ?? now()), picked, timeZone)?.toISOString() ?? null
     : null
-  const timeMissing = origin === "here" && ((choice === "start" && startedAt == null)
+  const timeMissing = origin === "here" && (((choice === "start" || choice === "now") && startedAt == null)
     || (choice === "timeline" && !request.at)
     || (choice === "pick" && !pickedInstant))
 

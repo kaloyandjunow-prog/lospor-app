@@ -14,12 +14,13 @@ import { AirwaySmartPanel, type AirwaySmartChartEvent, type AirwaySmartRequest }
  * sizes and the saving are Core's (airway-smart).
  */
 export function AirwaySmart({
-  entries, onChange, onEvent, onAtomicSave, patient, techniques, availableDevices, availableTools, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, describe, timeOf,
+  entries, onChange, onEvent, onAtomicSave, onRemove, patient, techniques, availableDevices, availableTools, startedAt, now, timeZone, difficultAirway, deviceLabel, toolLabel, describe, timeOf,
 }: {
   entries: readonly AirwayDeviceEntry[]
   onChange: (next: AirwayDeviceEntry[]) => void
   onEvent?: (event: AirwaySmartChartEvent) => void
   onAtomicSave?: (next: AirwayDeviceEntry[], event: AirwaySmartChartEvent) => void
+  onRemove?: (entry: AirwayDeviceEntry, next: AirwayDeviceEntry[]) => void
   patient: AirwayPatient
   techniques: readonly string[]
   availableDevices?: readonly string[]
@@ -98,6 +99,12 @@ export function AirwaySmart({
               <button type="button" data-testid={`airway-smart-exchange-${entry.id}`} className="text-xs px-3 py-1 rounded-full border border-slate-300 dark:border-slate-600 hover:border-violet-500"
                 onClick={() => setRequest({ device: entry.device, source: "tab", replaces: { id: entry.id, reason: "planned" } })}>{t("exchange")}</button>
             )}
+            <button type="button" data-testid={`airway-smart-remove-${entry.id}`} className="text-xs px-3 py-1 rounded-full border border-red-300/70 text-red-600 dark:border-red-900/70 dark:text-red-300"
+              onClick={() => {
+                const next = entries.filter(candidate => candidate.id !== entry.id)
+                if (onRemove) onRemove(entry, next)
+                else onChange(next)
+              }}>{t("remove")}</button>
           </div>
         ))}
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AUTOMATION_GROUPS,
   automationGroupEnabled,
@@ -17,7 +17,7 @@ import { likelyNext, parseSuccessionLinks, successionContext, successionDismisse
 import { successionDismissalEventId } from "@lospor/core/intraop-automation-actions"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { serverNow } from "@/lib/intraop-clock"
-import { readWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
+import { getWebClinicalPreferencesOwner, readWebClinicalPreferences, syncWebClinicalPreferences, useWebClinicalPreferencesOwner } from "@/lib/clinical-preferences-web"
 
 /**
  * Intraoperative automation (10.1.0) on the web: what the hospital switched
@@ -35,11 +35,11 @@ type Automation = {
   unavailable: boolean
 }
 
-let loading: Promise<Automation> | null = null
+let loading: { ownerId: string; promise: Promise<Automation> } | null = null
 
-async function fetchIntraopAutomation(): Promise<Automation> {
-  if (loading) return loading
-  loading = fetch("/api/intraop/automation", { cache: "no-store" })
+async function fetchIntraopAutomation(ownerId: string): Promise<Automation> {
+  if (loading?.ownerId === ownerId) return loading.promise
+  const request = fetch("/api/intraop/automation", { cache: "no-store" })
     .then(response => {
       if (!response.ok) throw new Error(`automation policy request failed: ${response.status}`)
       return response.json()
@@ -48,8 +48,11 @@ async function fetchIntraopAutomation(): Promise<Automation> {
       if (body == null) throw new Error("automation policy response was empty")
       return parseIntraopAutomationResponse(body)
     })
-    .finally(() => { loading = null })
-  return loading
+  const promise = request.finally(() => {
+    if (loading?.promise === promise) loading = null
+  })
+  loading = { ownerId, promise }
+  return promise
 }
 
 export function parseIntraopAutomationResponse(value: unknown): Automation {
@@ -63,6 +66,8 @@ export function parseIntraopAutomationResponse(value: unknown): Automation {
 }
 
 export function useIntraopAutomation(): Automation & { reload: () => Promise<void> } {
+  const ownerId = useWebClinicalPreferencesOwner()
+  const requestVersion = useRef(0)
   const [automation, setAutomation] = useState<Automation>({
     settings: DEFAULT_INTRAOP_AUTOMATION,
     stats: null,
@@ -70,27 +75,28 @@ export function useIntraopAutomation(): Automation & { reload: () => Promise<voi
     ready: false,
     unavailable: false,
   })
-  const reload = async () => {
-    try {
-      setAutomation(await fetchIntraopAutomation())
-    } catch {
-      setAutomation(current => ({ ...current, unavailable: true }))
+  const reload = useCallback(async () => {
+    const version = ++requestVersion.current
+    if (!ownerId) {
+      setAutomation({ settings: DEFAULT_INTRAOP_AUTOMATION, stats: null, succession: [], ready: false, unavailable: false })
+      return
     }
-  }
+    try {
+      const next = await fetchIntraopAutomation(ownerId)
+      if (version === requestVersion.current && getWebClinicalPreferencesOwner() === ownerId) setAutomation(next)
+    } catch {
+      if (version === requestVersion.current && getWebClinicalPreferencesOwner() === ownerId) {
+        setAutomation(current => ({ ...current, unavailable: true }))
+      }
+    }
+  }, [ownerId])
   useEffect(() => {
     let active = true
-    fetchIntraopAutomation()
-      .then(next => {
-        if (active) setAutomation(next)
-      })
-      .catch(() => {
-        if (!active) return
-        // A previously successful policy remains safe to use mid-case, but the
-        // initial render must never silently fall back to Core's shared demo default.
-        setAutomation(current => ({ ...current, unavailable: true }))
-      })
+    queueMicrotask(() => {
+      if (active) void reload()
+    })
     return () => { active = false }
-  }, [])
+  }, [reload])
   return { ...automation, reload }
 }
 
@@ -113,10 +119,23 @@ export function useVitalQuestionContext(preop: PreopAge, readOnly: boolean): Vit
 
 /** The clinician's own switches (Settings): keep logging, and the groups turned off (10.2.0). */
 function useAutomationPreferences(): { keepLogging: boolean; user: UserAutomationSwitches } {
+  const ownerId = useWebClinicalPreferencesOwner()
   const [preferences, setPreferences] = useState(() => readWebClinicalPreferences())
   useEffect(() => {
-    void syncWebClinicalPreferences().then(setPreferences).catch(() => {})
-  }, [])
+    let active = true
+    const reset = () => {
+      if (active) setPreferences(readWebClinicalPreferences())
+    }
+    if (!ownerId) {
+      queueMicrotask(reset)
+      return () => { active = false }
+    }
+    queueMicrotask(reset)
+    void syncWebClinicalPreferences().then(next => {
+      if (active && getWebClinicalPreferencesOwner() === ownerId) setPreferences(next)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [ownerId])
   return useMemo(
     () => ({
       keepLogging: preferences.vitalEpisodeAutoLog,
@@ -163,10 +182,15 @@ export function useLikelyEvents(args: {
       if (dismissalInFlight.current.has(suggestionId)) return
       dismissalInFlight.current.add(suggestionId)
       const ts = serverNow().toISOString()
-      void args.onEventOps({
-        add: [{ id: successionDismissalEventId(suggestionId), ts, type: "prompt_answer", answerKind: SUCCESSION_ANSWER_KIND, answerFor: suggestionId, answer: SUCCESSION_DISMISS_ANSWER, suggestion: suggestionId, recordedAt: ts }],
-        update: [], remove: [],
-      })
+      try {
+        const result = args.onEventOps({
+          add: [{ id: successionDismissalEventId(suggestionId), ts, type: "prompt_answer", answerKind: SUCCESSION_ANSWER_KIND, answerFor: suggestionId, answer: SUCCESSION_DISMISS_ANSWER, suggestion: suggestionId, recordedAt: ts }],
+          update: [], remove: [],
+        })
+        void Promise.resolve(result).finally(() => dismissalInFlight.current.delete(suggestionId)).catch(() => {})
+      } catch {
+        dismissalInFlight.current.delete(suggestionId)
+      }
     },
   }
 }

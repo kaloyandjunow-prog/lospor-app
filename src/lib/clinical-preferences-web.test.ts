@@ -90,4 +90,22 @@ describe("web clinical preference synchronization", () => {
     expect(synced.units).toMatchObject({ height: "cm", weight: "kg" })
     expect(storage.getItem("losporClinicalPreferencesOwnerV1")).toBe("user-b")
   })
+
+  it("ignores a preference response that belongs to the account before a switch", async () => {
+    const preferencesModule = await import("./clinical-preferences-web")
+    let resolveResponse!: (response: Response) => void
+    vi.mocked(fetch).mockImplementationOnce(() => new Promise<Response>(resolve => { resolveResponse = resolve }))
+    preferencesModule.setWebClinicalPreferencesOwner("user-a")
+    const pending = preferencesModule.syncWebClinicalPreferences()
+
+    preferencesModule.setWebClinicalPreferencesOwner("user-b")
+    resolveResponse({
+      ok: true,
+      json: async () => ({ id: "user-a", preferences: { units: { height: "in" } } }),
+    } as Response)
+
+    const result = await pending
+    expect(storage.getItem("losporClinicalPreferencesOwnerV1")).toBe("user-b")
+    expect(result.units.height).toBe("cm")
+  })
 })

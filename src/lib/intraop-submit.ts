@@ -115,7 +115,6 @@ export function intraopAutosaveValues<T extends {
 }>(
   values: T,
 ): Omit<T, "vitals" | "drugsAdministered" | "crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl"> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { vitals, drugsAdministered, crystalloidsMl, colloidsMl, bloodMl, infusionsMl, ...rest } = values
   void vitals; void drugsAdministered; void crystalloidsMl; void colloidsMl; void bloodMl; void infusionsMl
   return rest

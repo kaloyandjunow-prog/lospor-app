@@ -8,6 +8,8 @@ vi.mock("@/lib/clinical-preferences-web", () => ({
   readWebClinicalPreferences: () => ({ automationGroups: { timers: false } }),
   syncWebClinicalPreferences: async () => ({ automationGroups: { timers: false } }),
   patchWebClinicalPreferences: (...args: unknown[]) => patch(...(args as [])),
+  getWebClinicalPreferencesOwner: () => "test-owner",
+  useWebClinicalPreferencesOwner: () => "test-owner",
 }))
 
 import { AutomationGroupsSetting } from "./AutomationGroupsSetting"
