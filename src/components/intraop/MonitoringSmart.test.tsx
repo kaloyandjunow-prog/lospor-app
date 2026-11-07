@@ -39,7 +39,7 @@ describe("Smart selection, the Monitoring section (10.2.0)", () => {
     fireEvent.click(screen.getByTestId("monitoring-add-tofMonitor"))
     expect(onChange).toHaveBeenCalledWith([...STANDARD, "tofMonitor"])
     fireEvent.click(screen.getByTestId("monitoring-hide-bis"))
-    expect(onHide).toHaveBeenCalledWith("bis")
+    expect(onHide).toHaveBeenCalledWith({ field: "bis", reason: "tiva" })
   })
 
   it("shows what is on with its last reading and turns it off", () => {

@@ -86,16 +86,16 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
     .map(code => findNodePath(code, tree)?.at(-1))
     .filter((node): node is TechniqueNode => !!node)
 
-  const renderNode = (node: TechniqueNode) => {
+  const renderNode = (node: TechniqueNode, index: number) => {
     if (node.v === "OTHER") {
-      return <input key={node.v} data-testid="technique-other" value={otherText} onChange={event => setOtherText(event.target.value)} placeholder={label(node.v)}
+      return <input key={`${node.v}-${index}`} data-testid="technique-other" value={otherText} onChange={event => setOtherText(event.target.value)} placeholder={label(node.v)}
         onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addOther() } }}
         className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-[#444] dark:bg-[#141414]" />
     }
     if (!node.children?.length) {
       const on = techniques.includes(node.v)
       return (
-        <button key={node.v} type="button" aria-label={label(node.v)} aria-pressed={on} data-testid={`technique-leaf-${node.v}`} onClick={() => toggle(node.v)}
+        <button key={`${node.v}-${index}`} type="button" aria-label={label(node.v)} aria-pressed={on} data-testid={`technique-leaf-${node.v}`} onClick={() => toggle(node.v)}
           className={`my-1 flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-3 text-left text-sm ${on ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-slate-200 dark:border-[#333]"}`}>
           <span className={`grid h-5 w-5 place-items-center rounded-full border-2 text-xs font-bold ${on ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300"}`}>{on ? "✓" : ""}</span>
           {shortLabel(node.v)}
@@ -104,7 +104,7 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
     }
     const count = leavesOf(node).filter(leaf => techniques.includes(leaf.v)).length
     return (
-      <button type="button" aria-label={label(node.v)} data-testid={`technique-node-${node.v}`} onClick={() => setBrowsePath(path => [...path, node.v])}
+      <button key={`${node.v}-${index}`} type="button" aria-label={label(node.v)} data-testid={`technique-node-${node.v}`} onClick={() => setBrowsePath(path => [...path, node.v])}
         className="my-1 flex min-h-14 w-full items-center gap-3 rounded-xl border border-slate-200 px-3 text-left text-sm font-semibold dark:border-[#333]">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500 dark:bg-[#222]">›</span>
         <span className="min-w-0 flex-1">{node.label}</span>
@@ -120,8 +120,8 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
         <p data-testid="technique-empty" className="text-sm text-slate-500">{t("nothing")}</p>
       ) : (
         <div className="space-y-2">
-          {techniques.map(code => (
-            <div key={code} data-testid={`technique-chip-${code}`} className="rounded-xl border border-emerald-500/40 bg-emerald-50/60 p-2 dark:bg-emerald-950/20">
+          {techniques.map((code, index) => (
+            <div key={`${code}-${index}`} data-testid={`technique-chip-${code}`} className="rounded-xl border border-emerald-500/40 bg-emerald-50/60 p-2 dark:bg-emerald-950/20">
               <button type="button" data-testid={`technique-remove-${code}`} aria-label={nameOf(code)} onClick={() => toggle(code)} className="flex min-h-9 w-full items-center gap-2 text-left">
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">{nameOf(code)}</span>
@@ -171,10 +171,10 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
         <>
           <p className={eyebrow}>{t("usual")}</p>
           <div className="flex flex-wrap gap-2">
-            {recents.map(code => {
+          {recents.map((code, index) => {
               const on = techniques.includes(code)
               return (
-                <button key={code} type="button" aria-pressed={on} data-testid={`technique-recent-${code}`} onClick={() => toggle(code)}
+                <button key={`${code}-${index}`} type="button" aria-pressed={on} data-testid={`technique-recent-${code}`} onClick={() => toggle(code)}
                   className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${on ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-slate-200 dark:border-[#333]"}`}>{pillLabel(code)}</button>
               )
             })}
@@ -186,7 +186,7 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
         <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-400">
           <button type="button" onClick={() => setBrowsePath([])} className="font-semibold hover:text-blue-500">{t("all")}</button>
           {breadcrumb.map((node, index) => (
-            <span key={node.v} className="flex items-center gap-1">
+            <span key={`${node.v}-${index}`} className="flex items-center gap-1">
               <span aria-hidden="true">›</span>
               <button type="button" onClick={() => setBrowsePath(path => path.slice(0, index + 1))} className="hover:text-blue-500">{node.label}</button>
             </span>
@@ -194,7 +194,7 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
         </div>
       ) : null}
       <div data-testid="technique-browser" className="space-y-1">
-        {currentNodes.map(renderNode)}
+        {currentNodes.map((node, index) => renderNode(node, index))}
       </div>
     </div>
   )

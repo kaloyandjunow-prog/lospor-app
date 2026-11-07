@@ -9,6 +9,12 @@ import { E2E_PASSWORD } from "./credentials"
 // credential is ever written into browser storage.
 
 export const PWA_BASE = process.env.PWA_E2E_BASE_URL ?? "http://localhost:3001"
+
+/** Navigates the exported PWA home screen after its client has hydrated. */
+export async function gotoPhoneHome(page: Page): Promise<void> {
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await page.waitForLoadState("networkidle")
+}
 /**
  * A phone-sized context with `email` already signed in.
  *

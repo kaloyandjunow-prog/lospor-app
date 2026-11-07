@@ -47,6 +47,23 @@ async function step(label: string, run: () => Promise<void>) {
   try { await run() } catch (error) { console.log(`[lists] skipped ${label}: ${(error as Error).message.split("\n")[0]}`) }
 }
 
+/** Activate a web section in any of the account's three supported layouts. */
+async function openWebSection(page: Page, id: string, label: string) {
+  const tab = page.getByRole("tab", { name: label, exact: true }).first()
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click()
+    return
+  }
+  const button = page.getByRole("button", { name: label, exact: true }).first()
+  if (await button.isVisible().catch(() => false)) {
+    await button.click()
+    return
+  }
+  // Scroll/sidebar layouts do not expose a tab for the section. Their anchors
+  // are the shared contract used by the sidebar and the jump strip.
+  await page.locator(`#intraop-sec-${id}`).scrollIntoViewIfNeeded()
+}
+
 async function startedCase(request: APIRequestContext): Promise<string> {
   const created = await request.post("/api/cases", {
     headers: JSON_HEADERS,
@@ -85,14 +102,14 @@ test("the intraoperative lists on the web", async ({ browser }) => {
     await page.goto(`/cases/new?continue=${caseId}&step=1`, { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(3000)
     await shot(page, "web", "00-landing")
-    for (const [name, label] of [["01-overview", "Overview"], ["02-anaesthesia", "Anaesthesia"], ["03-chart", "Chart"], ["04-finish", "Finish"]] as const) {
+    for (const [name, id, label] of [["01-overview", "overview", "Overview"], ["02-anaesthesia", "anaesthesia", "Anaesthesia"], ["03-chart", "chart", "Chart"], ["04-finish", "finish", "Finish"]] as const) {
       await step(`web tab ${label}`, async () => {
-        await page.getByRole("tab", { name: label }).or(page.getByRole("button", { name: label, exact: true })).first().click({ timeout: 8000 })
+        await openWebSection(page, id, label)
         await shot(page, "web", name, true)
       })
     }
     await step("web card", async () => {
-      await page.getByRole("tab", { name: "Chart" }).or(page.getByRole("button", { name: "Chart", exact: true })).first().click({ timeout: 8000 })
+      await openWebSection(page, "chart", "Chart")
       await page.getByTestId("attention-open-card:c1").click({ timeout: 20_000 })
       await shot(page, "web", "10-card")
       await page.getByTestId("card-row-ephedrine").locator("button").first().click({ timeout: 8000 })
@@ -104,7 +121,19 @@ test("the intraoperative lists on the web", async ({ browser }) => {
   }
 })
 
-const PHONE_TABS = ["Technique", "Timing", "Equipment", "Position", "Monitoring", "Airway", "Vascular", "Premedication", "Timetable", "Fluid status", "Event log"]
+const PHONE_TABS = [
+  ["timing", "Timing", true],
+  ["equipment", "Equipment", false],
+  ["technique", "Technique", true],
+  ["position", "Position", false],
+  ["monitoring", "Monitoring", false],
+  ["airway", "Airway", false],
+  ["vascular", "Vascular", false],
+  ["premedication", "Premedication", false],
+  ["log", "Timetable", false],
+  ["fluids", "Fluid status", false],
+  ["events", "Event log", false],
+] as const
 
 test("the intraoperative lists on the phone", async ({ browser }) => {
   const web = await contextFor(browser, "member-a")
@@ -117,11 +146,12 @@ test("the intraoperative lists on the phone", async ({ browser }) => {
     await openPhoneIntraop(phone.page, caseId, "en")
     await shot(phone.page, "phone", "00-landing")
     let index = 1
-    for (const label of PHONE_TABS) {
+    for (const [slug, label, required] of PHONE_TABS) {
       const number = String(index++).padStart(2, "0")
       await step(`phone tab ${label}`, async () => {
-        await phone.page.getByText(label, { exact: true }).first().click({ timeout: 8000 })
-        await shot(phone.page, "phone", `${number}-tab-${label.toLowerCase().replace(/\s+/g, "-")}`)
+        const pattern = required ? new RegExp(`^${label}\\s*\\*?$`) : label
+        await phone.page.getByText(pattern, { exact: required }).first().click({ timeout: 8000 })
+        await shot(phone.page, "phone", `${number}-tab-${slug}`)
       })
     }
     await step("phone card", async () => {

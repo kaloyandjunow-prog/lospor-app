@@ -31,6 +31,12 @@ export const ORIGIN = BASE_URL
 
 export const JSON_HEADERS = { Origin: ORIGIN, "Content-Type": "application/json" }
 
+/** Opens the dashboard after its server HTML and client controls are ready. */
+export async function gotoDashboard(page: Page): Promise<void> {
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" })
+  await page.waitForLoadState("networkidle")
+}
+
 /**
  * A browser context signed in as `role`. Contexts made by hand do not inherit
  * `use.baseURL` from the config, so it is passed explicitly — without it every
@@ -86,9 +92,20 @@ export const LOGIN_SUBMIT = 'button[type="submit"]'
 
 /** Signs `email` in through the real form and waits for the dashboard. */
 export async function signInWithPassword(page: Page, email: string): Promise<void> {
-  await page.goto(`${BASE_URL}/login`)
-  await page.waitForLoadState("networkidle") // ensure the client has hydrated
-  await page.locator(LOGIN_IDENTIFIER).fill(email)
+  await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" })
+  const identifier = page.locator(LOGIN_IDENTIFIER)
+  // The login form waits for the deployment capability request before it
+  // mounts. A freshly reused Next dev worker can leave that first client
+  // request in a pending state even though the endpoint is healthy; one full
+  // reload is enough to recover and avoids spending the whole test timeout on
+  // a locator that cannot exist yet.
+  try {
+    await identifier.waitFor({ state: "visible", timeout: 15_000 })
+  } catch {
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await identifier.waitFor({ state: "visible", timeout: 30_000 })
+  }
+  await identifier.fill(email)
   await page.locator(LOGIN_PASSWORD).fill(E2E_PASSWORD)
   await page.locator(LOGIN_SUBMIT).click()
   await page.waitForURL("**/dashboard", { timeout: 30_000 })
