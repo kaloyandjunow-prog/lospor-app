@@ -34,6 +34,9 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
   const name = (field: string) => { const option = monitoringOptions.find(item => item.value === field); return option ? displayOption("MONITORING", option, locale) : field }
   const extras = monitoring.filter(field => !STANDARD_MONITORING.includes(field))
   const availableCount = monitoringOptions.filter(option => !monitoring.includes(option.value)).length
+  // The active list is authoritative; do not leave a just-added suggestion
+  // visible while a parent is persisting the same selection.
+  const visibleSuggestions = suggestions.filter(item => !monitoring.includes(item.field))
   const standard = standardMonitoringOn(monitoring)
   const toggle = (field: string) => onChange(monitoring.includes(field) ? monitoring.filter(item => item !== field) : [...monitoring, field])
   const eyebrow = "text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-4 mb-2"
@@ -73,15 +76,15 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
       })}
 
       <p className={eyebrow}>{t("suggested")}</p>
-      {suggestions.length === 0 ? (
+      {visibleSuggestions.length === 0 ? (
         <div data-testid="monitoring-no-suggestions" className={`${row} text-sm text-slate-500`}>{t("noSuggestions")}</div>
-      ) : suggestions.map(item => (
+      ) : visibleSuggestions.map(item => (
         <div key={item.field} data-testid={`monitoring-suggestion-${item.field}`} className={`${row} border-dashed !border-amber-500`}>
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-semibold">{name(item.field)}</span>
             <span className="block text-xs text-amber-600 dark:text-amber-400">{t(REASON[item.reason])}</span>
           </span>
-          <button type="button" data-testid={`monitoring-add-${item.field}`} onClick={() => toggle(item.field)} className={`${side} border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300`}>{t("add")}</button>
+          <button type="button" data-testid={`monitoring-add-${item.field}`} aria-label={t("add")} aria-pressed={monitoring.includes(item.field)} onClick={() => toggle(item.field)} className={`${side} border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300`}>{t("add")}</button>
           <button type="button" data-testid={`monitoring-hide-${item.field}`} aria-label={t("hide")} onClick={() => onHide(item)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("hide")}</button>
         </div>
       ))}

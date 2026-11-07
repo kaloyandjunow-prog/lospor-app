@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react"
+import React from "react"
 import { describe, expect, it, vi } from "vitest"
 import type { TechniqueSide } from "@lospor/core/technique-smart"
 import type { TechniqueNode } from "@/components/TechniqueTree"
@@ -29,6 +30,17 @@ function setup(overrides: Partial<Parameters<typeof TechniqueSmart>[0]> = {}) {
 }
 
 describe("Smart selection, the Technique section (10.2.0)", () => {
+  it("moves a searched TCI technique into Used in the controlled parent flow", () => {
+    function Controlled() {
+      const [selected, setSelected] = React.useState<string[]>([])
+      return <TechniqueSmart techniques={selected} sides={{}} onChange={(next, _sides) => setSelected(next)} tree={tree} planned={[]} recents={[]} />
+    }
+    render(<Controlled />)
+    fireEvent.change(screen.getByTestId("technique-search"), { target: { value: "TCI" } })
+    fireEvent.click(screen.getByTestId("technique-hit-GENERAL_TCI"))
+    expect(screen.getByTestId("technique-chip-GENERAL_TCI")).toBeTruthy()
+  })
+
   it("shows what is in use and removes one in a tap", () => {
     const { onChange } = setup()
     expect(screen.getByTestId("technique-chip-GENERAL_BALANCED")).toBeTruthy()

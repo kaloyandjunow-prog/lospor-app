@@ -18,7 +18,7 @@ export function VitalEpisodeSetting() {
   }, [])
   return (
     <SettingRow label={t("vitalEpisodeAutoLog")} description={t("vitalEpisodeAutoLogDesc")}>
-      <Toggle value={on} onChange={value => { setOn(value); void patchWebClinicalPreferences({ vitalEpisodeAutoLog: value }) }} />
+      <Toggle label={t("vitalEpisodeAutoLog")} value={on} onChange={value => { setOn(value); void patchWebClinicalPreferences({ vitalEpisodeAutoLog: value }) }} />
     </SettingRow>
   )
 }

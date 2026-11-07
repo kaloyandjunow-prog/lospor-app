@@ -339,9 +339,11 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   return (
     <>
       <div className="relative" ref={menuRef}>
-        <button type="button" onClick={() => setOpen(v => !v)} title={t("settings.accountSettings")}
+        <button type="button" data-testid="account-settings-trigger" onClick={() => { setOpen(false); setModalOpen(true) }}
+          aria-label={t("settings.accountSettings")} aria-haspopup="dialog" aria-expanded={modalOpen}
+          title={t("settings.accountSettings")}
           className={`p-2 rounded-lg transition-colors ${
-            open
+            open || modalOpen
               ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]"
           }`}>
@@ -527,6 +529,10 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                       className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors">
                       {t("settings.viewProfile")}
                     </button>
+                    <button type="button" data-testid="account-actions" onClick={() => { setModalOpen(false); setOpen(true) }}
+                      className="w-full rounded-lg border border-slate-200 dark:border-[#333] px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-blue-400 transition-colors">
+                      {t("settings.accountActions")}
+                    </button>
                   </div>
                 )}
 
@@ -579,7 +585,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                         ]} />
                     </SettingRow>
                     <SettingRow label={t("settings.vitalsChart")} description={t("settings.vitalsChartDesc")}>
-                      <Toggle value={vitalsExp} onChange={applyVitalsExp} />
+                      <Toggle label={t("settings.vitalsChart")} value={vitalsExp} onChange={applyVitalsExp} />
                     </SettingRow>
                   </>
                 )}
@@ -664,15 +670,15 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                     <VitalEpisodeSetting />
                     <AutomationGroupsSetting />
                     <SettingRow label={t("settings.autoFillVitals")} description={t("settings.autoFillVitalsDesc")}>
-                      <Toggle value={autoFill} onChange={applyAutoFill} />
+                      <Toggle label={t("settings.autoFillVitals")} value={autoFill} onChange={applyAutoFill} />
                     </SettingRow>
                     {autoFill && (
                       <div className="ml-4 border-l-2 border-slate-200 dark:border-[#2e2e2e] pl-4">
                         <SettingRow label={t("settings.autoFillBP")} description={t("settings.autoFillBPDesc")}>
-                          <Toggle value={autoFillBP} onChange={applyAutoFillBP} />
+                          <Toggle label={t("settings.autoFillBP")} value={autoFillBP} onChange={applyAutoFillBP} />
                         </SettingRow>
                         <SettingRow label={t("settings.autoFillBackground")} description={t("settings.autoFillBackgroundDesc")}>
-                          <Toggle value={autoFillBg} onChange={applyAutoFillBg} />
+                          <Toggle label={t("settings.autoFillBackground")} value={autoFillBg} onChange={applyAutoFillBg} />
                         </SettingRow>
                       </div>
                     )}

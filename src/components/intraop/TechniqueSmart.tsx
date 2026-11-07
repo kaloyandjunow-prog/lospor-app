@@ -161,7 +161,7 @@ export function TechniqueSmart({ techniques, sides, onChange, tree, planned, rec
       {query.trim() ? (
         <div className="mt-1.5 overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
           {hits.length === 0 ? <p className="p-3 text-sm text-slate-500">{t("noMatch")}</p> : hits.map(hit => (
-            <button key={hit.code} type="button" aria-label={label(hit.code)} data-testid={`technique-hit-${hit.code}`} onClick={() => { toggle(hit.code); setQuery("") }}
+            <button key={hit.code} type="button" aria-label={label(hit.code)} aria-pressed={techniques.includes(hit.code)} data-testid={`technique-hit-${hit.code}`} onClick={() => { toggle(hit.code); setQuery("") }}
               className="block min-h-12 w-full border-b border-slate-100 px-3 py-2 text-left last:border-b-0 dark:border-[#2a2a2a]">
               <span className="block text-sm font-bold">{shortLabel(hit.code)}{techniques.includes(hit.code) ? " ✓" : ""}</span>
             </button>

@@ -843,6 +843,7 @@
     "cancel": "Отказ",
     "searchInstitution": "Търси лечебно заведение…",
     "viewProfile": "Профил",
+    "accountActions": "Действия за акаунта",
     "accountSettings": "Акаунт и настройки",
     "accountWideInterface": "За целия акаунт · изборът е еднакъв в web и mobile",
     "scrollUp": "Превърти настройките нагоре",
@@ -2150,6 +2151,8 @@
       "arrivedShort": "дошъл",
       "addAccess": "Добавяне на съдов достъп",
       "moreTypes": "Още видове ▾",
+      "allSites": "Всички места ▾",
+      "hideAllSites": "Скрий всички места",
       "alreadyOnArrival": "Вече поставен при постъпване"
     },
     "monitoringSmart": {

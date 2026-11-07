@@ -30,6 +30,8 @@ import { clinicalRecordId } from "@lospor/core/clinical-record-id"
 export type VascularSmartRequest = {
   type: VascularType
   centralType?: "CVK" | "PICC"
+  /** A site selected from the complete catalogue, before the detail panel opens. */
+  site?: string
   /** The time the timeline event stands for, when opened from the timeline. */
   at?: string | null
   source: "tab" | "timeline"
@@ -61,7 +63,7 @@ export function VascularSmartPanel({
   const [centralType, setCentralType] = useState<"CVK" | "PICC">(request.centralType ?? "CVK")
   const asks = vascularAsks(request.type, centralType)
   const [origin, setOrigin] = useState<"here" | "ward">(request.ward ? "ward" : "here")
-  const [site, setSite] = useState<string>(defaultVascularSite(request.type, request.centralType ?? "CVK"))
+  const [site, setSite] = useState<string>(request.site ?? defaultVascularSite(request.type, request.centralType ?? "CVK"))
   const suggested = request.type === "PERIPHERAL" ? suggestedPeripheralGauge(patient) : request.type === "ARTERIAL" ? suggestedArterialGauge(patient) : "7"
   const [size, setSize] = useState<string>(suggested)
   const [lumens, setLumens] = useState<string>("3")

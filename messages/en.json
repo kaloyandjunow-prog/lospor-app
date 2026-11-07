@@ -843,6 +843,7 @@
     "cancel": "Cancel",
     "searchInstitution": "Search institution…",
     "viewProfile": "View Profile",
+    "accountActions": "Account actions",
     "accountSettings": "Account & Settings",
     "accountWideInterface": "Account-wide · the same choice is used on web and mobile",
     "scrollUp": "Scroll settings up",
@@ -2150,6 +2151,8 @@
       "arrivedShort": "arrived",
       "addAccess": "Add access",
       "moreTypes": "More types ▾",
+      "allSites": "All sites ▾",
+      "hideAllSites": "Hide all sites",
       "alreadyOnArrival": "Already in place on arrival"
     },
     "monitoringSmart": {

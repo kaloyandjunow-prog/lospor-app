@@ -58,7 +58,7 @@ export function AutomationGroupsSetting() {
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-4 mb-1">{t("title")}</p>
       {offered.map(key => (
         <SettingRow key={key} label={t(`${key}.label`)} description={t(`${key}.desc`)}>
-          <Toggle value={mine[key] !== false} onChange={value => set(key, value)} />
+          <Toggle label={t(`${key}.label`)} value={mine[key] !== false} onChange={value => set(key, value)} />
         </SettingRow>
       ))}
       {offeredLines.length > 0 && <>
@@ -71,7 +71,7 @@ export function AutomationGroupsSetting() {
             {contextHeader && <p className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("contextLinksTitle")}</p>}
             {vitalHeader && <p className="mt-3 mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("vitalLinesTitle")}</p>}
             <SettingRow label={locale === "bg" ? line.bg : line.en} description={locale === "bg" ? line.detailBg : line.detailEn}>
-              <Toggle testId={`setting-automation-line-${line.id}`} value={lines[line.id] ?? personalAutomationDefaultEnabled(line.id)} onChange={value => setLine(line.id, value)} />
+              <Toggle testId={`setting-automation-line-${line.id}`} label={locale === "bg" ? line.bg : line.en} value={lines[line.id] ?? personalAutomationDefaultEnabled(line.id)} onChange={value => setLine(line.id, value)} />
             </SettingRow>
           </div>
         })}

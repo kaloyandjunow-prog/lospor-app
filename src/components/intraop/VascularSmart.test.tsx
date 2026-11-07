@@ -35,6 +35,15 @@ describe("Smart selection, the Vascular access tab (10.2.0)", () => {
     expect(screen.getByTestId("vascular-smart-other-CENTRAL")).toBeTruthy()
   })
 
+  it("opens the complete legacy site catalogue and carries a selected site into the panel", () => {
+    setup({ techniques: ["REGIONAL_SPINAL"] })
+    fireEvent.click(screen.getByTestId("vascular-smart-catalog"))
+    expect(screen.getByTestId("vascular-smart-catalog-ART_ULNAR")).toBeTruthy()
+    expect(screen.getByTestId("vascular-smart-catalog-CVK_EJV")).toBeTruthy()
+    fireEvent.click(screen.getByTestId("vascular-smart-catalog-CVK_EJV"))
+    expect(screen.getByTestId("vascular-smart-site-CVK_EJV").className).toContain("violet")
+  })
+
   it("adds a peripheral line at the start of anaesthesia with the suggested size, no site asked", () => {
     const { onChange } = setup()
     fireEvent.click(screen.getByTestId("vascular-smart-card-PERIPHERAL"))

@@ -876,11 +876,11 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // Standard in one switch and the monitors this case calls for. What is suggested and when a reading is
   // due is Core's (monitoring-smart); a monitor added sets the same flag the legacy section sets.
   const monitoringScreen = useMonitoringScreen()
-  useWatch({ control, name: monitoringOptions.map(option => option.value as keyof IntraopFormFields) })
+  const watchedMonitoring = useWatch({ control, name: monitoringOptions.map(option => option.value as keyof IntraopFormFields) })
   const hiddenMonitors = useMemo(() => timelineLog
     .filter(event => event.type === "prompt_answer" && event.answer === "not_now" && event.answerKind?.startsWith("monitor:") && typeof event.answerFor === "string")
     .map(event => event.answerFor as string), [timelineLog])
-  const activeMonitoring = monitoringOptions.filter(option => getValues(option.value as keyof IntraopFormFields)).map(option => option.value)
+  const activeMonitoring = monitoringOptions.filter((_option, index) => Boolean(watchedMonitoring[index])).map(option => option.value)
   function applyMonitoring(next: string[]) {
     for (const option of monitoringOptions) setValue(option.value as keyof IntraopFormFields, next.includes(option.value) as never, { shouldDirty: true })
   }

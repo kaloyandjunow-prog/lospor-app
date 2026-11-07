@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import type { VascularLine } from "@lospor/core/vascular-access-lines"
-import { vascularChoices, vascularTypeOfSite, suggestedArterialGauge, suggestedPeripheralGauge, type VascularPatient, type VascularType } from "@lospor/core/vascular-smart"
+import { VASCULAR_CATALOG_LEAVES, vascularChoices, vascularTypeOfSite, suggestedArterialGauge, suggestedPeripheralGauge, type VascularPatient, type VascularType } from "@lospor/core/vascular-smart"
 import { VascularSmartPanel, type VascularClinicalEvent, type VascularSmartRequest } from "./VascularSmartPanel"
 
 /**
@@ -31,6 +31,7 @@ export function VascularSmart({
   const t = useTranslations("intraop.vascularSmart")
   const [request, setRequest] = useState<VascularSmartRequest | null>(null)
   const [showOther, setShowOther] = useState(false)
+  const [showCatalog, setShowCatalog] = useState(false)
   const choices = vascularChoices(techniques)
   const working = lines.filter(line => !line.failed)
   const ordered = lines.map((line, index) => ({ line, index })).sort((a, b) => Number(!!a.line.failed) - Number(!!b.line.failed) || b.index - a.index)
@@ -39,6 +40,10 @@ export function VascularSmart({
   const toggleType = (type: VascularType) => {
     const selected = request?.type === type && request.replacesIndex == null && !request.ward
     setRequest(selected ? null : { type, source: "tab" })
+  }
+  const selectCatalogSite = (site: typeof VASCULAR_CATALOG_LEAVES[number]) => {
+    const selected = request?.site === site.code && request.replacesIndex == null && !request.ward
+    setRequest(selected ? null : { type: site.type, centralType: site.centralType, site: site.code, source: "tab" })
   }
   const card = (type: VascularType) => {
     const hint = type === "PERIPHERAL" ? `${suggestedPeripheralGauge(patient)}G` : type === "ARTERIAL" ? `${suggestedArterialGauge(patient)}G` : ""
@@ -54,7 +59,7 @@ export function VascularSmart({
   }
 
   const panel = request ? (
-    <VascularSmartPanel key={`${request.type}-${request.replacesIndex ?? ""}-${request.ward ? "w" : ""}`} request={request} lines={lines} patient={patient}
+    <VascularSmartPanel key={`${request.type}-${request.site ?? ""}-${request.replacesIndex ?? ""}-${request.ward ? "w" : ""}`} request={request} lines={lines} patient={patient}
       startedAt={startedAt} now={now} timeZone={timeZone} siteLabel={siteLabel}
       onSave={(next, event) => {
         setRequest(null)
@@ -106,9 +111,35 @@ export function VascularSmart({
                 className="px-3 py-1.5 rounded-lg border-2 border-slate-200 dark:border-[#333] text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-violet-400">{typeName(type)}</button>
             ))
             : <button type="button" data-testid="vascular-smart-more" onClick={() => setShowOther(true)} className="text-sm text-violet-600 dark:text-violet-300 font-semibold px-2 py-1">{t("moreTypes")}</button>)}
+          <button type="button" data-testid="vascular-smart-catalog" aria-expanded={showCatalog} onClick={() => setShowCatalog(value => !value)}
+            className="text-sm text-violet-600 dark:text-violet-300 font-semibold px-2 py-1">
+            {showCatalog ? t("hideAllSites") : t("allSites")}
+          </button>
           <button type="button" data-testid="vascular-smart-ward" onClick={() => setRequest(request?.ward ? null : { type: "PERIPHERAL", source: "tab", ward: true })}
             className="px-3 py-1.5 rounded-lg border-2 border-dashed border-amber-400 text-sm font-semibold text-amber-600 dark:text-amber-300">{typeName("PERIPHERAL")} · {t("alreadyOnArrival")}</button>
         </div>
+        {showCatalog && (
+          <div data-testid="vascular-smart-catalog-list" className="rounded-xl border border-slate-200 dark:border-[#333] p-3 space-y-3">
+            {(["PERIPHERAL", "ARTERIAL", "CENTRAL"] as const).map(group => {
+              const sites = VASCULAR_CATALOG_LEAVES.filter(site => site.group === group)
+              return (
+                <div key={group} className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{typeName(group)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {sites.map(site => (
+                      <button key={site.code} type="button" data-testid={`vascular-smart-catalog-${site.code}`} aria-pressed={request?.site === site.code}
+                        onClick={() => selectCatalogSite(site)} className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold ${request?.site === site.code
+                          ? "border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300"
+                          : "border-slate-200 dark:border-[#333] text-slate-600 dark:text-slate-300 hover:border-violet-400"}`}>
+                        {siteLabel(site.code)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {request && (request.ward || !choices.main.includes(request.type)) && (

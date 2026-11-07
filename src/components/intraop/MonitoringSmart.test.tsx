@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react"
+import React from "react"
 import { describe, expect, it, vi } from "vitest"
 import type { MonitoringSuggestion } from "@lospor/core/monitoring-smart"
 import type { LibraryOption } from "@/hooks/useOptionLibrary"
@@ -26,6 +27,18 @@ function setup(overrides: Partial<Parameters<typeof MonitoringSmart>[0]> = {}) {
 }
 
 describe("Smart selection, the Monitoring section (10.2.0)", () => {
+  it("moves an added suggestion into On now in the controlled parent flow", () => {
+    function Controlled() {
+      const [active, setActive] = React.useState<string[]>(STANDARD)
+      return <MonitoringSmart monitoring={active} onChange={setActive} monitoringOptions={OPTIONS} suggestions={SUGGESTIONS} onHide={vi.fn()}
+        lastReading={() => null} now={() => NOW} />
+    }
+    render(<Controlled />)
+    fireEvent.click(screen.getByTestId("monitoring-add-tofMonitor"))
+    expect(screen.getByTestId("monitoring-on-tofMonitor")).toBeTruthy()
+    expect(screen.queryByTestId("monitoring-suggestion-tofMonitor")).toBeNull()
+  })
+
   it("turns the three standard monitors off with one switch and keeps the others", () => {
     const { onChange } = setup({ monitoring: [...STANDARD, "bis"] })
     expect(screen.getByTestId("monitoring-standard").getAttribute("aria-pressed")).toBe("true")
