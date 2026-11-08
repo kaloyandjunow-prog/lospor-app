@@ -40,7 +40,7 @@
     "@dragdroptouch/drag-drop-touch": "2.0.3",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.9.2",
-    "@lospor/core": "file:../lospor-core",
+    "@lospor/core": "github:kaloyandjunow-prog/lospor-core#v10.2.0",
     "@sentry/nextjs": "^11.11.0",
     "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
