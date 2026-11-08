@@ -227,7 +227,7 @@ export function RecordSheets({ data, locale }: { data: CaseDetail; locale: strin
               <div className="grid grid-cols-3 gap-1.5">
                 {fluidCells.map(([label, value]) => <div key={label} className="border border-slate-200 rounded text-center py-1"><p className="text-[13px] font-extrabold leading-tight">{value ?? "—"}</p><p className="text-[8px] text-slate-500">{label}</p></div>)}
               </div></div>
-            {draws.length > 0 && <InvestigationsBox shownDraws={draws} omittedResults={0} omittedDraws={0} title={L.investigations} omittedLabel={L.labsOmitted} Field={F} />}
+            {draws.length > 0 && <InvestigationsBox shownDraws={draws} title={L.investigations} Field={F} />}
           </div>
         </div>
 
