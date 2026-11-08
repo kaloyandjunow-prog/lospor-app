@@ -86,7 +86,7 @@
         {
           "title": "8. Contact",
           "paragraphs": [
-            "Contact: kaloyandjunow@gmail.com"
+            "Contact: support@lospor.org"
           ]
         }
       ]
@@ -97,7 +97,7 @@
         {
           "title": "1. Who we are",
           "paragraphs": [
-            "LOSPOR is an independent tool operated by Kaloyan Dzhunov (kaloyandjunow@gmail.com).",
+            "LOSPOR is an independent tool operated by Kaloyan Dzhunov (support@lospor.org).",
             "Controller and processor roles depend on the purposes and means of each processing activity. In most deployments, the treating institution or clinician controls the clinical records entered while the operator maintains the infrastructure. Joint controllership may arise where the operator determines purposes of its own. Each deploying institution must complete its role mapping, Articles 6 and 9 legal-basis assessment, and any required data protection impact assessment."
           ]
         },
@@ -190,7 +190,7 @@
               "text": "request account deletion from Settings — Privacy & Data."
             },
             {
-              "text": "For other requests, contact kaloyandjunow@gmail.com or the controller identified by the deploying institution."
+              "text": "For other requests, contact support@lospor.org or the controller identified by the deploying institution."
             }
           ]
         },
