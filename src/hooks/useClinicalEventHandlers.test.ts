@@ -24,6 +24,17 @@ describe("useClinicalEventHandlers", () => {
     }))
   })
 
+  it("keeps the card a shock was made from on its marker (10.2.0)", () => {
+    const data: TimetableData = { clinicalEvents: [] } as never
+    const onChange = vi.fn()
+    const { addDefibrillation } = useClinicalEventHandlers({ current: data }, { current: onChange })
+    addDefibrillation(6, 200, false, "card:Ventricular fibrillation:shock")
+    addDefibrillation(7, 200, false)
+    const [first] = onChange.mock.calls[0]![0].clinicalEvents
+    expect(first).toMatchObject({ kind: "defibrillation", suggestion: "card:Ventricular fibrillation:shock" })
+    expect(onChange.mock.calls[1]![0].clinicalEvents[0]).not.toHaveProperty("suggestion")
+  })
+
   it("charts a complication as one timed entry, marked as a complication (10.1.0)", () => {
     // Before 10.1.0 a complication went to the list only, without a time. Now
     // it is one entry: the timeline marker, the list and the event log all

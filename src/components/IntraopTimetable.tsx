@@ -1051,6 +1051,8 @@ export function IntraopTimetable({
   // ── Clinical Events ───────────────────────────────────────────────────────────
   const { addClinicalEvent, removeClinicalEvent, addDefibrillation } = useClinicalEventHandlers(dataRef, onChangeRef)
   const [defibCol, setDefibCol] = useState<number | null>(null) // a shock at this column (10.1.0)
+  // The card the shock was opened from (10.2.0): the saved shock carries its tag.
+  const [defibSuggestion, setDefibSuggestion] = useState<string | null>(null)
 
   // ── Drugs ───────────────────────────────────────────────────────────────────
   const { removeDrug } = useDrugHandlers(data, onChange)
@@ -1753,12 +1755,12 @@ export function IntraopTimetable({
       })
       setFp(suggestionFluidPrefill(next, { amount, mode, concentration }, suggestion))
     },
-    openShock: () => setDefibCol(sheetCol),
+    openShock: suggestion => { setDefibSuggestion(suggestion); setDefibCol(sheetCol) },
     openLab: () => onOpenLabDraw?.(serverNow().toISOString()),
-    openGas: (rect, fio2, fgf, air) => {
+    openGas: (rect, fio2, fgf, air, suggestion) => {
       const running = gasSettings.find(seg => !seg.stopped && seg.startCol <= sheetCol && seg.endCol >= sheetCol)
-      if (running) openGasPickerForSeg(sheetCol, running, rect)
-      else openGasPickerEmpty(sheetCol, rect)
+      if (running) openGasPickerForSeg(sheetCol, running, rect, suggestion)
+      else openGasPickerEmpty(sheetCol, rect, suggestion)
       setPickerFio2(fio2)
       setPickerFgf(fgf)
       if (air) setPickerCarrierGas("air")
@@ -1959,7 +1961,7 @@ export function IntraopTimetable({
         })).flatMap(category => category.isComplication
           ? [category, ...moreComplicationCategories(category.events, locale)]
           : [category])}
-        defibrillation={{ label: t("intraop.defibrillation.button"), onOpen: () => { setDefibCol(eventPicker.ci); setEventPicker(null) } }}
+        defibrillation={{ label: t("intraop.defibrillation.button"), onOpen: () => { setDefibSuggestion(null); setDefibCol(eventPicker.ci); setEventPicker(null) } }}
         recordedLabels={new Set((data.clinicalEvents ?? []).filter(e => e.colIdx === eventPicker.ci).map(e => e.label))}
         labels={{
           logClinicalEvent: t("intraop.timetable.logClinicalEvent"),
@@ -2002,7 +2004,7 @@ export function IntraopTimetable({
     })()}
     {defibCol != null && (
       <DefibrillationDialog {...defibrillationDialogProps(data.clinicalEvents ?? [], defibCol, times[defibCol] ?? "", { ageValue: pediatricAgeValue, ageUnit: pediatricAgeUnit, weightKg: tbw })}
-        onCancel={() => setDefibCol(null)} onSave={(energyJ, synchronized) => { addDefibrillation(defibCol, energyJ, synchronized); setDefibCol(null) }} />
+        onCancel={() => { setDefibCol(null); setDefibSuggestion(null) }} onSave={(energyJ, synchronized) => { addDefibrillation(defibCol, energyJ, synchronized, defibSuggestion ?? undefined); setDefibCol(null); setDefibSuggestion(null) }} />
     )}
     <MedicationPickerPortals
       drugPicker={drugPicker}

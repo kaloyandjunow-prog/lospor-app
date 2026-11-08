@@ -16,10 +16,10 @@ export function useClinicalEventHandlers(
     onChangeRef.current({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), marker] })
   }
   /** A shock at a column (10.1.0), saved as a defibrillation event. */
-  function addDefibrillation(colIdx: number, energyJ: number, synchronized: boolean) {
+  function addDefibrillation(colIdx: number, energyJ: number, synchronized: boolean, suggestion?: string) {
     const d = dataRef.current
     const label = synchronized ? "Cardioversion" : "Defibrillation"
-    onChangeRef.current({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), { colIdx, label, color: "#f59e0b", kind: "defibrillation" as const, energyJ, synchronized }] })
+    onChangeRef.current({ ...d, clinicalEvents: [...(d.clinicalEvents ?? []), { colIdx, label, color: "#f59e0b", kind: "defibrillation" as const, energyJ, synchronized, ...(suggestion ? { suggestion } : {}) }] })
   }
   function removeClinicalEvent(colIdx: number, label: string) {
     const d = dataRef.current

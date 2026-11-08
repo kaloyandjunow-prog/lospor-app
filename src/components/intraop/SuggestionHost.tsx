@@ -34,9 +34,9 @@ export type SuggestionSheets = {
   timeOf: (iso: string) => string
   openDrug: (args: { name: string; mode: "bolus" | "infusion"; rect: DOMRect; host?: HTMLElement | null; amount: number | "catalogue" | null; unit?: string; route?: string; suggestion: string }) => void
   openFluid: (args: { name?: string; category?: string; rect: DOMRect; host?: HTMLElement | null; amount: number | "catalogue" | null; mode?: "VOLUME" | "RATE"; concentration?: string; suggestion: string }) => void
-  openShock: () => void
+  openShock: (suggestion: string) => void
   openLab: () => void
-  openGas: (rect: DOMRect, fio2: number, fgf: number, air: boolean) => void
+  openGas: (rect: DOMRect, fio2: number, fgf: number, air: boolean, suggestion: string) => void
   /** The running agents and infusions a "Deepen anaesthesia" row can turn up, each opening its own change sheet. */
   deepenTargets: () => { key: string; label: string; open: (rect: DOMRect) => void }[]
   stop: (event: LogEvent, suggestion: string) => void
@@ -89,8 +89,8 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
       case "drug": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "bolus", rect, host, amount: prefill.amount, unit: prefill.unit, route: prefill.route, suggestion: tag }); return
       case "infusion": if (prefill?.drug) sheets.openDrug({ name: prefill.drug, mode: "infusion", rect, host, amount: prefill.amount, unit: prefill.unit, suggestion: tag }); return
       case "fluid": sheets.openFluid({ name: prefill?.fluid, category: prefill?.category, rect, host, amount: prefill?.amount ?? null, mode: prefill?.mode, concentration: prefill?.concentration, suggestion: tag }); return
-      case "gas": sheets.openGas(rect, row.def.fio2, row.def.fgf, !!row.def.stopNitrous); return
-      case "shock": sheets.openShock(); return
+      case "gas": sheets.openGas(rect, row.def.fio2, row.def.fgf, !!row.def.stopNitrous, tag); return
+      case "shock": sheets.openShock(tag); return
       case "lab": sheets.openLab(); return
       case "airway": sheets.openAirway?.(rect, complication); return
       case "deepen": setMini({ key: opened!, rect, kind: "deepen", row, complication }); return
