@@ -23,7 +23,7 @@ describe("the clinician's own suggestion switches", () => {
   beforeEach(() => { patch.mockClear() })
 
   it("lists only the groups the hospital has on, each on unless turned off", async () => {
-    hospital({ enabled: true, groups: { treatmentSuggestions: true, timers: true }, vitalQuestions: { enabled: false } })
+    hospital({ enabled: true, groups: { treatmentSuggestions: true, timers: true, reverseQuestions: false, readingQuestions: false, labQuestions: false, reminders: false }, vitalQuestions: { enabled: false } })
     await act(async () => { render(<AutomationGroupsSetting />) })
     const rows = screen.getByTestId("automation-groups-setting").textContent ?? ""
     expect(rows).toContain("treatmentSuggestions.label")
@@ -33,7 +33,7 @@ describe("the clinician's own suggestion switches", () => {
   })
 
   it("sends the whole set, so turning one on keeps another off", async () => {
-    hospital({ enabled: true, groups: { treatmentSuggestions: true, timers: true }, vitalQuestions: { enabled: false } })
+    hospital({ enabled: true, groups: { treatmentSuggestions: true, timers: true, reverseQuestions: false, readingQuestions: false, labQuestions: false, reminders: false }, vitalQuestions: { enabled: false } })
     await act(async () => { render(<AutomationGroupsSetting />) })
     const toggles = screen.getByTestId("automation-groups-setting").querySelectorAll("button")
     await act(async () => { fireEvent.click(toggles[0]!) })

@@ -27,6 +27,13 @@ function setup(overrides: Partial<Parameters<typeof MonitoringSmart>[0]> = {}) {
 }
 
 describe("Smart selection, the Monitoring section (10.2.0)", () => {
+  it("opens the reading entry from the chip, as the phone does", () => {
+    const onReading = vi.fn()
+    setup({ monitoring: [...STANDARD, "bis"], onReading })
+    fireEvent.click(screen.getByTestId("monitoring-reading-bis"))
+    expect(onReading).toHaveBeenCalledWith("bis")
+  })
+
   it("moves an added suggestion into On now in the controlled parent flow", () => {
     function Controlled() {
       const [active, setActive] = React.useState<string[]>(STANDARD)

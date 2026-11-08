@@ -186,6 +186,10 @@ interface Props {
    * lane renders them; it does not own them.
    */
   labResults?: LabResult[]
+  /** Scroll to this vitals row in the current column and focus it (the Monitoring tab's reading chip). */
+  focusVitalRequest?: { key: VitalKey; nonce: number } | null
+  /** The case techniques (a unilateral spinal pre-sets the intrathecal dose to hyperbaric). */
+  techniques?: readonly string[]
   /** Open the draw at this instant -- an existing one, or a new one. */
   onOpenLabDraw?: (takenAt: string) => void
   /** Open the full list of everything recorded. */
@@ -247,6 +251,8 @@ export function IntraopTimetable({
   onPostopContinued,
   onInfusionTotals,
   labResults = [],
+  focusVitalRequest,
+  techniques,
   onOpenLabDraw,
   onOpenAllLabs,
 }: Props) {
@@ -424,6 +430,7 @@ export function IntraopTimetable({
     fluidConcentrations: FLUID_CONCENTRATIONS,
     fluidDefaultConcentrations: FLUID_DEFAULT_CONCENTRATIONS,
     manualDoseOnlyHint: t("pediatric.manualDoseOnly"),
+    techniques,
   })
 
   const [colCount, setColCount]           = useState(ROW_COLS)  // start with 1 row
@@ -989,6 +996,17 @@ export function IntraopTimetable({
   }, [gridStartMs, caseStarted])
 
   const nowCol    = nowOffsetPx !== null ? Math.min(Math.floor(nowOffsetPx / COL_W), colCount - 1) : null
+  // The Monitoring tab's reading chip: the current column of that monitor's row, scrolled to and ready to type in.
+  const focusNonce = focusVitalRequest?.nonce
+  useEffect(() => {
+    if (!focusVitalRequest) return
+    const input = vitalsInputRefs.current.get(`${nowCol ?? 0}-${focusVitalRequest.key}`)
+    if (!input) return
+    input.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" })
+    input.focus({ preventScroll: true })
+  // Only a new request moves the focus; the clock ticking must not.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce])
 
   // Column index of the case end time (handles midnight crossing)
   const endCol = endTime ? (() => {

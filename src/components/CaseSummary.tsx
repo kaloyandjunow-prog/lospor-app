@@ -15,6 +15,7 @@ import { FINALIZE_UNDO_WINDOW_MS } from "@/lib/constants"
 import { PrintTimetable, calcDrugTotals, naturalMaxCols, buildDrugLog } from "@/components/case-summary/PrintTimetable"
 import { calcInfTotals, useInfusionWeightBasis } from "@/components/case-summary/print-infusion-totals"
 import { DrugLogContinuationSheet } from "@/components/case-summary/DrugLogContinuationSheet"
+import { PrintEventListSheet, PrintEventStrip, buildPrintEventList, splitPrintEventList, withApproximateDrugTimes } from "@/components/case-summary/PrintEventList"
 import { InvestigationsBox } from "@/components/case-summary/InvestigationsBox"
 import { HistoryAndAllergiesBox } from "@/components/case-summary/HistoryAndAllergiesBox"
 import { PostopRecoverySection } from "@/components/case-summary/PostopRecoverySection"
@@ -274,16 +275,18 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
   const drugTotals     = calcDrugTotals(timetable)
   // Per-kg infusions on the patient's own weight; the sheet used none (9.12.3).
   const infTotals      = calcInfTotals(timetable, { ibw: ibwResolution.available ? ibwResolution.roundedKg : null, tbw: p?.weightKg, heightCm: p?.heightCm, endedAt: i?.endedAt, weightBasis: infusionWeightBasis, ageYears: p?.ageYears, ageValue: p?.ageValue, ageUnit: p?.ageUnit, sex: p?.sex })
-  const drugLog        = buildDrugLog(timetable, i?.startTime, i?.timezone)
+  const drugLog        = withApproximateDrugTimes(buildDrugLog(timetable, i?.startTime, i?.timezone), timetable)
 
   // Continues onto its own sheets rather than capping: a result not shown can
   // be looked up, a dose nobody recorded on paper cannot.
   const { first: drugLogFirst, continued: drugLogCont } = splitDrugLog(drugLog)
+  const eventList = buildPrintEventList(timetable.log, i?.timezone, locale)
+  const { first: eventsFirst, continued: eventsCont } = splitPrintEventList(eventList)
 
   // Drug-log continuations count too: a footer that says "Page 2 of 3" while
   // handing somebody four sheets is how a page goes missing without anyone
   // noticing it has.
-  const pageTotal = contSheets.length + drugLogCont.length + 2
+  const pageTotal = contSheets.length + drugLogCont.length + eventsCont.length + 2
   const ageSuffix  = locale === "bg" ? "г." : "y"
   const sexLabel   = (s: string) => locale === "bg" ? (s === "MALE" ? "М" : s === "FEMALE" ? "Ж" : "") : (s === "MALE" ? "M" : s === "FEMALE" ? "F" : "")
   // `!= null`, not truthiness: a neonate's age in years is legitimately 0, and
@@ -489,6 +492,8 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             )}
           </div>
 
+          <PrintEventStrip entries={eventsFirst} total={eventList.length} locale={locale} />
+
           {/* Bottom band: fluid balance · drug administration log · intraop notes */}
           <div className="grid grid-cols-[0.85fr_1.35fr_1fr] gap-2">
             <div className="border border-slate-200 rounded-lg p-2 bg-white">
@@ -624,6 +629,9 @@ export function CaseSummary({ caseId, mode = "summary", initialData }: {
             continuedWord={contWord}
           />
         ))}
+
+        {eventsCont.map((entries, k) => <PrintEventListSheet key={`eventcont-${k}`} entries={entries} locale={locale} patientLine={patientLine} caseCode={data.caseCode} continuedWord={contWord}
+          footerLine={L.footerLine} generatedLbl={L.generatedLbl} sheetNumber={contSheets.length + drugLogCont.length + k + 2} sheetCount={pageTotal} hasNext={k < eventsCont.length - 1} />)}
 
         {/* ═══════════════════════════════════════════════════════
             PAGE 2 — PORTRAIT — PREOP + POSTOP

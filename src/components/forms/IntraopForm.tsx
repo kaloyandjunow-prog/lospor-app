@@ -80,7 +80,9 @@ import { TechniqueSmart } from "@/components/intraop/TechniqueSmart"
 import { parseTechniqueSides, techniqueSidesFor, techniquesAfterTciStart, type TechniqueSide } from "@lospor/core/technique-smart"
 import { addAirwayDevice, airwayClinicalEvent, resolveAirwayTime, suggestedAirwayDetails } from "@lospor/core/airway-smart"
 import { MonitoringSmart } from "@/components/intraop/MonitoringSmart"
-import { MONITORING_READINGS, isRelaxant, monitoringAutomationId, monitoringSuggestionKey, monitoringSuggestions, type MonitoringSuggestion } from "@lospor/core/monitoring-smart"
+import type { VitalKey } from "@/types/timetable"
+import { MONITORING_READINGS, asksNibpOff, isRelaxant, monitoringAutomationId, monitoringSuggestionKey, monitoringSuggestions, withoutNibp, type MonitoringSuggestion } from "@lospor/core/monitoring-smart"
+import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { monitoringDismissalEventId } from "@lospor/core/intraop-automation-actions"
 import { EquipmentSuggestions } from "@/components/EquipmentSuggestions"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
@@ -117,6 +119,9 @@ export type { IntraopFormFields, IntraopData } from "./intraopSchema"
 // and are fetched via useOptionLibrary inside IntraopForm below.
 
 import type { PreopSummary } from "@/components/forms/preop-summary"
+
+/** The timetable row each monitor reading is entered in. */
+const MONITOR_VITAL_KEY = { bisValue: "bis", tofRatio: "tofRatio", cvpMmHg: "cvp", etco2: "etco2", temp: "temp" } as const satisfies Record<string, VitalKey>
 
 export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, onBack, onAutoSave, onPostopContinued, onDeath, layoutMode = "tabs", caseStarted: caseStartedProp = false, eventLog, onEventOps, readOnly = false, autoEnded: autoEndedProp = false, caseId = null, aiOptIn = false, focus = null, stages }: {
   /** Where the case is, for the case panel (sidebar layout). */
@@ -196,6 +201,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const safeTimetable = (defaultTimetable && !Array.isArray(defaultTimetable) && "vitals" in defaultTimetable)
     ? defaultTimetable : EMPTY_TIMETABLE
   const [manualSaved, setManualSaved] = useState(false)
+  const [vitalFocusRequest, setVitalFocusRequest] = useState<{ key: VitalKey; nonce: number } | null>(null)
   // While the reasons for a changed end are open, the floating questions step aside (10.1.0).
   const [endCorrectionOpen, setEndCorrectionOpen] = useState(false)
   // The chart is the projection of the event log; edits become events (1.4.9).
@@ -333,17 +339,20 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return }
     if (!onAutoSave) return
-    // A legacy airway addition carries its structured record and clinical
-    // event through one idempotent event operation. Do not immediately replay
-    // the same snapshot through the slower form PATCH path.
-    if (atomicAirwayEventPendingRef.current || atomicVascularEventPendingRef.current) {
+    // A structured airway/vascular action carries its record and clinical
+    // event through one idempotent event operation. Do not replay those fields
+    // through the slower form PATCH path, but keep saving everything else: a
+    // note or setting changed in the same second must not be dropped.
+    const payload: Record<string, unknown> = { ...getValues() }
+    if (atomicAirwayEventPendingRef.current) {
+      for (const key of AIRWAY_RECORD_PATCH_KEYS) delete payload[key]
       atomicAirwayEventPendingRef.current = false
-      atomicVascularEventPendingRef.current = false
-      pendingSaveRef.current = null
-      return
     }
-    const payload = { ...getValues() }
-    const save = () => onAutoSave(payload)
+    if (atomicVascularEventPendingRef.current) {
+      delete payload.vascularAccesses
+      atomicVascularEventPendingRef.current = false
+    }
+    const save = () => onAutoSave(payload as IntraopData)
     pendingSaveRef.current = save                    // always keep latest snapshot
     const timer = setTimeout(save, 1000)             // reduced from 2 s → 1 s
     return () => clearTimeout(timer)
@@ -881,8 +890,14 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     .filter(event => event.type === "prompt_answer" && event.answer === "not_now" && event.answerKind?.startsWith("monitor:") && typeof event.answerFor === "string")
     .map(event => event.answerFor as string), [timelineLog])
   const activeMonitoring = monitoringOptions.filter((_option, index) => Boolean(watchedMonitoring[index])).map(option => option.value)
-  function applyMonitoring(next: string[]) {
+  const [nibpOffPrompt, setNibpOffPrompt] = useState<string[] | null>(null)
+  function setMonitoringFields(next: readonly string[]) {
     for (const option of monitoringOptions) setValue(option.value as keyof IntraopFormFields, next.includes(option.value) as never, { shouldDirty: true })
+  }
+  function applyMonitoring(next: string[]) {
+    setMonitoringFields(next)
+    // An arterial line going on with the cuff still on asks once whether to turn the cuff off.
+    if (asksNibpOff(activeMonitoring, next)) setNibpOffPrompt(next)
   }
   const monitoringSuggestionList = monitoringSuggestions({
     monitoring: activeMonitoring, techniques, airway: airwayDeviceEntriesOf(getValues() as Record<string, unknown>), lines: vascularLines(), hidden: hiddenMonitors,
@@ -909,13 +924,15 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
     })
   }, [onEventOps])
   function lastMonitorReading(field: string) {
-    const key = ({ bisValue: "bis", tofRatio: "tofRatio", cvpMmHg: "cvp", etco2: "etco2", temp: "temp" } as const)[(MONITORING_READINGS[field]?.vital ?? "temp") as "bisValue" | "tofRatio" | "cvpMmHg" | "etco2" | "temp"]
-    const event = [...timelineLog].reverse().find(item => item.type === "vital" && typeof item[key] === "number")
+    const key = MONITOR_VITAL_KEY[MONITORING_READINGS[field]?.vital ?? "temp"]
+    // A value auto-fill carried forward is not a reading: counting it would keep EtCO2 and temperature from ever falling due.
+    const event = [...timelineLog].reverse().find(item => item.type === "vital" && !item.autoFilled && typeof item[key] === "number")
     return event ? { text: String(event[key]), at: event.ts } : null
   }
   const monitoringNode = monitoringScreen === "smart" && !readOnly ? (
     <MonitoringSmart monitoring={activeMonitoring} onChange={applyMonitoring} monitoringOptions={monitoringOptions} suggestions={monitoringSuggestionList}
-      onHide={dismissMonitoringSuggestion} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} />
+      onHide={dismissMonitoringSuggestion} lastReading={lastMonitorReading} now={() => serverNow().toISOString()} dueMinutes={suggestionContext?.settings?.monitoringDueMinutes}
+      onReading={field => setVitalFocusRequest(current => ({ key: MONITOR_VITAL_KEY[MONITORING_READINGS[field]?.vital ?? "temp"], nonce: (current?.nonce ?? 0) + 1 }))} />
   ) : undefined
 
   // ── Smart selection for equipment (10.2.0) ──────────────────────────────────
@@ -1013,6 +1030,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   return (
     <EventSelectorContext.Provider value={eventSelector}>
     <form onSubmit={handleSubmit(handleSubmitWithTimetable)} className="flex flex-col gap-0">
+      {nibpOffPrompt && <ConfirmDialog title={t("intraop.monitoringSmart.nibpOffTitle")} cancelLabel={t("intraop.monitoringSmart.nibpOffKeep")} confirmLabel={t("intraop.monitoringSmart.nibpOffYes")}
+        onCancel={() => setNibpOffPrompt(null)} onConfirm={() => { setMonitoringFields(withoutNibp(nibpOffPrompt)); setNibpOffPrompt(null) }} />}
 
       {/* Dual-mode layout — tabs or scroll, sharing the same section content */}
       {(() => {
@@ -1073,7 +1092,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
 
       {/* Monitoring */}
       <div data-tour="intraop-monitoring" data-readiness="monitoring">
-      <MonitoringSection t={t} watch={watch} setValue={setValue} monitoringOptions={monitoringOptions} smart={monitoringNode} />
+      <MonitoringSection t={t} watch={watch} setValue={setValue} monitoringOptions={monitoringOptions} smart={monitoringNode} onChange={applyMonitoring} />
       </div>{/* /intraop-monitoring */}
 
       {/* Anaesthesia technique */}
@@ -1160,6 +1179,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           />
         )}
         <IntraopTimetable
+          focusVitalRequest={vitalFocusRequest}
+          techniques={watchedTechniquesForSuggestions as string[] | undefined}
           labResults={(watchedLabResults ?? []) as never}
           onOpenLabDraw={takenAt => setLabsDialog({ open: true, takenAt })}
           onOpenAllLabs={() => setLabsDialog({ open: true, takenAt: null })}

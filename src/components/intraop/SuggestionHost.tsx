@@ -160,6 +160,7 @@ export function SuggestionHost({ attention, sheets }: { attention: WebIntraopAtt
             initialPerKg: dantroleneDosesMg(log, card.complication, suggestions.now).length > 0 ? 1 : 2.5,
             give: (doseMg, rect, row) => sheets.openDrug({ name: "Dantrolene", mode: "bolus", rect, amount: doseMg, unit: "mg", suggestion: cardSuggestionTag(card.complication.label ?? "", row.id) }),
           } : undefined}
+          arrest={card.complication.label === "Cardiac arrest" ? { log, patient: suggestions.patient } : undefined}
           readOnly={!attention.canAnswer}
         />
         {miniPanel}

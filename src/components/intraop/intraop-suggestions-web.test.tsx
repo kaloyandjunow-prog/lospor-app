@@ -166,6 +166,20 @@ describe("the card beside the chart", () => {
     fireEvent.click(screen.getByTestId("suggestion-card-done"))
     expect(onEventOps.mock.calls.at(-1)![0].add[0]).toMatchObject({ answerKind: "card", answer: "done" })
   }))
+
+  it("an arrest charted afterwards: Give writes 1 mg at once, and ROSC at a typed time spreads the doses", () => withFakeNow(() => {
+    const arrest: LogEvent = { id: "c1", ts: at(-30), type: "complication", label: "Cardiac arrest", recordedAt: at(-30) }
+    const dose: LogEvent = { id: "arrest-dose-adrenaline-c1-1", ts: at(-30), type: "drug", name: "Epinephrine / Adrenaline", dose: "1000", unit: "mcg", timeApproximate: true }
+    const { onEventOps } = openCard([arrest, dose])
+    fireEvent.click(screen.getByTestId("card-branch-nonshockable"))
+    fireEvent.click(screen.getByTestId("card-arrest-give-adrenaline"))
+    expect(onEventOps.mock.calls.at(-1)![0].add[0]).toMatchObject({ id: "arrest-dose-adrenaline-c1-2", ts: at(-25), dose: "1000", unit: "mcg", timeApproximate: true })
+    // ROSC typed as 10:20, ten minutes after the arrest: the dose already charted stays at its start.
+    fireEvent.change(screen.getByTestId("card-event-time-rosc"), { target: { value: "10:20" } })
+    fireEvent.click(screen.getByTestId("card-event-at-rosc"))
+    const ops = onEventOps.mock.calls.at(-1)![0]
+    expect(ops.add[0]).toMatchObject({ type: "clinical_event", label: "ROSC" })
+  }))
 })
 
 describe("the airway picker, embedded", () => {

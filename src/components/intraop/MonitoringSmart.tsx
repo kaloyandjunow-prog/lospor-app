@@ -18,7 +18,7 @@ const REASON: Record<MonitoringReasonKey, string> = {
  * grouped list in place under "More monitors". What is suggested and when a reading is due is Core's
  * (monitoring-smart); a monitor added here sets the same flag the legacy section sets.
  */
-export function MonitoringSmart({ monitoring, onChange, monitoringOptions, suggestions, onHide, lastReading, now }: {
+export function MonitoringSmart({ monitoring, onChange, monitoringOptions, suggestions, onHide, lastReading, now, dueMinutes, onReading }: {
   monitoring: readonly string[]
   onChange: (next: string[]) => void
   monitoringOptions: readonly LibraryOption[]
@@ -27,6 +27,10 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
   /** The last reading charted for a monitor: its text and when it was taken. */
   lastReading: (field: string) => { text: string; at: string } | null
   now: () => string
+  /** The hospital's reading intervals (Status), per monitor, in minutes. */
+  dueMinutes?: Readonly<Record<string, number>> | null
+  /** Opens the timetable's entry for this monitor's reading, in the current column (as the phone's chip does). */
+  onReading?: (field: string) => void
 }) {
   const t = useTranslations("intraop.monitoringSmart")
   const locale = useLocale()
@@ -59,7 +63,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
         <div data-testid="monitoring-smart-empty" className={`${row} text-sm text-slate-500`}>{t("nothingMore")}</div>
       ) : extras.map(field => {
         const reading = MONITORING_READINGS[field] ? lastReading(field) : null
-        const due = !!MONITORING_READINGS[field] && readingDue(field, reading?.at ?? null, null, now())
+        const due = !!MONITORING_READINGS[field] && readingDue(field, reading?.at ?? null, null, now(), dueMinutes)
         return (
           <div key={field} data-testid={`monitoring-on-${field}`} className={row}>
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
@@ -68,7 +72,7 @@ export function MonitoringSmart({ monitoring, onChange, monitoringOptions, sugge
               {due ? <span className="block text-xs text-amber-600 dark:text-amber-400">{t("due")}</span> : null}
             </span>
             {MONITORING_READINGS[field] ? (
-              <span data-testid={`monitoring-reading-${field}`} className={`px-3 py-1 rounded-lg border text-sm font-bold tabular-nums ${due ? "border-amber-500 text-amber-600 dark:text-amber-400" : "border-violet-400 text-violet-700 dark:text-violet-300"}`}>{reading?.text ?? t("noReading")}</span>
+              <button type="button" data-testid={`monitoring-reading-${field}`} disabled={!onReading} onClick={() => onReading?.(field)} className={`px-3 py-1 rounded-lg border text-sm font-bold tabular-nums disabled:cursor-default ${due ? "border-amber-500 text-amber-600 dark:text-amber-400" : "border-violet-400 text-violet-700 dark:text-violet-300"}`}>{reading?.text ?? t("noReading")}</button>
             ) : null}
             <button type="button" data-testid={`monitoring-off-${field}`} aria-label={t("turnOff")} onClick={() => toggle(field)} className={`${side} border-slate-300 dark:border-[#444] text-slate-500`}>{t("turnOff")}</button>
           </div>

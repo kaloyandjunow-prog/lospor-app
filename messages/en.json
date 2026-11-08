@@ -944,7 +944,7 @@
     "automationGroups": {
       "title": "SPS — Smart Prediction System",
       "individualTitle": "Individual SPS settings",
-      "individualDesc": "These account-wide switches affect only your SPS settings. New context links start off until you enable them.",
+      "individualDesc": "These account-wide switches affect only your SPS settings. Everything starts on; switch off what you do not want.",
       "contextLinksTitle": "Context links (under reminders)",
       "vitalLinesTitle": "Individual vital questions",
       "unavailable": "SPS is unavailable",
@@ -972,7 +972,7 @@
       },
       "reminders": {
         "label": "Reminders",
-        "desc": "MH history, latex, the local anaesthetic maximum, glucose in diabetes and ПОГП prophylaxis."
+        "desc": "MH history, latex, the local anaesthetic maximum, glucose in diabetes and PONV prophylaxis."
       },
       "timers": {
         "label": "Follow-ups",
@@ -1941,6 +1941,7 @@
       "plannedLabel": "Planned",
       "plannedStopLabel": "Stop planned",
       "autoFilledTag": "auto",
+      "approximateTimeTag": "time approximate",
       "autofillPausedTitle": "Is this case still running?",
       "autofillPausedMessage": "Nothing has been entered for 60 minutes, so vitals autofill has paused.",
       "autofillStillRunning": "Still running",
@@ -2165,6 +2166,9 @@
       "add": "Add",
       "hide": "Hide this suggestion",
       "turnOff": "Turn off",
+      "nibpOffTitle": "Turn off NIBP?",
+      "nibpOffYes": "Turn off",
+      "nibpOffKeep": "Keep both",
       "more": "More monitors ({count})…",
       "fewer": "Fewer monitors",
       "due": "reading due",

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { loginUrlForCallback } from "@/lib/safe-navigation"
 import { cancellationReasonLabel } from "@lospor/core/case-cancellation"
 import { plannedProcedureLabel } from "@lospor/core/procedure-codes"
+import { ageSexLabel } from "@lospor/core/pediatric"
 
 export default async function CasePage({
   params,
@@ -46,6 +47,8 @@ export default async function CasePage({
       procedureUndetermined?: boolean
       diagnosis: string | null
       ageYears: number | null
+      ageValue?: number | null
+      ageUnit?: "DAYS" | "MONTHS" | "YEARS" | null
       sex: string | null
     } | null
     intraop: { monthYear: string | null } | null
@@ -74,7 +77,7 @@ export default async function CasePage({
             </Link>
             <h1 className="text-xl font-bold text-slate-800">{plannedProcedureLabel(p, locale) ?? t("case.anaesthesiaCase")}</h1>
             <p className="text-slate-500 text-sm mt-1">
-              {p?.diagnosis} · {p?.ageYears}{locale === "bg" ? " г." : "y"} {p?.sex === "MALE" ? (locale === "bg" ? "М" : "M") : p?.sex === "FEMALE" ? (locale === "bg" ? "Ж" : "F") : ""} ·{" "}
+              {p?.diagnosis} · {ageSexLabel(p, locale === "bg" ? "bg" : "en")} ·{" "}
               {i?.monthYear
                 ? (() => { const [y, m] = i.monthYear!.split("-"); return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(Number(y), Number(m) - 1, 1)) })()
                 : new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(record.createdAt))}{" "}

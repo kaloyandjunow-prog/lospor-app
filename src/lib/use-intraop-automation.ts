@@ -13,7 +13,7 @@ import {
 import { suggestionFactsFromPreop, type SuggestionContext, type SuggestionPreopRecord } from "@lospor/core/intraop-suggestions"
 import type { LabResult } from "@lospor/core/labs"
 import { preopAgeDays, type VitalQuestionContext, type VitalStatsTable } from "@lospor/core/vital-questions"
-import { likelyNext, parseSuccessionLinks, successionContext, successionDismissedIds, SUCCESSION_ANSWER_KIND, SUCCESSION_DISMISS_ANSWER, type LikelyEvent, type SuccessionLink, type SuccessionStructuredRecords } from "@lospor/core/event-succession"
+import { SEED_SUCCESSION, likelyNext, parseSuccessionLinks, successionContext, successionDismissedIds, SUCCESSION_ANSWER_KIND, SUCCESSION_DISMISS_ANSWER, type LikelyEvent, type SuccessionLink, type SuccessionStructuredRecords } from "@lospor/core/event-succession"
 import { successionDismissalEventId } from "@lospor/core/intraop-automation-actions"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { serverNow } from "@/lib/intraop-clock"
@@ -22,8 +22,10 @@ import { getWebClinicalPreferencesOwner, readWebClinicalPreferences, syncWebClin
 /**
  * Intraoperative automation (10.1.0) on the web: what the hospital switched
  * on in Status and the reading counts the vitals questions are measured
- * against -- the same response the PWA reads. Until that response is read,
- * automation remains off rather than silently using Core's shared defaults.
+ * against -- the same response the PWA reads. Until the first read answers,
+ * nothing is asked. If it cannot be read (offline, server down), the last
+ * settings this browser read for the account are used, else Core's defaults,
+ * so the suggestions keep working; statistics are left out until a read works.
  */
 type Automation = {
   settings: IntraopAutomationSettings
@@ -31,8 +33,29 @@ type Automation = {
   succession: SuccessionLink[]
   /** A policy has been read from the API for this session (or from a prior successful read). */
   ready: boolean
-  /** The first policy read failed; do not silently run the shared defaults. */
+  /** The last read failed: these are remembered or default settings, not fresh ones. */
   unavailable: boolean
+}
+
+const LAST_POLICY_KEY = "lospor_intraop_automation_last:"
+
+function rememberPolicy(ownerId: string, automation: Automation): void {
+  try {
+    localStorage.setItem(LAST_POLICY_KEY + ownerId, JSON.stringify({ settings: automation.settings, succession: automation.succession }))
+  } catch { /* a full or blocked store only loses the fallback */ }
+}
+
+/** The settings to use when the server cannot be read: the last good read for this account, else the defaults. */
+export function fallbackAutomation(ownerId: string | null): Automation {
+  try {
+    const raw = ownerId ? localStorage.getItem(LAST_POLICY_KEY + ownerId) : null
+    if (raw) {
+      const stored = JSON.parse(raw) as { settings?: unknown; succession?: unknown }
+      // Statistics are not remembered: they go stale and are large. Without them only the fixed limits ask.
+      return { settings: parseIntraopAutomation(stored.settings), stats: null, succession: parseSuccessionLinks(stored.succession), ready: true, unavailable: true }
+    }
+  } catch { /* unreadable: use the defaults */ }
+  return { settings: DEFAULT_INTRAOP_AUTOMATION, stats: null, succession: [...SEED_SUCCESSION], ready: true, unavailable: true }
 }
 
 let loading: { ownerId: string; promise: Promise<Automation> } | null = null
@@ -83,10 +106,13 @@ export function useIntraopAutomation(): Automation & { reload: () => Promise<voi
     }
     try {
       const next = await fetchIntraopAutomation(ownerId)
-      if (version === requestVersion.current && getWebClinicalPreferencesOwner() === ownerId) setAutomation(next)
+      if (version === requestVersion.current && getWebClinicalPreferencesOwner() === ownerId) {
+        rememberPolicy(ownerId, next)
+        setAutomation(next)
+      }
     } catch {
       if (version === requestVersion.current && getWebClinicalPreferencesOwner() === ownerId) {
-        setAutomation(current => ({ ...current, unavailable: true }))
+        setAutomation(fallbackAutomation(ownerId))
       }
     }
   }, [ownerId])
@@ -100,7 +126,11 @@ export function useIntraopAutomation(): Automation & { reload: () => Promise<voi
   return { ...automation, reload }
 }
 
-type PreopAge = { ageValue?: number | null; ageUnit?: string | null; ageYears?: number | null; ageApproxDays?: number | null } | null | undefined
+type PreopAge = {
+  ageValue?: number | null; ageUnit?: string | null; ageYears?: number | null; ageApproxDays?: number | null
+  /** The preop BP: the hypertension baseline when it was entered. */
+  bpSystolic?: number | null; bpDiastolic?: number | null
+} | null | undefined
 
 /**
  * What the vitals questions need on this form, or null when they are not
@@ -111,10 +141,12 @@ export function useVitalQuestionContext(preop: PreopAge, readOnly: boolean): Vit
   const { settings, stats, ready } = useIntraopAutomation()
   const { keepLogging, user } = useAutomationPreferences()
   const ageDays = preopAgeDays(preop ?? null)
+  const systolic = preop?.bpSystolic ?? null
+  const diastolic = preop?.bpDiastolic ?? null
   return useMemo(() => {
     if (ready === false || readOnly || !vitalQuestionsEnabled(settings, user) || ageDays == null) return null
-    return { settings, user, stats, ageDays, keepLogging }
-  }, [ready, readOnly, settings, stats, ageDays, keepLogging, user])
+    return { settings, user, stats, ageDays, keepLogging, preopPressure: { systolic, diastolic } }
+  }, [ready, readOnly, settings, stats, ageDays, keepLogging, user, systolic, diastolic])
 }
 
 /** The clinician's own switches (Settings): keep logging, and the groups turned off (10.2.0). */

@@ -18,6 +18,7 @@ import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import { clinicalDisplayLabel } from "@lospor/core/display"
 import type { DantroleneVialsView } from "@lospor/core/intraop-suggestions"
+import { arrestQuickDoseOps, arrestRespaceOps, cardSuggestionTag, type ArrestDrug, type SuggestionPatient } from "@lospor/core/intraop-suggestions"
 import { DantroleneVials } from "./DantroleneVials"
 
 /**
@@ -46,6 +47,7 @@ export function SuggestionCardPanel({
   onOps,
   onMinimise,
   dantrolene,
+  arrest,
   readOnly = false,
 }: {
   card: ResolvedCard
@@ -63,6 +65,8 @@ export function SuggestionCardPanel({
   onMinimise: () => void
   /** The MH card's vials (10.2.0): the plan for a dose in mg/kg, and Give. */
   dantrolene?: { viewFor: (perKg: number) => DantroleneVialsView | null; initialPerKg: number; give: (doseMg: number, rect: DOMRect, row: ResolvedRow) => void }
+  /** Cardiac arrest (10.2.0): the log and patient, so Give writes a dose at once and ROSC / Death spread them. */
+  arrest?: { log: LogEvent[]; patient: SuggestionPatient }
   readOnly?: boolean
 }) {
   const t = useTranslations("intraop.suggestions")
@@ -70,6 +74,7 @@ export function SuggestionCardPanel({
   const [branch, setBranch] = useState<string | null>(null)
   const [ticked, setTicked] = useState<Record<string, boolean>>({})
   const [resolveTime, setResolveTime] = useState("")
+  const [eventTimes, setEventTimes] = useState<Record<string, string>>({})
   const [, setTick] = useState(0)
   useEffect(() => {
     if (!card.redStrip) return
@@ -85,6 +90,13 @@ export function SuggestionCardPanel({
   const name = clinicalDisplayLabel("complication", card.complication, bg ? "bg" : "en", { label: card.complication })
   const complicationName = (label: string) => clinicalDisplayLabel("complication", label, bg ? "bg" : "en", { label })
   const write = (ops: IntraopEventOps) => { if (!readOnly) onOps(ops) }
+  const arrestDrugOf = (row: ResolvedRow): ArrestDrug | null => arrest && row.def.kind === "drug"
+    && (row.def.drug === "Epinephrine / Adrenaline" || row.def.drug === "Amiodarone") ? row.def.drug : null
+  function writeEvent(row: ResolvedRow, label: string, at: string) {
+    const ops = cardEventOps(complication, label, row.id, at, nowIso())
+    if (!arrest || (label !== "ROSC" && label !== "Death (exitus letalis)")) { write(ops); return }
+    write({ add: ops.add, update: arrestRespaceOps(arrest.log, complication, at).update, remove: [] })
+  }
   const nowIso = () => now().toISOString()
 
   /** "14:05" typed against the onset's day, in the case's wall clock: the instant, or null. */
@@ -154,14 +166,27 @@ export function SuggestionCardPanel({
             </button>
           </div>
         )
-      case "event":
+      case "event": {
+        // Now, or the time it really happened: an arrest is often charted afterwards.
+        const typed = eventTimes[row.id] ?? ""
         return (
-          <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-event-${row.id}`}
-            onClick={() => write(cardEventOps(complication, def.label, row.id, nowIso(), nowIso()))}
-            className="mt-1 text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">
-            {t("now")}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-event-${row.id}`}
+              onClick={() => writeEvent(row, def.label, nowIso())}
+              className="text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">
+              {t("now")}
+            </button>
+            <input style={{ pointerEvents: "auto" }} value={typed} onChange={event => setEventTimes(prev => ({ ...prev, [row.id]: event.target.value }))} placeholder="hh:mm" inputMode="numeric"
+              aria-label={t("atTime")} data-testid={`card-event-time-${row.id}`}
+              className="w-20 text-xs px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent" />
+            <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || typedInstant(typed) == null} data-testid={`card-event-at-${row.id}`}
+              onClick={() => { const at = typedInstant(typed); if (at) writeEvent(row, def.label, at) }}
+              className="text-xs px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 disabled:opacity-50">
+              {t("atTime")}
+            </button>
+          </div>
         )
+      }
       case "openCard":
         return (
           <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly || !!row.used} data-testid={`card-open-${def.complication}`}
@@ -289,13 +314,20 @@ export function SuggestionCardPanel({
           )
           return (
             <li key={row.id} data-testid={`card-row-${row.id}`} className="rounded-lg border border-slate-100 dark:border-[#262626] px-2 py-1.5">
-              {opensSheet(row) ? (
+              {opensSheet(row) && !arrestDrugOf(row) ? (
                 <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} className="w-full disabled:opacity-60"
                   onClick={event => onRow({ row, rect: event.currentTarget.getBoundingClientRect(), complication, host: event.currentTarget.closest("li")?.querySelector<HTMLElement>("[data-row-host]") ?? null })}>
                   {head}
                 </button>
               ) : head}
               {rowBody(row)}
+              {arrestDrugOf(row) && arrest ? (
+                <button type="button" style={{ pointerEvents: "auto" }} disabled={readOnly} data-testid={`card-arrest-give-${row.id}`}
+                  onClick={() => write(arrestQuickDoseOps(arrest.log, complication, arrestDrugOf(row)!, arrest.patient, nowIso(), cardSuggestionTag(complication.label ?? "", row.id)))}
+                  className="mt-1 text-xs px-2.5 py-1 rounded-full border border-emerald-400 text-emerald-600">
+                  {t("give")}
+                </button>
+              ) : null}
               {/* Where this row's own dosing controls open, in place: the card never changes screen. */}
               <div data-row-host={row.id} data-testid={`card-host-${row.id}`} />
               {dantrolene && row.def.kind === "drug" && row.def.drug === "Dantrolene" && (

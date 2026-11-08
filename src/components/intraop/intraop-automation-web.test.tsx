@@ -41,11 +41,11 @@ describe("vitals questions on the web (10.1.0)", () => {
     }
   })
 
-  it("asks nothing on a read-only screen, and nothing when the API sends nothing usable", () => {
+  it("asks nothing on a read-only screen, and the defaults (everything on) when the API sends nothing usable", () => {
     const log: LogEvent[] = [{ id: "r1", type: "vital", ts: "2026-11-01T09:00:00.000Z", heartRate: 45 }]
     const { result } = renderHook(() => useIntraopAttention({ log, timeZone: "Europe/Sofia", vitals: null, readOnly: true }))
     expect(result.current.entries).toEqual([])
-    expect(parseIntraopAutomationResponse(null)).toMatchObject({ settings: { enabled: true, vitalQuestions: { enabled: false } }, stats: null })
+    expect(parseIntraopAutomationResponse(null)).toMatchObject({ settings: { enabled: true, vitalQuestions: { enabled: true } }, stats: null })
   })
 })
 
@@ -113,7 +113,7 @@ describe("the limits in Unit indicators", () => {
   const counts = (lo: number, hi: number, cases: number) => ({ min: lo, counts: Array.from({ length: hi - lo + 1 }, () => 10), cases })
 
   it("are not shown while the hospital has the questions off", () => {
-    automation.value = null
+    automation.value = { settings: { enabled: true, vitalQuestions: { enabled: false } }, stats: null }
     const { container } = render(<VitalLimitsSection />)
     expect(container.innerHTML).toBe("")
   })
