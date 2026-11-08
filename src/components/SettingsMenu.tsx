@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { downloadPersonalExport, requestRole } from "@/lib/account-actions"
 import { Settings, Sun, Moon, X, User, LayoutList, Rows3, PanelRight } from "lucide-react"
 import { useCaseLayout } from "@/hooks/useCaseLayout"
@@ -9,16 +9,11 @@ import { applyUiScale, parseUiScale, UI_SCALE_COOKIE, UI_SCALE_DEFAULT } from "@
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { caseOutbox } from "@/lib/case-outbox"
-import { useOptionLibrary } from "@/hooks/useOptionLibrary"
 import { FavouritesEditor } from "@/components/intraop/FavouritesEditor"
 import { displayClinicalCode } from "@/lib/clinical-display"
 import { normalizeAutoFillVitalsPreferences } from "@lospor/core/intraop-vitals"
 import { NO_INSTITUTION_ID } from "@lospor/core/account"
 import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
-import {
-  canonicalizeOptionPreferences,
-  resolveOptionPreferenceLabels,
-} from "@lospor/core/option-contracts"
 import { useAccountLocale } from "@/hooks/useAccountLocale"
 import { SettingRow, Toggle } from "@/components/settings/SettingControls"
 import { VitalEpisodeSetting } from "@/components/settings/VitalEpisodeSetting"
@@ -33,6 +28,8 @@ import { EventsScreenSetting } from "@/components/settings/EventsScreenSetting"
 import { FluidScreenSetting } from "@/components/settings/FluidScreenSetting"
 import { EventLogScreenSetting } from "@/components/settings/EventLogScreenSetting"
 import { BulgarianNamesSettings } from "@/components/settings/BulgarianNamesSettings"
+import { useFavouriteOptions } from "@/components/settings/useFavouriteOptions"
+import { useUnitSettings } from "@/components/settings/useUnitSettings"
 import { PillGroup } from "@/components/settings/PillGroup"
 import { UiScaleSetting } from "@/components/settings/UiScaleSetting"
 import { OverflowCueScroll } from "@/components/ui/OverflowCueScroll"
@@ -88,63 +85,8 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   const [exporting, setExporting]   = useState(false)
   const [exportError, setExportError] = useState("")
 
-  // Intraop favourites. Server-side (not localStorage like the toggles above)
-  // because the whole point is that they follow the clinician onto the phone.
-  const { options: drugLibOpts }     = useOptionLibrary("INTRAOP_DRUG")
-  const { options: infusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
-  const favDrugOptions     = useMemo(() => [...new Set(drugLibOpts.map(o => o.label))].sort(), [drugLibOpts])
-  const favInfusionOptions = useMemo(() => [...new Set(infusionLibOpts.map(o => o.label))].sort(), [infusionLibOpts])
-  const [favDrugs, setFavDrugs]         = useState<string[]>([])
-  const [favInfusions, setFavInfusions] = useState<string[]>([])
-  const [favSaving, setFavSaving]       = useState(false)
-  const selectedFavDrugs = useMemo(
-    () => resolveOptionPreferenceLabels(
-      "INTRAOP_DRUG",
-      drugLibOpts,
-      favDrugs,
-    ),
-    [drugLibOpts, favDrugs],
-  )
-  const selectedFavInfusions = useMemo(
-    () => resolveOptionPreferenceLabels(
-      "INTRAOP_INFUSION",
-      infusionLibOpts,
-      favInfusions,
-    ),
-    [infusionLibOpts, favInfusions],
-  )
-
-  async function saveFavourites(
-    key: "intraopFavouriteDrugs" | "intraopFavouriteInfusions",
-    next: string[],
-    apply: (v: string[]) => void,
-  ) {
-    const previous = key === "intraopFavouriteDrugs" ? favDrugs : favInfusions
-    next = key === "intraopFavouriteDrugs"
-      ? canonicalizeOptionPreferences("INTRAOP_DRUG", drugLibOpts, next)
-      : canonicalizeOptionPreferences(
-          "INTRAOP_INFUSION",
-          infusionLibOpts,
-          next,
-        )
-    apply(next)                     // optimistic — the list is small and local
-    setFavSaving(true)
-    try {
-      await patchWebClinicalPreferences({ [key]: next })
-    } catch {
-      apply(previous)               // put it back rather than lie about saving
-    } finally {
-      setFavSaving(false)
-    }
-  }
-  // Display-only — the database always stores the canonical value
-  // (cm/kg/°C/mmHg); these just convert what's shown/typed in vitals entry.
-  // Drugs, infusions, fluids, and labs are not affected.
-  const [heightUnit, setHeightUnitState]           = useState<"cm" | "in">("cm")
-  const [weightUnit, setWeightUnitState]           = useState<"kg" | "lb">("kg")
-  const [temperatureUnit, setTemperatureUnitState] = useState<"C" | "F">("C")
-  const [etco2Unit, setEtco2UnitState]             = useState<"mmHg" | "kPa">("mmHg")
-  const [cvpUnit, setCvpUnitState]                 = useState<"cmH2O" | "mmHg">("cmH2O")
+  const { favDrugOptions, favInfusionOptions, setFavDrugs, setFavInfusions, favSaving, selectedFavDrugs, selectedFavInfusions, saveFavourites } = useFavouriteOptions()
+  const { heightUnit, weightUnit, temperatureUnit, etco2Unit, cvpUnit, loadStoredUnits, applyServerUnits, applyHeightUnit, applyWeightUnit, applyTemperatureUnit, applyEtco2Unit, applyCvpUnit } = useUnitSettings()
   const [roleReq, setRoleReq]       = useState<RoleReq | undefined>(undefined)
   const [reqLoading, setReqLoading] = useState(false)
   const router   = useRouter()
@@ -177,16 +119,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
     setAutoFillBP(autoFillPreferences.includeBloodPressure)
     setAutoFillBg(autoFillPreferences.backfillOnReopen)
 
-    const hu = localStorage.getItem("heightUnit")
-    if (hu === "cm" || hu === "in") setHeightUnitState(hu)
-    const wu = localStorage.getItem("weightUnit")
-    if (wu === "kg" || wu === "lb") setWeightUnitState(wu)
-    const tu = localStorage.getItem("temperatureUnit")
-    if (tu === "C" || tu === "F") setTemperatureUnitState(tu)
-    const eu = localStorage.getItem("etco2Unit")
-    const cu = localStorage.getItem("cvpUnit")
-    if (eu === "mmHg" || eu === "kPa") setEtco2UnitState(eu)
-    if (cu === "cmH2O" || cu === "mmHg") setCvpUnitState(cu)
+    loadStoredUnits()
 
     void syncWebClinicalPreferences().then(preferences => {
       setDefMon(preferences.defaultMonitoring)
@@ -195,11 +128,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
       setAutoFill(preferences.autoFillVitals.enabled)
       setAutoFillBP(preferences.autoFillVitals.includeBloodPressure)
       setAutoFillBg(preferences.autoFillVitals.backfillOnReopen)
-      setHeightUnitState(preferences.units.height)
-      setWeightUnitState(preferences.units.weight)
-      setTemperatureUnitState(preferences.units.temperature)
-      setEtco2UnitState(preferences.units.etco2)
-      setCvpUnitState(preferences.units.cvp)
+      applyServerUnits(preferences.units)
       setFavDrugs(preferences.intraopFavouriteDrugs)
       setFavInfusions(preferences.intraopFavouriteInfusions)
     }).catch(() => {})
@@ -209,7 +138,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
       fetch("/api/role-request").then(r => r.json()).then(setRoleReq).catch(() => setRoleReq(null))
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [role])
+  }, [role, loadStoredUnits, applyServerUnits, setFavDrugs, setFavInfusions])
 
   useEffect(() => {
     if (!open) return
@@ -266,30 +195,6 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
   function applyAutoFillBg(val: boolean) {
     setAutoFillBg(val)
     void patchWebClinicalPreferences({ autoFillVitals: { backfillOnReopen: val } })
-  }
-  function applyHeightUnit(u: "cm" | "in") {
-    setHeightUnitState(u)
-    void patchWebClinicalPreferences({ units: { height: u } })
-  }
-  function applyWeightUnit(u: "kg" | "lb") {
-    setWeightUnitState(u)
-    void patchWebClinicalPreferences({ units: { weight: u } })
-  }
-  function applyTemperatureUnit(u: "C" | "F") {
-    setTemperatureUnitState(u)
-    void patchWebClinicalPreferences({ units: { temperature: u } })
-  }
-  function applyEtco2Unit(u: "mmHg" | "kPa") {
-    setEtco2UnitState(u)
-    void patchWebClinicalPreferences({ units: { etco2: u } })
-  }
-
-  // Display only. Central venous pressure is stored and exported in mmHg
-  // whatever is chosen here, so switching re-renders existing cases rather
-  // than altering them.
-  function applyCvpUnit(u: "cmH2O" | "mmHg") {
-    setCvpUnitState(u)
-    void patchWebClinicalPreferences({ units: { cvp: u } })
   }
 
   const isMember = role === "MEMBER" || role === "CLINICIAN" || role === "RESEARCHER"

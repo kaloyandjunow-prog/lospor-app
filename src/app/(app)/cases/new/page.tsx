@@ -8,7 +8,6 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { usePreopDocumentSettings } from "@/lib/use-preop-documents"
-import { Progress } from "@/components/ui/progress"
 import { PreopForm, type PreopData } from "@/components/forms/PreopForm"
 import { useCaseLayout } from "@/hooks/useCaseLayout"
 import { screenLayoutOf } from "@/lib/case-layout"
@@ -51,6 +50,7 @@ import { submitCaseForReview, submitForReviewMessage, refetchAwaitingReviewAt } 
 import { useCaseEventLog } from "./useCaseEventLog"
 import { useStepUrlSync } from "./useStepUrlSync"
 import { intraopAutosaveValues } from "@/lib/intraop-submit"
+import { StepProgress } from "./StepProgress"
 import { PendingCloseBanner } from "./PendingCloseBanner"
 
 type SaveStatus = "idle" | "saving" | "saved" | "queued" | "blocked" | "error"
@@ -615,28 +615,7 @@ export default function NewCasePage() {
       </div>
 
       {/* With the case panel on a wide screen, its own stage strip shows the steps. */}
-      <div className={`no-print space-y-3 ${caseLayout.sidebar && step < 3 ? "lg:hidden" : ""}`}>
-        <Progress value={((step + 1) / STEPS.length) * 100} className="h-2" />
-        <div className="flex justify-between">
-          {STEPS.map((label, i) => {
-            const isClickable = step === 3 && i < 3 && !!caseId
-            return (
-              <button key={label} type="button"
-                onClick={() => { if (isClickable) setStep(i) }}
-                className={`flex items-center gap-1.5 ${isClickable ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}>
-                {i < step
-                  ? <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  : <div className={`h-4 w-4 rounded-full border-2 ${i === step ? "border-blue-600 bg-blue-600" : "border-slate-300"}`} />
-                }
-                {/* Short names on a narrow screen: the full ones ran into each other. */}
-                <span className={`text-xs sm:text-sm font-medium ${i === step ? "text-blue-600" : i < step ? "text-green-600" : "text-slate-400"} ${isClickable ? "underline underline-offset-2" : ""}`}>
-                  <span className="sm:hidden">{STEPS_SHORT[i]}</span><span className="hidden sm:inline">{label}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <StepProgress steps={STEPS} stepsShort={STEPS_SHORT} step={step} caseId={caseId} onSelect={setStep} hiddenOnWide={caseLayout.sidebar && step < 3} />
 
       {/* Compact pending-close banner - visible at steps 0/1/2 while countdown is running */}
       {closeSecsLeft !== null && step < 3 && (

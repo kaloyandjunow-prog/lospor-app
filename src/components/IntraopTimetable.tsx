@@ -5,6 +5,8 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { useIntraopLibraryConfig } from "@/lib/use-intraop-library-config"
 import { useDarkTheme } from "@/lib/drug-tone"
 import { nowMarkerGeometry } from "@/lib/timetable-clock"
+import { chartAfterEndCase, type EndCaseResult } from "@/lib/intraop-end-case"
+import { useFluidChartActions } from "@/hooks/useFluidChartActions"
 import { clinicalProvenance } from "@/lib/intraop-provenance"
 import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 import { useLocale, useTranslations } from "next-intl"
@@ -47,15 +49,7 @@ import {
 import { RateChangeDialog, type RateChangeState } from "@/components/intraop/RateChangeDialog"
 import { rateDialogChange, rateDialogSurface, type InfusionRecord } from "@/components/intraop/rate-dialog-surface"
 import { computeRowGeometry } from "@/components/intraop/timetable-row-geometry"
-import {
-  selId,
-  selIdx,
-  type FConflictAnchor,
-  type FluidConflict,
-  type PendingFluidEntry,
-  type TtFP,
-  type TtSel,
-} from "@/components/intraop/timetable-types"
+import { selId, selIdx, type PendingFluidEntry, type TtFP, type TtSel } from "@/components/intraop/timetable-types"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
@@ -71,9 +65,7 @@ import { JetPopover } from "@/components/intraop/JetPopover"
 import { changeJet, DEFAULT_JET_SETTINGS, jetSegmentAt, jetSettingsAtColumn, startJet, stopJet } from "@/components/intraop/jet-lane"
 import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
-import type {
-  AgentSegment, GasSettingsSegment, TimetableData, TimetableFluid,
-} from "@/types/timetable"
+import type { AgentSegment, GasSettingsSegment, TimetableData } from "@/types/timetable"
 import { toast } from "sonner"
 import { FluidRateDialog } from "@/components/intraop/FluidRateDialog"
 import {
@@ -122,7 +114,7 @@ import {
 } from "@lospor/core/clinical-rules"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
-import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
+import { currentFluidRate } from "@/lib/fluid-entry-ui"
 import { COL_W, INTERVAL, LABEL_W, ROW_COLS, rectAnchor } from "@/components/intraop/timetable-layout"
 
 // The selectable libraries (agents, drugs, fluids, clinical events, infusion
@@ -665,61 +657,6 @@ export function IntraopTimetable({
     })
     setFp(null)
   }
-  function fluidActionTimestamp(col: number): string {
-    const currentTimestamp = serverNow().toISOString()
-    return nowCol != null && col === nowCol
-      ? currentTimestamp
-      : tsForCol(col) ?? currentTimestamp
-  }
-
-  function createFluidEntry(pending: PendingFluidEntry, col: number): TimetableFluid {
-    return {
-      id: `${pending.name}-${col}-${uid()}`,
-      name: pending.name,
-      category: pending.category,
-      color: pending.color,
-      startCol: col,
-      endCol: col,
-      startTs: fluidActionTimestamp(col),
-      fluidEntryMode: pending.fluidEntryMode,
-      volume: pending.volume,
-      ...(pending.bagVolumeMl != null ? { bagVolumeMl: pending.bagVolumeMl } : {}),
-      ...(pending.rate != null ? { rate: pending.rate, unit: pending.unit ?? "mL/h" } : {}),
-      ...(pending.concentration ? { concentration: pending.concentration } : {}),
-      ...(pending.suggestion ? { suggestion: pending.suggestion } : {}),
-      ...clinicalProvenance(pending),
-    }
-  }
-
-  function addFluidDirect(
-    pending: PendingFluidEntry,
-    col: number,
-    updateExisting: (fluids: TimetableFluid[]) => TimetableFluid[] = fluids => fluids,
-  ) {
-    const fluid = createFluidEntry(pending, col)
-    const d = dataRef.current
-    onChangeRef.current({
-      ...d,
-      fluids: [...updateExisting(d.fluids ?? []), fluid],
-    })
-  }
-
-  function checkFluidConflict(pending: PendingFluidEntry, col: number, anchor: FConflictAnchor): boolean {
-    const cat = pending.category
-    const existing = (dataRef.current.fluids ?? []).find(f =>
-      (f.category ?? getFluidCategory(f.name)) === cat && f.startCol <= col && f.endCol >= col
-    )
-    if (!existing) return false
-    setFluidConflict({
-      phase: "choose",
-      pending,
-      newCol: col,
-      existingId: existing.id,
-      existingName: existing.name,
-      anchor,
-    })
-    return true
-  }
   function fpCommitFluid() {
     if (!fp) return
     if (fp.fluidProfileConflict) return
@@ -1021,7 +958,6 @@ export function IntraopTimetable({
     if (!caseStarted) return          // don't auto-scroll until the case has started
     activeRowRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [nowCol, caseStarted])
-  const [fluidConflict, setFluidConflict]   = useState<FluidConflict | null>(null)
   // Drag-to-extend state: startCol of segment being extended
 
   const roundedStart = floorTo5(startTime || "08:00")
@@ -1092,116 +1028,10 @@ export function IntraopTimetable({
   const { removeFluid, extendFluid, resumeFluid, continueFluid } =
     useFluidHandlers(data, onChange, dataRef, onChangeRef, nowCol)
 
-  function applyFluidRateChange(id: string, rate: number) {
-    if (!Number.isFinite(rate) || rate <= 0) return
-    const d = dataRef.current
-    const fluid = (d.fluids ?? []).find(item => item.id === id)
-    if (!fluid || fluid.fluidEntryMode !== "RATE") return
-    const ts = serverNow().toISOString()
-    const col = Math.max(fluid.startCol, nowCol ?? fluid.endCol)
-    onChangeRef.current({
-      ...d,
-      fluids: (d.fluids ?? []).map(item => item.id === id ? {
-        ...item,
-        endCol: Math.max(item.endCol, col),
-        rateChanges: [...(item.rateChanges ?? []), { col, ts, rate, unit: "mL/h" }],
-      } : item),
-    })
-  }
-
-  function finalizedFluid(
-    fluid: TimetableFluid,
-    administeredVolumeMl: number,
-    endTs: string,
-    endCol: number,
-  ): TimetableFluid {
-    const actualVolumeMl = Math.max(0, Math.round(administeredVolumeMl))
-    return {
-      ...fluid,
-      endCol: Math.max(fluid.startCol, endCol),
-      endTs,
-      stopped: true,
-      administeredVolumeMl: actualVolumeMl,
-      volume: String(actualVolumeMl),
-    }
-  }
-
-  // ── Fluid conflict resolution ────────────────────────────────────────────────
-  // The popover in ./intraop/FluidConflictPopover only renders and reports which
-  // button was pressed; every change to the chart happens here, where the data
-  // lives.
-
-  function fluidConflictRunInParallel() {
-    if (!fluidConflict) return
-    addFluidDirect(fluidConflict.pending, fluidConflict.newCol)
-    setFluidConflict(null)
-  }
-
-  function fluidConflictStopExisting() {
-    const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict?.existingId)
-    // A rate line's delivered volume can be computed, so offer it rather than
-    // asking a question the chart can already answer.
-    if (existing?.fluidEntryMode === "RATE") {
-      const endTs = fluidActionTimestamp(fluidConflict!.newCol)
-      setFluidConflict(fc => fc ? {
-        ...fc,
-        phase: "volume",
-        volInput: String(fluidDeliveredVolumeMl(existing, endTs)),
-      } as FluidConflict : null)
-      return
-    }
-    setFluidConflict(fc => fc ? { ...fc, phase: "finished" } as FluidConflict : null)
-  }
-
-  function finishExistingFluidAndStart(actualVolumeMl: number) {
-    if (!fluidConflict) return
-    const d = dataRef.current
-    const existing = (d.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
-    if (!existing) return
-    const endTs = fluidActionTimestamp(fluidConflict.newCol)
-    const endCol = Math.max(existing.startCol, fluidConflict.newCol - 1)
-    const nextFluid = createFluidEntry(fluidConflict.pending, fluidConflict.newCol)
-    onChangeRef.current({
-      ...d,
-      fluids: [
-        ...(d.fluids ?? []).map(fluid => fluid.id === existing.id
-          ? finalizedFluid(fluid, actualVolumeMl, endTs, endCol)
-          : fluid),
-        nextFluid,
-      ],
-    })
-    setFluidConflict(null)
-  }
-
-  function fluidConflictFinishedAnswer(fullyInfused: boolean) {
-    if (!fluidConflict) return
-    if (fullyInfused) {
-      const existing = (dataRef.current.fluids ?? []).find(fluid => fluid.id === fluidConflict.existingId)
-      const fullVolume = Number(existing?.bagVolumeMl ?? existing?.volume) || 0
-      finishExistingFluidAndStart(fullVolume)
-      return
-    }
-    setFluidConflict(fc => fc ? { ...fc, phase: "volume", volInput: "" } as FluidConflict : null)
-  }
-
-  function fluidConflictConfirmVolume() {
-    if (!fluidConflict || fluidConflict.phase !== "volume") return
-    finishExistingFluidAndStart(Number(fluidConflict.volInput) || 0)
-  }
-
-  function stopFluid(id: string, administeredVolumeMl: number) {
-    const d = dataRef.current
-    const fluid = (d.fluids ?? []).find(item => item.id === id)
-    if (!fluid) return
-    const endTs = serverNow().toISOString()
-    const endCol = Math.max(fluid.startCol, nowCol ?? fluid.endCol)
-    onChangeRef.current({
-      ...d,
-      fluids: (d.fluids ?? []).map(item => item.id === id
-        ? finalizedFluid(item, administeredVolumeMl, endTs, endCol)
-        : item),
-    })
-  }
+  const {
+    fluidConflict, setFluidConflict, addFluidDirect, checkFluidConflict, applyFluidRateChange, finalizedFluid,
+    fluidConflictRunInParallel, fluidConflictStopExisting, fluidConflictFinishedAnswer, fluidConflictConfirmVolume, stopFluid,
+  } = useFluidChartActions({ dataRef, onChangeRef, nowCol, tsForCol, uid, getFluidCategory })
 
   // ── Agents ──────────────────────────────────────────────────────────────────
   const {
@@ -1252,49 +1082,8 @@ export function IntraopTimetable({
 
   const { handleEndDrop, confirmPendingStop } = createEndDropHandlers({ agents, infusions: data.infusions ?? [], fluids: data.fluids ?? [], nowCol, setPendingStop, extendAgent: extendSegment, resumeAgent: resumeSegment, extendInfusion, restoreInfusion, extendFluid, resumeFluid })
 
-  function handleEndCaseConfirm(result: {
-    continuedItems: string[]
-    infusionTotals: { name: string; total: number; unit: string }[]
-    discontinuedAgentCols: number[]
-    discontinuedInfusionIds: string[]
-    finalizedFluidWithAmounts: { id: string; amount: number; category: string; endTs: string }[]
-    discontinuedGasIds: string[]
-  }) {
-    const col = nowCol ?? 0
-    // One combined read + one combined write avoids stale-closure overwrites when
-    // multiple item types (agent + infusion + fluid) are discontinued together.
-    const d = dataRef.current
-    const discontinuedAgentSet = new Set(result.discontinuedAgentCols)
-    const discontinuedInfSet   = new Set(result.discontinuedInfusionIds)
-    const discontinuedGasSet   = new Set(result.discontinuedGasIds)
-    const endedFluidById = new Map(
-      result.finalizedFluidWithAmounts.map(fluid => [fluid.id, fluid]),
-    )
-    onChangeRef.current({
-      ...d,
-      agents: d.agents.map(a =>
-        discontinuedAgentSet.has(a.startCol)
-          ? { ...a, endCol: col, stopped: true as const, endCaseStop: true }
-          : a
-      ),
-      infusions: (d.infusions ?? []).map(i =>
-        discontinuedInfSet.has(i.id)
-          ? { ...i, endCol: col, stopped: true as const, endCaseStop: true }
-          : i
-      ),
-      // Stamp actual volume infused so the summary reads the correct amount (not bag size).
-      fluids: (d.fluids ?? []).map(fluid => {
-        const ended = endedFluidById.get(fluid.id)
-        return ended
-          ? { ...finalizedFluid(fluid, ended.amount, ended.endTs, col), endCaseStop: true }
-          : fluid
-      }),
-      gasSettings: (d.gasSettings ?? []).map(g =>
-        discontinuedGasSet.has(g.id)
-          ? { ...g, endCol: col, stopped: true as const, endCaseStop: true }
-          : g
-      ),
-    })
+  function handleEndCaseConfirm(result: EndCaseResult) {
+    onChangeRef.current(chartAfterEndCase(dataRef.current, result, nowCol ?? 0, finalizedFluid))
     startWindow(serverNow())
     onEndCase?.()
     if (result.continuedItems.length > 0) onPostopContinued?.(result.continuedItems)
