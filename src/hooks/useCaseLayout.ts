@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react"
 import { caseLayoutWrites, DEFAULT_CASE_LAYOUT, isCaseLayoutKey, readCaseLayout, type CaseLayout } from "@/lib/case-layout"
 import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 
+/** The same layout keeps the same object, so a re-read that finds nothing new re-renders nobody. */
+function keep(current: CaseLayout, next: CaseLayout): CaseLayout {
+  return (Object.keys(next) as Array<keyof CaseLayout>).every(key => current[key] === next[key]) ? current : next
+}
+
 function readStored(): CaseLayout {
   try {
     return readCaseLayout(key => window.localStorage.getItem(key))
@@ -23,17 +28,17 @@ export function useCaseLayout(): [CaseLayout, (change: Partial<CaseLayout>) => v
   useEffect(() => {
     // localStorage is not readable while rendering on the server.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one read of stored preferences on mount
-    setLayout(readStored())
+    setLayout(current => keep(current, readStored()))
     let active = true
     void syncWebClinicalPreferences().then(preferences => {
       if (!active) return
       const accountLayout = preferences.caseLayout
-      setLayout(accountLayout)
+      setLayout(current => keep(current, accountLayout))
       for (const [key, value] of caseLayoutWrites(accountLayout)) {
         try { window.localStorage.setItem(key, value) } catch { /* private mode: session only */ }
       }
     }).catch(() => {})
-    const onStorage = (event: StorageEvent) => { if (isCaseLayoutKey(event.key)) setLayout(readStored()) }
+    const onStorage = (event: StorageEvent) => { if (isCaseLayoutKey(event.key)) setLayout(current => keep(current, readStored())) }
     window.addEventListener("storage", onStorage)
     return () => {
       active = false

@@ -5,6 +5,11 @@ import { fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
 
 export type LiveFluidTotals = Partial<Record<"crystalloidsMl" | "colloidsMl" | "bloodMl" | "infusionsMl", number | null>>
 
+const TOTAL_KEYS = ["crystalloidsMl", "colloidsMl", "bloodMl", "infusionsMl"] as const
+function sameTotals(a: LiveFluidTotals, b: LiveFluidTotals): boolean {
+  return TOTAL_KEYS.every(key => (a[key] ?? null) === (b[key] ?? null))
+}
+
 /**
  * Auto-calculated fluid totals from the one canonical delivered-volume path.
  * Running rate entries advance against the real clock; bag entries retain
@@ -27,12 +32,15 @@ export function useLiveFluidTotals(timetable: TimetableData, preop: Parameters<t
       // These are derived display values. They must not enter the form state:
       // doing so makes the 30-second clock look like a clinician edit and
       // sends a full PATCH whose mapper intentionally ignores these columns.
-      setTotals({
+      const next: LiveFluidTotals = {
         crystalloidsMl: crystalloids || null,
         colloidsMl: colloids || null,
         bloodMl: blood || null,
         infusionsMl: infusionsVolumeMl(timetable.infusions, asOf, tciPatientFrom(preop ?? {})) || null,
-      })
+      }
+      // The same totals keep the same object. A fresh object each time re-rendered the whole intraop form every
+      // time the effect ran, and the effect runs again whenever the form re-renders with new arrays (11.0).
+      setTotals(previous => (previous && sameTotals(previous, next) ? previous : next))
     }
 
     updateFluidTotals()

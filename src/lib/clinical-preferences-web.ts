@@ -206,6 +206,9 @@ export function writeWebClinicalPreferences(
     vitalsExpanded: normalized.vitalsChartExpanded ? "true" : "false",
   }
   for (const [key, value] of Object.entries(values)) {
+    // A value that is already stored is no change, and a browser sends no storage event for one: sending it here
+    // woke every listener of every key, several times a page load, to re-read what they already held (11.0).
+    if (localStorage.getItem(key) === value) continue
     localStorage.setItem(key, value)
     window.dispatchEvent(new StorageEvent("storage", {
       key,
@@ -253,7 +256,17 @@ async function pushPreferences(
   }
 }
 
-export async function syncWebClinicalPreferences(): Promise<ClinicalPreferences> {
+// Twenty-odd components ask for the preferences as they mount. They share one request: a caller that arrives while
+// one is on its way gets that answer, so a page load is one /api/user call, not one per component (11.0).
+let syncInFlight: Promise<ClinicalPreferences> | null = null
+export function syncWebClinicalPreferences(): Promise<ClinicalPreferences> {
+  if (!syncInFlight) {
+    syncInFlight = runSyncWebClinicalPreferences().finally(() => { syncInFlight = null })
+  }
+  return syncInFlight
+}
+
+async function runSyncWebClinicalPreferences(): Promise<ClinicalPreferences> {
   const requestEpoch = ownerEpoch
   try {
     const response = await fetch("/api/user", { cache: "no-store" })
