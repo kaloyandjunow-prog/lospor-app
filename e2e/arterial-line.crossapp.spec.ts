@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext, type BrowserContext, type Page } from "@playwright/test"
 import { contextFor, JSON_HEADERS } from "./roles"
+import { SYNTHETIC_MONTH, sofia, sofiaIso } from "./synthetic-day"
 import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop } from "./pwa"
 
@@ -10,8 +11,8 @@ import { openPhone, openPhoneIntraop } from "./pwa"
 test.describe.configure({ timeout: 600_000 })
 test.use({ actionTimeout: 15_000 })
 
-const STARTED_AT = "2026-08-23T05:55:00.000Z" // 08:55 in Europe/Sofia
-const SYNTHETIC_END_NOW = new Date("2026-08-23T10:00:30+03:00")
+const STARTED_AT = sofiaIso(8, 55) // 08:55 in Europe/Sofia, yesterday
+const SYNTHETIC_END_NOW = sofia(10, 0, 30)
 const PREOP = {
   ageYears: 44, sex: "MALE" as const, heightCm: 180, weightKg: 82, clinicalMode: "ADULT",
   diagnoses: [{ label: "Cholelithiasis" }], procedures: [{ label: "Laparoscopic cholecystectomy" }],
@@ -26,7 +27,7 @@ async function startedCase(context: BrowserContext, invasiveBP: boolean): Promis
     headers: JSON_HEADERS,
     data: {
       preop: PREOP,
-      intraop: { monthYear: "2026-08", startTime: "08:55", startedAt: STARTED_AT, timezone: "Europe/Sofia", techniques: ["GENERAL_TIVA"], nbpMonitor: true, ecg: true, spO2Monitor: true, invasiveBP },
+      intraop: { monthYear: SYNTHETIC_MONTH, startTime: "08:55", startedAt: STARTED_AT, timezone: "Europe/Sofia", techniques: ["GENERAL_TIVA"], nbpMonitor: true, ecg: true, spO2Monitor: true, invasiveBP },
     },
   })
   expect(created.ok(), await created.text()).toBe(true)

@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext, type BrowserContext } from "@playwright/test"
 import { contextFor, JSON_HEADERS } from "./roles"
+import { SYNTHETIC_MONTH, sofiaIso } from "./synthetic-day"
 import { E2E_MEMBER_A_EMAIL } from "./credentials"
 import { openPhone, openPhoneIntraop } from "./pwa"
 
@@ -15,14 +16,14 @@ const PREOP = {
   diagnoses: [{ label: "Gonarthrosis" }], procedures: [{ label: "Total knee arthroplasty" }],
   bpSystolic: 132, bpDiastolic: 78, heartRate: 72, respiratoryRate: 14, mallampati: "II" as const, asaScore: "II" as const,
 }
-const STARTED_AT = "2026-08-23T05:55:00.000Z"
+const STARTED_AT = sofiaIso(8, 55) // 08:55 in Europe/Sofia, yesterday
 
 type IntraopBody = { intraop?: { techniques?: string[]; techniqueSides?: Record<string, string>; syncRevision?: number } }
 
 async function newCase(context: BrowserContext, intraop: Record<string, unknown>): Promise<string> {
   const created = await context.request.post("/api/cases", {
     headers: JSON_HEADERS,
-    data: { preop: PREOP, intraop: { monthYear: "2026-08", startTime: "08:55", startedAt: STARTED_AT, timezone: "Europe/Sofia", nbpMonitor: true, ecg: true, spO2Monitor: true, ...intraop } },
+    data: { preop: PREOP, intraop: { monthYear: SYNTHETIC_MONTH, startTime: "08:55", startedAt: STARTED_AT, timezone: "Europe/Sofia", nbpMonitor: true, ecg: true, spO2Monitor: true, ...intraop } },
   })
   expect(created.ok(), await created.text()).toBe(true)
   return (await created.json() as { id: string }).id
