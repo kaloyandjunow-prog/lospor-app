@@ -4,7 +4,7 @@
   "src/app/(app)/clinical-rules/page.tsx": 895,
   "src/app/(app)/cases/new/page.tsx": 732,
   "src/components/forms/IntraopForm.tsx": 715,
-  "src/components/CaseSummary.tsx": 718,
+  "src/components/CaseSummary.tsx": 99,
   "src/components/SettingsMenu.tsx": 780,
   "src/components/clinical-rules/DoseProfileEditor.tsx": 600,
   "src/components/clinical-rules/ClinicalRuleEditor.tsx": 646,
@@ -12,7 +12,6 @@
   "src/components/forms/sections/AirwaySection.tsx": 518,
   "src/app/(app)/admin/page.tsx": 290,
   "src/components/forms/PostopForm.tsx": 461,
-  "src/components/case-summary/PrintTimetable.tsx": 441,
   "src/app/(app)/clinical-rules/page.test.tsx": 471,
   "src/components/LabResults.tsx": 364
 }
