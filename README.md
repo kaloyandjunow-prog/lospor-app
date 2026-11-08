@@ -13,6 +13,15 @@ LOSPOR Web е браузърният клиент на периоператив�
 поверителност са версионирани документи, чието приемане се съхранява като
 точно доказателство.
 
+Случаят се показва и печата като един документ — анестезиологичен протокол.
+Първата страница е в портрет и съдържа данните за пациента, риска, дихателния
+път, съдовия достъп и техниката, след това дневника на събитията и жизнените
+показатели на всеки 5 минути. Следва една страница в пейзаж с цялата времева
+линия, а последната страница има епизодите, общо медикаменти, воден баланс,
+изследванията и възстановяването, и накрая име, ЕГН/ИЗ № и подписи със
+свободно място за попълване. Заглавието носи името на болницата. Изтритите
+записи остават в дневника, задраскани.
+
 Публична инсталация: [app.lospor.org](https://app.lospor.org)
 
 Документация: [docs.lospor.org](https://docs.lospor.org)
@@ -111,6 +120,30 @@ LOSPOR records de-identified perioperative cases, provides preoperative,
 intraoperative, and postoperative workflows, and generates printable case
 summaries. It is not a patient management system or certified medical device,
 and it does not replace clinical judgment.
+
+## Case summary and print
+
+The case summary and the print sheet are one document, the anaesthesia record
+(`src/components/record`), so the screen and the paper cannot disagree:
+
+1. **Portrait first page** — patient, risk, airway assessment, history and
+   allergies, airway, vascular access and technique, then the event log and the
+   vitals every five minutes. A deleted entry stays in the log, struck through,
+   with the minute it was deleted. No reason is stored for a deletion, so none
+   is printed.
+2. **One landscape page** — the whole timetable: the vitals graph, a lane for
+   every drug with its doses, bars for infusions, agents, gas (FGF) and fluids,
+   and the episodes as bands. It is never split by time.
+3. **Closing portrait page** — the episodes with what was given during them,
+   drug totals, fluid balance, intraoperative laboratory results, recovery, then
+   the patient's name and ID with room to write, and the signatures.
+
+The record is titled with the hospital's name (the institution's own name; on a
+Hospital appliance it is changed in Status) and is light paper in every theme.
+Pages grow with the case and nothing is cut off. The fixed words come from
+`@lospor/core/record-labels`, in Bulgarian or English. The server PDF
+(`/api/cases/:id/pdf`) renders the same pages. The summary reads the case with
+`?deleted=1` so the deleted entries are on the sheet.
 
 ## Local development
 
