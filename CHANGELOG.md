@@ -4,6 +4,9 @@
 
 ### Added
 
+- **End at (the 10.1.0 work, released here):** a case charted after the fact ends at the time you
+  choose, never before its start, on the day you pick; entries after the end are asked about before the
+  case ends. A death in theatre sets the disposition to Deceased and offers End case.
 - **Shared settings IA:** profile/account, Smart Functions, clinical defaults,
   appearance, units, access, and privacy are grouped consistently; account-wide
   case and timetable layout choices are synchronized through the API.
@@ -62,6 +65,9 @@
 
 ### Fixed
 
+- **The sign-in logo link is named by what it shows:** its `aria-label` left out the words on
+  screen, which the newer axe flags as a label-in-name failure (WCAG 2.5.3). The compact
+  mark keeps its label.
 - **Airway selection consistency:** selecting «Без намеса в дихателния път»
   clears selected airway devices and instruments, while recording a device
   clears that state; Smart airway uses the same configured option list as
@@ -103,6 +109,14 @@
 
 ### Changed
 
+- **Core comes from its tag:** `@lospor/core` is pinned to `github:…/lospor-core#v10.2.0`
+  again, not `file:../lospor-core`.
+- **The cross-app specs chart on yesterday:** they built a case on a fixed day in August, and
+  since the web timeline takes "now" from the server clock (9.13.0) that grew into a 77-day
+  chart and a 1.6 GB page. Every time is now Sofia wall-clock time on yesterday
+  (`e2e/synthetic-day.ts`), so the labels the specs read are unchanged.
+- **The case-layout spec sets the layout on the account:** the sidebar and the preop layout
+  are account preferences, and the page writes them over what the browser holds.
 - **Bulgarian UI copy:** the interactive chart is labelled «Времева линия»,
   vital signs use «жизнени показатели», and Smart/Legacy labels and clinical
   suggestions use the reviewed Bulgarian wording.
