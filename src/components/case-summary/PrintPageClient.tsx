@@ -11,19 +11,18 @@ import { setBulgarianNameSwitches, type BulgarianNameSwitches } from "@lospor/co
 const TXT = {
   en: {
     back: "Back to case", print: "Print", pdf: "Download PDF",
-    hint: "Print settings: A4 · landscape · margins None · background graphics ON. “Download PDF” builds the finished A4 file for you — easiest on a phone.",
-    privacy: "Patient name and ID stay blank — fill them in by hand after printing.",
+    hint: "Print settings: A4 · margins None · background graphics ON (the pages choose their own orientation). “Download PDF” builds the finished A4 file for you — easiest on a phone.",
+    privacy: "Patient name and ID stay blank at the end of the record — fill them in after printing.",
   },
   bg: {
     back: "Към случая", print: "Печат", pdf: "Изтегли PDF",
-    hint: "Настройки за печат: A4 · пейзаж · без полета · включени фонови графики. „Изтегли PDF“ създава готовия A4 файл — най-лесно от телефон.",
-    privacy: "Името и ИД на пациента остават празни — попълват се на ръка след печат.",
+    hint: "Настройки за печат: A4 · без полета · включени фонови графики (страниците сами избират ориентация). „Изтегли PDF“ създава готовия A4 файл — най-лесно от телефон.",
+    privacy: "Името и ИД на пациента остават празни в края на протокола — попълват се след печат.",
   },
 }
 
-// The record sheets are laid out for A4 landscape ≈ 1123 CSS px. The stage
-// always renders at that fixed width; narrow screens show it scaled down
-// (a shrunken photo of the real sheet) instead of reflowing and mangling it.
+// The record is portrait pages with one landscape page (≈ 1123 CSS px). On screen the stage renders at that
+// fixed width and narrow screens show it scaled down; in print the pages take their own sizes.
 const STAGE_W = 1123
 
 // The dedicated print surface: the two-page record + print / download actions.

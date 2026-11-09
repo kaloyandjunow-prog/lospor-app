@@ -21,6 +21,18 @@ import { cloudLegalDocumentsJson } from "./e2e/legal-documents"
 // appliance topology without granting JavaScript access to a token.
 const authFile = path.join(__dirname, "e2e", ".auth", "user.json")
 const skipWebServer = process.env.E2E_SKIP_WEBSERVER === "true"
+// Turbopack's Windows development graph creates junctions for linked Prisma
+// and database packages. The application itself is fine, but restricted
+// Windows runners can reject those junctions before the server reaches /health.
+// Keep the normal launch everywhere else and allow the cross-app harness to
+// use webpack when the runner cannot create them.
+const useWebpackDevServer = process.env.E2E_NEXT_WEBPACK === "true"
+const apiDevCommand = useWebpackDevServer
+  ? "node ../lospor-api/node_modules/next/dist/bin/next dev --webpack --port 3002"
+  : "npm --prefix ../lospor-api run dev"
+const webDevCommand = useWebpackDevServer
+  ? "node node_modules/next/dist/bin/next dev --webpack"
+  : "npm run dev"
 
 const e2eDatabaseUrl = process.env.E2E_DATABASE_URL
   ?? "postgresql://lospor:lospor-e2e@127.0.0.1:55433/lospor_e2e"
@@ -41,6 +53,10 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    // Playwright actions otherwise wait forever.  A missing selector is a
+    // harness/product failure and must produce a diagnostic rather than leave
+    // the cross-app run stuck until a human interrupts it.
+    actionTimeout: 20_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -57,7 +73,7 @@ export default defineConfig({
   ],
   webServer: skipWebServer ? undefined : [
     {
-      command: "npm --prefix ../lospor-api run dev",
+      command: apiDevCommand,
       url: "http://localhost:3002/health/live",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
@@ -86,7 +102,7 @@ export default defineConfig({
       },
     },
     {
-      command: "npm run dev",
+      command: webDevCommand,
       url: "http://localhost:3000",
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

@@ -9,6 +9,12 @@ import { E2E_PASSWORD } from "./credentials"
 // credential is ever written into browser storage.
 
 export const PWA_BASE = process.env.PWA_E2E_BASE_URL ?? "http://localhost:3001"
+
+/** Navigates the exported PWA home screen after its client has hydrated. */
+export async function gotoPhoneHome(page: Page): Promise<void> {
+  await page.goto("/", { waitUntil: "domcontentloaded" })
+  await page.waitForLoadState("networkidle")
+}
 /**
  * A phone-sized context with `email` already signed in.
  *
@@ -84,8 +90,13 @@ export async function openPhonePreop(
   await settle(page)
 }
 
+const INTRAOP_LABELS = {
+  en: { title: "Intraoperative", timetable: "Timetable" },
+  bg: { title: "Интраоперативно", timetable: "Времева линия" },
+}
+
 /** Opens the real PWA intraoperative surface and waits for server hydration. */
-export async function openPhoneIntraop(page: Page, caseId: string): Promise<void> {
+export async function openPhoneIntraop(page: Page, caseId: string, locale: "en" | "bg" = "en"): Promise<void> {
   const hydrated = page.waitForResponse(response =>
     response.url().includes(`/v1/cases/${encodeURIComponent(caseId)}`)
     && response.request().method() === "GET"
@@ -93,8 +104,8 @@ export async function openPhoneIntraop(page: Page, caseId: string): Promise<void
   )
   await page.goto(phoneIntraopPath(caseId))
   await hydrated
-  await page.getByText("Intraoperative", { exact: true }).first().waitFor({ state: "visible" })
-  await page.getByText("Timetable", { exact: true }).first().waitFor({ state: "visible" })
+  await page.getByText(INTRAOP_LABELS[locale].title, { exact: true }).first().waitFor({ state: "visible" })
+  await page.getByText(INTRAOP_LABELS[locale].timetable, { exact: true }).first().waitFor({ state: "visible" })
   await page.waitForTimeout(1_200)
 }
 

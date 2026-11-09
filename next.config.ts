@@ -1,5 +1,6 @@
 import type { NextConfig } from "next"
 import { networkInterfaces } from "node:os"
+import { resolve } from "node:path"
 import createNextIntlPlugin from "next-intl/plugin"
 import withPWAInit from "@ducanh2912/next-pwa"
 import { CORS_REQUEST_HEADERS_VALUE } from "@lospor/core/sync"
@@ -77,6 +78,9 @@ const apiInternalUrl = (
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@lospor/core"],
+  // Keep Turbopack anchored to the monorepo so the local Core package used by
+  // the PWA build is resolved through its package exports.
+  turbopack: { root: resolve(__dirname, "..") },
 
   // Allow current local network IPs so HMR and JS hydration work when accessed from the LAN.
   ...(isDev ? { allowedDevOrigins: devHosts } : {}),
