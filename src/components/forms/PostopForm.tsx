@@ -48,6 +48,8 @@ import {
   type PaedField,
 } from "@lospor/core/postop-pain"
 import { paedRiskBand } from "@lospor/core/risk"
+import { procedurePrefillEnabled } from "@lospor/core/intraop-suggestions"
+import { useAutomationPreferences, useIntraopAutomation } from "@/lib/use-intraop-automation"
 import { preopSectionConfigFor, type PreopSectionConfig } from "@lospor/core/preop-orders"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { ItemScale, ScaleTotal, SelfReportScale } from "@/components/forms/postop/PainScales"
@@ -139,12 +141,21 @@ export function PostopForm({ onSubmit, onBack, submitting, onAutoSave, defaultVa
       // so simply opening it recorded a blood pressure, pulse, saturation and
       // temperature that nobody had taken.
       ...Object.fromEntries(Object.entries(defaultValues ?? {}).filter(([, v]) => v !== undefined && v !== null)),
-      // The procedure done starts as the one planned (10.0.0): the usual case
-      // needs no typing, and a different operation is a change.
-      performedProcedures: defaultValues?.performedProcedures?.length ? defaultValues.performedProcedures : plannedProcedures,
+      // The procedure done starts as the one planned (10.0.0) unless Status
+      // switched that off (10.3.0): see the effect below, which waits for the policy.
+      performedProcedures: defaultValues?.performedProcedures?.length ? defaultValues.performedProcedures : [],
       ...(defaultValues?.handoverItems ? { handoverItems: normaliseHandoverCodes(defaultValues.handoverItems) } : {}),
     },
   })
+  const { settings: automation, ready: automationReady } = useIntraopAutomation()
+  const { user: automationUser } = useAutomationPreferences()
+  const prefilled = useRef(false)
+  useEffect(() => {
+    if (!automationReady || prefilled.current) return
+    prefilled.current = true
+    if (!procedurePrefillEnabled(automation, automationUser) || !plannedProcedures.length || getValues("performedProcedures")?.length) return
+    setValue("performedProcedures", plannedProcedures, { shouldDirty: true })
+  }, [automation, automationReady, automationUser, getValues, plannedProcedures, setValue])
   const { setScore, projected } = usePostopScoreProjection(defaultValues, setValue)
 
   usePostopAutosave({ control, getValues, onAutoSave })
