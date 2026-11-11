@@ -6,6 +6,7 @@ import { useIntraopEventAutofill } from "@/hooks/useIntraopEventAutofill"
 import { useChartedAirwayEvents } from "./intraop-form/useChartedAirwayEvents"
 import { useIntraopSubmit } from "./intraop-form/useIntraopSubmit"
 import { useIntraopSuggestionContext } from "./intraop-form/useIntraopSuggestionContext"
+import { useApplyEventPatches } from "./intraop-form/useApplyEventPatches"
 import { IntraopSidebar } from "./intraop-form/IntraopSidebar"
 import { IntraopEquipment } from "./intraop-form/IntraopEquipment"
 import { useEquipmentSmart } from "./intraop-form/useEquipmentSmart"
@@ -197,7 +198,8 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   const calcIbw = ibwResolution.available ? ibwResolution.roundedKg : null
   const calcTbw = preop?.weightKg ?? null
   const { suggestionContext, watchedTechniques: watchedTechniquesForSuggestions } = useIntraopSuggestionContext({ control, preop, readOnly, idealWeightKg: calcIbw, startedAt: chartStartedAt, endedAt: timelineEndedAt, timeZone: timelineZone })
-  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly), suggestions: suggestionContext })
+  const attentionEventOps = useApplyEventPatches(setValue, onEventOps)
+  const attention = useIntraopAttention({ caseId, log: timelineLog, endedAt: timelineEndedAt, timeZone: timelineZone, locale, onEventOps: attentionEventOps, readOnly, vitals: useVitalQuestionContext(preop, readOnly), suggestions: suggestionContext })
 
   // Arithmetic, not interface — see @/lib/intraop-drug-totals.
   const liveDrugTotals = useMemo(
