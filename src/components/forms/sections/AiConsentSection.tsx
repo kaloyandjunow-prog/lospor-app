@@ -21,7 +21,9 @@ export function anyClinicalAiEnabled(ai: ClinicalAiCapabilities): boolean {
  * never consent, and its scans always failed. With every AI feature off (Status,
  * or no key) nothing is shown here beyond what was shown before.
  */
-export function AiConsentSection({ control, aiOptIn, isPediatric, clinicalAi, getFormData, caseId, onSaveBeforeAI }: {
+export function AiConsentSection({ hidden = false, control, aiOptIn, isPediatric, clinicalAi, getFormData, caseId, onSaveBeforeAI }: {
+  /** Another tab is open (tabbed layout): kept mounted, not shown. */
+  hidden?: boolean
   control: Control<PreopData>
   aiOptIn: boolean
   isPediatric: boolean
@@ -35,6 +37,7 @@ export function AiConsentSection({ control, aiOptIn, isPediatric, clinicalAi, ge
   // Its own section after the demographics, and only with AI on in Status (10.4.1).
   if (!anyClinicalAiEnabled(clinicalAi)) return null
   return (
+    <div className={hidden ? "hidden" : ""}>
     <SectionCard id="preop-sec-ai" title={t("preop.aiSection")}>
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] px-4 py-3">
         <Controller name="aiOptIn" control={control} render={({ field }) => (
@@ -57,5 +60,6 @@ export function AiConsentSection({ control, aiOptIn, isPediatric, clinicalAi, ge
         </p>
       ) : null}
     </SectionCard>
+    </div>
   )
 }

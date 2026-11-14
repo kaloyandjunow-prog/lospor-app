@@ -81,8 +81,7 @@ export function LabResults({
     setAiPreview(null)
     setAiError(null)
     try {
-      // Upright pixels, no EXIF: the provider ignores the phone's turn tag (10.4.1).
-      const { imageBase64, mimeType } = await uprightImageBase64(file)
+      const { imageBase64, mimeType } = await uprightImageBase64(file) // upright, no EXIF (10.4.1)
       const res = await fetch(`/api/cases/${caseId}/ai/read-labs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -333,10 +333,9 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
 
   // The tabbed layout (10.0.0): the plan and what is ordered have a tab of
   // their own; they all sat on Risk & ASA. Labels translated, as they were not.
-  const aiOn = anyClinicalAiEnabled(clinicalAi)
   const TABS: { value: typeof activeTab; label: string }[] = [
     { value: "patient", label: t("preop.tabs.patient") },
-    ...(aiOn ? [{ value: "ai" as const, label: t("preop.tabs.ai") }] : []),
+    ...(anyClinicalAiEnabled(clinicalAi) ? [{ value: "ai" as const, label: t("preop.tabs.ai") }] : []),
     { value: "case",    label: t("preop.tabs.case")    },
     { value: "history", label: t("preop.tabs.history") },
     { value: "exam",    label: t("preop.tabs.exam")    },
@@ -409,7 +408,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
   // The step's sections, for the case panel and for the scrolling page's strip.
   const preopSections = [
     { id: "demographics", label: t("preop.demographicsSection"), missing: anyMissing("ageYears", "ageValue", "sex", "heightCm", "weightKg") },
-    ...(aiOn ? [{ id: "ai", label: t("preop.aiSection"), missing: false }] : []),
+    ...(anyClinicalAiEnabled(clinicalAi) ? [{ id: "ai", label: t("preop.aiSection"), missing: false }] : []),
     { id: "case", label: t("preop.caseSection"), missing: anyMissing("diagnoses", "procedures") },
     ...(sectionOn("MEDICAL_HISTORY") ? [{ id: "history", label: t("preop.historySection"), missing: false }] : []),
     ...(sectionOn("CURRENT_MEDICATIONS") ? [{ id: "medications", label: t("preop.medicationsSection"), missing: false }] : []),
@@ -492,14 +491,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       <PreopDemographicsSection control={control} setValue={setValue} fieldErrors={fieldErrors} fe={fe} rejectionOf={rejectionOf} questionList={() => questionList("demographics")} pediatricCapability={pediatricCapability} pediatricRecordReadOnly={pediatricRecordReadOnly} isPediatric={isPediatric} heightRange={heightRange} weightRange={weightRange} bmi={bmi} ibw={ibw} abw={abw} bloodGroupOptions={bloodGroupOptions} bloodType={bloodType} rhFactor={rhFactor} locale={locale} />
       </div>
 
-      {/* ── AI tab: the case's consent and the adult advisor (9.14.3), its own
-          section after the demographics, only with AI on in Status (10.4.1). */}
-      {aiOn && (
-        <div className={layoutMode === "tabs" && activeTab !== "ai" ? "hidden" : ""}>
-        <AiConsentSection control={control} aiOptIn={!!watch("aiOptIn")} isPediatric={isPediatric} clinicalAi={clinicalAi}
-          getFormData={getValues} caseId={caseId} onSaveBeforeAI={onAutoSave ? flushSave : undefined} />
-        </div>
-      )}
+      <AiConsentSection hidden={layoutMode === "tabs" && activeTab !== "ai"} control={control} aiOptIn={!!watch("aiOptIn")} isPediatric={isPediatric} clinicalAi={clinicalAi} getFormData={getValues} caseId={caseId} onSaveBeforeAI={onAutoSave ? flushSave : undefined} />
 
       {/* ── Case tab ─────────────────────────────────────────────── */}
       <div className={layoutMode === "tabs" && activeTab !== "case" ? "hidden" : ""}>
