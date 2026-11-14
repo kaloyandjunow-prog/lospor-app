@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { AIAdvisor } from "@/components/AIAdvisor"
 import type { PreopData } from "@/components/forms/preopSchema"
 import { capabilityMessageKey, type ClinicalAiCapabilities } from "@/lib/deployment-capabilities"
+import { SectionCard } from "@/components/forms/PreopFormPresentational"
 
 /** Any AI feature this deployment has switched on (Status, with a key). */
 export function anyClinicalAiEnabled(ai: ClinicalAiCapabilities): boolean {
@@ -31,15 +32,10 @@ export function AiConsentSection({ control, aiOptIn, isPediatric, clinicalAi, ge
 }) {
   const t = useTranslations()
   const adviceAvailable = !isPediatric && clinicalAi.clinicalAdvice.enabled
-  if (!anyClinicalAiEnabled(clinicalAi)) {
-    return isPediatric ? null : (
-      <p className="rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
-        {t(capabilityMessageKey(clinicalAi.clinicalAdvice.reason))}
-      </p>
-    )
-  }
+  // Its own section after the demographics, and only with AI on in Status (10.4.1).
+  if (!anyClinicalAiEnabled(clinicalAi)) return null
   return (
-    <>
+    <SectionCard id="preop-sec-ai" title={t("preop.aiSection")}>
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] px-4 py-3">
         <Controller name="aiOptIn" control={control} render={({ field }) => (
           <input type="checkbox" id="aiOptIn" checked={!!field.value} onChange={e => field.onChange(e.target.checked)}
@@ -60,6 +56,6 @@ export function AiConsentSection({ control, aiOptIn, isPediatric, clinicalAi, ge
           {t(capabilityMessageKey(clinicalAi.clinicalAdvice.reason))}
         </p>
       ) : null}
-    </>
+    </SectionCard>
   )
 }
