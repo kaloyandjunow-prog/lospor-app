@@ -53,7 +53,7 @@ import type { PreopLayout } from "@/lib/preop-layout"
 import { LabResultsSection } from "@/components/forms/sections/LabResultsSection"
 import { PreopMedicationInstructionsSection, PreopWardOrdersSection } from "@/components/forms/PreopOrdersSections"
 import { PreopPremedicationOrderSection } from "@/components/forms/PreopPremedicationOrder"
-import { preopSectionConfigFor, preopVitalsRequirementFor } from "@lospor/core/preop-orders"
+import { isTypedMedication, preopSectionConfigFor, preopVitalsRequirementFor } from "@lospor/core/preop-orders"
 import { PreopCaseSection, PreopDemographicsSection } from "@/components/forms/PreopPatientSections"
 import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswer } from "@/components/forms/PreopQuestionList"
 import {
@@ -549,6 +549,14 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
               atcCode: item.atcCode ?? undefined,
             })}
             placeholder={t("preop.medicationsPlaceholder")}
+            // A medication not in the list is typed as written only where the
+            // hospital turned it on in Status (10.6.0); otherwise the list only.
+            allowFreeText={false}
+            freeTextRow={sectionConfig.medicationsFreeText ? {
+              label: typed => t("preop.medicationAddTyped", { typed }),
+              typedMark: t("preop.medicationTypedMark"),
+              isTyped: isTypedMedication,
+            } : undefined}
           />
         )} />
         <RejectionNote msg={rejectionOf("currentMedications")} />
