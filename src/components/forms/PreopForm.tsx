@@ -53,7 +53,8 @@ import type { PreopLayout } from "@/lib/preop-layout"
 import { LabResultsSection } from "@/components/forms/sections/LabResultsSection"
 import { PreopMedicationInstructionsSection, PreopWardOrdersSection } from "@/components/forms/PreopOrdersSections"
 import { PreopPremedicationOrderSection } from "@/components/forms/PreopPremedicationOrder"
-import { isTypedMedication, preopSectionConfigFor, preopVitalsRequirementFor } from "@lospor/core/preop-orders"
+import { preopSectionConfigFor, preopVitalsRequirementFor } from "@lospor/core/preop-orders"
+import { PreopMedicationsField } from "@/components/forms/PreopMedicationsField"
 import { PreopCaseSection, PreopDemographicsSection } from "@/components/forms/PreopPatientSections"
 import { PreopQuestionList, type PreopPendingSuggestion, type PreopQuestionAnswer } from "@/components/forms/PreopQuestionList"
 import {
@@ -77,7 +78,6 @@ function numberOrNull(value: unknown): number | null {
 }
 
 type Icd10SearchItem = { code: string; description: string; descriptionBg?: string }
-type DrugSearchItem = { name: string; inn?: string; strength?: string; atcCode?: string }
 
 
 export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "scroll", caseId, rejectedFields, preopProfile: profiles, focus, stages }: {
@@ -538,26 +538,7 @@ export function PreopForm({ defaultValues, onSubmit, onAutoSave, layoutMode = "s
       {sectionOn("CURRENT_MEDICATIONS") && (
       <SectionCard id="preop-sec-medications" title={t("preop.medicationsSection")}>
         <Controller name="currentMedications" control={control} render={({ field }) => (
-          <TagInput
-            value={(field.value ?? []) as Tag[]}
-            onChange={field.onChange}
-            searchUrl="/api/search/drugs"
-            renderSuggestion={(item: DrugSearchItem) => ({
-              label: item.inn ? `${item.inn}${item.strength ? ` ${item.strength}` : ""}` : item.name,
-              sub: item.name !== item.inn ? item.name : undefined,
-              inn: item.inn ?? undefined,
-              atcCode: item.atcCode ?? undefined,
-            })}
-            placeholder={t("preop.medicationsPlaceholder")}
-            // A medication not in the list is typed as written only where the
-            // hospital turned it on in Status (10.6.0); otherwise the list only.
-            allowFreeText={false}
-            freeTextRow={sectionConfig.medicationsFreeText ? {
-              label: typed => t("preop.medicationAddTyped", { typed }),
-              typedMark: t("preop.medicationTypedMark"),
-              isTyped: isTypedMedication,
-            } : undefined}
-          />
+          <PreopMedicationsField value={(field.value ?? []) as Tag[]} onChange={field.onChange} allowTyped={!!sectionConfig.medicationsFreeText} />
         )} />
         <RejectionNote msg={rejectionOf("currentMedications")} />
         {questionList("current_medications")}
