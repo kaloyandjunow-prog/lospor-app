@@ -56,6 +56,8 @@ export type DoseSelectorProps = {
   min: number
   max: number
   step: number
+  /** Where the slider lands, when coarser than `step` (- and + and typing keep `step`). */
+  sliderStep?: number
   valuePlaceholder?: string
   manualEntryOnly?: boolean
   showGuidance?: boolean
@@ -99,7 +101,7 @@ export type DoseSelectorProps = {
 export function DoseSelector({
   accent = "violet", hint, extraHint,
   quickValues, quickValue,
-  value, onValueChange, min, max, step, valuePlaceholder, manualEntryOnly = false,
+  value, onValueChange, min, max, step, sliderStep, valuePlaceholder, manualEntryOnly = false,
   showGuidance = true,
   units, unit, onUnitChange, unitSuffix,
   routes, route, onRouteChange,
@@ -293,7 +295,7 @@ export function DoseSelector({
       )}
 
       {showGuidance && !manualEntryOnly && (
-        <input type="range" min={min} max={max} step={step}
+        <input type="range" min={min} max={max} step={sliderStep ?? step}
           value={num}
           onChange={e => onValueChange(e.target.value)}
           className={`w-full h-1.5 ${a.ring}`} />

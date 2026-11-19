@@ -24,6 +24,7 @@ import type {
   PediatricDrugProfileRulePayload,
 } from "@lospor/core/clinical-rules"
 import { AdultClinicalRuleEditor } from "@/components/clinical-rules/AdultClinicalRuleEditor"
+import { AgentRuleEditor, isAgentRulePayload } from "@/components/clinical-rules/AgentRuleEditor"
 import {
   ClinicalRuleEditor,
   type ClinicalRuleDrugOption,
@@ -119,6 +120,14 @@ function InlineRuleEditor({
           busy={busy}
           lockIdentity={editor.pediatricDrugRules.length > 0}
           onSubmit={onSubmitPediatricDrug}
+          onCancel={onCancel}
+        />
+      ) : isAgentRulePayload(editor.initial) ? (
+        <AgentRuleEditor
+          key={editor.existingRuleKey ?? "agent"}
+          initial={editor.initial}
+          busy={busy}
+          onSubmit={onSubmit}
           onCancel={onCancel}
         />
       ) : mode === "ADULT" ? (

@@ -18,6 +18,8 @@ import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
+import { agentEntry, agentRuleFor } from "@lospor/core/agent-entry"
+import type { PediatricAgentProfileRule } from "@lospor/core/clinical-rules"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import { DefibrillationDialog } from "./intraop/DefibrillationDialog"
 import { defibrillationDialogProps, moreComplicationCategories, quickComplicationOption } from "./intraop/event-picker-extras"
@@ -98,7 +100,6 @@ import { evaluateVitalInput } from "@/lib/intraop-vital-entry"
 import {
   groupClinicalEvents,
   optionStyleMap,
-  quickNumberMap,
 } from "@lospor/core/option-library"
 import {
   applyAdultDoseProfilesToOptions,
@@ -195,6 +196,7 @@ interface Props {
   patientSex?: string | null
   pediatricDrugProfiles?: readonly PediatricDrugProfileRule[]
   pediatricFluidProfiles?: readonly PediatricFluidProfileRule[]
+  pediatricAgentProfiles?: readonly PediatricAgentProfileRule[]
   pediatricInfusionProfiles?: readonly PediatricInfusionProfileRule[]
   adultDoseProfiles?: readonly AdultDoseProfileRule[]
   pediatricRulesSource?: "server" | "cache" | null
@@ -217,6 +219,7 @@ export function IntraopTimetable({
   patientSex = null,
   pediatricDrugProfiles = [],
   pediatricFluidProfiles = [],
+  pediatricAgentProfiles = [],
   pediatricInfusionProfiles = [],
   adultDoseProfiles = [],
   pediatricRulesSource = null,
@@ -327,6 +330,11 @@ export function IntraopTimetable({
     ),
     [adultDoseProfiles, baseInfusionLibOpts, isPediatric, pediatricAge, pediatricInfusionProfiles, tbw],
   )
+  // The active ruleset's range, step and quick buttons for an agent; none -> the catalogue.
+  const agentRuleOf = useCallback(
+    (agent: string) => agentRuleFor(agent, { adult: adultDoseProfiles, paediatric: pediatricAgentProfiles }, isPediatric),
+    [adultDoseProfiles, isPediatric, pediatricAgentProfiles],
+  )
   const fluidLibOpts = useMemo(
     () => applyAdultDoseProfilesToOptions(
       baseFluidLibOpts,
@@ -389,13 +397,13 @@ export function IntraopTimetable({
   }, [eventLibOpts])
 
 
-  const { INH_AGENTS, AGENT_STYLE, AGENT_QUICK_PERCENTS } = useMemo(() => {
+  const { INH_AGENTS, AGENT_STYLE } = useMemo(() => {
     return {
       INH_AGENTS: agentLibOpts.map(option => option.label),
       AGENT_STYLE: optionStyleMap(agentLibOpts),
-      AGENT_QUICK_PERCENTS: prospectiveGuidanceEnabled ? quickNumberMap(agentLibOpts) : {},
+
     }
-  }, [agentLibOpts, prospectiveGuidanceEnabled])
+  }, [agentLibOpts])
 
   // Every dose the chart suggests is resolved here — paediatric profile, then
   // adult profile, then the option library, then nothing. See dose-surfaces.
@@ -1852,7 +1860,8 @@ export function IntraopTimetable({
           nitrousPercent={pickerN2o}
           prospectiveGuidanceEnabled={prospectiveGuidanceEnabled}
           agentNames={INH_AGENTS}
-          quickPercentsFor={agent => AGENT_QUICK_PERCENTS[agent] ?? []}
+          agentRule={agentRuleOf}
+
           textClassFor={agent => AGENT_STYLE[agent]?.text ?? ""}
           displayAgentName={displayAgentName}
           labels={{
@@ -1862,7 +1871,7 @@ export function IntraopTimetable({
           }}
           onSelectAgent={agent => {
             setPendingAgentName(agent)
-            setPickerPercent(AGENT_QUICK_PERCENTS[agent]?.[0] ?? null)
+            setPickerPercent(agentEntry(agent, agentRuleOf(agent)).prefill)
           }}
           onPercentChange={setPickerPercent}
           onNitrousChange={setPickerN2o}
@@ -1886,6 +1895,8 @@ export function IntraopTimetable({
           onFgfChange={setPickerFgf}
           onCarrierGasChange={setPickerCarrierGas}
           onFio2Change={setPickerFio2}
+          prospectiveGuidanceEnabled={prospectiveGuidanceEnabled}
+          paediatric={isPediatric}
           onDismiss={closeGasPicker}
           onApply={() => editing ? applyGasChange(editing.id) : startGas(gasPicker)}
         />
