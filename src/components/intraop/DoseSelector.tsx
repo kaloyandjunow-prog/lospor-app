@@ -56,8 +56,7 @@ export type DoseSelectorProps = {
   min: number
   max: number
   step: number
-  /** Where the slider lands, when coarser than `step` (- and + and typing keep `step`). */
-  sliderStep?: number
+  sliderStep?: number // where the slider lands, when coarser than `step`
   valuePlaceholder?: string
   manualEntryOnly?: boolean
   showGuidance?: boolean

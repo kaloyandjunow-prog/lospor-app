@@ -12,13 +12,13 @@ import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/c
 import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
 import { Plus, ChevronDown, ChevronRight } from "lucide-react"
-import { useOptionLibrary } from "@/hooks/useOptionLibrary"
+import { useIntraopDoseOptions } from "@/components/intraop/use-intraop-dose-options"
 import { clinicalEventName, displayClinicalCode } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
 import { FluidConflictPopover } from "@/components/intraop/FluidConflictPopover"
 import { GasSettingsPopover } from "@/components/intraop/GasSettingsPopover"
 import { AgentPopover } from "@/components/intraop/AgentPopover"
-import { agentEntry, agentRuleFor } from "@lospor/core/agent-entry"
+import { agentEntry } from "@lospor/core/agent-entry"
 import type { PediatricAgentProfileRule } from "@lospor/core/clinical-rules"
 import { EventPickerPopover } from "@/components/intraop/EventPickerPopover"
 import { DefibrillationDialog } from "./intraop/DefibrillationDialog"
@@ -102,11 +102,7 @@ import {
   optionStyleMap,
 } from "@lospor/core/option-library"
 import {
-  applyAdultDoseProfilesToOptions,
-  applyPediatricDrugProfilesToOptions,
-  applyPediatricInfusionProfilesToOptions,
   isClinicalRuleHidden,
-  synthesizePediatricDrugOptions,
   visibleClinicalOptions,
   type AdultDoseProfileRule,
   type PediatricDrugProfileRule,
@@ -296,53 +292,9 @@ export function IntraopTimetable({
   // Derived (not mutated) from the shared library — see the comment above
   // this component for why these are plain local consts instead of the
   // module-level mutated containers this used to be.
-  const { options: baseDrugLibOpts } = useOptionLibrary("INTRAOP_DRUG")
-  const { options: baseFluidLibOpts } = useOptionLibrary("INTRAOP_FLUID")
-  const { options: eventLibOpts } = useOptionLibrary("INTRAOP_EVENT")
-  const { options: baseInfusionLibOpts } = useOptionLibrary("INTRAOP_INFUSION")
-  const { options: agentLibOpts } = useOptionLibrary("INHALATIONAL_AGENT")
-  const drugOptionsWithPediatricRules = useMemo(() =>
-    synthesizePediatricDrugOptions(baseDrugLibOpts, isPediatric ? pediatricDrugProfiles : []),
-  [baseDrugLibOpts, isPediatric, pediatricDrugProfiles])
-  const drugLibOpts = useMemo(
-    () => applyPediatricDrugProfilesToOptions(
-      applyAdultDoseProfilesToOptions(
-        drugOptionsWithPediatricRules,
-        adultDoseProfiles,
-        "ADULT_DRUG_PROFILE",
-      ),
-      isPediatric ? pediatricDrugProfiles : [],
-      isPediatric ? pediatricAge : null,
-      tbw,
-    ),
-    [adultDoseProfiles, drugOptionsWithPediatricRules, isPediatric, pediatricAge, pediatricDrugProfiles, tbw],
-  )
-  const infusionLibOpts = useMemo(
-    () => applyPediatricInfusionProfilesToOptions(
-      applyAdultDoseProfilesToOptions(
-        baseInfusionLibOpts,
-        adultDoseProfiles,
-        "ADULT_INFUSION_PROFILE",
-      ),
-      isPediatric ? pediatricInfusionProfiles : [],
-      isPediatric ? pediatricAge : null,
-      tbw,
-    ),
-    [adultDoseProfiles, baseInfusionLibOpts, isPediatric, pediatricAge, pediatricInfusionProfiles, tbw],
-  )
-  // The active ruleset's range, step and quick buttons for an agent; none -> the catalogue.
-  const agentRuleOf = useCallback(
-    (agent: string) => agentRuleFor(agent, { adult: adultDoseProfiles, paediatric: pediatricAgentProfiles }, isPediatric),
-    [adultDoseProfiles, isPediatric, pediatricAgentProfiles],
-  )
-  const fluidLibOpts = useMemo(
-    () => applyAdultDoseProfilesToOptions(
-      baseFluidLibOpts,
-      adultDoseProfiles,
-      "ADULT_FLUID_PROFILE",
-    ),
-    [adultDoseProfiles, baseFluidLibOpts],
-  )
+  const { eventLibOpts, agentLibOpts, drugLibOpts, infusionLibOpts, fluidLibOpts, agentRuleOf } = useIntraopDoseOptions({
+    isPediatric, adultDoseProfiles, pediatricDrugProfiles, pediatricInfusionProfiles, pediatricAgentProfiles, pediatricAge, tbw,
+  })
 
   // Naming lives in useIntraopDisplay so anything split out of this component
   // can be handed the same words rather than rebuilding them.
