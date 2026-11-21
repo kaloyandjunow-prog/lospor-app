@@ -1300,66 +1300,7 @@ export function IntraopTimetable({
             />
           )}
 
-          {/* Under Events, because a draw is a thing that happened at a time
-              like an event is -- and above Drugs, so the abnormal summary sits
-              near the top of the lanes a clinician scans rather than buried
-              under however many infusions this case has. */}
-          <TimetableLabsLane
-            label={t("intraop.timetable.labs")}
-            labelWidth={LABEL_W}
-            rowLabelClass={rowLabelCls}
-            rowCols={rowCols}
-            colW={colW}
-            results={labResults}
-            draws={labDraws}
-            expanded={labsExpanded}
-            onToggleExpanded={() => setLabsExpanded(open => !open)}
-            onOpenDraw={col => {
-              // No trusted start means no grid to place a draw on. The lane
-              // still renders, so the arrow and any summary stay readable, but
-              // there is no honest instant to stamp a new draw with.
-              if (gridStartMs == null) return
-              onOpenLabDraw?.(new Date(gridStartMs + col * INTERVAL * 60_000).toISOString())
-            }}
-            onOpenAll={() => onOpenAllLabs?.()}
-            labels={{
-              expand: t("intraop.timetable.labs"),
-              more: t("intraop.timetable.labsMore"),
-              viewAll: t("intraop.timetable.labsViewAll"),
-            }}
-          />
-
-          <ClinicalEventsLane
-            label={t("intraop.timetable.events")}
-            labelWidth={LABEL_W}
-            rowLabelClass={rowLabelCls}
-            rowCols={rowCols}
-            colW={colW}
-            events={data.clinicalEvents ?? []}
-            displayEventName={label => clinicalEventName(label, eventLibOpts, locale, { "Anaesthesia start": t("intraop.timetable.anaesthesiaStartEvent") })}
-            onOpenPicker={(ci, rect) => { setEventPicker({ ci, rect }); setEvSearch("") }}
-            onRemove={removeClinicalEvent}
-          />
-
-          <DrugLane
-            drugChip={drugChipFor}
-            label={t("intraop.timetable.drugs")}
-            labelWidth={LABEL_W}
-            rowLabelClass={rowLabelCls}
-            rowCols={rowCols}
-            colW={colW}
-            drugs={data.drugs}
-            displayDrugName={displayDrugName}
-            sel={sel}
-            drag={drag}
-            onDragOver={onDrugDragOver}
-            onDragLeave={() => dragActions.dropTargetOver(null)}
-            onDrop={onDrugDrop}
-            onOpenPicker={(ci, rect) => setDrugPicker({ ci, rect })}
-            onEditDose={(idx, dose, unit, rect) => setDoseEditDrug({ idx, dose, unit, rect })}
-            onRemove={removeDrug}
-          />
-
+          {/* 10.8.0: continuous items first, then bolus drugs, events and labs (rule 4). */}
           {/* One lane per infusion name; a drug restarted later keeps its lane
               rather than opening a second one. */}
           {[...new Set((data.infusions ?? []).map(i => i.name))].map(drugName => {
@@ -1395,6 +1336,23 @@ export function IntraopTimetable({
             )
           })}
 
+          {/* Infusion drop zone — always-visible entry point, separate from
+              the Drug row, so starting an infusion never goes through a
+              drug-then-bolus/infusion choice. */}
+          <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
+            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
+            {rowCols.map(ci => (
+              <div key={ci} style={{ width: colW, minWidth: colW }}
+                className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
+                <button type="button" tabIndex={-1} data-testid="add-infusion"
+                  onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
+                  className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
           {/* One lane per fluid line: a case can run several bags of the same
               fluid at once, and stacking them would read as one line at twice
               the rate. */}
@@ -1423,23 +1381,6 @@ export function IntraopTimetable({
             />
           ))}
 
-          {/* Infusion drop zone — always-visible entry point, separate from
-              the Drug row, so starting an infusion never goes through a
-              drug-then-bolus/infusion choice. */}
-          <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
-            {rowCols.map(ci => (
-              <div key={ci} style={{ width: colW, minWidth: colW }}
-                className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
-                <button type="button" tabIndex={-1} data-testid="add-infusion"
-                  onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
-                  className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-
           {/* Fluid drop zone */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-cyan-50/20 dark:bg-cyan-950/5">
             <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
@@ -1457,6 +1398,66 @@ export function IntraopTimetable({
               </div>
             ))}
           </div>
+
+          <DrugLane
+            drugChip={drugChipFor}
+            label={t("intraop.timetable.drugs")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            drugs={data.drugs}
+            displayDrugName={displayDrugName}
+            sel={sel}
+            drag={drag}
+            onDragOver={onDrugDragOver}
+            onDragLeave={() => dragActions.dropTargetOver(null)}
+            onDrop={onDrugDrop}
+            onOpenPicker={(ci, rect) => setDrugPicker({ ci, rect })}
+            onEditDose={(idx, dose, unit, rect) => setDoseEditDrug({ idx, dose, unit, rect })}
+            onRemove={removeDrug}
+          />
+
+          <ClinicalEventsLane
+            label={t("intraop.timetable.events")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            events={data.clinicalEvents ?? []}
+            displayEventName={label => clinicalEventName(label, eventLibOpts, locale, { "Anaesthesia start": t("intraop.timetable.anaesthesiaStartEvent") })}
+            onOpenPicker={(ci, rect) => { setEventPicker({ ci, rect }); setEvSearch("") }}
+            onRemove={removeClinicalEvent}
+          />
+
+          {/* Under Events, because a draw is a thing that happened at a time
+              like an event is -- and above Drugs, so the abnormal summary sits
+              near the top of the lanes a clinician scans rather than buried
+              under however many infusions this case has. */}
+          <TimetableLabsLane
+            label={t("intraop.timetable.labs")}
+            labelWidth={LABEL_W}
+            rowLabelClass={rowLabelCls}
+            rowCols={rowCols}
+            colW={colW}
+            results={labResults}
+            draws={labDraws}
+            expanded={labsExpanded}
+            onToggleExpanded={() => setLabsExpanded(open => !open)}
+            onOpenDraw={col => {
+              // No trusted start means no grid to place a draw on. The lane
+              // still renders, so the arrow and any summary stay readable, but
+              // there is no honest instant to stamp a new draw with.
+              if (gridStartMs == null) return
+              onOpenLabDraw?.(new Date(gridStartMs + col * INTERVAL * 60_000).toISOString())
+            }}
+            onOpenAll={() => onOpenAllLabs?.()}
+            labels={{
+              expand: t("intraop.timetable.labs"),
+              more: t("intraop.timetable.labsMore"),
+              viewAll: t("intraop.timetable.labsViewAll"),
+            }}
+          />
 
         </div>
       </div>
@@ -1602,16 +1603,7 @@ export function IntraopTimetable({
 
           {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap">
-            <button type="button" onClick={() => setColCount(n => n + ROW_COLS)}
-              className="text-xs font-medium text-slate-500 dark:text-[#999] hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-200 dark:active:bg-[#333] active:text-slate-900 dark:active:text-white border border-slate-200 dark:border-[#3a3a3a] hover:border-slate-400 dark:hover:border-[#555] rounded-full px-3 py-1 transition-all cursor-pointer select-none">
-              {uiCopy.timetable.addHour}
-            </button>
-            <button type="button"
-              onClick={() => setColCount(n => Math.max(ROW_COLS, n - ROW_COLS))}
-              disabled={colCount <= ROW_COLS}
-              className="text-xs font-medium text-slate-500 dark:text-[#999] hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-200 dark:active:bg-[#333] active:text-slate-900 dark:active:text-white disabled:opacity-30 disabled:cursor-not-allowed border border-slate-200 dark:border-[#3a3a3a] hover:border-slate-400 dark:hover:border-[#555] rounded-full px-3 py-1 transition-all cursor-pointer select-none">
-              {uiCopy.timetable.subtractHour}
-            </button>
+            {/* 10.8.0: no +1 h / -1 h: the table is always an hour ahead of now. */}
             <span className="text-xs text-slate-400 dark:text-[#666]">
               {uiCopy.timetable.total} <span className={`font-semibold ${endTime ? "text-slate-600 dark:text-[#aaa]" : "text-amber-500 dark:text-amber-400"}`}>
                 {/* From the real start, as the stored duration is: the grid's rounded origin overstated it (9.12.1). */}
