@@ -34,7 +34,7 @@ function lane(events: LogEvent[], projectRunning: boolean) {
       discConfirmId={null} setDiscConfirmId={() => {}} hoverDiscontinue={null}
       drag={{ movingInf: null, movingInfCol: null, movingRatePill: null, extendingInf: null, extInfHover: null, extendingInfLeft: null, extInfLeftHover: null } as never}
       dragActions={new Proxy({}, { get: () => () => {} }) as never}
-      extendInfusion={() => {}} onEndDrop={() => {}} extendInfusionLeft={() => {}} applyInfRateChange={() => {}} onMoveBar={() => {}}
+      extendInfusion={() => {}} onEndDrop={() => {}} extendInfusionLeft={() => {}} applyInfRateChange={() => {}} 
       onOpenMenu={onOpenMenu} projectRunning={projectRunning}
     />,
   )

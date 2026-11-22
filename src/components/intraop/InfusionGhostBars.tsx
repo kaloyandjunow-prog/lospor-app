@@ -16,20 +16,6 @@ import type { TtSel } from "./timetable-types"
 
 const ghostBase = { top: 22, bottom: 4 } as const
 
-export function MoveGhost({ color, isFirst, isLast }: { color: string; isFirst: boolean; isLast: boolean }) {
-  return (
-    <div
-      className="absolute left-0 right-0 border border-dashed opacity-25"
-      style={{
-        ...ghostBase,
-        backgroundColor: color + "33",
-        borderColor: color,
-        borderRadius: isFirst ? "6px 0 0 6px" : isLast ? "0 6px 6px 0" : 0,
-      }}
-    />
-  )
-}
-
 /** The handle drawn at the hovered end while a grip is being dragged. */
 function GhostGrip({ color, side }: { color: string; side: "left" | "right" }) {
   return (

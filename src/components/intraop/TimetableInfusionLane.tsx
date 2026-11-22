@@ -7,7 +7,7 @@ import { useTciLanePredictions } from "./TciLaneOverlay"
 import { SaveMark } from "./SaveMark"
 import { segmentEventIds } from "@lospor/core/intraop-save-state"
 import { useTimetableMenu } from "./TimetableMenuHost"
-import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
+import { ExtendGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass, barTimeInsets } from "./timetable-row-geometry"
 import type { TimetableDragActions, TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
@@ -47,14 +47,6 @@ function infusionStretches(seg: TimetableInfusion): StripStretch[] {
  *
  * Presentational: every change goes back through the callbacks.
  */
-
-/** A bar picked up for a whole-bar move. */
-export type InfusionBarMove = {
-  id: string
-  origStart: number
-  origEnd: number
-  fromCol: number
-}
 
 /** A rate change picked up to be slid to another column. */
 export type RatePillMove = {
@@ -107,8 +99,6 @@ export type InfusionLaneProps = {
   onEndDrop: (id: string, toCol: number) => void
   extendInfusionLeft: (id: string, toCol: number) => void
   applyInfRateChange: (infId: string, fromCol: number | null, toCol: number, change: { rate: number; unit: string; concentration?: string; volumeRateMlPerHour?: number }) => void
-  /** Commit a whole-bar move; the owner decides move versus delete-prompt. */
-  onMoveBar: (move: InfusionBarMove, toCol: number) => void
   onOpenMenu: (request: InfusionMenuRequest) => void
   /** A live case not yet ended: a running infusion runs on in the cells after now (9.13.1). */
   projectRunning?: boolean
@@ -132,7 +122,6 @@ export function InfusionLane({
   onEndDrop,
   extendInfusionLeft,
   applyInfRateChange,
-  onMoveBar,
   onOpenMenu,
   projectRunning = false,
 }: InfusionLaneProps) {
@@ -144,8 +133,7 @@ export function InfusionLane({
     if (menu?.openContinuous({ kind: "infusion", key: request.segId, col: request.fromPillCol, rect: request.rect, title: displayInfusionName(request.name) })) return
     onOpenMenu(request)
   }
-  const { movingInf, movingInfCol, movingRatePill, extendingInf, extInfHover, extendingInfLeft, extInfLeftHover } = drag
-  const isBusyMovingBar = movingInf !== null && segments.some(s => s.id === movingInf.id)
+  const { movingRatePill, extendingInf, extInfHover, extendingInfLeft, extInfLeftHover } = drag
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
   // A TCI bar shows its target and the predicted concentration line (2026-10-18).
   const tciPredictions = useTciLanePredictions(segments)
@@ -160,9 +148,6 @@ export function InfusionLane({
   const language = useLocale() === "bg" ? "bg" : "en"
   // Core's total: the amount and how long, the same words as the PWA's row.
   const totalOf = (seg: TimetableInfusion) => intraopInfusionTotalLabel(seg, { ibw: facts?.ibw ?? null, tbw: facts?.tbw ?? null, tciPatient: (facts?.tciPatient ?? null) as TciPatient | null, now: new Date(), language })
-  // The bar being moved whole: its strip is drawn on the ghost, shifted with it.
-  const movingSeg = isBusyMovingBar ? segments.find(s => s.id === movingInf!.id) ?? null : null
-  const moveDelta = movingSeg && movingInfCol !== null ? movingInfCol - movingInf!.fromCol : 0
 
   return (
     <div
@@ -189,16 +174,6 @@ export function InfusionLane({
         const leftPreviewSeg = !seg && extendingInfLeft
           ? segments.find(s => s.id === extendingInfLeft && extInfLeftHover !== null && ci >= extInfLeftHover && ci < s.startCol) ?? null
           : null
-        // Whole-bar move preview position.
-        const previewStart = isBusyMovingBar && movingInfCol !== null
-          ? movingInf!.origStart + (movingInfCol - movingInf!.fromCol)
-          : null
-        const previewEnd = previewStart !== null ? previewStart + (movingInf!.origEnd - movingInf!.origStart) : null
-        // The ghost is drawn over the bar's own cells too, so the whole bar and
-        // its strip are seen moving; the bar left behind fades meanwhile.
-        const isPreview = (!seg || seg.id === movingInf?.id) && !rightPreviewSeg && !leftPreviewSeg
-          && previewStart !== null && previewEnd !== null && ci >= previewStart && ci <= previewEnd
-        const leftBehind = !!(seg && isBusyMovingBar && seg.id === movingInf?.id && moveDelta !== 0)
         // The drawn end follows the right grip while it is being dragged.
         const effectiveEnd = seg && extendingInf === seg.id && extInfHover !== null
           ? Math.max(extInfHover, seg.startCol)
@@ -230,8 +205,6 @@ export function InfusionLane({
                 e.preventDefault(); e.stopPropagation()
                 const s = segments.find(s => s.id === extendingInfLeft)
                 if (s && ci <= s.endCol) dragActions.infusionExtendHover(Math.max(0, ci), "left")
-              } else if (isBusyMovingBar) {
-                e.preventDefault(); dragActions.infusionMoveHover(ci)
               } else if (isBusyMovingPill) {
                 e.preventDefault()
               }
@@ -246,10 +219,6 @@ export function InfusionLane({
                 e.preventDefault()
                 extendInfusionLeft(extendingInfLeft, Math.max(0, extInfLeftHover ?? ci))
                 dragActions.infusionExtendEnd("left")
-              } else if (isBusyMovingBar) {
-                e.preventDefault()
-                onMoveBar(movingInf!, ci)
-                dragActions.infusionMoveEnd()
               } else if (isBusyMovingPill) {
                 e.preventDefault()
                 // Only lands where an infusion is running; fromCol null keeps
@@ -288,7 +257,7 @@ export function InfusionLane({
             {/* Rate strip — shares the bar's geometry so the two read as one object.
                 It stays after the infusion is stopped, faded: the record of what ran
                 and at which rates is exactly what a stopped bar is for. */}
-             {seg && <InfusionRateStrip seg={seg} ci={ci} color={color} isActualStart={isActualStart} isRowCont={isRowCont} isActualEnd={isActualEnd} isRowExit={isRowExit} isSelected={isSelected} leftBehind={leftBehind} cutOff={cutOff} timedLeft={timedLeft} timedRight={timedRight} dragActions={dragActions} onOpenMenu={openMenu} prediction={tciPredictions.get(seg.id)} />}
+             {seg && <InfusionRateStrip seg={seg} ci={ci} color={color} isActualStart={isActualStart} isRowCont={isRowCont} isActualEnd={isActualEnd} isRowExit={isRowExit} isSelected={isSelected} cutOff={cutOff} timedLeft={timedLeft} timedRight={timedRight} dragActions={dragActions} onOpenMenu={openMenu} prediction={tciPredictions.get(seg.id)} />}
 
             {seg && (
               <>
@@ -299,7 +268,7 @@ export function InfusionLane({
                     setSel(() => ({ type: "infusion", id: seg.id }))
                     openMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: !!seg.stopped, fromPillCol: ci })
                   }}
-                  className={`absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : leftBehind ? "opacity-20" : ""}`}
+                  className={`absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : ""}`}
                   style={{
                     top: 6,
                     bottom: 4,
@@ -340,14 +309,6 @@ export function InfusionLane({
               </>
             )}
 
-            {isPreview && (
-              <MoveGhost color={color} isFirst={ci === previewStart} isLast={ci === previewEnd} />
-            )}
-            {/* The rate strip travels with the bar while it is dragged (10.0.0). */}
-            {isPreview && movingSeg && (
-              <ChangeStripCell col={ci - moveDelta} stretches={infusionStretches(movingSeg)} color={color} height={21}
-                roundStart={ci === previewStart} roundEnd={ci === previewEnd} testId="infusion-strip-ghost" />
-            )}
             {rightPreviewSeg && (
               <ChangeStripCell col={ci} stretches={infusionStretches(rightPreviewSeg)} color={color} height={21}
                 roundStart={false} roundEnd={ci === extInfHover} faded testId="infusion-strip-ghost" />

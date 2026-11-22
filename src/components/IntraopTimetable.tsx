@@ -33,7 +33,7 @@ import { columnForWallClock } from "@lospor/core/timetable"
 import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLanes"
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { FluidLane } from "@/components/intraop/TimetableFluidLane"
-import { InfusionLane, type InfusionBarMove } from "@/components/intraop/TimetableInfusionLane"
+import { InfusionLane } from "@/components/intraop/TimetableInfusionLane"
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
@@ -875,32 +875,6 @@ export function IntraopTimetable({
   const { removeInfusion, extendInfusion, setInfusionPumpTotal, extendInfusionLeft, restoreInfusion, applyInfRateChange } =
     useInfusionHandlers(data, onChange, dataRef, onChangeRef, nowCol)
 
-  /**
-   * Land a whole-bar drag. Rate changes travel with the bar, since they are
-   * recorded against columns rather than against the infusion's own start.
-   *
-   * Dragging off the left-hand edge is an intent to delete, not a move to a
-   * negative time — it asks first, because a whole infusion is being removed.
-   */
-  function moveInfusionBar(move: InfusionBarMove, toCol: number) {
-    const delta = toCol - move.fromCol
-    const newStart = move.origStart + delta
-    if (newStart < 0) {
-      setDeleteInfPrompt(move.id)
-      return
-    }
-    onChangeRef.current({
-      ...dataRef.current,
-      infusions: (dataRef.current.infusions ?? []).map(i => i.id === move.id
-        ? {
-            ...i,
-            startCol: newStart,
-            endCol: move.origEnd + delta,
-            rateChanges: (i.rateChanges ?? []).map(rc => ({ ...rc, col: rc.col + delta })),
-          }
-        : i),
-    })
-  }
 
   // ── Fluids ──────────────────────────────────────────────────────────────────
   const { removeFluid, resumeFluid, continueFluid } =
@@ -1248,7 +1222,6 @@ export function IntraopTimetable({
                 onEndDrop={(id, col) => handleEndDrop("infusion", id, col)}
                 extendInfusionLeft={extendInfusionLeft}
                 applyInfRateChange={applyInfRateChange}
-                onMoveBar={moveInfusionBar}
                 onOpenMenu={setInfMenu}
               />
             )
