@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal } from "lucide-react"
 import { calendarDateKey, parseCalendarDateKey, type CalendarDate } from "@lospor/core/time-entry"
@@ -38,30 +38,39 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
   const ref = useRef<HTMLDivElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)
-  const [up, setUp] = useState(false)
+  const trigger = useRef<HTMLButtonElement | null>(null)
+  // Fixed to the screen, not the row: the dashboard card clips anything that overflows it (10.8.0).
+  const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" })
 
   useLayoutEffect(() => {
-    if (!open || !panel.current) return
-    const rect = panel.current.getBoundingClientRect()
-    setUp(rect.bottom > (window.visualViewport?.height ?? window.innerHeight) - 8)
+    if (!open || !panel.current || !trigger.current) return
+    const button = trigger.current.getBoundingClientRect()
+    const height = panel.current.offsetHeight
+    const viewport = window.visualViewport?.height ?? window.innerHeight
+    const right = Math.max(8, window.innerWidth - button.right)
+    const below = button.bottom + 4 + height <= viewport - 8
+    setPlace(below ? { right, top: button.bottom + 4 } : { right, top: Math.max(8, button.top - 4 - height) })
   }, [open])
   useEffect(() => {
     if (!open) return
     const close = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false) }
+    // A fixed menu would drift from its row on scroll: scrolling closes it.
+    const closeOnScroll = () => setOpen(false)
     window.addEventListener("pointerdown", close, true)
-    return () => window.removeEventListener("pointerdown", close, true)
+    window.addEventListener("scroll", closeOnScroll, true)
+    return () => { window.removeEventListener("pointerdown", close, true); window.removeEventListener("scroll", closeOnScroll, true) }
   }, [open])
 
   const item = "flex w-full min-h-11 items-center rounded-lg px-3 text-left text-sm font-semibold hover:bg-slate-100 dark:hover:bg-[#2a2a2a]"
   return (
     <div ref={ref} className="relative" onClick={event => event.stopPropagation()}>
-      <button type="button" aria-label={copy.menu} aria-haspopup="menu" aria-expanded={open} data-testid="case-row-menu"
-        onClick={() => setOpen(value => !value)}
+      <button ref={trigger} type="button" aria-label={copy.menu} aria-haspopup="menu" aria-expanded={open} data-testid="case-row-menu"
+        onClick={() => { setPlace({ visibility: "hidden" }); setOpen(value => !value) }}
         className="flex size-11 items-center justify-center rounded-lg border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-[#bbb] hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
         <MoreHorizontal className="h-5 w-5" />
       </button>
       {open ? (
-        <div ref={panel} role="menu" className={`absolute right-0 z-50 w-72 rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] p-1.5 shadow-xl ${up ? "bottom-full mb-1" : "top-full mt-1"}`}>
+        <div ref={panel} role="menu" style={place} className="fixed z-[60] w-72 rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] p-1.5 shadow-xl">
           {canPlan ? <button type="button" role="menuitem" className={item} data-testid="case-row-planned-date" onClick={() => { setOpen(false); setDialog("date") }}>{copy.planned}{plannedSurgeryDate ? ` · ${plannedSurgeryDate.split("-").reverse().join(".")}` : ""}</button> : null}
           {canAssignNurses ? <button type="button" role="menuitem" className={item} data-testid="case-row-nurses" onClick={() => { setOpen(false); setDialog("nurses") }}>{copy.nurses}</button> : null}
           {canHandOverToNurse ? <button type="button" role="menuitem" className={item} data-testid="case-row-handover-nurse" onClick={() => { setOpen(false); setDialog("handover") }}>{copy.handover}</button> : null}
