@@ -8,6 +8,7 @@ import { Search, X, FileText, Printer } from "lucide-react"
 import { DeleteDraftButton } from "@/components/DeleteDraftButton"
 import { HandoverButton } from "@/components/HandoverButton"
 import { TheatreButton } from "@/components/TheatreButton"
+import { CaseRowMenu } from "@/components/CaseRowMenu"
 import { CancelProcedureButton, UndoCancellationButton } from "@/components/CancelProcedureButton"
 import { cancellationAllowed, cancellationReasonLabel } from "@lospor/core/case-cancellation"
 import { plannedProcedureLabel } from "@lospor/core/procedure-codes"
@@ -177,10 +178,14 @@ export function DashboardSearch({
                       {c.caseCode}
                     </span>
                   )}
-                  {!isComplete && !isCancelled && canWrite && <DeleteDraftButton caseId={c.id} />}
-                  {/* Once anaesthesia has started, the button stays but is inactive. */}
-                  {canWrite && !isComplete && !isCancelled && <CancelProcedureButton caseId={c.id} inactive={!cancellationAllowed(c)} />}
-                  {isCancelled && canWrite && <UndoCancellationButton caseId={c.id} />}
+                  {/* 10.8.0: delete and cancel live in the row's menu, with the planned date and the nurses. */}
+                  {canWrite && !isComplete && role !== "ANAESTHESIA_NURSE" && (
+                    <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={(c as { plannedSurgeryDate?: string | null }).plannedSurgeryDate?.slice(0, 10) ?? null} canPlan={!isCancelled} canAssignNurses={!isCancelled}>
+                      {!isCancelled && <DeleteDraftButton caseId={c.id} />}
+                      {!isCancelled && <CancelProcedureButton caseId={c.id} inactive={!cancellationAllowed(c)} />}
+                      {isCancelled && <UndoCancellationButton caseId={c.id} />}
+                    </CaseRowMenu>
+                  )}
                   {isComplete && (
                     <span
                       role="link"
