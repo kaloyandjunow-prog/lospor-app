@@ -156,7 +156,7 @@ export function AgentLane({
             }}
           >
             {!seg && !vacated && (
-              <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none">
+              <span className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
                 {copy.gas.choose}
               </span>
             )}
@@ -219,7 +219,7 @@ export function AgentLane({
                 onDragEnd={onDragEnd}
                 className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 ${style2.grip} opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
               >
-                <span className="text-white text-[8px] font-bold select-none">|</span>
+                <span className="text-white text-xs font-bold select-none">|</span>
               </div>
             )}
             {agents.some(a => a.plannedStopCol === ci) && <PlannedStopMarker />}
@@ -292,7 +292,7 @@ export function GasSettingsLane({
           >
             {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
-              <span className="w-full text-center text-[10px] text-slate-400 dark:text-[#666] select-none pointer-events-none">
+              <span className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none">
                 {copy.gas.tapToStart}
               </span>
             )}
@@ -305,10 +305,10 @@ export function GasSettingsLane({
             {showSettingsLabel && settings && (
               <span
                 title={displayGasSettings(settings, locale)}
-                className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-[9px] font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
+                className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-xs font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
               >
                 <span>FGF {settings.fgf} L/min</span>
-                <span className="text-[8px]">{displayGasMix(settings, locale)}</span>
+                <span className="text-xs">{displayGasMix(settings, locale)}</span>
               </span>
             )}
           </div>

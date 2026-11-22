@@ -123,7 +123,7 @@ export function EventPickerPopover({
         <span className="h-2 w-2 flex-none rounded-full" style={{ background: category.color }} />
         <span className="min-w-0 flex-1">
           <span className={`block ${recorded ? "font-bold text-emerald-700 dark:text-emerald-300" : ""}`}>{recorded ? "✓ " : ""}{event.displayLabel}</span>
-          {sub ? <span className="block text-[11px] text-slate-500">{sub}</span> : null}
+          {sub ? <span className="block text-xs text-slate-500">{sub}</span> : null}
         </span>
       </button>
     )
@@ -145,7 +145,7 @@ export function EventPickerPopover({
         onClick={event => event.stopPropagation()}
       >
         <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">
             {labels.logClinicalEvent}
           </p>
           <input
@@ -176,13 +176,13 @@ export function EventPickerPopover({
               <>
                 {likelyRows.length > 0 ? (
                   <>
-                    <p className="mb-1 mt-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("likely")}</p>
+                    <p className="mb-1 mt-1 px-1 text-xs font-semibold uppercase tracking-wider text-slate-400">{t("likely")}</p>
                     <div data-testid="event-likely" className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
                       {likelyRows.map(({ item, event, category }) => (
                         <div key={item.event} className="flex min-h-12 items-center gap-2 border-b border-slate-100 px-3 py-1.5 last:border-b-0 dark:border-[#2a2a2a]">
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-bold">{event.displayLabel}</span>
-                            <span className="block text-[11.5px] font-semibold text-amber-600 dark:text-amber-400">{t("usually", { from: item.from, percent: Math.round(item.probability * 100) })}</span>
+                            <span className="block text-xs font-semibold text-amber-600 dark:text-amber-400">{t("usually", { from: item.from, percent: Math.round(item.probability * 100) })}</span>
                           </span>
                           <button type="button" data-testid={`likely-dismiss-${item.event}`} aria-label={t("dismiss")} onClick={() => dismiss(successionAutomationId(item.from, item.event))} className="min-h-11 rounded-lg px-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">{t("dismiss")}</button>
                           <button type="button" data-testid={`likely-log-${item.event}`} onClick={() => onToggleEvent(event, category, false, successionAutomationId(item.from, item.event))}
@@ -192,7 +192,7 @@ export function EventPickerPopover({
                     </div>
                   </>
                 ) : null}
-                <p className="mb-1 mt-3 px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{t("all")}</p>
+                <p className="mb-1 mt-3 px-1 text-xs font-semibold uppercase tracking-wider text-slate-400">{t("all")}</p>
                 <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#333]">
                   {mainCategories.map(category => {
                     const isOpen = open === category.cat
@@ -248,7 +248,7 @@ export function EventPickerPopover({
         >
           {visibleCategories.map(category => (
             <div key={category.cat}>
-              <p className="text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: category.color }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: category.color }}>
                 {category.displayCat}
               </p>
               <div className="flex flex-wrap gap-1">

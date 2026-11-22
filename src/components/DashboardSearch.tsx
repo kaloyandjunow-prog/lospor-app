@@ -56,7 +56,7 @@ function ageLabel(preop: CaseRow["preop"], locale: string): string {
 function asaBadge(asa: string | null) {
   if (!asa) return null
   const map: Record<string, string> = { I: "bg-green-100 text-green-800", II: "bg-blue-100 text-blue-800", III: "bg-amber-100 text-amber-800", IV: "bg-red-100 text-red-800", V: "bg-red-200 text-red-900", VI: "bg-slate-200 text-slate-700" }
-  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${map[asa] ?? ""}`}>ASA {asa}</span>
+  return <span className={`text-xs font-semibold px-1.5 py-0.5 rounded shrink-0 ${map[asa] ?? ""}`}>ASA {asa}</span>
 }
 
 function dispositionBadge(d: string | null, locale: string) {
@@ -160,7 +160,7 @@ export function DashboardSearch({
                     <p className="font-medium text-slate-800 dark:text-slate-100 truncate">
                       {plannedProcedureLabel(c.preop, locale) || t("dashboard.untitled")}
                     </p>
-                    <span title={isCancelled ? cancellationReasonLabel(c.cancellationReason, locale) ?? undefined : undefined} data-testid={isCancelled ? "cancelled-badge" : undefined} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
+                    <span title={isCancelled ? cancellationReasonLabel(c.cancellationReason, locale) ?? undefined : undefined} data-testid={isCancelled ? "cancelled-badge" : undefined} className={`text-xs font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
                       {displayClinicalCode("caseStatus", STATUS_CODES[key], locale)}
                     </span>
                   </div>
@@ -173,7 +173,7 @@ export function DashboardSearch({
                   {asaBadge(c.preop?.asaScore ?? null)}
                   {dispositionBadge(c.postop?.disposition ?? null, locale)}
                   {c.caseCode && (
-                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
                       {c.caseCode}
                     </span>
                   )}
@@ -189,7 +189,7 @@ export function DashboardSearch({
                       aria-label={t("dashboard.printCase")}
                       onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/cases/${c.id}/print`) }}
                       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); router.push(`/cases/${c.id}/print`) } }}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
                     >
                       <Printer className="h-3 w-3" /> {t("dashboard.printCase")}
                     </span>

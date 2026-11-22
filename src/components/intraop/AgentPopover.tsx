@@ -52,7 +52,7 @@ export type AgentPopoverProps = {
 const POPOVER_WIDTH = 190
 
 const DEFAULT_NITROUS_PERCENT = 40
-const captionClass = "text-[9px] text-slate-400 font-semibold uppercase tracking-wide"
+const captionClass = "text-xs text-slate-400 font-semibold uppercase tracking-wide"
 
 export function AgentPopover({
   anchor,
@@ -135,7 +135,7 @@ export function AgentPopover({
         {/* Agents always dose in %, so there is no unit or route to choose. */}
         {activeAgent && (
           <div className="border-t border-slate-100 dark:border-[#333] pt-2">
-            <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mb-1.5">
+            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1.5">
               Fi{activeAgent}
             </p>
             <DoseSelector
@@ -176,7 +176,7 @@ export function AgentPopover({
           {nitrousOpen && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] text-slate-500 font-semibold">FiN2O</span>
+                <span className="text-xs text-slate-500 font-semibold">FiN2O</span>
                 <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">{nitrousPercent ?? ""}%</span>
               </div>
               {prospectiveGuidanceEnabled ? (
@@ -217,7 +217,7 @@ export function AgentPopover({
                 {copy.resume}
               </button>
             )}
-            <p className="text-[9px] leading-snug text-slate-400">{labels.editLogged}</p>
+            <p className="text-xs leading-snug text-slate-400">{labels.editLogged}</p>
           </>
         )}
       </div>

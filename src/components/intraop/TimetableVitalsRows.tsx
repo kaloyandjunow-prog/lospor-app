@@ -137,7 +137,7 @@ export function TimetableVitalsRows({
     return isFirstRow ? (
       <div className="flex items-center border-b border-slate-50 dark:border-[#222] py-2">
         <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-2"} />
-        <span className="text-[10px] text-slate-300 dark:text-[#555] italic px-3">{emptyLabel}</span>
+        <span className="text-xs text-slate-300 dark:text-[#555] italic px-3">{emptyLabel}</span>
       </div>
     ) : null
   }
@@ -181,7 +181,7 @@ export function TimetableVitalsRows({
               <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color: row.color }}>
                 {TRANSLATED_ROW_LABELS[row.key] ? t(TRANSLATED_ROW_LABELS[row.key]!) : row.label}
               </span>
-              <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">({row.unit})</span>
+              <span className="text-xs text-slate-300 dark:text-[#555] leading-tight">({row.unit})</span>
             </div>
             {rowCols.map(ci => {
               const cellKey = `${ci}-${row.key}`
@@ -252,7 +252,7 @@ export function TimetableVitalsRows({
                 />
                 {messageKey ? (
                   <p id={feedbackId} role={feedback.error ? "alert" : undefined}
-                    className={`mt-1 text-[9px] leading-tight ${feedback.error ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    className={`mt-1 text-xs leading-tight ${feedback.error ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
                     {t(messageKey)}
                   </p>
                 ) : null}

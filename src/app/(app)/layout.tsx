@@ -118,7 +118,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           className="hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
           AGPL-3.0
         </a>
-        <span className="block mt-1 text-[10px] text-slate-300 dark:text-slate-600">
+        <span className="block mt-1 text-xs text-slate-300 dark:text-slate-600">
           {t("nav.footerDisclaimer")}
           {" "}
           {t("nav.footerCopyright")}

@@ -27,7 +27,7 @@ export function PlannedChangeMarker({ value }: { value: string }) {
       <span
         aria-hidden
         data-testid="planned-change-value"
-        className="pointer-events-none absolute top-0.5 left-2.5 z-30 whitespace-nowrap rounded-sm bg-white/80 px-0.5 text-[8px] font-bold leading-tight text-sky-600 dark:bg-black/50 dark:text-sky-400"
+        className="pointer-events-none absolute top-0.5 left-2.5 z-30 whitespace-nowrap rounded-sm bg-white/80 px-0.5 text-xs font-bold leading-tight text-sky-600 dark:bg-black/50 dark:text-sky-400"
       >
         → {value}
       </span>

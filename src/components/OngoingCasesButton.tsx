@@ -95,7 +95,7 @@ export function OngoingCasesButton() {
         {cases.length > 0 && (
           <span
             data-testid="ongoing-cases-count"
-            className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-slate-600 dark:bg-slate-400 text-white dark:text-slate-900 text-[9px] font-bold">
+            className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-slate-600 dark:bg-slate-400 text-white dark:text-slate-900 text-xs font-bold">
             {cases.length}
           </span>
         )}
@@ -134,7 +134,7 @@ export function OngoingCasesButton() {
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
                       {c.preop?.plannedProcedure || t("status.untitled")}
                     </span>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded shrink-0 ${cls}`}>
                       {t(`status.${key}`)}
                     </span>
                   </div>

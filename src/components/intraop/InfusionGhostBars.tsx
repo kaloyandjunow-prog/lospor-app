@@ -37,7 +37,7 @@ function GhostGrip({ color, side }: { color: string; side: "left" | "right" }) {
       className={`absolute ${side}-0 z-20 flex items-center justify-center ${side === "left" ? "rounded-l-sm" : "rounded-r-sm"}`}
       style={{ ...ghostBase, width: 10, backgroundColor: color, opacity: 0.7 }}
     >
-      <span className="text-white text-[8px] font-bold select-none">|</span>
+      <span className="text-white text-xs font-bold select-none">|</span>
     </div>
   )
 }

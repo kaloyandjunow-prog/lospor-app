@@ -50,7 +50,7 @@ export function TimetableTimeHeader({
     <div className="flex border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a]">
       <div
         style={{ width: labelWidth, minWidth: labelWidth }}
-        className="text-[10px] text-slate-300 dark:text-[#555] px-2 py-1.5 text-right"
+        className="text-xs text-slate-300 dark:text-[#555] px-2 py-1.5 text-right"
       >
         {label}
       </div>

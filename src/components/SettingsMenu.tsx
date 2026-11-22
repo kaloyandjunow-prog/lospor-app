@@ -261,15 +261,15 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
               <div className="px-4 py-3 border-b border-slate-100 dark:border-[#2a2a2a] space-y-1">
                 {userName && <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{userName}</p>}
                 {instRequest.state === "pending" ? (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
                     {t("settings.institutionRequestPending", { institution: instRequest.name })}
                   </p>
                 ) : instRequest.state === "left" ? (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {t("settings.institutionLeft", { institution: instRequest.name })}
                   </p>
                 ) : instRequest.state === "error" ? (
-                  <p className="text-[11px] text-red-500">{t("settings.institutionRequestFailed")}</p>
+                  <p className="text-xs text-red-500">{t("settings.institutionRequestFailed")}</p>
                 ) : !instEdit ? (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-1">
@@ -280,7 +280,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                           setInstList(data)
                         }
                         setInstEdit(true)
-                      }} className="text-[10px] text-blue-500 hover:underline shrink-0">{t("settings.edit")}</button>
+                      }} className="text-xs text-blue-500 hover:underline shrink-0">{t("settings.edit")}</button>
                     </div>
                     {/* Leaving is not the same as joining: it grants nobody
                         anything, so it needs nobody's approval and applies at
@@ -289,7 +289,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                         keep the institution they were recorded at. */}
                     {canLeave && (confirmLeave ? (
                       <div className="flex items-center gap-2">
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {t("settings.leaveInstitutionConfirm")}
                         </p>
                         <button type="button" disabled={instSaving} onClick={async () => {
@@ -309,15 +309,15 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                           }
                           setConfirmLeave(false)
                           setInstSaving(false)
-                        }} className="text-[10px] font-semibold text-red-500 hover:underline shrink-0">
+                        }} className="text-xs font-semibold text-red-500 hover:underline shrink-0">
                           {t("settings.leaveInstitution")}
                         </button>
                         <button type="button" onClick={() => setConfirmLeave(false)}
-                          className="text-[10px] text-slate-400 hover:text-slate-600 shrink-0">{t("settings.cancel")}</button>
+                          className="text-xs text-slate-400 hover:text-slate-600 shrink-0">{t("settings.cancel")}</button>
                       </div>
                     ) : (
                       <button type="button" onClick={() => setConfirmLeave(true)}
-                        className="text-[10px] text-slate-400 hover:text-red-500 hover:underline">
+                        className="text-xs text-slate-400 hover:text-red-500 hover:underline">
                         {t("settings.leaveInstitution")}
                       </button>
                     ))}
@@ -359,7 +359,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                       ))}
                     </div>
                     <button type="button" onClick={() => { setInstEdit(false); setInstQuery("") }}
-                      className="text-[10px] text-slate-400 hover:text-slate-600">{t("settings.cancel")}</button>
+                      className="text-xs text-slate-400 hover:text-slate-600">{t("settings.cancel")}</button>
                   </div>
                 )}
               </div>
@@ -392,7 +392,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
 
             {/* Sidebar */}
             <div className="w-40 shrink-0 bg-slate-50 dark:bg-[#161616] border-r border-slate-200 dark:border-[#2a2a2a] py-5">
-              <p className="px-4 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">{t("settings.title")}</p>
+              <p className="px-4 text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">{t("settings.title")}</p>
               {CATS.map(cat => (
                 <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
                   className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -699,7 +699,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
                           {new Date(lastLoginAt).toLocaleString(locale === "bg" ? "bg-BG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
                         </p>
                       )}
-                      <p className="text-[11px]">{t("settings.activeSessions")}</p>
+                      <p className="text-xs">{t("settings.activeSessions")}</p>
                     </div>
 
                     <div className="space-y-1">

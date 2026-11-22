@@ -81,17 +81,17 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
       {/* Legacy event log (read-only timeline) */}
       {eventLogScreen !== "smart" && entries.length > 0 && (
         <div className="mt-5 border-t border-slate-100 dark:border-[#2a2a2a] pt-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">{t("intraop.eventLog")}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] mb-3">{t("intraop.eventLog")}</p>
           <div className="space-y-0">
             {entries.map((entry) => {
               if (entry.kind === "lab") {
                 return (
                   <div key={`lab-${entry.ts}`} data-testid="event-log-lab-draw" className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0">
-                    <span className="text-[11px] text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmmOf(entry.ts)}</span>
+                    <span className="text-xs text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmmOf(entry.ts)}</span>
                     <div className="w-0.5 h-5 rounded-full shrink-0 bg-teal-500" />
                     <span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug flex-1">
                       {t("intraop.timetable.labs")} · {entry.draw.results.length}
-                      <span className="block text-[11px] font-normal text-slate-400">{labDrawSummary(entry.draw)}</span>
+                      <span className="block text-xs font-normal text-slate-400">{labDrawSummary(entry.draw)}</span>
                     </span>
                   </div>
                 )
@@ -107,7 +107,7 @@ export function ComplicationsSection({ t, control, watch, eventLog, labResults =
               const { color } = descriptor
               return (
                 <div key={ev.id} className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0 group">
-                  <span className="text-[11px] text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmm}</span>
+                  <span className="text-xs text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0">{hhmm}</span>
                   <div className="w-0.5 h-5 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug flex-1">{text}</span>
                   {onDeleteEvent && (

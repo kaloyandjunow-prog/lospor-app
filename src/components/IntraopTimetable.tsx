@@ -1150,12 +1150,12 @@ export function IntraopTimetable({
         className="rounded-lg border border-slate-200 dark:border-[#2e2e2e] bg-white dark:bg-[#1c1c1c] overflow-hidden">
         {/* Row label bar */}
         <div className="flex items-center justify-between px-3 py-1 bg-slate-50 dark:bg-[#1a1a1a] border-b border-slate-100 dark:border-[#2a2a2a]">
-          <span className="text-[9px] font-mono font-semibold text-slate-400 dark:text-[#666]">
+          <span className="text-xs font-mono font-semibold text-slate-400 dark:text-[#666]">
             {times[colStart]}{" - "}{addMinutes(times[Math.min(colEnd - 1, times.length - 1)], INTERVAL)}
           </span>
           {isActiveRow && (endTime
-            ? <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />{uiCopy.timetable.caseEndedBadge}</span>
-            : <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-orange-500 dark:text-orange-400"><span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping opacity-75" />{uiCopy.timetable.liveBadge}</span>
+            ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />{uiCopy.timetable.caseEndedBadge}</span>
+            : <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-500 dark:text-orange-400"><span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping opacity-75" />{uiCopy.timetable.liveBadge}</span>
           )}
         </div>
         <div style={{ width: rowW, position: "relative" }}>
@@ -1188,7 +1188,7 @@ export function IntraopTimetable({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span className="text-[9px] font-bold tracking-widest uppercase text-emerald-700 dark:text-emerald-300">{t("intraop.timetable.caseFinished")}</span>
+                  <span className="text-xs font-bold tracking-widest uppercase text-emerald-700 dark:text-emerald-300">{t("intraop.timetable.caseFinished")}</span>
                 </div>
               )}
             </div>
@@ -1349,7 +1349,7 @@ export function IntraopTimetable({
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
                 <button type="button" tabIndex={-1} data-testid="add-infusion"
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
-                  className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
+                  className="flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
@@ -1395,7 +1395,7 @@ export function IntraopTimetable({
                 className={`border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center transition-colors ${drag.fluidDragOver===ci ? "bg-cyan-100 dark:bg-cyan-900/20" : ""}`}>
                 <button type="button" tabIndex={-1} data-testid="add-fluid"
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setFluidPicker({ ci, rect }); setFpSearch("") }}
-                  className="flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-cyan-300 dark:border-cyan-700 text-cyan-400 dark:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-1 py-1 transition-colors w-[72px]">
+                  className="flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-cyan-300 dark:border-cyan-700 text-cyan-400 dark:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
@@ -1610,7 +1610,7 @@ export function IntraopTimetable({
                 {/* From the real start, as the stored duration is: the grid's rounded origin overstated it (9.12.1). */}
                 {endTime ? calcDuration(startTime || roundedStart, endTime, colCount) : uiCopy.timetable.ongoing}
               </span>
-              {endTime && <span className="ml-1 text-[10px] text-slate-300 dark:text-[#555]">({startTime || roundedStart} {"->"} {toHHMM(endTime)})</span>}
+              {endTime && <span className="ml-1 text-xs text-slate-300 dark:text-[#555]">({startTime || roundedStart} {"->"} {toHHMM(endTime)})</span>}
             </span>
             <div className="ml-auto relative">
               {endTime ? (
@@ -1618,7 +1618,7 @@ export function IntraopTimetable({
                   {(resumeSecsLeft > 0 || autoEnded) && onResumeCase && (
                     <>
                       {!autoEnded && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                        <span className="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                           {uiCopy.timetable.resumableUntil} {resumeUntilLabel}
                         </span>
                       )}
@@ -2075,14 +2075,14 @@ export function IntraopTimetable({
         <div className="fixed z-50 bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-xl p-3 space-y-2"
           style={{ top: rect.bottom + 6, left: Math.min(rect.right - 200, window.innerWidth - 210), width: 200 }}
           onClick={e => e.stopPropagation()}>
-          <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-2">
+          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
             {displayFluidName(fluid.name)}{isRate
               ? ` · ${currentFluidRate(fluid) ?? fluid.rate ?? ""} mL/h`
               : bagVol ? ` · ${uiCopy.timetable.bagSuffix(bagVol)}` : ""}
           </p>
           {isRate ? (
             <div className="space-y-1.5">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {uiCopy.endCase.calculatedVolume}
               </p>
               <div className="flex items-center gap-1.5">
@@ -2096,21 +2096,21 @@ export function IntraopTimetable({
                   onChange={event => setDiscFluidState(state => state ? { ...state, volInput: event.target.value } : state)}
                   className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs outline-none focus:border-cyan-400 dark:border-[#3a3a3a] dark:bg-[#2a2a2a]"
                 />
-                <span className="text-[10px] font-semibold text-slate-400">mL</span>
+                <span className="text-xs font-semibold text-slate-400">mL</span>
               </div>
             </div>
           ) : (
             <>
-              <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-100 mb-2">{t("intraop.timetable.wasFullBagInfused")}</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-100 mb-2">{t("intraop.timetable.wasFullBagInfused")}</p>
               <div className="flex gap-2 mb-2">
                 <button type="button"
                   onClick={() => setDiscFluidState(s => s ? { ...s, fullBag: true, volInput: String(bagVol) } : s)}
-                  className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === true ? "bg-teal-500 border-teal-500 text-white" : "border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}>
+                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === true ? "bg-teal-500 border-teal-500 text-white" : "border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}>
                   ✓ {uiCopy.timetable.fullBagYes}
                 </button>
                 <button type="button"
                   onClick={() => setDiscFluidState(s => s ? { ...s, fullBag: false, volInput: "0" } : s)}
-                  className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === false ? "bg-amber-500 border-amber-500 text-white" : "border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}>
+                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === false ? "bg-amber-500 border-amber-500 text-white" : "border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}>
                   {uiCopy.timetable.partialNo}
                 </button>
               </div>
@@ -2119,7 +2119,7 @@ export function IntraopTimetable({
           {!isRate && discFluidState.fullBag === false && (
             <div className="space-y-1.5 mb-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">{t("intraop.timetable.amountLabel")}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{t("intraop.timetable.amountLabel")}</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -2129,9 +2129,9 @@ export function IntraopTimetable({
                     aria-label={uiCopy.timetable.partialBagVolumeAria}
                     value={discFluidState.volInput}
                     onChange={event => setDiscFluidState(state => state ? { ...state, volInput: event.target.value } : state)}
-                    className="w-16 rounded border border-slate-200 bg-white px-1 py-0.5 text-right text-[11px] font-semibold outline-none focus:border-cyan-400 dark:border-[#3a3a3a] dark:bg-[#2a2a2a]"
+                    className="w-16 rounded border border-slate-200 bg-white px-1 py-0.5 text-right text-xs font-semibold outline-none focus:border-cyan-400 dark:border-[#3a3a3a] dark:bg-[#2a2a2a]"
                   />
-                  <span className="text-[10px] text-slate-400">mL</span>
+                  <span className="text-xs text-slate-400">mL</span>
                 </div>
               </div>
               <input type="range" min={0} max={bagVol} step={50}
@@ -2142,7 +2142,7 @@ export function IntraopTimetable({
           )}
           <div className="flex gap-1.5 justify-end pt-1">
             <button type="button" onClick={() => setDiscFluidState(null)}
-              className="text-[10px] text-slate-400 hover:text-slate-600 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
+              className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
               {uiCopy.cancel}
             </button>
             <button type="button"
@@ -2152,7 +2152,7 @@ export function IntraopTimetable({
                 setSel(null)
                 setDiscFluidState(null)
               }}
-              className="text-[10px] font-bold bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
+              className="text-xs font-bold bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
               {uiCopy.timetable.confirmDiscontinue}
             </button>
           </div>

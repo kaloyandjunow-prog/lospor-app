@@ -98,7 +98,7 @@ export function ClinicalEventsLane({
                 </div>
               ))}
               {colEvents.length > MAX_VISIBLE_EVENTS && (
-                <span className="text-[9px] text-slate-500 dark:text-[#888] font-semibold px-0.5" data-testid={`events-lane-more-${ci}`}>
+                <span className="text-xs text-slate-500 dark:text-[#888] font-semibold px-0.5" data-testid={`events-lane-more-${ci}`}>
                   +{colEvents.length - MAX_VISIBLE_EVENTS}
                 </span>
               )}

@@ -434,3 +434,26 @@ html[data-gesture="held"] * {
   -webkit-user-select: none !important;
   user-select: none !important;
 }
+
+/* ── Touch matrix (10.8.0) ─────────────────────────────────────────────────
+   One size for mouse and finger. A control that must look compact keeps its
+   look and gets an invisible 44 px hit area around it (.touch-target); the
+   rest are 44 px (48 for a primary action) outright. Text is never under
+   12 px. See TACH-MATRICA: a guard test keeps these from coming back. */
+@utility touch-target {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+:root {
+  --tap-min: 44px;
+  --tap-primary: 48px;
+  --text-min: 12px;
+}

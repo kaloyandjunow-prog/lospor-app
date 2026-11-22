@@ -79,7 +79,7 @@ export function IntraopAttentionPanel({ entries, onAnswer, onOpen, endCase = fal
         </div>
       )}
       {entries.length > 0 && <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{tr(endCase ? "endCaseAfterEndTitle" : "attentionTitle")}</p>}
-      {endCase && <p className="text-[11px] text-slate-500">{tr("endCaseAfterEndHint")}</p>}
+      {endCase && <p className="text-xs text-slate-500">{tr("endCaseAfterEndHint")}</p>}
       {entries.map(entry => (
         <div key={entry.key} className="flex flex-wrap items-center gap-2 text-sm">
           <span className="flex-1 min-w-[12rem] break-words">
@@ -109,7 +109,7 @@ export function IntraopAttentionPanel({ entries, onAnswer, onOpen, endCase = fal
           ))}
         </div>
       ))}
-      {endCase && <p className="text-[11px] text-amber-600">{tr("endCaseFinaliseBlocked")}</p>}
+      {endCase && <p className="text-xs text-amber-600">{tr("endCaseFinaliseBlocked")}</p>}
     </div>
   )
 }

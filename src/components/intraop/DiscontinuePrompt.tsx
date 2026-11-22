@@ -17,7 +17,7 @@ export function DiscontinuePrompt({
   onCancel,
   style,
   /** The gas and agent lanes dim their cancel slightly less than the infusion lane. */
-  cancelClassName = "text-[8px] text-white/70 hover:text-white px-1 whitespace-nowrap",
+  cancelClassName = "text-xs text-white/70 hover:text-white px-1 whitespace-nowrap",
 }: {
   open: boolean
   onOpen: () => void
@@ -34,7 +34,7 @@ export function DiscontinuePrompt({
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onConfirm() }}
-            className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap"
+            className="text-xs font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full hover:bg-red-600 border border-white/40 whitespace-nowrap"
           >
             ✓ {copy.confirm}
           </button>
@@ -46,7 +46,7 @@ export function DiscontinuePrompt({
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onOpen() }}
-          className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap"
+          className="text-xs font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap"
         >
           ✕ {copy.discontinueShort}
         </button>

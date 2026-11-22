@@ -51,7 +51,7 @@ export function DoseEditPopover({
         }}
         onClick={event => event.stopPropagation()}
       >
-        <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide">{title}</p>
+        <p className="text-xs font-semibold text-violet-500 uppercase tracking-wide">{title}</p>
         <div className="flex items-center gap-1.5">
           <input
             type="number"

@@ -41,7 +41,7 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
             onClick={event => { const rect = (event.currentTarget as HTMLElement).getBoundingClientRect(); if (!menu?.openContinuous({ kind: "jet", key: "jet", col: ci, rect, title: "Jet" })) onOpen(ci, seg, rect) }}>
             {!seg && (
-              <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 {t("tapToStart")}
               </span>
             )}
@@ -49,9 +49,9 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
               <div className={`absolute inset-y-1 border-y bg-teal-200/50 dark:bg-teal-500/20 border-teal-400 dark:border-teal-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
             )}
             {showLabel && settings && (
-              <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center text-[9px] font-bold leading-tight whitespace-nowrap text-teal-700 dark:text-teal-300 overflow-hidden px-0.5">
+              <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center text-xs font-bold leading-tight whitespace-nowrap text-teal-700 dark:text-teal-300 overflow-hidden px-0.5">
                 <span>{settings.pressureBar} bar · {settings.rate}/min</span>
-                <span className="text-[8px]">FiO₂ {settings.fio2}%</span>
+                <span className="text-xs">FiO₂ {settings.fio2}%</span>
               </span>
             )}
           </div>

@@ -40,7 +40,7 @@ const primaryButton =
   "w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 dark:bg-[#2a2a2a] dark:hover:bg-[#383838] dark:border dark:border-[#4a4a4a] text-white rounded-lg py-1.5"
 const secondaryButton =
   "w-full text-xs font-semibold border border-slate-200 dark:border-[#3a3a3a] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#2a2a2a] rounded-lg py-1.5"
-const captionClass = "text-[9px] font-bold text-slate-400 uppercase tracking-wide"
+const captionClass = "text-xs font-bold text-slate-400 uppercase tracking-wide"
 
 export function FluidConflictPopover({
   conflict,

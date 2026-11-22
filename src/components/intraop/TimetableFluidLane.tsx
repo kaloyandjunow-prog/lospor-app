@@ -97,7 +97,7 @@ export function FluidLane({
         className="flex flex-col items-end justify-center pr-2 py-2 gap-0 select-none shrink-0"
       >
         <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{label}</span>
-        <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">{copy.fluid.laneKind}</span>
+        <span className="text-xs text-slate-300 dark:text-[#555] leading-tight">{copy.fluid.laneKind}</span>
       </div>
       {rowCols.map(ci => {
         const committedSeg = segments.find(s => ci >= s.startCol && ci <= s.endCol)
@@ -218,14 +218,14 @@ export function FluidLane({
                           rect: event.currentTarget.getBoundingClientRect(),
                         })
                       }}
-                      className="absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-[10px] font-bold"
+                      className="absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold"
                       style={{ color, left: 0, width: visW, top: 42 }}
                     >
                       {barLabel}
                     </button>
                   ) : (
                     <span
-                      className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-[10px] font-bold"
+                      className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold"
                       style={{ color, left: 0, width: visW, ...(isRate ? { top: 42 } : {}) }}
                     >
                       {barLabel}
@@ -242,7 +242,7 @@ export function FluidLane({
                 className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
                 style={{ backgroundColor: color, ...timedRight }}
               >
-                <span className="text-white text-[8px] font-bold select-none">|</span>
+                <span className="text-white text-xs font-bold select-none">|</span>
               </div>
             )}
             {segments.some(s => s.plannedStopCol === ci) && <PlannedStopMarker />}

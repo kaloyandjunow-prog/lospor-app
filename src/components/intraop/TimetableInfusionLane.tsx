@@ -159,7 +159,7 @@ export function InfusionLane({
         className="flex flex-col items-end justify-end pr-2 pb-1.5 gap-0 select-none shrink-0"
       >
         <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{displayInfusionName(drugName)}</span>
-        <span className="text-[10px] text-slate-300 dark:text-[#555] leading-tight">{copy.infusion.laneKind}</span>
+        <span className="text-xs text-slate-300 dark:text-[#555] leading-tight">{copy.infusion.laneKind}</span>
       </div>
       {rowCols.map(ci => {
         const seg = segments.find(s => ci >= s.startCol && ci <= s.endCol)
@@ -293,7 +293,7 @@ export function InfusionLane({
                     const visEnd = Math.min(seg.endCol, colEnd - 1)
                     return (
                       <span
-                        className="absolute top-1/2 -translate-y-1/2 text-[10px] font-bold whitespace-nowrap pointer-events-none select-none text-center block"
+                        className="absolute top-1/2 -translate-y-1/2 text-xs font-bold whitespace-nowrap pointer-events-none select-none text-center block"
                         style={{ color, left: 0, width: (visEnd - visStart + 1) * colW }}
                       >
                         {displayInfusionName(seg.name)}
@@ -312,7 +312,7 @@ export function InfusionLane({
                     className={`absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm ${TOUCH_GRIP}`}
                     style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, ...timedLeft }}
                   >
-                    <span className="text-white text-[8px] font-bold select-none">|</span>
+                    <span className="text-white text-xs font-bold select-none">|</span>
                   </div>
                 )}
                 {isActualEnd && !isRowExit && (
@@ -323,7 +323,7 @@ export function InfusionLane({
                     className={`absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm ${TOUCH_GRIP}`}
                     style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, ...timedRight }}
                   >
-                    <span className="text-white text-[8px] font-bold select-none">|</span>
+                    <span className="text-white text-xs font-bold select-none">|</span>
                   </div>
                 )}
               </>

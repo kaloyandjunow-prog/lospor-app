@@ -52,7 +52,7 @@ export function Heatmap({ cells, locale }: { cells: (number | null)[][]; locale:
   const order = [1, 2, 3, 4, 5, 6, 0]
   const days = order.map(day => new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 0, 4 + day))))
   const max = Math.max(1, ...cells.flat().map(value => value ?? 0))
-  return <div className="overflow-x-auto"><div className="grid gap-px text-[9px] text-slate-400" style={{ gridTemplateColumns: "2.5rem repeat(24, minmax(0.9rem, 1fr))" }}><span />{Array.from({ length: 24 }, (_, hour) => <span key={hour} className="text-center">{hour % 3 === 0 ? hour : ""}</span>)}{order.map((day, row) => <HeatmapRow key={day} label={days[row]} values={cells[day]} max={max} />)}</div></div>
+  return <div className="overflow-x-auto"><div className="grid gap-px text-xs text-slate-400" style={{ gridTemplateColumns: "2.5rem repeat(24, minmax(0.9rem, 1fr))" }}><span />{Array.from({ length: 24 }, (_, hour) => <span key={hour} className="text-center">{hour % 3 === 0 ? hour : ""}</span>)}{order.map((day, row) => <HeatmapRow key={day} label={days[row]} values={cells[day]} max={max} />)}</div></div>
 }
 export function FilterBar({ filters, set, data, onClear }: { filters: IndicatorFilters; set: (key: keyof IndicatorFilters) => (value: string) => void; data: IndicatorResponse | null; onClear: () => void }) {
   const t = useTranslations("indicators")

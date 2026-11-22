@@ -40,7 +40,7 @@ export function ContinueOverlay({ label, onContinue, testId }: {
       onBlur={() => setArmed(false)}
       className={`absolute inset-0 flex items-center justify-center transition-opacity z-10 cursor-pointer ${armed ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
     >
-      <span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-400 bg-white/80 dark:bg-black/40 px-1.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 whitespace-nowrap">
+      <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400 bg-white/80 dark:bg-black/40 px-1.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 whitespace-nowrap">
         {label}
       </span>
     </button>
