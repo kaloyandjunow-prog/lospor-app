@@ -16,24 +16,26 @@ import { DateWheel } from "@/components/time/DateWheel"
 type Nurse = { id: string; name: string; firstName?: string; lastName?: string; title?: string }
 
 const COPY = {
-  bg: { menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", day: "Ден", month: "Месец", year: "Година" },
-  en: { menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", day: "Day", month: "Month", year: "Year" },
+  bg: { menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
+  en: { menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
 } as const
 type Copy = (typeof COPY)[keyof typeof COPY]
 
-export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAssignNurses, children }: {
+export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAssignNurses, canHandOverToNurse = false, children }: {
   caseId: string
   locale: string
   plannedSurgeryDate: string | null
   canPlan: boolean
   canAssignNurses: boolean
+  /** An anaesthesia nurse passing her place in the case to another nurse. */
+  canHandOverToNurse?: boolean
   /** The row's own harmful actions (delete, cancel), shown inside the menu. */
   children?: ReactNode
 }) {
   const copy = COPY[locale === "bg" ? "bg" : "en"]
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [dialog, setDialog] = useState<"date" | "nurses" | null>(null)
+  const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
   const ref = useRef<HTMLDivElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)
   const [up, setUp] = useState(false)
@@ -62,12 +64,14 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
         <div ref={panel} role="menu" className={`absolute right-0 z-50 w-72 rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] p-1.5 shadow-xl ${up ? "bottom-full mb-1" : "top-full mt-1"}`}>
           {canPlan ? <button type="button" role="menuitem" className={item} data-testid="case-row-planned-date" onClick={() => { setOpen(false); setDialog("date") }}>{copy.planned}{plannedSurgeryDate ? ` · ${plannedSurgeryDate.split("-").reverse().join(".")}` : ""}</button> : null}
           {canAssignNurses ? <button type="button" role="menuitem" className={item} data-testid="case-row-nurses" onClick={() => { setOpen(false); setDialog("nurses") }}>{copy.nurses}</button> : null}
+          {canHandOverToNurse ? <button type="button" role="menuitem" className={item} data-testid="case-row-handover-nurse" onClick={() => { setOpen(false); setDialog("handover") }}>{copy.handover}</button> : null}
           {children ? <div className="mt-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-1 flex flex-col gap-1 [&>*]:min-h-11 [&>*]:w-full">{children}</div> : null}
         </div>
       ) : null}
       {dialog === "date" ? (
         <PlannedDateDialog caseId={caseId} value={plannedSurgeryDate} copy={copy} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); router.refresh() }} />
       ) : null}
+      {dialog === "handover" ? <HandoverToNurseDialog caseId={caseId} copy={copy} onClose={() => { setDialog(null); router.refresh() }} /> : null}
       {dialog === "nurses" ? <NursesDialog caseId={caseId} copy={copy} onClose={() => { setDialog(null); router.refresh() }} /> : null}
     </div>
   )
@@ -145,6 +149,31 @@ function NursesDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; o
         </div>
       )}
       <button type="button" className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.save}</button>
+    </Dialog>
+  )
+}
+
+function HandoverToNurseDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; onClose: () => void }) {
+  const [all, setAll] = useState<Nurse[] | null>(null)
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    void fetch("/api/users/nurses").then(response => response.ok ? response.json() : { nurses: [] }).then(body => setAll(body.nurses ?? []))
+  }, [])
+  const handOver = async (id: string) => {
+    const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handoverTo: id }) })
+    if (response.ok) setDone(true)
+  }
+  const name = (nurse: Nurse) => [nurse.title, nurse.firstName, nurse.lastName].filter(Boolean).join(" ") || nurse.name
+  return (
+    <Dialog title={copy.handover} onClose={onClose}>
+      {done ? <p className="text-sm font-semibold text-emerald-600">{copy.handedOver}</p> : all === null ? null : all.length === 0 ? <p className="text-sm text-slate-500">{copy.none}</p> : (
+        <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
+          {all.map(nurse => (
+            <button key={nurse.id} type="button" className="flex min-h-11 items-center rounded-lg px-3 text-left text-sm font-semibold hover:bg-slate-100 dark:hover:bg-[#2a2a2a]" onClick={() => void handOver(nurse.id)}>{name(nurse)}</button>
+          ))}
+        </div>
+      )}
+      <button type="button" className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.cancel}</button>
     </Dialog>
   )
 }

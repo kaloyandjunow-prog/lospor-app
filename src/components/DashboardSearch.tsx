@@ -186,6 +186,9 @@ export function DashboardSearch({
                       {isCancelled && <UndoCancellationButton caseId={c.id} />}
                     </CaseRowMenu>
                   )}
+                  {canWrite && !isComplete && !isCancelled && role === "ANAESTHESIA_NURSE" && (
+                    <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={false} canHandOverToNurse />
+                  )}
                   {isComplete && (
                     <span
                       role="link"
