@@ -38,6 +38,8 @@ export interface EndCaseModalProps {
     discontinuedInfusionIds: string[]
     finalizedFluidWithAmounts: { id: string; amount: number; category: string; endTs: string }[]
     discontinuedGasIds: string[]
+    /** 10.8.0: stopped on the record at the end, going on after the case (agent-col, inf-id, fluid-id, gas-id). */
+    continuesAfterEnd?: string[]
   }) => void
 }
 
@@ -86,17 +88,21 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
     const discontinuedInfusionIds: string[] = []
     const finalizedFluidWithAmounts: { id: string; amount: number; category: string; endTs: string }[] = []
     const discontinuedGasIds: string[] = []
+    const continuesAfterEnd: string[] = []
     const fluidEndTs = serverNow().toISOString()
 
     for (const a of agents) {
       const d = decisions[`agent-${a.startCol}`]
       if (d === "continue") continuedItems.push(`${a.name} (inhalational agent)`)
-      if (d === "discontinue") discontinuedAgentCols.push(a.startCol)
+      // 10.8.0: either way the record stops at the end; "continue" marks it as going on after the case.
+      if (d === "discontinue" || d === "continue") discontinuedAgentCols.push(a.startCol)
+      if (d === "continue") continuesAfterEnd.push(`agent-${a.startCol}`)
     }
     for (const inf of infusions) {
       const d = decisions[`inf-${inf.id}`]
       if (d === "continue") continuedItems.push(`${inf.name} infusion (${inf.rate} ${inf.unit})`)
-      if (d === "discontinue") {
+      if (d === "continue") continuesAfterEnd.push(`inf-${inf.id}`)
+      if (d === "discontinue" || d === "continue") {
         const tot = calcInfusionTotal(inf, ibw, tbw, weightBasis, null, tciPatient)
         infusionTotals.push({ name: inf.name, total: tot.amount, unit: tot.unit })
         discontinuedInfusionIds.push(inf.id)
@@ -110,19 +116,23 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
           ? `${f.name} (fluid at ${currentFluidRate(f) ?? f.rate ?? ""} mL/h)`
           : `${f.name} (fluid)`,
       )
-      if (d !== "discontinue") continue
+      if (d === "continue") continuesAfterEnd.push(`fluid-${f.id}`)
+      if (d !== "discontinue" && d !== "continue") continue
       const enteredAmount = fluidAmounts[f.id]
       const amt = enteredAmount == null || enteredAmount === ""
         ? f.fluidEntryMode === "RATE"
           ? fluidDeliveredVolumeMl(f, fluidEndTs)
-          : 0
+          // A bag going on after the case counts as given in the theatre up to its size.
+          : d === "continue" ? Number(f.volume) || 0 : 0
         : Number(enteredAmount) || 0
       finalizedFluidWithAmounts.push({ id: f.id, amount: amt, category: cat, endTs: fluidEndTs })
     }
     for (const g of gasSettings) {
-      if (decisions[`gas-${g.id}`] === "discontinue") discontinuedGasIds.push(g.id)
+      const gd = decisions[`gas-${g.id}`]
+      if (gd === "discontinue" || gd === "continue") discontinuedGasIds.push(g.id)
+      if (gd === "continue") continuesAfterEnd.push(`gas-${g.id}`)
     }
-    onConfirm({ continuedItems, infusionTotals, discontinuedAgentCols, discontinuedInfusionIds, finalizedFluidWithAmounts, discontinuedGasIds })
+    onConfirm({ continuedItems, infusionTotals, discontinuedAgentCols, discontinuedInfusionIds, finalizedFluidWithAmounts, discontinuedGasIds, continuesAfterEnd })
   }
 
   const pillBase = "text-xs px-2.5 py-1 rounded-full border font-semibold transition-colors"

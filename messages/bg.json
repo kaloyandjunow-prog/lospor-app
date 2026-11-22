@@ -1951,6 +1951,7 @@
       "endCaseHappened": "Случи се",
       "attentionTitle": "Очаква вашия отговор",
       "attentionCollapse": "По-малко",
+      "tourniquetOffAtEnd": "Свален при края",
       "queuedShort": "още не е записано",
       "sendingShort": "записва се…",
       "refusedShort": "отказано",

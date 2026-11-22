@@ -26,6 +26,10 @@ const ANSWERS: Record<IntraopAttentionKind, { action: IntraopAttentionAction; la
     { action: "not_now", label: "vitalNotNow", yes: false },
     { action: "log_complication", label: "vitalLogIt", yes: true },
   ],
+  // 10.8.0: a tourniquet still on at the end comes off on the record; no other answer.
+  tourniquet_open: [
+    { action: "tourniquet_off", label: "tourniquetOffAtEnd", yes: true },
+  ],
   // 10.2.0: a suggestion -- a card, follow-up or reminder opens; a question logs.
   suggestion: [
     { action: "not_now", label: "vitalNotNow", yes: false },
