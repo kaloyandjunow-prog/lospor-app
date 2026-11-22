@@ -11,6 +11,7 @@ type Copy = {
     resumed: (name: string, time: string) => string
     fixed: (name: string, time: string) => string
     moved: (name: string, time: string) => string
+    repeated: (name: string, time: string) => string
     deleted: (name: string) => string
     deletedWhole: (name: string) => string
     undone: string
@@ -64,6 +65,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
       resumed: (name, time) => `${name} продължава от ${time}`,
       fixed: (name, time) => `${name} поправен: ${time}`,
       moved: (name, time) => `${name} преместен в ${time}`,
+      repeated: (name, time) => `${name} повторен в ${time}`,
       deleted: name => `${name} изтрит`,
       deletedWhole: name => `${name} изтрит изцяло`,
       undone: "Отменено",
@@ -112,6 +114,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
       resumed: (name, time) => `${name} resumed at ${time}`,
       fixed: (name, time) => `${name} fixed: ${time}`,
       moved: (name, time) => `${name} moved to ${time}`,
+      repeated: (name, time) => `${name} repeated at ${time}`,
       deleted: name => `${name} deleted`,
       deletedWhole: name => `${name} deleted entirely`,
       undone: "Undone",

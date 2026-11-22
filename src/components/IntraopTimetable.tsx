@@ -1576,7 +1576,7 @@ export function IntraopTimetable({
       return false
     },
     editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx < 0) return false; setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }); return true },
-    repeatDose: (event, rect) => event.type === "drug" && event.name ? suggestionSheets.openDrug({ name: event.name, mode: "bolus", rect, amount: Number(event.dose) || null, unit: event.unit, suggestion: "" }) : setDrugPicker({ ci: nowCol ?? Math.max(0, colCount - 1), rect }), // 10.8.0: prefilled, at now, as on the PWA
+    repeatDose: (event, rect) => { if (event.type !== "drug" || !event.name) return false; suggestionSheets.openDrug({ name: event.name, mode: "bolus", rect, amount: Number(event.dose) || null, unit: event.unit, suggestion: "" }); return true }, // 10.8.0: prefilled, at now, as on the PWA
   }
   return (
     <TciPatientContext.Provider value={tciPatient}>

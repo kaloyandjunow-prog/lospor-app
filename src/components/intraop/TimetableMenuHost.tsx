@@ -45,7 +45,8 @@ export type LaneDialogs = {
   stopWithData: (target: ContinuousTarget) => boolean
   /** True when the lane opened its own editor (a drug's dose); otherwise Edit sets the time, as on the PWA. */
   editPoint: (event: LogEvent, rect: DOMRect) => boolean | void
-  repeatDose: (event: LogEvent, rect: DOMRect) => void
+  /** True when a dose sheet took it; otherwise the entry is repeated at now as it was (the event log). */
+  repeatDose: (event: LogEvent, rect: DOMRect) => boolean | void
 }
 
 /** What the lanes need to draw totals and the current dose (10.8.0). */
@@ -88,7 +89,7 @@ function uid(): string {
   return [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("")
 }
 
-export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs, facts }: {
+export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs, facts, cursor = true }: {
   children: ReactNode
   log: LogEvent[]
   applyOps: (ops: IntraopEventOps) => void
@@ -101,6 +102,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   now: () => Date
   dialogs: LaneDialogs
   facts?: ChartFacts
+  cursor?: boolean // the chart's keyboard and touch cursor; off for the event log's own host
 }) {
   const copy = TIMETABLE_MENU_COPY[locale]
   const [open, setOpen] = useState<Open | null>(null)
@@ -297,7 +299,11 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
 
   function onPoint(action: IntraopMenuAction, target: PointTarget, event: LogEvent) {
     switch (action) {
-      case "repeat_dose": return dialogs.repeatDose(event, target.rect)
+      case "repeat_dose": {
+        if (dialogs.repeatDose(event, target.rect) === true) return
+        const { id: _id, recordedAt: _recordedAt, ...fields } = event, ts = now().toISOString()
+        return commit([...logRef.current, { ...fields, id: uid(), ts, recordedAt: ts } as LogEvent], copy.done.repeated(target.title, timeOf(ts)))
+      }
       case "edit":
         if (dialogs.editPoint(event, target.rect) === true) return
       // falls through: an entry with no editor of its own has its time edited
@@ -327,7 +333,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
 
   return (
     <MenuContext.Provider value={api}>
-      <ChartCursor />
+      {cursor ? <ChartCursor /> : null}
       {children}
       {open ? (
         <TimetableCellMenu

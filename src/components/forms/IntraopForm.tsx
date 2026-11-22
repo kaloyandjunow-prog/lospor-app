@@ -660,7 +660,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabFinish = (<>
 
       {/* Complications */}
-      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} eventLogScreen={eventLogScreen} />
+      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} eventLogScreen={eventLogScreen} attention={attention} />
 
         </>)
         if (layoutMode === "sidebar") return (

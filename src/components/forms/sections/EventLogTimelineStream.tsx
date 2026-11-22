@@ -8,6 +8,7 @@ import { resolveIntraopEventLabel } from "@lospor/core/clinical-display"
 import { groupLabsByDraw, labDrawSummary, type LabResult } from "@lospor/core/labs"
 import type { IntraopLogEvent } from "@/components/IntraopTimetable"
 import { useLocale } from "next-intl"
+import { useLogEntryMenu } from "@/components/intraop/EventLogMenuHost"
 
 type Filter = "all" | "vitals" | "events" | "labs" | "complications"
 const FILTERS: readonly Filter[] = ["all", "vitals", "events", "labs", "complications"]
@@ -19,6 +20,8 @@ export function EventLogTimelineStream({ t, eventLog = [], labResults = [], onDe
   onDeleteEvent?: (id: string) => void
 }) {
   const locale = useLocale()
+  // 10.8.0: a tap opens the entry's menu, as on the chart and the PWA; no Delete button then.
+  const openMenu = useLogEntryMenu()
   const [filter, setFilter] = useState<Filter>("all")
   const draws = useMemo(() => groupLabsByDraw(labResults).filter(draw => draw.takenAt), [labResults])
   const log = useMemo(() => eventLog.filter(isChartedIntraopEvent) as LogEvent[], [eventLog])
@@ -42,7 +45,7 @@ export function EventLogTimelineStream({ t, eventLog = [], labResults = [], onDe
           const tagged = entry.ev.autoFilled ? `${descriptor.text} · ${t("intraop.timelineRules.autoFilledTag")}` : descriptor.text
           // A dose tapped during an arrest and spread across it afterwards: its time is approximate.
           const text = entry.ev.timeApproximate ? `${tagged} · ${t("intraop.timelineRules.approximateTimeTag")}` : tagged
-          return <div key={entry.ev.id} className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0 group"><span className="text-xs text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0" data-testid={entry.ev.timeApproximate ? "event-log-time-approximate" : undefined}>{entry.ev.timeApproximate ? "≈" : ""}{hhmmOf(entry.ts)}</span><div className="w-0.5 h-5 rounded-full shrink-0" style={{ backgroundColor: descriptor.color }} /><span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug flex-1">{text}</span>{onDeleteEvent && <button type="button" onClick={() => onDeleteEvent(entry.ev.id)} className="opacity-60 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-red-500 text-xs font-semibold leading-none px-2 py-1.5 rounded" title={t("intraop.deleteEvent")} aria-label={t("intraop.deleteEvent")}>{t("intraop.deleteEvent")}</button>}</div>
+          return <div key={entry.ev.id} data-testid="event-log-entry" onClick={openMenu ? event => { openMenu(entry.ev.id, text, event.currentTarget) } : undefined} className={`flex items-center gap-2.5 py-1.5 border-b border-slate-50 dark:border-[#1e1e1e] last:border-0 group ${openMenu ? "cursor-pointer min-h-11 hover:bg-slate-50 dark:hover:bg-[#1e1e1e]" : ""}`}><span className="text-xs text-slate-400 dark:text-[#666] tabular-nums pt-0.5 w-10 shrink-0" data-testid={entry.ev.timeApproximate ? "event-log-time-approximate" : undefined}>{entry.ev.timeApproximate ? "≈" : ""}{hhmmOf(entry.ts)}</span><div className="w-0.5 h-5 rounded-full shrink-0" style={{ backgroundColor: descriptor.color }} /><span className="text-[12px] text-slate-700 dark:text-slate-300 font-medium leading-snug flex-1">{text}</span>{onDeleteEvent && !openMenu && <button type="button" onClick={() => onDeleteEvent(entry.ev.id)} className="opacity-60 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-red-500 text-xs font-semibold leading-none px-2 py-1.5 rounded" title={t("intraop.deleteEvent")} aria-label={t("intraop.deleteEvent")}>{t("intraop.deleteEvent")}</button>}</div>
         })}
       </div>
     </div>
