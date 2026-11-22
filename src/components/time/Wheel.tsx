@@ -28,7 +28,9 @@ export function Wheel({ values, value, onChange, format, label, testId }: {
   const scrollTo = useCallback((position: number, smooth: boolean) => {
     const el = ref.current
     if (!el) return
-    el.scrollTo({ top: position * ITEM_PX, behavior: smooth ? "smooth" : "auto" })
+    // Older engines (and jsdom) have no element scrollTo: set the position instead.
+    if (typeof el.scrollTo === "function") el.scrollTo({ top: position * ITEM_PX, behavior: smooth ? "smooth" : "auto" })
+    else el.scrollTop = position * ITEM_PX
   }, [])
 
   // Centre the chosen value in the middle repeat whenever it changes from outside.

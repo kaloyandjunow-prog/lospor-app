@@ -57,8 +57,8 @@ export function TimelineSection({
   const [showEndPrompt, setShowEndPrompt]     = useState(false)
   const [showStartAt, setShowStartAt]         = useState(false)
   const [startAtInput, setStartAtInput]       = useState("")
-  const startHourRef = useRef<HTMLSelectElement>(null)
-  const endHourRef   = useRef<HTMLSelectElement>(null)
+  const startHourRef = useRef<HTMLButtonElement>(null)
+  const endHourRef   = useRef<HTMLButtonElement>(null)
   // The start and end dates. Left at "Today", a typed start time keeps the
   // long-standing rule (a time ahead of now means yesterday); a stepped date
   // places the time on that date. The end date follows the start, the next
