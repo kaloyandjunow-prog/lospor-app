@@ -16,6 +16,8 @@ type Copy = {
     undone: string
   }
   pair: { question: string; both: string; onlyThis: string }
+  /** 10.8.0: a start charted in an earlier cell is asked about at once. */
+  stillRunning: { question: (title: string, time: string) => string; running: string; stopped: string }
   wheel: { hours: string; minutes: string; typed: string }
   screen: { fullscreen: string; exitFullscreen: string }
   undo: string
@@ -65,6 +67,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
       undone: "Отменено",
     },
     pair: { question: "Има и „Турникет отпуснат“. Изтриване и на двете?", both: "Изтрий и двете", onlyThis: "Само поставен" },
+    stillRunning: { question: (title, time) => `${title} от ${time} — още тече ли?`, running: "Тече", stopped: "Спря…" },
     wheel: { hours: "Часове", minutes: "Минути", typed: "Час (напр. 1024)" },
     screen: { fullscreen: "Цял екран", exitFullscreen: "Изход от цял екран" },
     undo: "Отмени",
@@ -111,6 +114,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
       undone: "Undone",
     },
     pair: { question: "Tourniquet off is recorded too. Delete both?", both: "Delete both", onlyThis: "Only Tourniquet on" },
+    stillRunning: { question: (title, time) => `${title} from ${time} — still running?`, running: "Running", stopped: "Stopped…" },
     wheel: { hours: "Hours", minutes: "Minutes", typed: "Time (e.g. 1024)" },
     screen: { fullscreen: "Full screen", exitFullscreen: "Exit full screen" },
     undo: "Undo",

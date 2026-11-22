@@ -11,6 +11,8 @@ import {
   intraopMoveEvent,
   intraopOpsBetween,
   intraopRunEventIds,
+  intraopStillRunningQuestion,
+  intraopStopAt,
   type IntraopEditRefusal,
 } from "@lospor/core/intraop-edits"
 import { intraopItemRef, intraopStampForColumn, type IntraopItemKind } from "@lospor/core/intraop-commands"
@@ -100,6 +102,13 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logRef = useRef(log)
   useEffect(() => { logRef.current = log }, [log])
+  // 10.8.0 (rule 3): a start charted in an earlier cell is asked about at once -- Core's rule, as on the PWA.
+  const [openedAt] = useState(() => now().toISOString())
+  const [knownIds] = useState(() => new Set(log.map(event => event.id)))
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(() => new Set())
+  const stillRunning = readOnly || gridStartMs == null ? null
+    : intraopStillRunningQuestion(log, { knownIds, answeredIds, now: now(), chartStart: gridStartMs, enteredSince: openedAt })
+  const answerStillRunning = (id: string) => setAnsweredIds(previous => new Set(previous).add(id))
 
   const cellOf = useCallback((col: number) => {
     const start = (gridStartMs ?? 0) + col * INTRAOP_COLUMN_MS
@@ -321,6 +330,32 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
               <button type="button" className="min-h-11 rounded-lg font-semibold text-slate-500" onClick={() => setPairQuestion(null)}>{copy.cancel}</button>
             </div>
           </div>
+        </div>
+      ) : null}
+      {stillRunning && !wheel ? (
+        <div role="alertdialog" data-testid="still-running-question" className="fixed left-1/2 -translate-x-1/2 bottom-40 z-[66] flex flex-wrap items-center gap-2 rounded-2xl border border-amber-400 bg-amber-50 dark:bg-[#2a2110] px-4 py-2 shadow-xl max-w-[calc(100vw-16px)]">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+            {copy.stillRunning.question(stillRunning.name ?? stillRunning.label ?? "", timeOf(stillRunning.ts))}
+          </span>
+          <button type="button" data-testid="still-running-yes" className="min-h-11 rounded-full border border-emerald-400 px-4 text-sm font-bold text-emerald-700 dark:text-emerald-300"
+            onClick={() => answerStillRunning(stillRunning.id)}>{copy.stillRunning.running}</button>
+          <button type="button" data-testid="still-running-stopped" className="min-h-11 rounded-full border border-red-300 px-4 text-sm font-bold text-red-600"
+            onClick={() => {
+              const start = stillRunning
+              answerStillRunning(start.id)
+              const reference = now()
+              setWheel({
+                title: copy.stillRunning.stopped,
+                value: clockOf(reference),
+                reference,
+                apply: instant => {
+                  const result = intraopStopAt(logRef.current, start.id, instant, editContext())
+                  if (!result.ok) return result.refusal
+                  commit(result.events, copy.done.stopped(start.name ?? "", timeOf(instant)))
+                  return null
+                },
+              })
+            }}>{copy.stillRunning.stopped}</button>
         </div>
       ) : null}
       {(undo || refusal) ? (
