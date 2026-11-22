@@ -73,12 +73,11 @@ export function IntraopAttentionPanel({ entries, onAnswer, onOpen, endCase = fal
   const hidden = entries.length - shown.length
   return (
     <div
-      // On the chart it floats above the page's bottom bar, in view however far
-      // the chart is scrolled: a question scrolled out of sight is one nobody
-      // answers. It goes when everything is answered.
+      // 10.8.0 (rule 11): on the chart it is a bar under the page header and the tabs, one reminder in view and a "+N",
+      // in view however far the page is scrolled -- not a box floating over the chart. It goes when all is answered.
       className={`rounded-lg border border-dashed border-amber-400 p-3 space-y-2 ${endCase
         ? "mt-3 bg-amber-50/60 dark:bg-amber-900/10"
-        : "fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-2xl bg-amber-50 dark:bg-[#2a2110] shadow-lg"}`}
+        : "sticky top-[84px] z-40 w-full bg-amber-50 dark:bg-[#2a2110] shadow-md"}`}
       data-testid={endCase ? "end-case-after-end" : "intraop-attention"}
     >
       {refused.length > 0 && (
