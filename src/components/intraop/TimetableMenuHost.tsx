@@ -42,7 +42,8 @@ export type LaneDialogs = {
   switchAgent: (target: ContinuousTarget) => void
   /** Infusion and fluid stops ask for a volume or the pump's total. */
   stopWithData: (target: ContinuousTarget) => boolean
-  editPoint: (event: LogEvent, rect: DOMRect) => void
+  /** True when the lane opened its own editor (a drug's dose); otherwise Edit sets the time, as on the PWA. */
+  editPoint: (event: LogEvent, rect: DOMRect) => boolean | void
   repeatDose: (event: LogEvent, rect: DOMRect) => void
 }
 
@@ -261,7 +262,9 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   function onPoint(action: IntraopMenuAction, target: PointTarget, event: LogEvent) {
     switch (action) {
       case "repeat_dose": return dialogs.repeatDose(event, target.rect)
-      case "edit": return dialogs.editPoint(event, target.rect)
+      case "edit":
+        if (dialogs.editPoint(event, target.rect) === true) return
+      // falls through: an entry with no editor of its own has its time edited
       case "move": {
         const reference = new Date(event.ts)
         setWheel({

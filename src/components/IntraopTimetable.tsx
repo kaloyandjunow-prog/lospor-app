@@ -1575,8 +1575,8 @@ export function IntraopTimetable({
       if (kind === "fluid") { const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg) return false; setDiscFluidState({ id: seg.id, volInput: seg.fluidEntryMode === "RATE" ? "" : "0", rect, fullBag: seg.fluidEntryMode === "RATE" ? false : null }); return true }
       return false
     },
-    editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx >= 0) setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }) },
-    repeatDose: (_event, rect) => setDrugPicker({ ci: nowCol ?? Math.max(0, colCount - 1), rect }),
+    editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx < 0) return false; setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }); return true },
+    repeatDose: (event, rect) => event.type === "drug" && event.name ? suggestionSheets.openDrug({ name: event.name, mode: "bolus", rect, amount: Number(event.dose) || null, unit: event.unit, suggestion: "" }) : setDrugPicker({ ci: nowCol ?? Math.max(0, colCount - 1), rect }), // 10.8.0: prefilled, at now, as on the PWA
   }
   return (
     <TciPatientContext.Provider value={tciPatient}>
