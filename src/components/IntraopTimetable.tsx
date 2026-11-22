@@ -399,7 +399,7 @@ export function IntraopTimetable({
   // Whole-bar drag
   // Rate-pill drag
   // Misc infusion UI state
-  const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null)
+  const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null); const [tciStop, setTciStop] = useState<import("@/components/intraop/TimetableEndOverlays").TciStopRequest | null>(null)
   const [menuEndDrop, setMenuEndDrop] = useState<((target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) | null>(null)
   const registerEndDrop = useCallback((fn: (target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) => setMenuEndDrop(() => fn), [])
   const [hoverDiscontinue, setHoverDiscontinue] = useState<string | null>(null)
@@ -1458,10 +1458,9 @@ export function IntraopTimetable({
     },
     changeSyringe: ({ key, col, rect }) => { const seg = (data.infusions ?? []).find(item => item.id === key); if (seg) setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: !!seg.stopped, fromPillCol: col }) },
     switchAgent: ({ key, col, rect }) => { const seg = segAt(agents.filter(item => item.name === key), col); if (seg) openPickerForSeg(seg.startCol, seg, rect, col) },
-    stopWithData: ({ kind, key, col, rect }) => {
-      if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); if (!seg) return false; setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: false, fromPillCol: col }); return true }
-      if (kind === "fluid") { const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg) return false; setDiscFluidState({ id: seg.id, volInput: seg.fluidEntryMode === "RATE" ? "" : "0", rect, fullBag: seg.fluidEntryMode === "RATE" ? false : null }); return true }
-      return false
+    stopWithData: ({ kind, key, rect }, finish) => {
+      if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); const pump = tciPumpTotal(seg, () => {}); if (!seg || !pump) return false; setTciStop({ name: displayInfusionName(seg.name), amountUnit: pump.amountUnit, finish }); return true }
+      if (kind !== "fluid") return false; const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg || seg.fluidEntryMode === "RATE") return false; setDiscFluidState({ id: seg.id, volInput: "0", rect, fullBag: null }); return true
     },
     editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx < 0) return false; setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }); return true },
     repeatDose: (event, rect) => { if (event.type !== "drug" || !event.name) return false; suggestionSheets.openDrug({ name: event.name, mode: "bolus", rect, amount: Number(event.dose) || null, unit: event.unit, suggestion: "" }); return true }, // 10.8.0: prefilled, at now, as on the PWA
@@ -1929,6 +1928,7 @@ export function IntraopTimetable({
       />
     )}
     <TimetableEndOverlays
+      tciStop={tciStop} onTciStopDone={() => setTciStop(null)}
       deleteInfPrompt={deleteInfPrompt}
       onCancelDelete={() => setDeleteInfPrompt(null)}
       onDeleteInfusion={id => { removeInfusion(id); setDeleteInfPrompt(null) }}

@@ -119,9 +119,8 @@ test("clicking an agent bar opens the menu: a change of dose in the middle, a fi
   await chart.locator("[data-agent-cell]").nth(0).click()
   await expect(page.getByTestId("cell-menu-fix_start")).toBeVisible()
 })
-// An infusion's stop still asks for the pump's total (Core's question with data), so the drop writes
-// nothing until that is answered.
-test("dragging a running infusion back opens its stop with the pump total and writes no stop until answered", async ({ page }) => {
+// 10.8.0: an ordinary infusion stops where the grip is dropped, with no question (only a TCI infusion asks for the pump's total).
+test("dragging a running infusion back stops it without a question", async ({ page }) => {
   const id = await createRecentCase(page)
   const chart = await openChart(page, id)
   await chart.getByTestId("add-infusion").nth(0).click({ timeout: 30_000 })
@@ -139,7 +138,7 @@ test("dragging a running infusion back opens its stop with the pump total and wr
   await page.keyboard.press("Escape")
   await expect(endGrip).toBeVisible()
   await dragGrip(page, chart, "div[draggable].cursor-col-resize.rounded-r-sm", 1)
-  await expect(page.getByRole("button", { name: "Discontinue" })).toBeVisible()
-  expect((await events(page, id, "infusion")).map(e => e.type)).toEqual(["infusion_start"])
+  await expect(page.getByRole("button", { name: "Discontinue" })).toHaveCount(0)
+  await expect.poll(async () => (await events(page, id, "infusion")).map(e => e.type), { timeout: 15_000 }).toEqual(["infusion_start", "infusion_stop"])
 })
 

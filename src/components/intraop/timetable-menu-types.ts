@@ -14,7 +14,7 @@ export type LaneDialogs = {
   changeSyringe: (target: ContinuousTarget) => void
   switchAgent: (target: ContinuousTarget) => void
   /** Infusion and fluid stops ask for a volume or the pump's total. */
-  stopWithData: (target: ContinuousTarget) => boolean
+  stopWithData: (target: ContinuousTarget, finish: (extra?: Record<string, unknown>) => void) => boolean
   /** True when the lane opened its own editor (a drug's dose); otherwise Edit sets the time, as on the PWA. */
   editPoint: (event: LogEvent, rect: DOMRect) => boolean | void
   /** True when a dose sheet took it; otherwise the entry is repeated at now as it was (the event log). */

@@ -17,7 +17,7 @@ test.afterEach(async ({ page }) => {
 })
 
 /** A case that began 20 minutes ago with a running agent, plus a finished fluid run. */
-async function seedCase(page: Page) {
+async function seedCase(page: Page, extra?: (post: (data: Record<string, unknown>) => Promise<void>, at: (min: number) => string) => Promise<void>) {
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const now = Date.now()
   const at = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -38,6 +38,7 @@ async function seedCase(page: Page) {
   await post({ type: "agent_start", ts: at(-15), name: "Sevoflurane", value: "2", agentMode: "concurrent" })
   await post({ type: "fluid_start", ts: at(-18), fluidId: "fl-rl", name: "Ringer", rate: "600", unit: "mL/h", volume: "", color: "#06b6d4", fluidEntryMode: "RATE", category: "Crystalloids" })
   await post({ type: "fluid_end", ts: at(-3), fluidId: "fl-rl" })
+  if (extra) await extra(post, at)
   return id
 }
 
@@ -133,4 +134,46 @@ test("a finished fluid says how much, for how long and at what rate", async ({ p
   const chart = await openChart(page, await seedCase(page))
   // 600 mL/h for 15 minutes -> 150 mL, 15 min, 600 mL/h (Core's words, shared with the PWA).
   await expect(chart.getByText(/150 mL · 15 min · 600 mL\/h/).first()).toBeVisible({ timeout: 30_000 })
+})
+
+// 10.8.0: Stop asks only what it must. An ordinary infusion stops at once; a TCI infusion asks for the pump's
+// total (optional); a fluid by rate stops at once, a fluid entered as a bag asks how much of it ran.
+const savedLog = async (page: Page, id: string) => ((await (await page.request.get(`/api/cases/${id}`)).json()).intraop?.keyEvents?.log ?? []) as { type: string; pumpTotal?: number; pumpTotalUnit?: string }[]
+const laneCell = (chart: ReturnType<Page["locator"]>, lane: string) => chart.locator(`[data-tt-lane^="${lane}"] [data-tt-cell]`).nth(3)
+
+test("stopping an ordinary infusion asks nothing", async ({ page }) => {
+  const id = await seedCase(page, async (post, at) => { await post({ type: "infusion_start", ts: at(-15), infId: "inf-prop", name: "Propofol", rate: "6", unit: "mg/kg/h", color: "#8b5cf6" }) })
+  const chart = await openChart(page, id)
+  await page.waitForTimeout(1_500)
+  await laneCell(chart, "infusion").click()
+  await page.getByTestId("cell-menu-stop").click()
+  await expect(page.getByTestId("tci-stop-dialog")).toHaveCount(0)
+  await expect(page.getByTestId("timetable-undo-bar")).toBeVisible()
+  await expect.poll(async () => (await savedLog(page, id)).filter(e => e.type === "infusion_stop").length, { timeout: 15_000 }).toBe(1)
+})
+
+test("stopping a TCI infusion offers the pump's total, which is kept", async ({ page }) => {
+  const id = await seedCase(page, async (post, at) => { await post({ type: "infusion_start", ts: at(-15), infId: "inf-tci", name: "Propofol", rate: "3", unit: "mcg/mL", color: "#8b5cf6", tciModel: "MARSH", tciSite: "PLASMA" }) })
+  const chart = await openChart(page, id)
+  await page.waitForTimeout(1_500)
+  await laneCell(chart, "infusion").click()
+  await page.getByTestId("cell-menu-stop").click()
+  await expect(page.getByTestId("tci-stop-dialog")).toBeVisible()
+  expect((await savedLog(page, id)).filter(e => e.type === "infusion_stop")).toHaveLength(0)
+  await page.getByTestId("tci-stop-total").fill("180")
+  await page.getByTestId("tci-stop-confirm").click()
+  await expect.poll(async () => (await savedLog(page, id)).find(e => e.type === "infusion_stop")?.pumpTotal, { timeout: 15_000 }).toBe(180)
+})
+
+test("stopping a fluid by rate asks nothing; a bag asks how much of it ran", async ({ page }) => {
+  const id = await seedCase(page, async (post, at) => {
+    await post({ type: "fluid_start", ts: at(-15), fluidId: "fl-rate", name: "Hartmann", rate: "300", unit: "mL/h", volume: "", color: "#06b6d4", fluidEntryMode: "RATE", category: "Crystalloids" })
+  })
+  const chart = await openChart(page, id)
+  await page.waitForTimeout(1_500)
+  const lane = chart.locator('[data-tt-lane^="fluid"]').filter({ hasText: "Hartmann" }).first()
+  await lane.locator("[data-tt-cell]").nth(3).click()
+  await page.getByTestId("cell-menu-stop").click()
+  await expect(page.getByTestId("timetable-undo-bar")).toBeVisible()
+  await expect.poll(async () => (await savedLog(page, id)).filter(e => e.type === "fluid_end").length, { timeout: 15_000 }).toBe(2) // the seeded Ringer's and this one
 })

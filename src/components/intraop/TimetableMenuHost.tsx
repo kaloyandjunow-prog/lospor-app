@@ -218,12 +218,17 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
     switch (action) {
       case "stop":
       case "plan_stop": {
-        if (action === "stop" && (target.kind === "infusion" || target.kind === "fluid") && dialogs.stopWithData(target)) return // a planned stop (a later cell) asks nothing: the total is asked when it comes
-        const ts = stampAt(target.col)
-        const stop: LogEvent = target.kind === "infusion" ? { id: uid(), ts, type: "infusion_stop", infId: target.key, recordedAt: now().toISOString() }
-          : target.kind === "fluid" ? { id: uid(), ts, type: "fluid_end", fluidId: target.key, recordedAt: now().toISOString() }
-            : { id: uid(), ts, type: STOP_TYPE[target.kind], ...(target.kind === "agent" ? { name: target.key, agentMode: "concurrent" as const } : {}), recordedAt: now().toISOString() }
-        commit([...logRef.current, stop], copy.done.stopped(target.title, timeOf(ts)))
+        // `extra` is what a lane's own question adds to the stop (a TCI pump's total).
+        const writeStop = (extra: Record<string, unknown> = {}) => {
+          const ts = stampAt(target.col)
+          const stop = (target.kind === "infusion" ? { id: uid(), ts, type: "infusion_stop", infId: target.key, recordedAt: now().toISOString() }
+            : target.kind === "fluid" ? { id: uid(), ts, type: "fluid_end", fluidId: target.key, recordedAt: now().toISOString() }
+              : { id: uid(), ts, type: STOP_TYPE[target.kind], ...(target.kind === "agent" ? { name: target.key, agentMode: "concurrent" as const } : {}), recordedAt: now().toISOString() }) as LogEvent
+          commit([...logRef.current, { ...stop, ...extra } as LogEvent], copy.done.stopped(target.title, timeOf(ts)))
+        }
+        // Only a stop that is happening asks (a TCI's pump total, a bag's volume); a planned stop asks when it comes.
+        if (action === "stop" && (target.kind === "infusion" || target.kind === "fluid") && dialogs.stopWithData(target, writeStop)) return
+        writeStop()
         return
       }
       case "change_dose":

@@ -158,17 +158,17 @@ test("the agent editor opened on a later column records a new concentration from
   await expect(page.getByTestId("cell-menu-fix_start")).toBeVisible()
 })
 
-// 10.8.0: a bar is not dragged as a whole any more; a rate fluid's end grip dragged back stops it there, with no question.
-test("a rate fluid's end grip dragged back asks for its volume and writes no stop until answered", async ({ page }) => {
+// 10.8.0: a bar is not dragged as a whole any more; a rate fluid's end grip dragged back stops it there with no
+// question (the volume is worked out from the rate; only a fluid entered as a bag asks how much of it ran).
+test("a rate fluid's end grip dragged back stops it without a question", async ({ page }) => {
   const id = await seed(page)
   const chart = await openChart(page, id)
   const fluidGrip = chart.locator('div[draggable="true"].cursor-col-resize').last()
   await fluidGrip.evaluate(el => el.scrollIntoView({ block: "center" }))
-  await startDrag(page, chart, fluidGrip, 2)
+  // Past the change planned for later (a stop cannot come before a later change of the same fluid): a planned stop.
+  await startDrag(page, chart, fluidGrip, 10)
   await page.mouse.up()
-  // A fluid's stop still asks for the volume it ran (Core's question with data): nothing is written until it is answered.
-  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible()
-  expect((await log(page, id)).filter(e => e.type === "fluid_end")).toHaveLength(0)
-  await lanes(page, "4-fluid-end-question")
-  await page.getByRole("button", { name: "Cancel" }).click()
+  await expect(page.getByRole("button", { name: "Cancel" })).toHaveCount(0)
+  await expect.poll(async () => (await log(page, id)).filter(e => e.type === "fluid_end").length, { timeout: 15_000 }).toBeGreaterThan(0)
+  await lanes(page, "4-fluid-end-after-drag")
 })
