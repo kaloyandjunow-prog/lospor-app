@@ -1,0 +1,147 @@
+"use client"
+
+import { useEffect, useRef } from "react"
+import { useTimetableMenu } from "./TimetableMenuHost"
+
+/**
+ * The chart's cursor (10.8.0, rules 6): one highlighted cell, the same for a
+ * mouse, a finger and a keyboard.
+ *
+ * - Mouse: pointing highlights the row and the cell (CSS, globals.css); a click opens the menu.
+ * - Finger: the first tap highlights the cell, the second opens the menu.
+ * - Keyboard: arrows move between cells, Enter opens the menu, Esc lets go,
+ *   Delete removes what is in the cell (with Undo).
+ *
+ * Lanes mark their cells with `ttCell` / `ttPoint`; nothing else needs to know.
+ */
+type CellTarget = { kind: string; key: string; col: number }
+
+/** A lane's row: put on the lane's outer element. */
+export const ttLane = (name: string) => ({ "data-tt-lane": name })
+
+/** A column cell of a lane; with a target when something runs in it (Delete then removes it). */
+export function ttCell(col: number, target?: CellTarget | null) {
+  return {
+    "data-tt-cell": "",
+    "data-tt-col": col,
+    tabIndex: -1,
+    ...(target ? { "data-tt-kind": target.kind, "data-tt-key": target.key } : {}),
+  }
+}
+
+/** A single entry (drug, event) in a cell. */
+export function ttPoint(eventId: string | undefined) {
+  return eventId ? { "data-tt-point": eventId, tabIndex: -1 } : {}
+}
+
+const ROOT = "[data-intraop-chart-root]"
+const CELL = "[data-tt-cell]"
+
+function armed(): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`${ROOT} [data-tt-armed]`)
+}
+
+function arm(element: HTMLElement | null) {
+  armed()?.removeAttribute("data-tt-armed")
+  if (!element) return
+  element.setAttribute("data-tt-armed", "")
+  element.focus({ preventScroll: false })
+}
+
+function cellsOfLane(lane: Element): HTMLElement[] {
+  return [...lane.querySelectorAll<HTMLElement>(CELL)]
+}
+
+function neighbour(cell: HTMLElement, key: string): HTMLElement | null {
+  const lane = cell.closest("[data-tt-lane]")
+  if (!lane) return null
+  const col = Number(cell.getAttribute("data-tt-col"))
+  if (key === "ArrowLeft" || key === "ArrowRight") {
+    const cells = cellsOfLane(lane)
+    const index = cells.indexOf(cell)
+    return cells[index + (key === "ArrowRight" ? 1 : -1)] ?? null
+  }
+  const lanes = [...document.querySelectorAll(`${ROOT} [data-tt-lane]`)].filter(item => cellsOfLane(item).length > 0)
+  const index = lanes.indexOf(lane)
+  const step = key === "ArrowDown" ? 1 : -1
+  for (let i = index + step; i >= 0 && i < lanes.length; i += step) {
+    const cells = cellsOfLane(lanes[i])
+    const same = cells.find(item => Number(item.getAttribute("data-tt-col")) === col)
+    if (same) return same
+  }
+  return null
+}
+
+export function ChartCursor() {
+  const menu = useTimetableMenu()
+  // Held in a ref: the listeners are set once, not again on every render of the chart.
+  const menuRef = useRef(menu)
+  useEffect(() => { menuRef.current = menu }, [menu])
+
+  useEffect(() => {
+    let touchArmedNow = false
+    const inChart = (target: EventTarget | null): target is Element =>
+      target instanceof Element && !!target.closest(ROOT)
+
+    // A finger: the first tap only highlights; the click it makes is swallowed.
+    const onPointerDown = (event: PointerEvent) => {
+      touchArmedNow = false
+      if (event.pointerType !== "touch" || !inChart(event.target)) return
+      const target = (event.target as Element).closest<HTMLElement>(`[data-tt-point], ${CELL}`)
+      if (!target || target.hasAttribute("data-tt-armed")) return
+      // Inputs (the vitals grid) and the add buttons work at once.
+      if ((event.target as Element).closest("input, textarea, [data-tt-direct]")) return
+      arm(target)
+      touchArmedNow = true
+    }
+    const onClick = (event: MouseEvent) => {
+      if (!touchArmedNow) return
+      touchArmedNow = false
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement | null
+      if (!active || !inChart(active)) return
+      if (active.closest("input, textarea, select, [role=dialog], [role=menu]")) return
+      const cell = active.closest<HTMLElement>(`[data-tt-point], ${CELL}`)
+      if (!cell) return
+      if (event.key.startsWith("Arrow")) {
+        const from = cell.hasAttribute("data-tt-cell") ? cell : cell.closest<HTMLElement>(CELL)
+        const next = from ? neighbour(from, event.key) : null
+        if (next) { event.preventDefault(); arm(next); next.scrollIntoView({ block: "nearest", inline: "nearest" }) }
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault()
+        cell.click()
+      } else if (event.key === "Escape") {
+        arm(null)
+      } else if ((event.key === "Delete" || event.key === "Backspace") && menuRef.current) {
+        const point = cell.getAttribute("data-tt-point")
+        const kind = cell.getAttribute("data-tt-kind")
+        const key = cell.getAttribute("data-tt-key")
+        if (point) { event.preventDefault(); menuRef.current.deleteAt({ eventId: point }) }
+        else if (kind && key) { event.preventDefault(); menuRef.current.deleteAt({ kind, key, col: Number(cell.getAttribute("data-tt-col")) }) }
+      }
+    }
+    // Focus by mouse or Tab highlights too, so the keyboard can carry on from there.
+    const onFocusIn = (event: FocusEvent) => {
+      if (!inChart(event.target)) return
+      const cell = (event.target as Element).closest<HTMLElement>(`[data-tt-point], ${CELL}`)
+      if (cell && !cell.hasAttribute("data-tt-armed")) { armed()?.removeAttribute("data-tt-armed"); cell.setAttribute("data-tt-armed", "") }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown, true)
+    document.addEventListener("click", onClick, true)
+    document.addEventListener("keydown", onKeyDown)
+    document.addEventListener("focusin", onFocusIn)
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true)
+      document.removeEventListener("click", onClick, true)
+      document.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("focusin", onFocusIn)
+    }
+  }, [])
+
+  return null
+}

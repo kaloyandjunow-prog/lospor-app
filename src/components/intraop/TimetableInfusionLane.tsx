@@ -15,6 +15,10 @@ import type { TimetableInfusion } from "@/types/timetable"
 import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches, type StripStretch } from "./TimetableChangeStrip"
 import { InfusionRateStrip } from "./InfusionRateStrip"
+import { ttCell, ttLane } from "./chart-cursor"
+import { LaneTotal, totalColumn } from "./lane-extras"
+import { calcInfusionTotal, formatInfusionTotal } from "@lospor/core/intraop-totals"
+import type { TciPatient } from "@lospor/core/tci"
 
 /** An infusion's applied rates as strip stretches, for the ghost drawn while it is dragged. */
 function infusionStretches(seg: TimetableInfusion): StripStretch[] {
@@ -144,6 +148,17 @@ export function InfusionLane({
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
   // A TCI bar shows its target and the predicted concentration line (2026-10-18).
   const tciPredictions = useTciLanePredictions(segments)
+  // 10.8.0: the name on the left carries the rate in force now; the amount given goes after the bar.
+  const facts = menu?.facts
+  const nowCol = facts?.nowCol ?? null
+  const runningNow = nowCol == null ? null : segments.find(s => !s.stopped && !s.planned && s.startCol <= nowCol) ?? null
+  const currentRate = runningNow && nowCol != null ? (() => {
+    const change = (runningNow.rateChanges ?? []).filter(rc => !rc.planned && rc.col <= nowCol).sort((a, b) => a.col - b.col).pop()
+    return `${change?.rate ?? runningNow.rate} ${change?.unit ?? runningNow.unit}`
+  })() : null
+  const totalOf = (seg: TimetableInfusion) => {
+    try { return formatInfusionTotal(calcInfusionTotal(seg as never, facts?.ibw ?? null, facts?.tbw ?? null, undefined, null, (facts?.tciPatient ?? null) as TciPatient | null)) } catch { return null }
+  }
   // The bar being moved whole: its strip is drawn on the ghost, shifted with it.
   const movingSeg = isBusyMovingBar ? segments.find(s => s.id === movingInf!.id) ?? null : null
   const moveDelta = movingSeg && movingInfCol !== null ? movingInfCol - movingInf!.fromCol : 0
@@ -151,15 +166,17 @@ export function InfusionLane({
   return (
     <div
       data-testid="infusion-lane"
+      {...ttLane(`infusion:${drugName}`)}
       className="flex items-stretch border-t border-slate-100 dark:border-[#2a2a2a] relative"
-      style={{ minHeight: 52 }}
+      style={{ minHeight: 40 }}
     >
       <div
+        data-tt-label
         style={{ width: labelWidth, minWidth: labelWidth }}
-        className="flex flex-col items-end justify-end pr-2 pb-1.5 gap-0 select-none shrink-0"
+        className="flex flex-col items-end justify-center pr-2 py-1 gap-0 select-none shrink-0"
       >
         <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{displayInfusionName(drugName)}</span>
-        <span className="text-xs text-slate-300 dark:text-[#555] leading-tight">{copy.infusion.laneKind}</span>
+        <span className="text-xs text-slate-400 dark:text-[#777] leading-tight" data-testid="infusion-current-rate">{currentRate ?? copy.infusion.laneKind}</span>
       </div>
       {rowCols.map(ci => {
         const seg = segments.find(s => ci >= s.startCol && ci <= s.endCol)
@@ -202,6 +219,7 @@ export function InfusionLane({
             key={ci}
             style={{ width: colW, minWidth: colW }}
             className="relative border-l border-slate-100 dark:border-[#2a2a2a]"
+            {...ttCell(ci, seg ? { kind: "infusion", key: seg.id, col: ci } : null)}
             onDragOver={e => {
               if (extendingInf) {
                 e.preventDefault(); e.stopPropagation()
@@ -240,6 +258,10 @@ export function InfusionLane({
               }
             }}
           >
+            {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
+              const total = totalOf(s)
+              return total ? <LaneTotal key={s.id} text={total} color={color} testId="infusion-total" /> : null
+            })}
             {segments.some(s => s.plannedStopCol === ci) && <PlannedStopMarker />}
             {/* After now, a running infusion runs on (Core runsOnAt, the PWA's rule): dashed, and a
                 click opens its menu dated to this cell -- a planned change of this infusion,
@@ -251,8 +273,8 @@ export function InfusionLane({
                   type="button"
                   data-testid="infusion-runs-on"
                   aria-label={displayInfusionName(runOn.name)}
-                  className="absolute top-0 left-0 right-0 z-10 rounded-sm border border-dashed opacity-60 hover:opacity-100"
-                  style={{ height: 21, borderColor: color, backgroundColor: color + "14" }}
+                  className="absolute top-[6px] bottom-1 left-0 right-0 z-10 rounded-sm border border-dashed opacity-60 hover:opacity-100"
+                  style={{ borderColor: color, backgroundColor: color + "14" }}
                   onClick={e => {
                     e.stopPropagation()
                     openMenu({ segId: runOn.id, name: runOn.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci })
@@ -278,7 +300,7 @@ export function InfusionLane({
                   }}
                   className={`absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : leftBehind ? "opacity-20" : ""}`}
                   style={{
-                    top: 22,
+                    top: 6,
                     bottom: 4,
                     ...timedLeft,
                     ...timedRight,
@@ -288,18 +310,6 @@ export function InfusionLane({
                     boxShadow: isSelected ? `0 0 0 1.5px ${color}` : undefined,
                   }}
                 >
-                  {(isActualStart || isRowCont) && (() => {
-                    const visStart = Math.max(seg.startCol, colStart)
-                    const visEnd = Math.min(seg.endCol, colEnd - 1)
-                    return (
-                      <span
-                        className="absolute top-1/2 -translate-y-1/2 text-xs font-bold whitespace-nowrap pointer-events-none select-none text-center block"
-                        style={{ color, left: 0, width: (visEnd - visStart + 1) * colW }}
-                      >
-                        {displayInfusionName(seg.name)}
-                      </span>
-                    )
-                  })()}
                 </div>
 
                 {/* Grips appear only on the selected bar, so an unselected chart
@@ -310,7 +320,7 @@ export function InfusionLane({
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "left") }}
                     onDragEnd={() => dragActions.infusionExtendEnd("left")}
                     className={`absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm ${TOUCH_GRIP}`}
-                    style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, ...timedLeft }}
+                    style={{ top: 6, bottom: 4, width: 10, backgroundColor: color, ...timedLeft }}
                   >
                     <span className="text-white text-xs font-bold select-none">|</span>
                   </div>
@@ -321,7 +331,7 @@ export function InfusionLane({
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "right") }}
                     onDragEnd={() => dragActions.infusionExtendEnd("right")}
                     className={`absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm ${TOUCH_GRIP}`}
-                    style={{ top: 22, bottom: 4, width: 10, backgroundColor: color, ...timedRight }}
+                    style={{ top: 6, bottom: 4, width: 10, backgroundColor: color, ...timedRight }}
                   >
                     <span className="text-white text-xs font-bold select-none">|</span>
                   </div>

@@ -1582,7 +1582,7 @@ export function IntraopTimetable({
     <TciPatientContext.Provider value={tciPatient}>
     {/* 10.8.0: one menu for whatever is in a cell; the dialogs a lane owns stay with it. */}
     <TimetableMenuHost log={attention?.log ?? []} applyOps={ops => attention?.applyOps(ops)} gridStartMs={gridStartMs} startedAt={startedAt ? new Date(startedAt) : null} endedAt={endedAt ? new Date(endedAt) : null}
-      timeZone={attention?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone} locale={locale === "bg" ? "bg" : "en"} readOnly={!attention?.canAnswer} now={serverNow} dialogs={menuDialogs}>
+      timeZone={attention?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone} locale={locale === "bg" ? "bg" : "en"} readOnly={!attention?.canAnswer} now={serverNow} dialogs={menuDialogs} facts={{ ibw: ibw ?? null, tbw: tbw ?? null, tciPatient, nowCol }}>
     <div ref={touchDragRoot} data-intraop-chart-root data-touch-drag-ready={touchDragReady ? "true" : "loading"} className="space-y-3 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] [&:fullscreen]:overflow-auto [&:fullscreen]:p-4 [&:fullscreen]:bg-white dark:[&:fullscreen]:bg-[#111]">
       <TimetableToolbar chartOpen={chartOpen} onToggleChart={() => setChartOpen(o => { void patchWebClinicalPreferences({ vitalsChartExpanded: !o }); return !o })}
         legend={{ bp: t("intraop.timetable.vitalBp"), hr: t("intraop.timetable.vitalHr") }} histDepth={histDepth} onUndo={() => undoRef.current()} onRedo={() => redoRef.current()}

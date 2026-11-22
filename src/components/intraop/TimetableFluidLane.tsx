@@ -12,6 +12,9 @@ import type { TtSel } from "./timetable-types"
 import type { TimetableFluid } from "@/types/timetable"
 import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches } from "./TimetableChangeStrip"
+import { ttCell, ttLane } from "./chart-cursor"
+import { LaneTotal, totalColumn } from "./lane-extras"
+import { calculateFluidVolumeMl } from "@lospor/core/intraop-fluids"
 
 /**
  * One fluid lane: a single line running down the chart.
@@ -89,15 +92,30 @@ export function FluidLane({
   // 10.8.0: a cell of a running or stopped bag opens its menu (Stop, Change rate, Resume, ...).
   const openFluidMenu = (seg: TimetableFluid, ci: number, rect: DOMRect) =>
     !!menu?.openContinuous({ kind: "fluid", key: seg.id, col: ci, rect, title: displayFluidName(seg.name) })
+  // 10.8.0: what runs now beside the name; the mL given after the bar.
+  const nowCol = menu?.facts.nowCol ?? null
+  const runningNow = nowCol == null ? null : segments.find(s => !s.stopped && !s.planned && s.startCol <= nowCol) ?? null
+  const currentLabel = runningNow ? [displayFluidName(runningNow.name), currentFluidRate(runningNow) != null ? `${currentFluidRate(runningNow)} mL/h` : null].filter(Boolean).join(" · ") : null
+  const deliveredMl = (seg: TimetableFluid) => {
+    const fields = seg as TimetableFluid & { bagVolumeMl?: number | null; administeredVolumeMl?: number | null; startTs?: string; endTs?: string }
+    try {
+      return Math.round(calculateFluidVolumeMl({
+        fluidEntryMode: seg.fluidEntryMode, bagVolumeMl: fields.bagVolumeMl, administeredVolumeMl: fields.administeredVolumeMl,
+        legacyVolume: seg.volume, startTs: fields.startTs, endTs: fields.endTs ?? new Date().toISOString(), rate: seg.rate,
+        rateChanges: (seg.rateChanges ?? []).filter(change => !change.planned),
+      } as never))
+    } catch { return 0 }
+  }
 
   return (
-    <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
+    <div {...ttLane(`fluid:${label}`)} className="flex min-h-[44px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
       <div
+        data-tt-label
         style={{ width: labelWidth, minWidth: labelWidth }}
         className="flex flex-col items-end justify-center pr-2 py-2 gap-0 select-none shrink-0"
       >
         <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{label}</span>
-        <span className="text-xs text-slate-300 dark:text-[#555] leading-tight">{copy.fluid.laneKind}</span>
+        <span className="text-xs text-slate-400 dark:text-[#777] leading-tight" data-testid="fluid-current">{currentLabel ?? copy.fluid.laneKind}</span>
       </div>
       {rowCols.map(ci => {
         const committedSeg = segments.find(s => ci >= s.startCol && ci <= s.endCol)
@@ -136,6 +154,7 @@ export function FluidLane({
             key={ci}
             style={{ width: colW, minWidth: colW }}
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center"
+            {...ttCell(ci, seg ? { kind: "fluid", key: seg.id, col: ci } : null)}
             onClick={e => {
               const target = seg ?? stoppedSeg
               if (target) openFluidMenu(target, ci, (e.currentTarget as HTMLElement).getBoundingClientRect())
@@ -155,6 +174,10 @@ export function FluidLane({
               dragActions.fluidExtendEnd()
             }}
           >
+            {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
+              const ml = deliveredMl(s)
+              return ml > 0 ? <LaneTotal key={s.id} text={`${ml} mL`} color={color} testId="fluid-total" /> : null
+            })}
             {seg && (
               <>
                 {isActualEnd && !isRowExit && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
@@ -163,8 +186,9 @@ export function FluidLane({
                     col={ci}
                     stretches={stretches}
                     color={color}
-                    height={21}
-                    top={1}
+                    height={26}
+                    top={6}
+                    inline
                     roundStart={isActualStart || isRowCont}
                     roundEnd={isActualEnd && !isRowExit}
                     faded={!!seg.stopped || isDragPreview || cutOff}
@@ -181,9 +205,8 @@ export function FluidLane({
                 )}
                 <div
                   onClick={e => { e.stopPropagation(); setSel({ type: "fluid", id: seg.id }); openFluidMenu(seg, ci, e.currentTarget.getBoundingClientRect()) }}
-                  className={`absolute ${isRate ? "" : "inset-y-1"} border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                  className={`absolute inset-y-1 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   style={{
-                    ...(isRate ? { top: 24, bottom: 4 } : {}),
                     ...timedLeft,
                     ...timedRight,
                     backgroundColor: isSel ? color + "88" : color + "33",

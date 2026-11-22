@@ -3,6 +3,7 @@
 import { useRef } from "react"
 import { Plus } from "lucide-react"
 import { useTimetableMenu } from "./TimetableMenuHost"
+import { ttCell, ttLane, ttPoint } from "./chart-cursor"
 import type { TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import { SaveMark } from "./SaveMark"
@@ -57,10 +58,11 @@ export function ClinicalEventsLane({
   const menu = useTimetableMenu()
   return (
     <div
+      {...ttLane("events")}
       className="flex items-stretch border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50/20 dark:bg-[#181818]/40"
-      style={{ minHeight: 40 }}
+      style={{ minHeight: 44 }}
     >
-      <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-1.5"}>
+      <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-1.5"}>
         {label}
       </div>
       {rowCols.map(ci => {
@@ -71,6 +73,7 @@ export function ClinicalEventsLane({
             style={{ width: colW, minWidth: colW }}
             className="group border-l border-slate-100 dark:border-[#2a2a2a] relative flex flex-col items-center justify-start py-0.5 px-0.5 cursor-pointer hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors"
             data-testid={`events-lane-col-${ci}`}
+            {...ttCell(ci)}
             onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
           >
             {colEvents.length === 0 && (
@@ -80,6 +83,7 @@ export function ClinicalEventsLane({
               {colEvents.slice(0, MAX_VISIBLE_EVENTS).map(event => (
                 <div
                   key={event.label}
+                  {...ttPoint((event as { eventId?: string }).eventId)}
                   title={displayEventName(event.label)}
                   onClick={e => {
                     e.stopPropagation()
@@ -158,8 +162,8 @@ export function DrugLane({
   const lastPointer = useRef("mouse")
   const menu = useTimetableMenu()
   return (
-    <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a]">
-      <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-3 flex items-start justify-end"}>
+    <div {...ttLane("drugs")} className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a]">
+      <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-3 flex items-start justify-end"}>
         {label}
       </div>
       {rowCols.map(ci => {
@@ -171,6 +175,7 @@ export function DrugLane({
             onDragOver={e => onDragOver(e, ci)}
             onDragLeave={onDragLeave}
             onDrop={e => onDrop(e, ci)}
+            {...ttCell(ci)}
             className={`border-l border-slate-100 dark:border-[#2a2a2a] px-1 py-1 space-y-0.5 transition-colors ${drag.dragOver === ci ? "bg-violet-50 dark:bg-violet-900/20" : ""}`}
           >
             {colDrugs.map(drug => {
@@ -185,6 +190,7 @@ export function DrugLane({
               return (
                 <div
                   key={gi}
+                  {...ttPoint(drug.eventId)}
                   draggable
                   title={`${displayDrugName(drug.name)}${drug.dose ? " — " + drug.dose + " " + drug.unit : ""}`}
                   onDragStart={e => {
@@ -222,6 +228,7 @@ export function DrugLane({
               type="button"
               tabIndex={-1}
               data-testid="add-drug"
+              data-tt-direct
               onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
               className="w-full mt-1 flex min-h-9 items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-500 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
             >

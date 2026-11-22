@@ -12,7 +12,9 @@ import type { TtSel } from "./timetable-types"
 import type { AgentSegment, GasSettingsSegment } from "@/types/timetable"
 import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
 import { useIntraopUiCopy } from "./ui-copy"
-import { ChangeStripCell, stripStretches } from "./TimetableChangeStrip"
+import { ChangeStripCell, stretchAt, stripStretches } from "./TimetableChangeStrip"
+import { ttCell, ttLane } from "./chart-cursor"
+import { LaneTotal, laneDuration, totalColumn } from "./lane-extras"
 
 /**
  * The two lanes that record what the patient is breathing: the volatile agent,
@@ -99,16 +101,23 @@ export function AgentLane({
   // 10.8.0: a cell of a running or stopped agent opens its menu (Stop, Change dose, Resume, ...).
   const openAgentMenu = (name: string, ci: number, rect: DOMRect) =>
     !!menu?.openContinuous({ kind: "agent", key: name, col: ci, rect, title: displayAgentName(name) })
-  // Each concentration it ran at is shown in a strip above the bar (10.0.0).
-  const hasStrip = agents.some(agent => agent.percent != null || (agent.percentChanges?.length ?? 0) > 0)
+  // 10.8.0: the concentration is written inside the bar (start and each change), not in a strip above it.
+  const stretchesOf = (seg: AgentLaneProps["agents"][number]) => stripStretches(seg.startCol,
+    seg.percent != null ? [`${seg.percent}%`, seg.n2o != null ? `N2O ${seg.n2o}%` : null].filter(Boolean).join(" + ") : null,
+    (seg.percentChanges ?? []).map(change => ({ col: change.col, label: `${change.percent}%`, planned: change.planned })))
+  const nowCol = menu?.facts.nowCol ?? null
+  const running = nowCol == null ? null : agents.find(agent => !agent.stopped && !agent.planned && agent.startCol <= nowCol) ?? null
+  const currentDose = running && nowCol != null ? stretchAt(stretchesOf(running), nowCol)?.label ?? null : null
 
   return (
     <div
+      {...ttLane(`agent:${label}`)}
       className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/60 dark:bg-[#1a1a1a]/60 relative"
-      style={{ minHeight: hasStrip ? 46 : 32 }}
+      style={{ minHeight: 40 }}
     >
-      <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-2"}>
-        {label}
+      <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex flex-col items-end justify-center py-1"}>
+        <span>{label}</span>
+        {currentDose ? <span data-testid="agent-current-dose" className="text-xs font-bold normal-case tracking-normal">{currentDose}</span> : null}
       </div>
       {rowCols.map(ci => {
         const dragged = extendingAgent !== null && extendHoverCol !== null
@@ -135,14 +144,13 @@ export function AgentLane({
         const isEnd = seg !== null && ci === effectiveEnd
         const isRowCont = !isStart && seg != null && ci === colStart && barEntersRow(seg.startCol, colStart)
         const isRowExit = seg != null && barContinues(seg.endCol, colEnd) && ci === colEnd - 1
-        const visStart = Math.max(seg?.startCol ?? 0, colStart)
-        const visEnd = Math.min(effectiveEnd, colEnd - 1)
 
         return (
           <div
             key={ci}
             style={{ width: colW, minWidth: colW }}
             data-agent-cell
+            {...ttCell(ci, seg ? { kind: "agent", key: seg.name, col: ci } : null)}
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center"
             onDragOver={e => onCellDragOver(e, ci)}
             onDrop={e => onCellDrop(e, ci)}
@@ -162,11 +170,7 @@ export function AgentLane({
             )}
             {seg && style2 && (() => {
               const isAgentSel = sel?.type === "agent" && sel.startCol === seg.startCol
-              const agentLabel = (isStart || isRowCont)
-                ? [displayAgentName(seg.name), seg.n2o != null ? `+ N2O ${seg.n2o}%` : null].filter(Boolean).join(" ")
-                : null
-              const stretches = stripStretches(seg.startCol, seg.percent != null ? `${seg.percent}%` : null,
-                (seg.percentChanges ?? []).map(change => ({ col: change.col, label: `${change.percent}%`, planned: change.planned })))
+              const stretches = stretchesOf(seg)
               return (
                 <>
                   <div
@@ -177,8 +181,7 @@ export function AgentLane({
                       setSel({ type: "agent", startCol: seg.startCol })
                       if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                     }}
-                    style={hasStrip ? { top: 18, bottom: 3 } : undefined}
-                    className={`absolute ${hasStrip ? "" : "inset-y-1"} border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                    className={`absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   />
                   {isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
                   {stretches.length > 0 && (
@@ -186,8 +189,9 @@ export function AgentLane({
                       col={ci}
                       stretches={stretches}
                       tone={{ bg: style2.bar, text: style2.text }}
-                      height={15}
-                      top={1}
+                      height={30}
+                      top={5}
+                      inline
                       roundStart={isStart || isRowCont}
                       roundEnd={isEnd && !isRowExit}
                       faded={!!seg.stopped || !!seg.planned || isDragPreview}
@@ -200,14 +204,6 @@ export function AgentLane({
                       }}
                       testId="agent-percent-strip"
                     />
-                  )}
-                  {agentLabel && (
-                    <span
-                      className={`absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none text-xs font-bold whitespace-nowrap flex items-center justify-center ${style2.text}`}
-                      style={{ left: 0, width: (visEnd - visStart + 1) * colW, ...(hasStrip ? { top: 30 } : {}) }}
-                    >
-                      {agentLabel}
-                    </span>
                   )}
                 </>
               )
@@ -222,6 +218,7 @@ export function AgentLane({
                 <span className="text-white text-xs font-bold select-none">|</span>
               </div>
             )}
+            {agents.filter(a => !a.planned && totalColumn(a, nowCol) === ci).map(a => <LaneTotal key={a.startCol} text={laneDuration(a.startCol, a.stopped ? a.endCol : Math.min(a.endCol, nowCol ?? a.endCol))} testId="agent-total" />)}
             {agents.some(a => a.plannedStopCol === ci) && <PlannedStopMarker />}
             {agents.flatMap(a => (a.percentChanges ?? []).filter(change => change.planned && change.col === ci))
               .map(change => <PlannedChangeMarker key={change.eventId ?? change.col} value={`${change.percent}%`} />)}
@@ -257,13 +254,18 @@ export function GasSettingsLane({
 }: GasSettingsLaneProps) {
   const copy = useIntraopUiCopy()
   const menu = useTimetableMenu()
+  const nowCol = menu?.facts.nowCol ?? null
+  const nowSeg = nowCol != null ? gasSegmentAt(nowCol) : null
+  const nowSettings = nowSeg && nowCol != null && !nowSeg.stopped ? gasSettingsAtColumn(nowSeg, nowCol) : null
   return (
     <div
+      {...ttLane("gas")}
       className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/40 dark:bg-[#1a1a1a]/40 relative"
-      style={{ minHeight: 32 }}
+      style={{ minHeight: 40 }}
     >
-      <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-2"}>
-        {copy.gas.settings}
+      <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex flex-col items-end justify-center py-1"}>
+        <span>{copy.gas.settings}</span>
+        {nowSettings ? <span data-testid="gas-current" className="text-xs font-bold normal-case tracking-normal">FGF {nowSettings.fgf} · FiO₂ {nowSettings.fio2}%</span> : null}
       </div>
       {rowCols.map(ci => {
         const seg = gasSegmentAt(ci)
@@ -281,6 +283,7 @@ export function GasSettingsLane({
           <div
             key={ci}
             style={{ width: colW, minWidth: colW }}
+            {...ttCell(ci, seg ? { kind: "gas", key: "gas", col: ci } : null)}
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
             onClick={e => {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -290,6 +293,13 @@ export function GasSettingsLane({
               else openPickerEmpty(ci, rect)
             }}
           >
+            {(() => {
+              // The total: in the column after the end, or after now while it runs.
+              const before = ci > 0 ? gasSegmentAt(ci - 1) : null
+              return before && !seg && totalColumn(before, nowCol) === ci
+                ? <LaneTotal text={laneDuration(before.startCol, before.stopped ? before.endCol : Math.min(before.endCol, nowCol ?? before.endCol))} testId="gas-total" />
+                : null
+            })()}
             {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
               <span className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none">

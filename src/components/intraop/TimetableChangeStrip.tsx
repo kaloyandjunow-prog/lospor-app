@@ -30,8 +30,10 @@ export function stretchAt(stretches: readonly StripStretch[], col: number): Stri
 }
 
 export function ChangeStripCell({
-  col, stretches, color, tone, height, top = 0, roundStart, roundEnd, faded, selected, timed, onClick, testId,
+  col, stretches, color, tone, height, top = 0, roundStart, roundEnd, faded, selected, timed, onClick, testId, inline = false,
 }: {
+  /** 10.8.0: drawn inside the bar (its dose at the start and at each change), with no fill of its own. */
+  inline?: boolean
   col: number
   stretches: readonly StripStretch[]
   /** The bar colour as a hex; or `tone`, the bar's own classes, where it is drawn by class (agents). */
@@ -58,10 +60,10 @@ export function ChangeStripCell({
     <div
       data-testid={testId}
       className={`absolute z-20 flex items-center overflow-hidden select-none ${onClick ? "cursor-pointer hover:opacity-90" : "pointer-events-none"} ${faded ? "opacity-50" : ""} ${roundStart ? "left-1 rounded-tl-full" : "left-0"} ${roundEnd ? "right-3 rounded-tr-sm" : "right-0"}`}
-      style={{ top, height, ...(color ? { backgroundColor: color + (selected ? "50" : "2e") } : {}), ...timed }}
+      style={{ top, height, ...(color && !inline ? { backgroundColor: color + (selected ? "50" : "2e") } : {}), ...timed }}
       onClick={onClick ? event => { event.stopPropagation(); onClick(event) } : undefined}
     >
-      {tone && <div className={`absolute inset-0 ${tone.bg} ${selected ? "opacity-40" : "opacity-25"}`} />}
+      {tone && !inline && <div className={`absolute inset-0 ${tone.bg} ${selected ? "opacity-40" : "opacity-25"}`} />}
       {isChange && <div className={`absolute left-0 top-1 bottom-1 w-[2px] rounded-full opacity-70 ${tone?.bg ?? ""}`} style={color ? { backgroundColor: color } : undefined} />}
       {showLabel && (
         <span className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { intraopContinuousMenu, intraopPointMenu, type IntraopMenuAction } from "@lospor/core/intraop-menu"
+import { ChartCursor } from "./chart-cursor"
 import {
   intraopDeleteAsksAboutPair,
   intraopDeleteHere,
@@ -43,10 +44,16 @@ export type LaneDialogs = {
   repeatDose: (event: LogEvent, rect: DOMRect) => void
 }
 
+/** What the lanes need to draw totals and the current dose (10.8.0). */
+export type ChartFacts = { ibw: number | null; tbw: number | null; tciPatient: unknown; nowCol: number | null }
+
 type MenuApi = {
   /** True when the cell had something to do (the menu opened). */
   openContinuous: (target: ContinuousTarget) => boolean
   openPoint: (target: PointTarget) => boolean
+  /** The keyboard's Delete: what is in that cell, or that entry, with Undo. */
+  deleteAt: (target: { kind: string; key: string; col: number } | { eventId: string }) => void
+  facts: ChartFacts
 }
 
 const MenuContext = createContext<MenuApi | null>(null)
@@ -70,7 +77,7 @@ function uid(): string {
   return [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("")
 }
 
-export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs }: {
+export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs, facts }: {
   children: ReactNode
   log: LogEvent[]
   applyOps: (ops: IntraopEventOps) => void
@@ -82,6 +89,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   readOnly: boolean
   now: () => Date
   dialogs: LaneDialogs
+  facts?: ChartFacts
 }) {
   const copy = TIMETABLE_MENU_COPY[locale]
   const [open, setOpen] = useState<Open | null>(null)
@@ -109,6 +117,9 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
     undoTimer.current = setTimeout(() => setUndo(null), 9000)
   }, [applyOps])
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current) }, [])
+  const commitRef = useRef(commit)
+  const deletedLabelRef = useRef(copy.done.deleted)
+  useEffect(() => { commitRef.current = commit; deletedLabelRef.current = copy.done.deleted }, [commit, copy])
 
   const refuse = useCallback((code: IntraopEditRefusal) => {
     setRefusal(copy.refusals[code] ?? copy.refusals.TIMELINE)
@@ -131,7 +142,25 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       if (actions.length > 0) setOpen({ kind: "point", target, event, actions })
       return actions.length > 0
     },
-  }), [cellOf, endedAt, now, readOnly])
+    deleteAt: target => {
+      if (readOnly) return
+      if ("eventId" in target) {
+        const event = logRef.current.find(item => item.id === target.eventId)
+        if (!event) return
+        if (intraopDeleteAsksAboutPair(logRef.current, event.id)) { setPairQuestion(event.id); return }
+        commitRef.current(intraopDeleteHere(logRef.current, event.id), deletedLabelRef.current(event.name ?? event.label ?? ""))
+        return
+      }
+      const cell = cellOf(target.col)
+      const here = sortIntraopEvents(logRef.current).find(event => {
+        const ref = intraopItemRef(event)
+        const at = Date.parse(event.ts)
+        return ref && ref.kind === target.kind && ref.key === target.key && at >= cell.start && at < cell.end
+      })
+      if (here) commitRef.current(intraopDeleteHere(logRef.current, here.id), deletedLabelRef.current(target.key))
+    },
+    facts: facts ?? { ibw: null, tbw: null, tciPatient: null, nowCol: null },
+  }), [cellOf, endedAt, facts, now, readOnly])
 
   const editContext = () => ({ now: now(), startedAt, endedAt })
   const clockOf = (instant: Date): ClockTime => {
@@ -250,6 +279,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
 
   return (
     <MenuContext.Provider value={api}>
+      <ChartCursor />
       {children}
       {open ? (
         <TimetableCellMenu
