@@ -41,8 +41,8 @@ export type AdminAccount = {
   institution: { id?: string; name: string; city: string } | null
 }
 
-function normalizedRole(role: string): "MEMBER" | "HEAD_OF_DEPT" | "ADMIN" {
-  if (role === "ADMIN" || role === "HEAD_OF_DEPT") return role
+function normalizedRole(role: string): "MEMBER" | "ANAESTHESIA_NURSE" | "HEAD_OF_DEPT" | "ADMIN" {
+  if (role === "ADMIN" || role === "HEAD_OF_DEPT" || role === "ANAESTHESIA_NURSE") return role
   return "MEMBER"
 }
 
@@ -92,6 +92,7 @@ export function AdminAccountTable({
   const locale = typeof document === "undefined" ? "bg" : document.documentElement.lang || "bg"
   const roleLabels = {
     MEMBER: t("admin.roleMember"),
+    ANAESTHESIA_NURSE: t("admin.roleNurse"),
     HEAD_OF_DEPT: t("admin.roleHOD"),
     ADMIN: t("admin.roleAdmin"),
   }
@@ -266,11 +267,12 @@ export function AdminAccountTable({
                             onChange={event => begin({
                               kind: "role",
                               account,
-                              role: event.target.value as "MEMBER" | "HEAD_OF_DEPT" | "ADMIN",
+                              role: event.target.value as "MEMBER" | "ANAESTHESIA_NURSE" | "HEAD_OF_DEPT" | "ADMIN",
                             })}
                             className="text-xs rounded-lg border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                           >
                             <option value="MEMBER">{roleLabels.MEMBER}</option>
+                            <option value="ANAESTHESIA_NURSE">{roleLabels.ANAESTHESIA_NURSE}</option>
                             <option value="HEAD_OF_DEPT">{roleLabels.HEAD_OF_DEPT}</option>
                             {capability.enabled && <option value="ADMIN">{roleLabels.ADMIN}</option>}
                           </select>
