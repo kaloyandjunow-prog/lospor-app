@@ -51,7 +51,7 @@ import {
 import { RateChangeDialog, type RateChangeState } from "@/components/intraop/RateChangeDialog"
 import { rateDialogChange, rateDialogSurface, type InfusionRecord } from "@/components/intraop/rate-dialog-surface"
 import { computeRowGeometry } from "@/components/intraop/timetable-row-geometry"
-import { selId, selIdx, type PendingFluidEntry, type TtFP, type TtSel } from "@/components/intraop/timetable-types"
+import { type PendingFluidEntry, type TtFP, type TtSel } from "@/components/intraop/timetable-types"
 import { addMinutes, floorTo5, timeToMins, toHHMM, calcDuration } from "@/lib/timetable-time"
 import { FLUID_CAT_COLOR, computeFluidRows, fluidCategory, fluidColor } from "@/lib/timetable-fluid-rows"
 import { groupLabsByDraw, type LabResult } from "@lospor/core/labs"
@@ -671,99 +671,13 @@ export function IntraopTimetable({
     cvpUnit,
   })
 
-  // Keyboard navigation on selected items
+  // 10.8.0: the chart cursor is the keyboard (arrows, Enter, Del with Undo); Esc still lets go of a selection.
   useEffect(() => {
     if (!sel) return
-    function handle(e: KeyboardEvent) {
-      if (!sel) return
-      const d  = dataRef.current
-      const oc = onChangeRef.current
-      if (e.key === "Escape") { setSel(null); return }
-
-      const col = sel.type === "drug"     ? d.drugs[sel.idx]?.colIdx
-                : sel.type === "fluid"    ? (d.fluids??[]).find(f=>f.id===selId(sel))?.startCol
-                : (d.infusions??[]).find(i=>i.id===selId(sel))?.startCol
-      if (col == null) return
-
-      // Tab: cycle drug→fluid→next col drug
-      if (e.key === "Tab") {
-        e.preventDefault()
-        // Build ordered list for cycling
-        const items: TtSel[] = []
-        for (let c = 0; c < colCount; c++) {
-          d.drugs.forEach((x,i)     => { if (x.colIdx===c)     items.push({type:"drug",idx:i}) })
-          ;(d.infusions??[]).forEach(x => { if (x.startCol===c) items.push({type:"infusion",id:x.id}) })
-          ;(d.fluids??[]).forEach(x  => { if (x.startCol===c)  items.push({type:"fluid",id:x.id}) })
-          ;(d.agents??[]).forEach(x  => { if (x.startCol===c)  items.push({type:"agent",startCol:x.startCol}) })
-        }
-        const ci = items.findIndex(it =>
-          it.type===sel.type && ((it.type==="infusion"||it.type==="fluid") ? selId(it)===selId(sel) : selIdx(it)===selIdx(sel))
-        )
-        setSel(items[(ci+1)%items.length] ?? null)
-        return
-      }
-
-      if (e.key === "Backspace" || e.key === "Delete") {
-        e.preventDefault()
-        if (sel.type==="drug")     { oc({...d,drugs:d.drugs.filter((_,i)=>i!==sel.idx)}); setSel(null) }
-        if (sel.type==="fluid")    { oc({...d,fluids:(d.fluids??[]).filter(f=>f.id!==sel.id)}); setSel(null) }
-        if (sel.type==="infusion") { oc({...d,infusions:(d.infusions??[]).filter(x=>x.id!==sel.id)}); setSel(null) }
-        if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===sel.startCol)
-          if (a) { oc({...d, agents:d.agents.filter(x=>x.startCol!==a.startCol)}); setSel(null) }
-        }
-        return
-      }
-
-      if (e.key === "ArrowRight") {
-        e.preventDefault()
-        if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===sel.startCol)
-          if (a && a.endCol+1 < colCount) oc({...d, agents:d.agents.map(x=>x.startCol===a.startCol?{...x,endCol:x.endCol+1}:x)})
-          return
-        }
-        if (col+1 >= colCount) return
-        if (sel.type==="drug") {
-          const last = d.drugs[sel.idx]
-          const newDrugs = [...d.drugs, {...last, colIdx:col+1}]
-          oc({...d, drugs:newDrugs, infusions:(d.infusions??[]).map(i=>i.startCol<=col&&i.endCol===col?{...i,endCol:col+1}:i)})
-          setSel({type:"drug", idx:newDrugs.length-1})
-        }
-        if (sel.type==="infusion") {
-          oc({...d, infusions:(d.infusions??[]).map(i=>i.id===sel.id?{...i,endCol:i.endCol+1}:i)})
-        }
-        if (sel.type==="fluid") {
-          const fl = (d.fluids??[]).find(f=>f.id===sel.id)
-          if (fl && fl.endCol+1 < colCount) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===sel.id?{...f,endCol:f.endCol+1}:f)})
-        }
-        return
-      }
-
-      if (e.key === "ArrowLeft") {
-        e.preventDefault()
-        if (sel.type==="agent") {
-          const a = d.agents.find(a => a.startCol===sel.startCol)
-          if (a && a.endCol > a.startCol) oc({...d, agents:d.agents.map(x=>x.startCol===a.startCol?{...x,endCol:x.endCol-1}:x)})
-          return
-        }
-        if (sel.type==="drug") {
-          const idx = sel.idx
-          oc({...d, drugs:d.drugs.filter((_,i)=>i!==idx)}); setSel(null)
-        }
-        if (sel.type==="infusion") {
-          const inf = (d.infusions??[]).find(i=>i.id===sel.id)
-          if (inf && inf.endCol > inf.startCol) oc({...d, infusions:(d.infusions??[]).map(i=>i.id===sel.id?{...i,endCol:i.endCol-1}:i)})
-        }
-        if (sel.type==="fluid") {
-          const fl = (d.fluids??[]).find(f=>f.id===sel.id)
-          if (fl && fl.endCol > fl.startCol) oc({...d, fluids:(d.fluids??[]).map(f=>f.id===sel.id?{...f,endCol:f.endCol-1}:f)})
-        }
-        return
-      }
-    }
+    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null) }
     window.addEventListener("keydown", handle)
     return () => window.removeEventListener("keydown", handle)
-  }, [colCount, onChangeRef, sel])
+  }, [sel])
 
   // Close vitals popup on Enter; arrow keys adjust slider value
   useEffect(() => {
