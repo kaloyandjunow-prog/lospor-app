@@ -2028,11 +2028,11 @@ export function IntraopTimetable({
         max={vitalsPopup.max}
         step={vitalsPopup.step}
         onChange={v => setVital(vitalsPopup.col, vitalsPopup.key, v != null ? String(v) : "")}
-        onCommit={() => {
+        onCommit={(cleared?: boolean) => {
           // Never touched: keep what was on screen. Dismissing is how "same as
           // the last reading" is entered without retyping it -- but only when
           // there is a last reading to carry forward.
-          if (data.vitals[vitalsPopup.col]?.[vitalsPopup.key] === undefined
+          if (!cleared && data.vitals[vitalsPopup.col]?.[vitalsPopup.key] === undefined
             && mayCommitVitalDefault(vitalsPopup.key, vitalsPopup.defaultIsPriorReading)) {
             setVital(vitalsPopup.col, vitalsPopup.key, String(vitalsPopup.defaultVal))
           }
