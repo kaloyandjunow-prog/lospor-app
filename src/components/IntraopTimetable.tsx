@@ -68,7 +68,6 @@ import { changeJet, DEFAULT_JET_SETTINGS, jetSegmentAt, jetSettingsAtColumn, sta
 import { DEEPEN_INFUSIONS, suggestionFluidFor, suggestionFluidPrefill, suggestionPrefill } from "@/components/intraop/suggestion-prefill"
 import { TimetableLabsLane } from "@/components/intraop/TimetableLabsLane"
 import type { AgentSegment, GasSettingsSegment, TimetableData } from "@/types/timetable"
-import { toast } from "sonner"
 import { FluidRateDialog } from "@/components/intraop/FluidRateDialog"
 import {
   MedicationPickerPortals,
@@ -399,6 +398,7 @@ export function IntraopTimetable({
   // Whole-bar drag
   // Rate-pill drag
   // Misc infusion UI state
+  const [agentSwitch, setAgentSwitch] = useState<{ names: string; proceed: (stopOthers: boolean) => void } | null>(null)
   const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null); const [tciStop, setTciStop] = useState<import("@/components/intraop/TimetableEndOverlays").TciStopRequest | null>(null)
   const [menuEndDrop, setMenuEndDrop] = useState<((target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) | null>(null)
   const registerEndDrop = useCallback((fn: (target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) => setMenuEndDrop(() => fn), [])
@@ -891,26 +891,7 @@ export function IntraopTimetable({
     pendingAgentName, setPendingAgentName,
     startAgent, updateAgentExtras, openPickerForSeg, openPickerEmpty, closeAgentPicker,
     removeSegment, extendSegment, resumeSegment, continueAgent,
-  } = useAgentHandlers(data, onChange, dataRef, onChangeRef, nowCol, (started, running, col) => {
-    const names = running.map(agent => agent.name).join(", ")
-    toast(t("intraop.timelineRules.agentSwitchTitle", { name: names }), {
-      duration: 15_000,
-      action: {
-        label: t("intraop.timelineRules.agentSwitch", { name: names }),
-        onClick: () => {
-          const current = dataRef.current
-          const stop = new Set(running.map(agent => agent.startEventId ?? `${agent.name}@${agent.startCol}`))
-          onChangeRef.current({
-            ...current,
-            agents: current.agents.map(agent => stop.has(agent.startEventId ?? `${agent.name}@${agent.startCol}`) && !agent.stopped
-              ? { ...agent, stopped: true, endCol: Math.max(agent.startCol, col) }
-              : agent),
-          })
-        },
-      },
-    })
-    void started
-  })
+  } = useAgentHandlers(data, onChange, dataRef, onChangeRef, nowCol, (running, proceed) => setAgentSwitch({ names: running.map(agent => agent.name).join(", "), proceed }))
 
 
   // One lane per volatile agent: several may run at once (1.4.9). A last,
@@ -1231,7 +1212,7 @@ export function IntraopTimetable({
               the Drug row, so starting an infusion never goes through a
               drug-then-bolus/infusion choice. */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
-            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
+            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end"}><span className="opacity-50">{t("intraop.timetable.infusions")}</span></div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
@@ -1274,7 +1255,7 @@ export function IntraopTimetable({
 
           {/* Fluid drop zone */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-cyan-50/20 dark:bg-cyan-950/5">
-            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
+            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end"}><span className="opacity-50">{t("intraop.timetable.fluids")}</span></div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 onDragOver={e => { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); dragActions.fluidDropTargetOver(ci) }}
@@ -1929,6 +1910,7 @@ export function IntraopTimetable({
     )}
     <TimetableEndOverlays
       tciStop={tciStop} onTciStopDone={() => setTciStop(null)}
+      agentSwitch={agentSwitch} onAgentSwitchDone={() => setAgentSwitch(null)}
       deleteInfPrompt={deleteInfPrompt}
       onCancelDelete={() => setDeleteInfPrompt(null)}
       onDeleteInfusion={id => { removeInfusion(id); setDeleteInfPrompt(null) }}

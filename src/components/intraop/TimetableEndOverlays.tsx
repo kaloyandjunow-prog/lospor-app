@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { EndCaseModal, type EndCaseModalProps } from "@/components/intraop/EndCaseModal"
 import { useIntraopUiCopy } from "@/components/intraop/ui-copy"
 import { TciStopDialog } from "@/components/intraop/TciStopDialog"
+import { AgentSwitchDialog } from "@/components/intraop/AgentSwitchDialog"
 import type { AgentSegment, GasSettingsSegment, TimetableFluid, TimetableInfusion } from "@/types/timetable"
 
 export type TciStopRequest = { name: string; amountUnit: "mg" | "mcg"; finish: (extra?: Record<string, unknown>) => void }
@@ -12,6 +13,8 @@ export type TciStopRequest = { name: string; amountUnit: "mg" | "mcg"; finish: (
 type Props = {
   tciStop: TciStopRequest | null
   onTciStopDone: () => void
+  agentSwitch: { names: string; proceed: (stopOthers: boolean) => void } | null
+  onAgentSwitchDone: () => void
   deleteInfPrompt: string | null
   onCancelDelete: () => void
   onDeleteInfusion: (id: string) => void
@@ -32,6 +35,8 @@ type Props = {
 export function TimetableEndOverlays({
   tciStop,
   onTciStopDone,
+  agentSwitch,
+  onAgentSwitchDone,
   deleteInfPrompt,
   onCancelDelete,
   onDeleteInfusion,
@@ -51,6 +56,8 @@ export function TimetableEndOverlays({
   const t = useTranslations()
   const uiCopy = useIntraopUiCopy()
   return <>
+    {agentSwitch && <AgentSwitchDialog names={agentSwitch.names} cancelLabel={uiCopy.cancel} onCancel={onAgentSwitchDone}
+      onSwitch={() => { agentSwitch.proceed(true); onAgentSwitchDone() }} onBoth={() => { agentSwitch.proceed(false); onAgentSwitchDone() }} />}
     {tciStop && <TciStopDialog name={tciStop.name} amountUnit={tciStop.amountUnit} onCancel={onTciStopDone}
       onStop={pump => { tciStop.finish(pump ? { pumpTotal: pump.value, pumpTotalUnit: pump.unit } : undefined); onTciStopDone() }} />}
     {deleteInfPrompt && <ConfirmDialog title={t("intraop.timetable.deleteInfusionConfirm")} detail={t("intraop.timetable.barDraggedOffTimeline")} cancelLabel={uiCopy.cancel} confirmLabel={uiCopy.delete} onCancel={onCancelDelete} onConfirm={() => onDeleteInfusion(deleteInfPrompt)} />}

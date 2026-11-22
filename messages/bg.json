@@ -1945,6 +1945,7 @@
       "agentSwitchTitle": "{name} тече",
       "agentSwitch": "Смяна: спрете {name}",
       "agentRunBoth": "И двата",
+      "agentRunBoth": "И двата",
       "endCaseAfterEndTitle": "Записи след края",
       "endCaseAfterEndHint": "Посочете за всеки дали се е случил. След края не може да остава нищо.",
       "endCaseDidntHappen": "Не се случи",

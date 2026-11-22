@@ -52,7 +52,7 @@ export function SectionJumpStrip({ sections, anchorPrefix, testId, className = "
             type="button"
             onClick={() => jump(section.id)}
             aria-current={active === section.id ? "true" : undefined}
-            className={`relative shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${
+            className={`relative shrink-0 rounded-full border px-3 py-1 text-xs font-medium pointer-coarse:min-h-11 pointer-coarse:px-4 ${
               active === section.id
                 ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
                 : "border-slate-200 text-slate-600 dark:border-[#333] dark:text-slate-300"

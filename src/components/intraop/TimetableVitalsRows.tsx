@@ -167,15 +167,8 @@ export function TimetableVitalsRows({
             className={`flex items-center border-b border-slate-50 dark:border-[#222] ${ri % 2 === 1 ? "bg-slate-50/40 dark:bg-[#1a1a1a]/60" : ""}`}
           >
             <div
-              style={{
-                width: labelWidth,
-                minWidth: labelWidth,
-                position: "sticky",
-                left: 0,
-                zIndex: 2,
-                backgroundColor: "inherit",
-                borderLeft: `3px solid ${row.color}`,
-              }}
+              data-tt-label
+              style={{ width: labelWidth, minWidth: labelWidth, borderLeft: `3px solid ${row.color}` }}
               className="flex flex-col items-end justify-center pr-2 py-1.5 gap-0 select-none bg-white dark:bg-[#1c1c1c]"
             >
               <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color: row.color }}>

@@ -91,7 +91,7 @@ export function OngoingCasesButton() {
             : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a]"
         }`}>
         <Activity className="h-4 w-4" />
-        {t("nav.ongoingCases")}
+        <span className="max-xl:sr-only">{t("nav.ongoingCases")}</span>
         {cases.length > 0 && (
           <span
             data-testid="ongoing-cases-count"

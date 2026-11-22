@@ -1945,6 +1945,7 @@
       "agentSwitchTitle": "{name} is running",
       "agentSwitch": "Switch: stop {name}",
       "agentRunBoth": "Run both",
+      "agentRunBoth": "Run both",
       "endCaseAfterEndTitle": "Entries after the end time",
       "endCaseAfterEndHint": "Say for each whether it happened. Nothing may remain after the end.",
       "endCaseDidntHappen": "Didn't happen",
