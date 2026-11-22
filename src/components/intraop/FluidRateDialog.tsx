@@ -6,7 +6,7 @@ import { DoseSelector } from "@/components/intraop/DoseSelector"
 import { useIntraopUiCopy } from "@/components/intraop/ui-copy"
 import type { TimetableFluid } from "@/types/timetable"
 
-export type FluidRateDialogState = { id: string; rate: string; rect: DOMRect }
+export type FluidRateDialogState = { id: string; rate: string; rect: DOMRect; /** The cell it was opened from (the menu); absent from the strip's own click. */ col?: number }
 
 export function FluidRateDialog({ state, fluid, displayName, onChange, onClose, onConfirm }: {
   state: FluidRateDialogState

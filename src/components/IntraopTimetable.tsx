@@ -453,7 +453,7 @@ export function IntraopTimetable({
   const [fluidRateDialog, setFluidRateDialog] = useState<{
     id: string
     rate: string
-    rect: DOMRect
+    rect: DOMRect; col?: number // col: the cell it was opened from (the menu)
   } | null>(null)
   // Dose / rate editor
   const [doseEditDrug, setDoseEditDrug] = useState<{ idx: number; dose: string; unit: string; rect: DOMRect } | null>(null)
@@ -1480,7 +1480,7 @@ export function IntraopTimetable({
       else if (kind === "gas") { const seg = segAt(gasSettings, col); if (seg) openGasPickerForSeg(col, seg, rect) }
       else if (kind === "jet") setJetPicker({ col, seg: jetSegmentAt(data, col), rect })
       else if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); if (seg) setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: !!seg.stopped, fromPillCol: col }) }
-      else { const seg = (data.fluids ?? []).find(item => item.id === key); if (seg) setFluidRateDialog({ id: seg.id, rate: String(seg.rate ?? ""), rect }) }
+      else { const seg = (data.fluids ?? []).find(item => item.id === key); if (seg) setFluidRateDialog({ id: seg.id, rate: String(seg.rate ?? ""), rect, col }) }
     },
     changeSyringe: ({ key, col, rect }) => { const seg = (data.infusions ?? []).find(item => item.id === key); if (seg) setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: !!seg.stopped, fromPillCol: col }) },
     switchAgent: ({ key, col, rect }) => { const seg = segAt(agents.filter(item => item.name === key), col); if (seg) openPickerForSeg(seg.startCol, seg, rect, col) },
@@ -1977,7 +1977,7 @@ export function IntraopTimetable({
       onConfirmEnd={handleEndCaseConfirm}
     />
     {showHotkeys && <HotkeysModal onClose={() => setShowHotkeys(false)} />}
-    {fluidRateDialog && <FluidRateDialog state={fluidRateDialog} fluid={(data.fluids ?? []).find(item => item.id === fluidRateDialog.id)} displayName={displayFluidName} onChange={rate => setFluidRateDialog(current => current ? { ...current, rate } : current)} onClose={() => setFluidRateDialog(null)} onConfirm={(id, rate) => { applyFluidRateChange(id, rate); setFluidRateDialog(null) }} />}
+    {fluidRateDialog && <FluidRateDialog state={fluidRateDialog} fluid={(data.fluids ?? []).find(item => item.id === fluidRateDialog.id)} displayName={displayFluidName} onChange={rate => setFluidRateDialog(current => current ? { ...current, rate } : current)} onClose={() => setFluidRateDialog(null)} onConfirm={(id, rate) => { applyFluidRateChange(id, rate, fluidRateDialog.col); setFluidRateDialog(null) }} />}
     {discFluidState && (() => {
       const fluid = (data.fluids ?? []).find(f => f.id === discFluidState.id)
       if (!fluid) return null
