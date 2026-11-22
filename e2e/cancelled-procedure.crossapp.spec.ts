@@ -188,6 +188,9 @@ test("a planned procedure not yet known, and the procedure done", async ({ brows
     await expect(page.getByTestId("performed-procedure")).toContainText("Cholecystectomy", { timeout: 60_000 })
     await page.goto(`/cases/new?continue=${unknown.id}&step=2`, { waitUntil: "domcontentloaded" })
     await expect(page.getByTestId("performed-procedure")).toContainText("record what was done", { timeout: 60_000 })
+    // The rest is the API's rule, not the screen's: leave the form, or its own autosave (the whole section, last write wins)
+    // can land after the API write below and put the old value back.
+    await page.goto("about:blank")
 
     const postop = { aldreteActivity: 2, aldreteRespiration: 2, aldreteCirculation: 2, aldreteConsciousness: 2, aldreteSpO2: 2, disposition: "WARD" }
     const withoutDone = await context.request.patch(`/api/cases/${unknown.id}`, { headers: JSON_HEADERS, data: { postop } })
