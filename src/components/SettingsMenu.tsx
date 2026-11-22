@@ -227,7 +227,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
     { id: "clinicalDefaults", label: t("settings.cats.clinicalDefaults") },
     { id: "appearance", label: t("settings.cats.appearance") },
     { id: "units",      label: t("settings.cats.units")        },
-    ...(role !== "ADMIN" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
+    ...(role !== "ADMIN" && role !== "ANAESTHESIA_NURSE" ? [{ id: "access" as Category, label: t("settings.cats.access") }] : []),
     { id: "privacy",    label: t("settings.cats.privacy")    },
   ]
 

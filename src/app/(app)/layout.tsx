@@ -71,11 +71,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {t("nav.clinicalRules")}
               </Link>
             )}
-            <Link href="/cases/new" data-tour="nav-new-case"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
-              <FilePlus className="h-4 w-4" />
-              {t("nav.newCase")}
-            </Link>
+            {/* 10.8.0: an anaesthesia nurse does not open cases. */}
+            {session.user.role !== "ANAESTHESIA_NURSE" && (
+              <Link href="/cases/new" data-tour="nav-new-case"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
+                <FilePlus className="h-4 w-4" />
+                {t("nav.newCase")}
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-3 md:ml-0 ml-auto">
