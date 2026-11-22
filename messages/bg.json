@@ -1950,6 +1950,7 @@
       "endCaseDidntHappen": "Не се случи",
       "endCaseHappened": "Случи се",
       "attentionTitle": "Очаква вашия отговор",
+      "attentionCollapse": "По-малко",
       "queuedShort": "още не е записано",
       "sendingShort": "записва се…",
       "refusedShort": "отказано",

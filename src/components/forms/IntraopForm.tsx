@@ -568,7 +568,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           aiOptIn={aiOptIn}
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
-        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
+        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} collapsible />}
         {vascularRequest && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setVascularRequest(null)}>
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>

@@ -1950,6 +1950,7 @@
       "endCaseDidntHappen": "Didn't happen",
       "endCaseHappened": "Happened",
       "attentionTitle": "Waiting for your answer",
+      "attentionCollapse": "Show fewer",
       "queuedShort": "not yet saved",
       "sendingShort": "saving…",
       "refusedShort": "refused",
