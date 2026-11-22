@@ -20,6 +20,8 @@ type Copy = {
   stillRunning: { question: (title: string, time: string) => string; running: string; stopped: string }
   wheel: { hours: string; minutes: string; typed: string }
   screen: { fullscreen: string; exitFullscreen: string }
+  /** 10.8.0: said after Redo of a menu action. */
+  redone: string
   undo: string
   cancel: string
   confirm: string
@@ -70,6 +72,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
     stillRunning: { question: (title, time) => `${title} от ${time} — още тече ли?`, running: "Тече", stopped: "Спря…" },
     wheel: { hours: "Часове", minutes: "Минути", typed: "Час (напр. 1024)" },
     screen: { fullscreen: "Цял екран", exitFullscreen: "Изход от цял екран" },
+    redone: "Повторено",
     undo: "Отмени",
     cancel: "Отказ",
     confirm: "Готово",
@@ -117,6 +120,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
     stillRunning: { question: (title, time) => `${title} from ${time} — still running?`, running: "Running", stopped: "Stopped…" },
     wheel: { hours: "Hours", minutes: "Minutes", typed: "Time (e.g. 1024)" },
     screen: { fullscreen: "Full screen", exitFullscreen: "Exit full screen" },
+    redone: "Redone",
     undo: "Undo",
     cancel: "Cancel",
     confirm: "Done",

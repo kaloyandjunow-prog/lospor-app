@@ -101,6 +101,24 @@ export function ChartCursor() {
       event.stopPropagation()
     }
 
+    // Ctrl+Z / Ctrl+Y: the menu's history when it changed last, else the chart's own handler runs (10.8.0).
+    const onUndoKeys = (event: KeyboardEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      const key = event.key.toLowerCase()
+      const wantsUndo = key === "z" && !event.shiftKey
+      const wantsRedo = key === "y" || (key === "z" && event.shiftKey)
+      if (!wantsUndo && !wantsRedo) return
+      const target = event.target as Element | null
+      if (target?.closest?.("input, textarea, [contenteditable=true]")) return
+      const api = menuRef.current
+      if (!api) return
+      const menuNewer = api.history.lastAt > (api.facts.chartChangedAt ?? 0)
+      const handled = wantsUndo
+        ? api.history.canUndo && menuNewer && api.history.undo()
+        : api.history.canRedo && menuNewer && api.history.redo()
+      if (handled) { event.preventDefault(); event.stopPropagation() }
+    }
+
     const onKeyDown = (event: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement | null
       if (!active || !inChart(active)) return
@@ -134,11 +152,13 @@ export function ChartCursor() {
     document.addEventListener("pointerdown", onPointerDown, true)
     document.addEventListener("click", onClick, true)
     document.addEventListener("keydown", onKeyDown)
+    document.addEventListener("keydown", onUndoKeys, true)
     document.addEventListener("focusin", onFocusIn)
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true)
       document.removeEventListener("click", onClick, true)
       document.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("keydown", onUndoKeys, true)
       document.removeEventListener("focusin", onFocusIn)
     }
   }, [])

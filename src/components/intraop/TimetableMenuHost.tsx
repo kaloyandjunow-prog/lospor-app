@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { intraopContinuousMenu, intraopPointMenu, type IntraopMenuAction } from "@lospor/core/intraop-menu"
 import { ChartCursor } from "./chart-cursor"
+import { PairQuestion, StillRunningBar, TimeWheelDialog, UndoBar } from "./timetable-menu-overlays"
 import {
   intraopDeleteAsksAboutPair,
   intraopDeleteHere,
@@ -15,6 +16,7 @@ import {
   intraopStopAt,
   type IntraopEditRefusal,
 } from "@lospor/core/intraop-edits"
+import { EMPTY_INTRAOP_HISTORY, intraopHistoryPush, intraopHistoryRedo, intraopHistoryUndo, intraopUndoEntry, type IntraopHistory } from "@lospor/core/intraop-undo"
 import { intraopItemRef, intraopStampForColumn, type IntraopItemKind } from "@lospor/core/intraop-commands"
 import { INTRAOP_COLUMN_MS, sortIntraopEvents } from "@lospor/core/intraop-engine"
 import { instantForTimeInCase, type ClockTime } from "@lospor/core/time-entry"
@@ -22,7 +24,6 @@ import { localTimeOf } from "@lospor/core/intraop-time"
 import type { LogEvent } from "@lospor/core/intraop-types"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { TimetableCellMenu } from "./TimetableCellMenu"
-import { TimeWheel } from "@/components/time/TimeWheel"
 import { TIMETABLE_MENU_COPY, type MenuLocale } from "./timetable-menu-copy"
 
 /**
@@ -48,9 +49,16 @@ export type LaneDialogs = {
 }
 
 /** What the lanes need to draw totals and the current dose (10.8.0). */
-export type ChartFacts = { ibw: number | null; tbw: number | null; tciPatient: unknown; nowCol: number | null }
+export type ChartFacts = { ibw: number | null; tbw: number | null; tciPatient: unknown; nowCol: number | null; chartChangedAt?: number }
+
+/**
+ * The menu's own many-step history (10.8.0), Core's, as on the PWA. Undo and Redo
+ * (toolbar, Ctrl+Z / Ctrl+Y) take the newer of this and the chart's own history.
+ */
+export type MenuHistory = { canUndo: boolean; canRedo: boolean; lastAt: number; undo: () => boolean; redo: () => boolean }
 
 type MenuApi = {
+  history: MenuHistory
   /** True when the cell had something to do (the menu opened). */
   openContinuous: (target: ContinuousTarget) => boolean
   openPoint: (target: PointTarget) => boolean
@@ -117,15 +125,36 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   }, [gridStartMs])
   const timeOf = useCallback((value: Date | string) => localTimeOf(new Date(value), timeZone) ?? "", [timeZone])
 
+  // The menu's many-step history (Core's, as on the PWA) and when it last grew.
+  const [history, setHistory] = useState<IntraopHistory>(EMPTY_INTRAOP_HISTORY)
+  const [historyAt, setHistoryAt] = useState(0)
+  const historyRef = useRef(history)
+  useEffect(() => { historyRef.current = history }, [history])
+  const showBar = useCallback((label: string, before: LogEvent[], after: LogEvent[]) => {
+    setUndo({ label, before, after })
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => setUndo(null), 9000)
+  }, [])
   const commit = useCallback((next: LogEvent[], label: string) => {
     const before = logRef.current
     const ops = intraopOpsBetween(before, next)
     if (ops.add.length + ops.update.length + ops.remove.length === 0) return
     applyOps(ops)
-    setUndo({ label, before, after: next })
-    if (undoTimer.current) clearTimeout(undoTimer.current)
-    undoTimer.current = setTimeout(() => setUndo(null), 9000)
-  }, [applyOps])
+    setHistory(current => intraopHistoryPush(current, intraopUndoEntry(before, next, label)))
+    setHistoryAt(Date.now())
+    showBar(label, before, next)
+  }, [applyOps, showBar])
+  const step = useCallback((direction: "undo" | "redo") => {
+    const result = (direction === "undo" ? intraopHistoryUndo : intraopHistoryRedo)(historyRef.current, logRef.current)
+    if (!result) return false
+    applyOps(intraopOpsBetween(logRef.current, result.events))
+    setHistory(result.history)
+    historyRef.current = result.history
+    setUndo(null)
+    setRefusal(`${direction === "undo" ? copy.done.undone : copy.redone}: ${result.entry.label}`)
+    setTimeout(() => setRefusal(null), 4000)
+    return true
+  }, [applyOps, copy])
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current) }, [])
   const commitRef = useRef(commit)
   const deletedLabelRef = useRef(copy.done.deleted)
@@ -170,7 +199,14 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       if (here) commitRef.current(intraopDeleteHere(logRef.current, here.id), deletedLabelRef.current(target.key))
     },
     facts: facts ?? { ibw: null, tbw: null, tciPatient: null, nowCol: null },
-  }), [cellOf, endedAt, facts, now, readOnly])
+    history: {
+      canUndo: history.done.length > 0,
+      canRedo: history.undone.length > 0,
+      lastAt: historyAt,
+      undo: () => step("undo"),
+      redo: () => step("redo"),
+    },
+  }), [cellOf, endedAt, facts, history, historyAt, now, readOnly, step])
 
   const editContext = () => ({ now: now(), startedAt, endedAt })
   const clockOf = (instant: Date): ClockTime => {
@@ -311,7 +347,8 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       ) : null}
       {wheel ? (
         <TimeWheelDialog
-          wheel={wheel}
+          title={wheel.title}
+          initial={wheel.value}
           copy={copy}
           onClose={() => setWheel(null)}
           onConfirm={clock => {
@@ -324,75 +361,33 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
         />
       ) : null}
       {pairQuestion ? (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-[#1f1f1f] p-4 shadow-xl">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white mb-3">{copy.pair.question}</p>
-            <div className="flex flex-col gap-2">
-              <button type="button" className="min-h-11 rounded-lg bg-red-600 text-white font-semibold" onClick={() => { commit(intraopDeleteHere(logRef.current, pairQuestion, { withPair: true }), copy.pair.both); setPairQuestion(null) }}>{copy.pair.both}</button>
-              <button type="button" className="min-h-11 rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={() => { commit(intraopDeleteHere(logRef.current, pairQuestion), copy.pair.onlyThis); setPairQuestion(null) }}>{copy.pair.onlyThis}</button>
-              <button type="button" className="min-h-11 rounded-lg font-semibold text-slate-500" onClick={() => setPairQuestion(null)}>{copy.cancel}</button>
-            </div>
-          </div>
-        </div>
+        <PairQuestion copy={copy}
+          onBoth={() => { commit(intraopDeleteHere(logRef.current, pairQuestion, { withPair: true }), copy.pair.both); setPairQuestion(null) }}
+          onOnlyThis={() => { commit(intraopDeleteHere(logRef.current, pairQuestion), copy.pair.onlyThis); setPairQuestion(null) }}
+          onCancel={() => setPairQuestion(null)} />
       ) : null}
       {stillRunning && !wheel ? (
-        <div role="alertdialog" data-testid="still-running-question" className="fixed left-1/2 -translate-x-1/2 bottom-40 z-[66] flex flex-wrap items-center gap-2 rounded-2xl border border-amber-400 bg-amber-50 dark:bg-[#2a2110] px-4 py-2 shadow-xl max-w-[calc(100vw-16px)]">
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">
-            {copy.stillRunning.question(stillRunning.name ?? stillRunning.label ?? "", timeOf(stillRunning.ts))}
-          </span>
-          <button type="button" data-testid="still-running-yes" className="min-h-11 rounded-full border border-emerald-400 px-4 text-sm font-bold text-emerald-700 dark:text-emerald-300"
-            onClick={() => answerStillRunning(stillRunning.id)}>{copy.stillRunning.running}</button>
-          <button type="button" data-testid="still-running-stopped" className="min-h-11 rounded-full border border-red-300 px-4 text-sm font-bold text-red-600"
-            onClick={() => {
-              const start = stillRunning
-              answerStillRunning(start.id)
-              const reference = now()
-              setWheel({
-                title: copy.stillRunning.stopped,
-                value: clockOf(reference),
-                reference,
-                apply: instant => {
-                  const result = intraopStopAt(logRef.current, start.id, instant, editContext())
-                  if (!result.ok) return result.refusal
-                  commit(result.events, copy.done.stopped(start.name ?? "", timeOf(instant)))
-                  return null
-                },
-              })
-            }}>{copy.stillRunning.stopped}</button>
-        </div>
+        <StillRunningBar copy={copy} title={stillRunning.name ?? stillRunning.label ?? ""} time={timeOf(stillRunning.ts)}
+          onRunning={() => answerStillRunning(stillRunning.id)}
+          onStopped={() => {
+            const start = stillRunning
+            answerStillRunning(start.id)
+            const reference = now()
+            setWheel({
+              title: copy.stillRunning.stopped, value: clockOf(reference), reference,
+              apply: instant => {
+                const result = intraopStopAt(logRef.current, start.id, instant, editContext())
+                if (!result.ok) return result.refusal
+                commit(result.events, copy.done.stopped(start.name ?? "", timeOf(instant)))
+                return null
+              },
+            })
+          }} />
       ) : null}
       {(undo || refusal) ? (
-        <div role="status" data-testid="timetable-undo-bar" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[65] flex items-center gap-3 rounded-full bg-slate-900 dark:bg-[#2a2a2a] text-white pl-4 pr-1.5 py-1.5 shadow-xl max-w-[calc(100vw-16px)]">
-          <span className="text-sm truncate">{refusal ?? undo?.label}</span>
-          {undo && !refusal ? (
-            <button type="button" data-testid="timetable-undo-bar-undo" className="min-h-11 min-w-11 rounded-full px-4 font-bold text-amber-300 hover:bg-white/10"
-              onClick={() => { commit(undo.before, copy.done.undone); setUndo(null) }}>
-              {copy.undo}
-            </button>
-          ) : null}
-        </div>
+        <UndoBar copy={copy} text={refusal ?? undo?.label ?? ""} canUndo={!!undo && !refusal} onUndo={() => { step("undo") }} />
       ) : null}
     </MenuContext.Provider>
   )
 }
 
-function TimeWheelDialog({ wheel, copy, onClose, onConfirm }: {
-  wheel: Wheel
-  copy: (typeof TIMETABLE_MENU_COPY)["bg"]
-  onClose: () => void
-  onConfirm: (clock: ClockTime) => void
-}) {
-  const [value, setValue] = useState(wheel.value)
-  return (
-    <div role="dialog" aria-modal="true" aria-label={wheel.title} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
-      <div className="w-full max-w-xs rounded-xl bg-white dark:bg-[#1f1f1f] p-4 shadow-xl">
-        <p className="text-sm font-bold text-slate-900 dark:text-white mb-3">{wheel.title}</p>
-        <TimeWheel value={value} onChange={setValue} labels={copy.wheel} />
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" className="min-h-11 rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.cancel}</button>
-          <button type="button" data-testid="time-wheel-confirm" className="min-h-11 rounded-lg bg-blue-600 text-white font-semibold" onClick={() => onConfirm(value)}>{copy.confirm}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
