@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Users, X } from "lucide-react"
 import { calendarDayKey } from "@lospor/core/dashboard-date-scope"
@@ -35,15 +35,12 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
   const dateKey = calendarDateKey(date)
   const today = dateKey === calendarDayKey(new Date())
 
-  const load = useCallback(async () => {
-    const response = await fetch(`/api/operating-theatres/shifts?date=${dateKey}`)
+  // Loaded when the dialog opens and when its day changes (from the handlers, not an effect).
+  const load = async (key: string) => {
+    const response = await fetch(`/api/operating-theatres/shifts?date=${key}`)
     if (response.ok) setShifts((await response.json()).shifts ?? [])
-  }, [dateKey])
-  useEffect(() => { if (open) void load() }, [open, load])
-  useEffect(() => {
-    if (!open || !manager) return
-    void fetch("/api/users/nurses").then(response => response.ok ? response.json() : { nurses: [] }).then(body => setNurses(body.nurses ?? []))
-  }, [open, manager])
+  }
+  const changeDate = (next: CalendarDate) => { setDate(next); void load(calendarDateKey(next)) }
 
   if (!manager && !nurse) return null
   if (theatres.length === 0) return null
@@ -55,7 +52,11 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
 
   return (
     <>
-      <button type="button" data-testid="theatre-nurse-shifts" onClick={() => setOpen(true)}
+      <button type="button" data-testid="theatre-nurse-shifts" onClick={() => {
+        setOpen(true)
+        void load(dateKey)
+        if (manager) void fetch("/api/users/nurses").then(response => response.ok ? response.json() : { nurses: [] }).then(body => setNurses(body.nurses ?? []))
+      }}
         className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
         <Users className="h-4 w-4" /> {copy.open}
       </button>
@@ -63,7 +64,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
         <div role="dialog" aria-modal="true" aria-label={copy.title} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onPointerDown={event => { if (event.target === event.currentTarget) setOpen(false) }}>
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 overflow-y-auto rounded-xl bg-white dark:bg-[#1f1f1f] p-4 shadow-xl">
             <p className="text-base font-bold text-slate-900 dark:text-white">{copy.title}</p>
-            {manager ? <DateWheel value={date} onChange={setDate} labels={{ day: copy.day, month: copy.month, year: copy.year }} /> : null}
+            {manager ? <DateWheel value={date} onChange={changeDate} labels={{ day: copy.day, month: copy.month, year: copy.year }} /> : null}
             {theatres.map(theatre => {
               const here = shifts.filter(shift => shift.theatre.id === theatre.id)
               const placed = new Set(here.map(shift => shift.user.id))
