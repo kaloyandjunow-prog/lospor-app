@@ -19,7 +19,7 @@ import {
   type IntraopEditRefusal,
 } from "@lospor/core/intraop-edits"
 import { EMPTY_INTRAOP_HISTORY, intraopHistoryPush, intraopHistoryRedo, intraopHistoryUndo, intraopUndoEntry, type IntraopHistory } from "@lospor/core/intraop-undo"
-import { intraopItemRef, intraopStampForColumn, type IntraopItemKind } from "@lospor/core/intraop-commands"
+import { intraopItemRef, intraopStampForColumn } from "@lospor/core/intraop-commands"
 import { INTRAOP_COLUMN_MS, sortIntraopEvents } from "@lospor/core/intraop-engine"
 import { instantForTimeInCase, type ClockTime } from "@lospor/core/time-entry"
 import { localTimeOf } from "@lospor/core/intraop-time"
@@ -27,6 +27,7 @@ import type { LogEvent } from "@lospor/core/intraop-types"
 import type { IntraopEventOps } from "@lospor/core/intraop-timetable-edit"
 import { TimetableCellMenu } from "./TimetableCellMenu"
 import { TIMETABLE_MENU_COPY, type MenuLocale } from "./timetable-menu-copy"
+import type { ChartFacts, ContinuousTarget, LaneDialogs, MenuApi, Open, PointTarget, Wheel } from "./timetable-menu-types"
 
 /**
  * Opens the chart's one menu from any lane (10.8.0) and carries out what Core
@@ -36,39 +37,7 @@ import { TIMETABLE_MENU_COPY, type MenuLocale } from "./timetable-menu-copy"
  * fluid's stop with its volume, editing an entry -- goes back to the lane that
  * owns that dialog. Every change shows an Undo bar.
  */
-export type ContinuousTarget = { kind: IntraopItemKind; key: string; col: number; rect: DOMRect; title: string }
-export type PointTarget = { eventId: string; rect: DOMRect; title: string }
-
-export type LaneDialogs = {
-  changeDose: (target: ContinuousTarget, planned: boolean) => void
-  changeSyringe: (target: ContinuousTarget) => void
-  switchAgent: (target: ContinuousTarget) => void
-  /** Infusion and fluid stops ask for a volume or the pump's total. */
-  stopWithData: (target: ContinuousTarget) => boolean
-  /** True when the lane opened its own editor (a drug's dose); otherwise Edit sets the time, as on the PWA. */
-  editPoint: (event: LogEvent, rect: DOMRect) => boolean | void
-  /** True when a dose sheet took it; otherwise the entry is repeated at now as it was (the event log). */
-  repeatDose: (event: LogEvent, rect: DOMRect) => boolean | void
-}
-
-/** What the lanes need to draw totals and the current dose (10.8.0). */
-export type ChartFacts = { ibw: number | null; tbw: number | null; tciPatient: unknown; nowCol: number | null; chartChangedAt?: number }
-
-/**
- * The menu's own many-step history (10.8.0), Core's, as on the PWA. Undo and Redo
- * (toolbar, Ctrl+Z / Ctrl+Y) take the newer of this and the chart's own history.
- */
-export type MenuHistory = { canUndo: boolean; canRedo: boolean; lastAt: number; undo: () => boolean; redo: () => boolean }
-
-type MenuApi = {
-  history: MenuHistory
-  /** True when the cell had something to do (the menu opened). */
-  openContinuous: (target: ContinuousTarget) => boolean
-  openPoint: (target: PointTarget) => boolean
-  /** The keyboard's Delete: what is in that cell, or that entry, with Undo. */
-  deleteAt: (target: { kind: string; key: string; col: number } | { eventId: string }) => void
-  facts: ChartFacts
-}
+export type { ContinuousTarget, PointTarget, LaneDialogs, ChartFacts, MenuHistory, MenuApi } from "./timetable-menu-types"
 
 const MenuContext = createContext<MenuApi | null>(null)
 
@@ -76,12 +45,6 @@ const MenuContext = createContext<MenuApi | null>(null)
 export function useTimetableMenu(): MenuApi | null {
   return useContext(MenuContext)
 }
-
-type Open =
-  | { kind: "continuous"; target: ContinuousTarget; actions: IntraopMenuAction[] }
-  | { kind: "point"; target: PointTarget; event: LogEvent; actions: IntraopMenuAction[] }
-
-type Wheel = { title: string; value: ClockTime; reference: Date; apply: (instant: Date) => IntraopEditRefusal | null }
 
 const STOP_TYPE: Record<"agent" | "gas" | "jet", LogEvent["type"]> = { agent: "agent_stop", gas: "gas_stop", jet: "jet_stop" }
 
@@ -91,7 +54,9 @@ function uid(): string {
   return [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("")
 }
 
-export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs, facts, cursor = true }: {
+export function TimetableMenuHost({ children, log, applyOps, gridStartMs, startedAt, endedAt, timeZone, locale, readOnly, now, dialogs, facts, cursor = true, onEndDrop: onEndDropReady }: {
+  /** The chart's own gestures (an end grip dropped) reach the menu's actions through this (given once; keep it stable). */
+  onEndDrop?: (endDrop: (target: ContinuousTarget, stopped: boolean) => void) => void
   children: ReactNode
   log: LogEvent[]
   applyOps: (ops: IntraopEventOps) => void
@@ -109,6 +74,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   const copy = TIMETABLE_MENU_COPY[locale]
   const [open, setOpen] = useState<Open | null>(null)
   const [wheel, setWheel] = useState<Wheel | null>(null)
+  const endDropRef = useRef<(target: ContinuousTarget, stopped: boolean) => void>(() => {})
   const [pairQuestion, setPairQuestion] = useState<string | null>(null)
   const [undo, setUndo] = useState<{ label: string; before: LogEvent[]; after: LogEvent[] } | null>(null)
   const [refusal, setRefusal] = useState<string | null>(null)
@@ -202,6 +168,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       })
       if (here) commitRef.current(intraopDeleteHere(logRef.current, here.id), deletedLabelRef.current(target.key))
     },
+    endDrop: (target, stopped) => endDropRef.current(target, stopped),
     facts: facts ?? { ibw: null, tbw: null, tciPatient: null, nowCol: null },
     history: {
       canUndo: history.done.length > 0,
@@ -211,6 +178,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       redo: () => step("redo"),
     },
   }), [cellOf, endedAt, facts, history, historyAt, now, readOnly, step])
+  useEffect(() => { onEndDropReady?.((target, stopped) => endDropRef.current(target, stopped)) }, [onEndDropReady])
 
   const editContext = () => ({ now: now(), startedAt, endedAt })
   const clockOf = (instant: Date): ClockTime => {
@@ -231,13 +199,26 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
 
   const stampAt = (col: number) => gridStartMs == null ? now().toISOString() : intraopStampForColumn({ chartStart: gridStartMs, column: col, now: now() })
 
+  /** Dropping a bar's end grip: before "now" stops there, after "now" plans the stop, on a stopped bar fixes the end. No question. */
+  function onEndDrop(target: ContinuousTarget, stopped: boolean) {
+    if (readOnly) return
+    if (!stopped) { onContinuous(facts && facts.nowCol != null && target.col > facts.nowCol ? "plan_stop" : "stop", target); return }
+    const start = lastStartOf(target)
+    if (!start) return
+    const instant = new Date(stampAt(target.col))
+    const result = intraopFixBoundary(logRef.current, start.id, "end", instant, editContext())
+    if (!result.ok) { refuse(result.refusal); return }
+    commit(result.events, copy.done.fixed(target.title, timeOf(instant)))
+  }
+  useEffect(() => { endDropRef.current = onEndDrop })
+
   function onContinuous(action: IntraopMenuAction, target: ContinuousTarget) {
     const start = lastStartOf(target)
     const future = cellOf(target.col).start > now().getTime()
     switch (action) {
       case "stop":
       case "plan_stop": {
-        if (target.kind === "infusion" || target.kind === "fluid") { if (dialogs.stopWithData(target)) return }
+        if (action === "stop" && (target.kind === "infusion" || target.kind === "fluid") && dialogs.stopWithData(target)) return // a planned stop (a later cell) asks nothing: the total is asked when it comes
         const ts = stampAt(target.col)
         const stop: LogEvent = target.kind === "infusion" ? { id: uid(), ts, type: "infusion_stop", infId: target.key, recordedAt: now().toISOString() }
           : target.kind === "fluid" ? { id: uid(), ts, type: "fluid_end", fluidId: target.key, recordedAt: now().toISOString() }

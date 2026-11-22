@@ -91,7 +91,7 @@ import { cvpDisplayRange, cvpToDisplay } from "@lospor/core/monitoring-values"
 import { mayCommitVitalDefault } from "@lospor/core/monitoring-values"
 import { useUnitPreferences } from "@/hooks/useUnitPreferences"
 import { createDrugChipResolver } from "@/components/intraop/drug-chip-resolver"
-import { createEndDropHandlers, type PendingStop } from "@/components/intraop/end-drop-handlers"
+import { createEndDropHandlers } from "@/components/intraop/end-drop-handlers"
 import { useTimetableHistory } from "@/components/intraop/useTimetableHistory"
 import { TimetableToolbar } from "@/components/intraop/TimetableToolbar"
 import { TimetableMenuHost } from "@/components/intraop/TimetableMenuHost"
@@ -400,7 +400,8 @@ export function IntraopTimetable({
   // Rate-pill drag
   // Misc infusion UI state
   const [deleteInfPrompt, setDeleteInfPrompt] = useState<string | null>(null)
-  const [pendingStop, setPendingStop] = useState<PendingStop | null>(null)
+  const [menuEndDrop, setMenuEndDrop] = useState<((target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) | null>(null)
+  const registerEndDrop = useCallback((fn: (target: import("@/components/intraop/TimetableMenuHost").ContinuousTarget, stopped: boolean) => void) => setMenuEndDrop(() => fn), [])
   const [hoverDiscontinue, setHoverDiscontinue] = useState<string | null>(null)
   // Right-grip (extend endCol) and left-grip (extend startCol backward)
   // Item-level selection (pill or infusion bar)
@@ -902,7 +903,7 @@ export function IntraopTimetable({
   }
 
   // ── Fluids ──────────────────────────────────────────────────────────────────
-  const { removeFluid, extendFluid, resumeFluid, continueFluid } =
+  const { removeFluid, resumeFluid, continueFluid } =
     useFluidHandlers(data, onChange, dataRef, onChangeRef, nowCol)
 
   const {
@@ -957,7 +958,7 @@ export function IntraopTimetable({
     startGas, applyGasChange, stopGas,
   } = useGasSettingsHandlers(data, onChange, dataRef, onChangeRef)
 
-  const { handleEndDrop, confirmPendingStop } = createEndDropHandlers({ agents, infusions: data.infusions ?? [], fluids: data.fluids ?? [], nowCol, setPendingStop, extendAgent: extendSegment, resumeAgent: resumeSegment, extendInfusion, restoreInfusion, extendFluid, resumeFluid })
+  const { handleEndDrop } = createEndDropHandlers({ agents, infusions: data.infusions ?? [], fluids: data.fluids ?? [], endDrop: (target, stopped) => menuEndDrop?.(target, stopped) })
 
   function handleEndCaseConfirm(result: EndCaseResult) {
     onChangeRef.current(chartAfterEndCase(dataRef.current, result, nowCol ?? 0, finalizedFluid))
@@ -1495,7 +1496,7 @@ export function IntraopTimetable({
   return (
     <TciPatientContext.Provider value={tciPatient}>
     {/* 10.8.0: one menu for whatever is in a cell; the dialogs a lane owns stay with it. */}
-    <TimetableMenuHost log={attention?.log ?? []} applyOps={ops => attention?.applyOps(ops)} gridStartMs={gridStartMs} startedAt={startedAt ? new Date(startedAt) : null} endedAt={endedAt ? new Date(endedAt) : null}
+    <TimetableMenuHost onEndDrop={registerEndDrop} log={attention?.log ?? []} applyOps={ops => attention?.applyOps(ops)} gridStartMs={gridStartMs} startedAt={startedAt ? new Date(startedAt) : null} endedAt={endedAt ? new Date(endedAt) : null}
       timeZone={attention?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone} locale={locale === "bg" ? "bg" : "en"} readOnly={!attention?.canAnswer} now={serverNow} dialogs={menuDialogs} facts={{ ibw: ibw ?? null, tbw: tbw ?? null, tciPatient, nowCol, chartChangedAt: histDepth.lastAt }}>
     <div ref={touchDragRoot} data-intraop-chart-root data-touch-drag-ready={touchDragReady ? "true" : "loading"} className="space-y-3 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] [&:fullscreen]:overflow-auto [&:fullscreen]:p-4 [&:fullscreen]:bg-white dark:[&:fullscreen]:bg-[#111]">
       <TimetableToolbar chartOpen={chartOpen} onToggleChart={() => setChartOpen(o => { void patchWebClinicalPreferences({ vitalsChartExpanded: !o }); return !o })}
@@ -1955,11 +1956,6 @@ export function IntraopTimetable({
       />
     )}
     <TimetableEndOverlays
-      pendingStop={pendingStop}
-      displayNameForStop={stop => stop.kind === "agent" ? displayAgentName(stop.name) : stop.kind === "infusion" ? displayInfusionName(stop.name) : displayFluidName(stop.name)}
-      timeForColumn={tsForCol}
-      onCancelPending={() => setPendingStop(null)}
-      onConfirmPending={confirmPendingStop}
       deleteInfPrompt={deleteInfPrompt}
       onCancelDelete={() => setDeleteInfPrompt(null)}
       onDeleteInfusion={id => { removeInfusion(id); setDeleteInfPrompt(null) }}

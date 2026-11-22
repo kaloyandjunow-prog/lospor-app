@@ -32,13 +32,24 @@ export function TimetableCellMenu({ anchor, title, subtitle, actions, labels, on
     setPosition({ left, top })
   }, [anchor])
 
+  // The host re-renders often (the clock) and hands a new onClose each time: listening through a ref keeps
+  // the listeners in place, so a key pressed while the host renders is not lost.
+  const closeRef = useRef(onClose)
+  useEffect(() => { closeRef.current = onClose })
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose() }
-    const onDown = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) onClose() }
+    // Closing hands the focus back to the cell the menu came from, so the arrows carry on from there.
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeRef.current() }
+    const onDown = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) closeRef.current() }
     window.addEventListener("keydown", onKey)
     window.addEventListener("pointerdown", onDown, true)
-    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("pointerdown", onDown, true) }
-  }, [onClose])
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      window.removeEventListener("pointerdown", onDown, true)
+      const now = document.activeElement
+      if (opener?.isConnected && (!now || now === document.body || now.closest("[role=menu]"))) opener.focus({ preventScroll: true })
+    }
+  }, [])
 
   useEffect(() => { ref.current?.querySelector<HTMLButtonElement>("button")?.focus() }, [])
 
