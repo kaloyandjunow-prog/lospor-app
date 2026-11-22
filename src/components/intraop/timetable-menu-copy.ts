@@ -71,7 +71,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
       undone: "Отменено",
     },
     pair: { question: "Има и „Турникет отпуснат“. Изтриване и на двете?", both: "Изтрий и двете", onlyThis: "Само поставен" },
-    stillRunning: { question: (title, time) => `${title} от ${time} — още тече ли?`, running: "Тече", stopped: "Спря…" },
+    stillRunning: { question: (title, time) => `${title} от ${time} — още тече ли?`, running: "Тече", stopped: "Спряно…" },
     wheel: { hours: "Часове", minutes: "Минути", typed: "Час (напр. 1024)" },
     screen: { fullscreen: "Цял екран", exitFullscreen: "Изход от цял екран" },
     redone: "Повторено",

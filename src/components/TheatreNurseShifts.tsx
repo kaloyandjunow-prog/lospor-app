@@ -17,7 +17,7 @@ type Person = { id: string; name: string; firstName?: string | null; lastName?: 
 type Shift = { id: string; theatre: Theatre; user: Person }
 
 const COPY = {
-  bg: { open: "Сестри по зали", title: "Анестезиологични сестри по зали", me: "Тук съм днес", add: "Добави сестра", none: "Няма", close: "Готово", date: "Дата", day: "Ден", month: "Месец", year: "Година", remove: "Махни" },
+  bg: { open: "Сестри по операционни", title: "Анестезиологични сестри по операционни", me: "Тук съм днес", add: "Добави сестра", none: "Няма", close: "Готово", date: "Дата", day: "Ден", month: "Месец", year: "Година", remove: "Махни" },
   en: { open: "Nurses by theatre", title: "Anaesthesia nurses by theatre", me: "I am here today", add: "Add a nurse", none: "None", close: "Done", date: "Date", day: "Day", month: "Month", year: "Year", remove: "Remove" },
 } as const
 

@@ -43,7 +43,7 @@ export function SpreadList({ rows, unit, t }: { rows: { key: string; label: stri
 }
 export function TallyChart({ rows }: { rows: Tally[] }) {
   const data = rows.map(row => ({ key: row.key.replace(/^\d{4}-/, ""), count: row.count ?? 0 }))
-  return <div className="h-48"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}><CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.12} /><XAxis dataKey="key" tick={{ fontSize: 10 }} interval="preserveStartEnd" /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip cursor={{ fillOpacity: 0.08 }} /><Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer></div>
+  return <div className="h-48"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}><CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.12} /><XAxis dataKey="key" tick={{ fontSize: 12 }} interval="preserveStartEnd" /><YAxis allowDecimals={false} tick={{ fontSize: 12 }} /><Tooltip cursor={{ fillOpacity: 0.08 }} /><Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer></div>
 }
 function HeatmapRow({ label, values, max }: { label: string; values: (number | null)[]; max: number }) {
   return <><span className="pr-1 text-right leading-4">{label}</span>{values.map((value, hour) => <span key={hour} title={value == null ? "<5" : String(value)} className="h-4 rounded-sm" style={{ background: value ? `rgba(59,130,246,${0.15 + 0.85 * (value / max)})` : value === null ? "rgba(148,163,184,0.25)" : "rgba(148,163,184,0.08)" }} />)}</>
