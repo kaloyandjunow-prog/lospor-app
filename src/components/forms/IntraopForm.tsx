@@ -67,7 +67,7 @@ import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
-import { SectionCard } from "@/components/forms/shared/SectionCard"
+import { SectionCard, useOpenSectionEvents } from "@/components/forms/shared/SectionCard"
 import { usePremedicationLibrary } from "@/components/intraop/use-premedication-library"
 import { usePremedicationPrefill } from "@/components/intraop/use-premedication-prefill"
 import { PositionSection } from "@/components/forms/sections/PositionSection"
@@ -246,7 +246,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // The Legacy Monitoring section is one grouped list now; the setter stays for templates that expect it.
   const [, setAdvancedMonOpen] = useState(false)
   const [airwayExpandedDevice, setAirwayExpandedDevice] = useState<string | null>(null)
-  const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview")
+  const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview"); useOpenSectionEvents(setActiveTab)
   useScrollToReadiness(focus)
   const [airwayOverride,       setAirwayOverride]       = useState(false)
   const monDefaultsApplied      = useRef(false)

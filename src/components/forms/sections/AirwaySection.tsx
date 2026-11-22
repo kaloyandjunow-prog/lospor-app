@@ -79,7 +79,7 @@ export function AirwaySection({
   }
 
   return (
-    <SectionCard title={t("intraop.airway.sectionTitle")} collapsible>
+    <SectionCard anchor="intraop-airway" title={t("intraop.airway.sectionTitle")} collapsible>
       {/* N/A toggle */}
       <div className="flex items-center gap-2">
         <button type="button"

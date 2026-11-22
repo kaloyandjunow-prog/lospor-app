@@ -12,7 +12,7 @@ function setup() {
   let data = { fluids: [fluid] } as unknown as TimetableData
   const onChange = vi.fn((next: TimetableData) => { data = next })
   const hook = renderHook(() => useFluidChartActions({
-    dataRef: { current: data }, onChangeRef: { current: onChange }, nowCol: 11, tsForCol: col => `ts-${col}`, uid: () => "u", getFluidCategory: () => "Crystalloids",
+    dataRef: { current: data }, onChangeRef: { current: onChange }, nowCol: 11, tsForCol: (col: number) => `ts-${col}`, uid: () => "u", getFluidCategory: () => "Crystalloids",
   } as never))
   return { hook, latest: () => data.fluids![0] as unknown as { rate: number; rateChanges: { col: number; rate: number }[] } }
 }

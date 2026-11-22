@@ -3,12 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { intraopContinuousMenu, intraopPointMenu, type IntraopMenuAction } from "@lospor/core/intraop-menu"
 import { ChartCursor } from "./chart-cursor"
+import { openLinkedSection } from "@/components/forms/shared/SectionCard"
 import { PairQuestion, StillRunningBar, TimeWheelDialog, UndoBar } from "./timetable-menu-overlays"
 import {
   intraopDeleteAsksAboutPair,
   intraopDeleteHere,
   intraopDeleteWhole,
   intraopFixBoundary,
+  intraopLinkedSection,
   intraopMoveEvent,
   intraopOpsBetween,
   intraopRunEventIds,
@@ -304,9 +306,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
         const { id: _id, recordedAt: _recordedAt, ...fields } = event, ts = now().toISOString()
         return commit([...logRef.current, { ...fields, id: uid(), ts, recordedAt: ts } as LogEvent], copy.done.repeated(target.title, timeOf(ts)))
       }
-      case "edit":
-        if (dialogs.editPoint(event, target.rect) === true) return
-      // falls through: an entry with no editor of its own has its time edited
+      case "edit": if (openLinkedSection(intraopLinkedSection(event)) || dialogs.editPoint(event, target.rect) === true) return // a linked entry is edited in its section (rule 9), else its dose, else (falls through) its time
       case "move": {
         const reference = new Date(event.ts)
         setWheel({
