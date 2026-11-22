@@ -1,19 +1,14 @@
 "use client"
 
-import { INTRAOP_COLUMN_MINUTES } from "@lospor/core/intraop-engine"
+import { intraopRunDurationLabel } from "@lospor/core/intraop-summary"
 
 /**
  * Small pieces every continuous lane shares (10.8.0, rule 5 web):
  * the total in the cell after a bar's end (or after now while it runs),
- * and a duration written the way the record writes it.
+ * and a duration written the way the record writes it -- Core's label, so
+ * the PWA's open row says the same.
  */
-export function laneDuration(startCol: number, endCol: number): string {
-  const minutes = Math.max(0, endCol - startCol + 1) * INTRAOP_COLUMN_MINUTES
-  if (minutes < 60) return `${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  return rest ? `${hours} h ${rest} min` : `${hours} h`
-}
+export const laneDuration = intraopRunDurationLabel
 
 /** The column the total goes in: after the end of a stopped bar, after now on a running one. */
 export function totalColumn(seg: { endCol: number; stopped?: boolean }, nowCol: number | null): number {
