@@ -40,33 +40,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center gap-2">
           <Link href="/dashboard" className="flex shrink-0 items-center" aria-label={t("nav.dashboardAria")}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lospor-horizontal-light.svg" alt="LOSPOR" className="h-16 w-auto dark:hidden" />
+            <img src="/brand/lospor-horizontal-light.svg" alt="LOSPOR" className="h-12 sm:h-16 w-auto dark:hidden" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lospor-horizontal-dark.svg" alt="LOSPOR" className="hidden h-16 w-auto dark:block" />
+            <img src="/brand/lospor-horizontal-dark.svg" alt="LOSPOR" className="hidden h-12 sm:h-16 w-auto dark:block" />
           </Link>
 
           <nav className="hidden md:flex flex-1 items-center justify-center gap-1">
             <Link href="/dashboard"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
+              className="inline-flex items-center gap-2 px-4 py-2 pointer-coarse:min-h-11 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
               <LayoutDashboard className="h-4 w-4" />
               <span className="max-xl:sr-only">{t("nav.dashboard")}</span>
             </Link>
             <span data-tour="nav-ongoing"><OngoingCasesButton /></span>
             <Link href="/indicators" data-testid="nav-indicators"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
+              className="inline-flex items-center gap-2 px-4 py-2 pointer-coarse:min-h-11 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
               <BarChart3 className="h-4 w-4" />
               <span className="max-xl:sr-only">{t("nav.indicators")}</span>
             </Link>
             {session.user.role === "ADMIN" && (
               <Link href="/admin"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-50 dark:active:bg-blue-900/20 transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 pointer-coarse:min-h-11 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-50 dark:active:bg-blue-900/20 transition-colors">
                 <Shield className="h-4 w-4" />
                 <span className="max-xl:sr-only">{t("nav.admin")}</span>
               </Link>
             )}
             {(session.user.role === "ADMIN" || session.user.role === "HEAD_OF_DEPT") && (
               <Link href="/clinical-rules"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 pointer-coarse:min-h-11 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
                 <SlidersHorizontal className="h-4 w-4" />
                 <span className="max-xl:sr-only">{t("nav.clinicalRules")}</span>
               </Link>
@@ -74,14 +74,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {/* 10.8.0: an anaesthesia nurse does not open cases. */}
             {session.user.role !== "ANAESTHESIA_NURSE" && (
               <Link href="/cases/new" data-tour="nav-new-case"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
+                className="inline-flex items-center gap-2 px-4 py-2 pointer-coarse:min-h-11 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] active:bg-slate-100 dark:active:bg-[#2a2a2a] transition-colors">
                 <FilePlus className="h-4 w-4" />
                 <span className="max-xl:sr-only">{t("nav.newCase")}</span>
               </Link>
             )}
           </nav>
 
-          <div className="flex items-center gap-3 md:ml-0 ml-auto">
+          <div className="flex items-center gap-1 sm:gap-3 md:ml-0 ml-auto">
             <OutboxBadge />
             <TourButton />
             <span data-tour="settings-menu">

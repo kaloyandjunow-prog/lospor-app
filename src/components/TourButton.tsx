@@ -90,7 +90,7 @@ export function TourButton() {
           type="button"
           onClick={() => setDropOpen(v => !v)}
           title={t("tour.guidesHelp")}
-          className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
+          className="p-2 rounded-lg pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:inline-flex pointer-coarse:items-center pointer-coarse:justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
         >
           {demoLoading
             ? <Loader2 className="h-4 w-4 animate-spin" />

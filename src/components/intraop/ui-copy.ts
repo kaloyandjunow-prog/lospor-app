@@ -313,7 +313,7 @@ const COPY = {
       carrier: "Носещ газ",
       choose: "избери",
       settings: "Настройки на газовете",
-      tapToStart: "натиснете за начало",
+      tapToStart: "старт",
       editSettings: "Редактиране на настройките на газовете",
       startSettings: "Започване на газовете",
       start: "Започни",

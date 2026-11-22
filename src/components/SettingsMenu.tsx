@@ -247,7 +247,7 @@ export function SettingsMenu({ userName, institutionId, institutionName, current
         <button type="button" data-testid="account-settings-trigger" onClick={() => { setOpen(false); setModalOpen(true) }}
           aria-label={t("settings.accountSettings")} aria-haspopup="dialog" aria-expanded={modalOpen}
           title={t("settings.accountSettings")}
-          className={`p-2 rounded-lg transition-colors ${
+          className={`p-2 rounded-lg pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:inline-flex pointer-coarse:items-center pointer-coarse:justify-center transition-colors ${
             open || modalOpen
               ? "bg-slate-100 dark:bg-[#2a2a2a] text-slate-700 dark:text-slate-200"
               : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]"
