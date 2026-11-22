@@ -44,8 +44,9 @@ export type LaneDialogs = {
 }
 
 type MenuApi = {
-  openContinuous: (target: ContinuousTarget) => void
-  openPoint: (target: PointTarget) => void
+  /** True when the cell had something to do (the menu opened). */
+  openContinuous: (target: ContinuousTarget) => boolean
+  openPoint: (target: PointTarget) => boolean
 }
 
 const MenuContext = createContext<MenuApi | null>(null)
@@ -90,7 +91,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
   const [refusal, setRefusal] = useState<string | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const logRef = useRef(log)
-  logRef.current = log
+  useEffect(() => { logRef.current = log }, [log])
 
   const cellOf = useCallback((col: number) => {
     const start = (gridStartMs ?? 0) + col * INTRAOP_COLUMN_MS
@@ -116,17 +117,19 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
 
   const api = useMemo<MenuApi>(() => ({
     openContinuous: target => {
-      if (readOnly) return
+      if (readOnly) return false
       const cell = cellOf(target.col)
       const actions = intraopContinuousMenu(logRef.current, target, cell, { now: now(), endedAt })
       if (actions.length > 0) setOpen({ kind: "continuous", target, actions })
+      return actions.length > 0
     },
     openPoint: target => {
-      if (readOnly) return
+      if (readOnly) return false
       const event = logRef.current.find(item => item.id === target.eventId)
-      if (!event) return
+      if (!event) return false
       const actions = intraopPointMenu(event, { readOnly })
       if (actions.length > 0) setOpen({ kind: "point", target, event, actions })
+      return actions.length > 0
     },
   }), [cellOf, endedAt, now, readOnly])
 

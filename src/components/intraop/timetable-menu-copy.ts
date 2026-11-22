@@ -17,6 +17,7 @@ type Copy = {
   }
   pair: { question: string; both: string; onlyThis: string }
   wheel: { hours: string; minutes: string; typed: string }
+  screen: { fullscreen: string; exitFullscreen: string }
   undo: string
   cancel: string
   confirm: string
@@ -65,6 +66,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
     },
     pair: { question: "Има и „Турникет отпуснат“. Изтриване и на двете?", both: "Изтрий и двете", onlyThis: "Само поставен" },
     wheel: { hours: "Часове", minutes: "Минути", typed: "Час (напр. 1024)" },
+    screen: { fullscreen: "Цял екран", exitFullscreen: "Изход от цял екран" },
     undo: "Отмени",
     cancel: "Отказ",
     confirm: "Готово",
@@ -110,6 +112,7 @@ export const TIMETABLE_MENU_COPY: Record<MenuLocale, Copy> = {
     },
     pair: { question: "Tourniquet off is recorded too. Delete both?", both: "Delete both", onlyThis: "Only Tourniquet on" },
     wheel: { hours: "Hours", minutes: "Minutes", typed: "Time (e.g. 1024)" },
+    screen: { fullscreen: "Full screen", exitFullscreen: "Exit full screen" },
     undo: "Undo",
     cancel: "Cancel",
     confirm: "Done",

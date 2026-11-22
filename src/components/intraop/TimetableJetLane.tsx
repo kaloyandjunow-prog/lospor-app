@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import type { JetSegment } from "@lospor/core/intraop-types"
 import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geometry"
 import { jetSettingsAtColumn } from "./jet-lane"
+import { useTimetableMenu } from "./TimetableMenuHost"
 
 /**
  * The jet ventilation lane (10.2.0), shown once Jet is ticked among the
@@ -20,6 +21,7 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
   segmentAt: (col: number) => JetSegment | null
   onOpen: (col: number, seg: JetSegment | null, rect: DOMRect) => void
 }) {
+  const menu = useTimetableMenu()
   const t = useTranslations("intraop.jet")
   return (
     <div data-testid="jet-lane" className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-teal-50/30 dark:bg-[#132020]/40 relative" style={{ minHeight: 32 }}>
@@ -37,7 +39,7 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
         return (
           <div key={ci} data-testid={`jet-cell-${ci}`} style={{ width: colW, minWidth: colW }}
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
-            onClick={event => onOpen(ci, seg, (event.currentTarget as HTMLElement).getBoundingClientRect())}>
+            onClick={event => { const rect = (event.currentTarget as HTMLElement).getBoundingClientRect(); if (!menu?.openContinuous({ kind: "jet", key: "jet", col: ci, rect, title: "Jet" })) onOpen(ci, seg, rect) }}>
             {!seg && (
               <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 {t("tapToStart")}

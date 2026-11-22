@@ -3,11 +3,9 @@
 import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { SaveMark } from "./SaveMark"
 import { TOUCH_GRIP } from "./touch-drag"
-import { ContinueOverlay } from "./ContinueOverlay"
 import { segmentEventIds } from "@lospor/core/intraop-save-state"
-import { X } from "lucide-react"
 import { displayGasMix, displayGasSettings } from "@/lib/clinical-display"
-import { DiscontinuePrompt } from "./DiscontinuePrompt"
+import { useTimetableMenu } from "./TimetableMenuHost"
 import { barContinues, barEntersRow, barLeftClass, barRightClass, showBarGrip } from "./timetable-row-geometry"
 import type { TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
@@ -81,11 +79,8 @@ export function AgentLane({
   colStart,
   colEnd,
   colW,
-  nowCol,
   sel,
   setSel,
-  discConfirmId,
-  setDiscConfirmId,
   agents,
   segmentAt,
   agentStyle,
@@ -97,13 +92,13 @@ export function AgentLane({
   onDragEnd,
   openPickerForSeg,
   openPickerEmpty,
-  resumeSegment,
-  extendSegment,
-  removeSegment,
-  continueAgent,
 }: AgentLaneProps) {
   const copy = useIntraopUiCopy()
+  const menu = useTimetableMenu()
   const { extendingAgent, extendHoverCol } = drag
+  // 10.8.0: a cell of a running or stopped agent opens its menu (Stop, Change dose, Resume, ...).
+  const openAgentMenu = (name: string, ci: number, rect: DOMRect) =>
+    !!menu?.openContinuous({ kind: "agent", key: name, col: ci, rect, title: displayAgentName(name) })
   // Each concentration it ran at is shown in a strip above the bar (10.0.0).
   const hasStrip = agents.some(agent => agent.percent != null || (agent.percentChanges?.length ?? 0) > 0)
 
@@ -153,6 +148,9 @@ export function AgentLane({
             onDrop={e => onCellDrop(e, ci)}
             onClick={e => {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              const stopped = agents.find(a => a.stopped && a.endCol < ci)
+              if (seg && openAgentMenu(seg.name, ci, rect)) return
+              if (!seg && stopped && openAgentMenu(stopped.name, ci, rect)) return
               if (seg) openPickerForSeg(seg.startCol, seg, rect, ci)
               else if (!vacated) openPickerEmpty(ci, rect)
             }}
@@ -177,10 +175,8 @@ export function AgentLane({
                       const rect = (e.currentTarget as HTMLElement).closest("[data-agent-cell]")?.getBoundingClientRect()
                         ?? (e.currentTarget as HTMLElement).getBoundingClientRect()
                       setSel({ type: "agent", startCol: seg.startCol })
-                      openPickerForSeg(seg.startCol, seg, rect, ci)
+                      if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                     }}
-                    onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeSegment(seg.startCol) }}
-                    title={seg.stopped ? copy.doubleClickResume : undefined}
                     style={hasStrip ? { top: 18, bottom: 3 } : undefined}
                     className={`absolute ${hasStrip ? "" : "inset-y-1"} border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   />
@@ -200,7 +196,7 @@ export function AgentLane({
                         const rect = (event.currentTarget as HTMLElement).closest("[data-agent-cell]")?.getBoundingClientRect()
                           ?? event.currentTarget.getBoundingClientRect()
                         setSel({ type: "agent", startCol: seg.startCol })
-                        openPickerForSeg(seg.startCol, seg, rect, ci)
+                        if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                       }}
                       testId="agent-percent-strip"
                     />
@@ -226,36 +222,9 @@ export function AgentLane({
                 <span className="text-white text-[8px] font-bold select-none">|</span>
               </div>
             )}
-            {isEnd && !isRowExit && sel?.type === "agent" && sel.startCol === seg?.startCol && seg && !seg.stopped && !isDragPreview && extendingAgent === null && (
-              <DiscontinuePrompt
-                open={discConfirmId === `agent-${seg.startCol}`}
-                onOpen={() => setDiscConfirmId(`agent-${seg.startCol}`)}
-                onConfirm={() => { extendSegment(seg.startCol, nowCol ?? seg.endCol); setSel(null); setDiscConfirmId(null) }}
-                onCancel={() => setDiscConfirmId(null)}
-                style={{ top: 2, right: 14 }}
-              />
-            )}
-            {isStart && seg && (
-              <button
-                type="button"
-                aria-label={copy.removeAria(displayAgentName(seg.name))}
-                onClick={e => { e.stopPropagation(); removeSegment(seg.startCol) }}
-                className="absolute top-0.5 right-3 z-10 opacity-0 hover:opacity-100 [@media(hover:none)]:opacity-100 [@media(any-pointer:coarse)]:opacity-100 text-slate-400 hover:text-red-500 transition-opacity"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            )}
             {agents.some(a => a.plannedStopCol === ci) && <PlannedStopMarker />}
             {agents.flatMap(a => (a.percentChanges ?? []).filter(change => change.planned && change.col === ci))
               .map(change => <PlannedChangeMarker key={change.eventId ?? change.col} value={`${change.percent}%`} />)}
-            {!seg && !isDragPreview && (() => {
-              // An agent turned off earlier can be picked up again here rather
-              // than started afresh, which would read as a second agent.
-              const stoppedAgent = agents.find(a => a.stopped && a.endCol < ci)
-              return stoppedAgent ? (
-                <ContinueOverlay label={copy.fluid.continueQuestion} onContinue={() => continueAgent(stoppedAgent, ci)} testId="agent-continue" />
-              ) : null
-            })()}
           </div>
         )
       })}
@@ -280,17 +249,14 @@ export function GasSettingsLane({
   colStart,
   colEnd,
   colW,
-  nowCol,
-  discConfirmId,
-  setDiscConfirmId,
   locale,
   gasSegmentAt,
   openPickerForSeg,
   openPickerEmpty,
-  stopGas,
   plannedGasChangeAt,
 }: GasSettingsLaneProps) {
   const copy = useIntraopUiCopy()
+  const menu = useTimetableMenu()
   return (
     <div
       className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-slate-50/40 dark:bg-[#1a1a1a]/40 relative"
@@ -318,13 +284,15 @@ export function GasSettingsLane({
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
             onClick={e => {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              // 10.8.0: the gas settings' menu in this cell (Stop, Change, Resume, ...).
+              if (menu?.openContinuous({ kind: "gas", key: "gas", col: ci, rect, title: copy.gas.settings })) return
               if (seg) openPickerForSeg(ci, seg, rect)
               else openPickerEmpty(ci, rect)
             }}
           >
             {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
-              <span className="w-full text-center text-[10px] text-slate-300 dark:text-[#444] select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="w-full text-center text-[10px] text-slate-400 dark:text-[#666] select-none pointer-events-none">
                 {copy.gas.tapToStart}
               </span>
             )}
@@ -342,15 +310,6 @@ export function GasSettingsLane({
                 <span>FGF {settings.fgf} L/min</span>
                 <span className="text-[8px]">{displayGasMix(settings, locale)}</span>
               </span>
-            )}
-            {isEnd && seg && !seg.stopped && (
-              <DiscontinuePrompt
-                open={discConfirmId === `gas-${seg.startCol}`}
-                onOpen={() => setDiscConfirmId(`gas-${seg.startCol}`)}
-                onConfirm={() => { stopGas(seg.id, nowCol); setDiscConfirmId(null) }}
-                onCancel={() => setDiscConfirmId(null)}
-                style={{ top: 2, right: 2 }}
-              />
             )}
           </div>
         )

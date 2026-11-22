@@ -11,7 +11,7 @@ import { clinicalProvenance } from "@/lib/intraop-provenance"
 import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 import { useLocale, useTranslations } from "next-intl"
 import { createPortal } from "react-dom"
-import { Plus, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useIntraopDoseOptions } from "@/components/intraop/use-intraop-dose-options"
 import { clinicalEventName, displayClinicalCode } from "@/lib/clinical-display"
 import { useIntraopDisplay } from "@/components/intraop/useIntraopDisplay"
@@ -93,7 +93,10 @@ import { useUnitPreferences } from "@/hooks/useUnitPreferences"
 import { createDrugChipResolver } from "@/components/intraop/drug-chip-resolver"
 import { createEndDropHandlers, type PendingStop } from "@/components/intraop/end-drop-handlers"
 import { useTimetableHistory } from "@/components/intraop/useTimetableHistory"
-import { TimetableHistoryButtons } from "@/components/intraop/TimetableHistoryButtons"
+import { TimetableToolbar } from "@/components/intraop/TimetableToolbar"
+import { TimetableMenuHost } from "@/components/intraop/TimetableMenuHost"
+import { TIMETABLE_MENU_COPY } from "@/components/intraop/timetable-menu-copy"
+import { chartRootElement, useFullscreen } from "@/components/intraop/use-fullscreen"
 import { TimetableEndOverlays } from "@/components/intraop/TimetableEndOverlays"
 import { type IntraopVitalKey } from "@lospor/core/intraop-vitals"
 import { evaluateVitalInput } from "@/lib/intraop-vital-entry"
@@ -1554,38 +1557,36 @@ export function IntraopTimetable({
     ...suggestionForm,
   }
 
+  // 10.8.0: what the one menu hands back to a lane: the dialogs that lane already owns.
+  const [fullscreen, toggleFullscreen] = useFullscreen(chartRootElement)
+  const segAt = <S extends { startCol: number; endCol: number }>(list: S[], col: number) => list.filter(seg => seg.startCol <= col).sort((a, b) => b.startCol - a.startCol)[0]
+  const menuDialogs: import("@/components/intraop/TimetableMenuHost").LaneDialogs = {
+    changeDose: ({ kind, key, col, rect }) => {
+      if (kind === "agent") { const seg = segAt(agents.filter(item => item.name === key), col); if (seg) openPickerForSeg(seg.startCol, seg, rect, col) }
+      else if (kind === "gas") { const seg = segAt(gasSettings, col); if (seg) openGasPickerForSeg(col, seg, rect) }
+      else if (kind === "jet") setJetPicker({ col, seg: jetSegmentAt(data, col), rect })
+      else if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); if (seg) setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: !!seg.stopped, fromPillCol: col }) }
+      else { const seg = (data.fluids ?? []).find(item => item.id === key); if (seg) setFluidRateDialog({ id: seg.id, rate: String(seg.rate ?? ""), rect }) }
+    },
+    changeSyringe: ({ key, col, rect }) => { const seg = (data.infusions ?? []).find(item => item.id === key); if (seg) setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: !!seg.stopped, fromPillCol: col }) },
+    switchAgent: ({ key, col, rect }) => { const seg = segAt(agents.filter(item => item.name === key), col); if (seg) openPickerForSeg(seg.startCol, seg, rect, col) },
+    stopWithData: ({ kind, key, col, rect }) => {
+      if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); if (!seg) return false; setInfMenu({ segId: seg.id, name: seg.name, color: seg.color, rect, stopped: false, fromPillCol: col }); return true }
+      if (kind === "fluid") { const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg) return false; setDiscFluidState({ id: seg.id, volInput: seg.fluidEntryMode === "RATE" ? "" : "0", rect, fullBag: seg.fluidEntryMode === "RATE" ? false : null }); return true }
+      return false
+    },
+    editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx >= 0) setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }) },
+    repeatDose: (_event, rect) => setDrugPicker({ ci: nowCol ?? Math.max(0, colCount - 1), rect }),
+  }
   return (
     <TciPatientContext.Provider value={tciPatient}>
-    {/* A long press here picks a bar up rather than selecting its text (touch only). */}
-    <div ref={touchDragRoot} data-touch-drag-ready={touchDragReady ? "true" : "loading"} className="space-y-3 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none]">
-      {/* Chart toggle + layout toggle on same row */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button type="button" onClick={() => setChartOpen(o => {
-          const next = !o
-          void patchWebClinicalPreferences({ vitalsChartExpanded: next })
-          return next
-        })}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors select-none ${
-            chartOpen
-              ? "bg-slate-700 dark:bg-[#3a3a3a] border-slate-600 dark:border-[#555] text-white dark:text-slate-100"
-              : "bg-white dark:bg-[#2a2a2a] border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-[#999] hover:border-slate-300"}`}>
-          {chartOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-          {chartOpen ? uiCopy.timetable.hideChart : uiCopy.timetable.showChart}
-          {chartOpen && (
-            <span className="flex items-center gap-2 ml-1 text-[10px] font-normal opacity-70">
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-red-400 rounded" />{t("intraop.timetable.vitalBp")}</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-green-500 rounded" />{t("intraop.timetable.vitalHr")}</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-cyan-500 rounded" />SpO2</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-4 h-[2px] bg-amber-500 rounded" />EtCO2</span>
-            </span>
-          )}
-        </button>
-        <TimetableHistoryButtons depth={histDepth} undoLabel={uiCopy.timetable.undo} redoLabel={uiCopy.timetable.redo} onUndo={() => undoRef.current()} onRedo={() => redoRef.current()} />
-        <button type="button" onClick={() => setShowHotkeys(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors select-none bg-white dark:bg-[#2a2a2a] border-slate-200 dark:border-[#3a3a3a] text-slate-500 dark:text-[#999] hover:border-slate-300 dark:hover:border-[#555]">
-          ⌨ {uiCopy.timetable.shortcuts}
-        </button>
-      </div>
+    {/* 10.8.0: one menu for whatever is in a cell; the dialogs a lane owns stay with it. */}
+    <TimetableMenuHost log={attention?.log ?? []} applyOps={ops => attention?.applyOps(ops)} gridStartMs={gridStartMs} startedAt={startedAt ? new Date(startedAt) : null} endedAt={endedAt ? new Date(endedAt) : null}
+      timeZone={attention?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone} locale={locale === "bg" ? "bg" : "en"} readOnly={!attention?.canAnswer} now={serverNow} dialogs={menuDialogs}>
+    <div ref={touchDragRoot} data-intraop-chart-root data-touch-drag-ready={touchDragReady ? "true" : "loading"} className="space-y-3 pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] [&:fullscreen]:overflow-auto [&:fullscreen]:p-4 [&:fullscreen]:bg-white dark:[&:fullscreen]:bg-[#111]">
+      <TimetableToolbar chartOpen={chartOpen} onToggleChart={() => setChartOpen(o => { void patchWebClinicalPreferences({ vitalsChartExpanded: !o }); return !o })}
+        legend={{ bp: t("intraop.timetable.vitalBp"), hr: t("intraop.timetable.vitalHr") }} histDepth={histDepth} onUndo={() => undoRef.current()} onRedo={() => redoRef.current()}
+        onShortcuts={() => setShowHotkeys(true)} fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} labels={{ ...uiCopy.timetable, ...TIMETABLE_MENU_COPY[locale === "bg" ? "bg" : "en"].screen }} />
 
       <div className="flex gap-3 items-start">
         {/* ── Timetable rows */}
@@ -2159,6 +2160,7 @@ export function IntraopTimetable({
         document.body
       )
     })()}
+    </TimetableMenuHost>
     </TciPatientContext.Provider>
   )
 }

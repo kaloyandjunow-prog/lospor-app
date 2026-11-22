@@ -1,7 +1,8 @@
 "use client"
 
 import { useRef } from "react"
-import { Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
+import { useTimetableMenu } from "./TimetableMenuHost"
 import type { TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
 import { SaveMark } from "./SaveMark"
@@ -53,6 +54,7 @@ export function ClinicalEventsLane({
   onOpenPicker,
   onRemove,
 }: ClinicalEventsLaneProps) {
+  const menu = useTimetableMenu()
   return (
     <div
       className="flex items-stretch border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50/20 dark:bg-[#181818]/40"
@@ -72,19 +74,25 @@ export function ClinicalEventsLane({
             onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
           >
             {colEvents.length === 0 && (
-              <Plus className="h-2.5 w-2.5 opacity-0 group-hover:opacity-30 transition-opacity text-slate-400 dark:text-[#666] mt-1.5" />
+              <Plus className="h-3.5 w-3.5 opacity-40 text-slate-400 dark:text-[#666] mt-1.5" />
             )}
             <div className="flex flex-col items-start gap-1 w-full">
               {colEvents.slice(0, MAX_VISIBLE_EVENTS).map(event => (
                 <div
                   key={event.label}
                   title={displayEventName(event.label)}
-                  onClick={e => { e.stopPropagation(); onRemove(ci, event.label) }}
-                  className={`relative flex items-center rounded-full px-1.5 min-h-[20px] cursor-pointer hover:opacity-60 transition-opacity select-none w-full min-w-0 ${event.planned ? "opacity-50" : ""}`}
+                  onClick={e => {
+                    e.stopPropagation()
+                    const eventId = (event as { eventId?: string }).eventId
+                    // 10.8.0: Edit / Move / Delete; without the menu, the old tap-to-remove.
+                    if (eventId && menu?.openPoint({ eventId, rect: e.currentTarget.getBoundingClientRect(), title: displayEventName(event.label) })) return
+                    onRemove(ci, event.label)
+                  }}
+                  className={`relative flex items-center rounded-full px-2 min-h-[28px] cursor-pointer hover:brightness-110 transition select-none w-full min-w-0 ${event.planned ? "opacity-50" : ""}`}
                   style={{ backgroundColor: event.color + "20", color: event.color, border: `1px ${event.planned ? "dashed" : "solid"} ${event.color}40` }}
                 >
                   <SaveMark eventIds={[(event as { eventId?: string }).eventId]} />
-                  <span className="text-[9px] font-bold truncate leading-tight" data-testid={`events-lane-chip-${event.kind ?? "event"}`}>
+                  <span className="text-xs font-bold truncate leading-tight" data-testid={`events-lane-chip-${event.kind ?? "event"}`}>
                     {displayEventName(event.label)}{event.kind === "defibrillation" && event.energyJ != null ? ` ${event.energyJ} J` : ""}
                   </span>
                 </div>
@@ -145,10 +153,10 @@ export function DrugLane({
   onDrop,
   onOpenPicker,
   onEditDose,
-  onRemove,
 }: DrugLaneProps) {
   // Whether the last press on a drug was a finger (its tap then opens the dose).
   const lastPointer = useRef("mouse")
+  const menu = useTimetableMenu()
   return (
     <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a]">
       <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-3 flex items-start justify-end"}>
@@ -188,33 +196,25 @@ export function DrugLane({
                   onPointerDown={e => { lastPointer.current = e.pointerType }}
                   onClick={e => {
                     e.stopPropagation()
-                    // A finger has no reliable double-tap: its tap opens the dose (10.0.0);
-                    // another drug is added from the cell's own "+".
-                    if (lastPointer.current === "touch" || lastPointer.current === "pen") onEditDose(gi, drug.dose, drug.unit, e.currentTarget.getBoundingClientRect())
-                    else onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    // 10.8.0: Repeat dose / Edit / Move / Delete. Another drug is added from the cell's "+".
+                    if (drug.eventId && menu?.openPoint({ eventId: drug.eventId, rect, title: `${displayDrugName(drug.name)}${drug.dose ? ` ${drug.dose} ${drug.unit}` : ""}` })) return
+                    if (lastPointer.current === "touch" || lastPointer.current === "pen") onEditDose(gi, drug.dose, drug.unit, rect)
+                    else onOpenPicker(ci, rect)
                   }}
-                  onDoubleClick={e => { e.stopPropagation(); onEditDose(gi, drug.dose, drug.unit, e.currentTarget.getBoundingClientRect()) }}
                   className={`relative flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${drug.planned ? `opacity-50 border border-dashed ${chip ? "" : "border-violet-400"}` : ""} ${tone}`}
                   style={chip?.style}
                 >
                   <SaveMark eventIds={[drug.eventId]} />
-                  <span className={`text-[10px] font-semibold leading-tight truncate flex-1 ${chip ? "" : "text-violet-800 dark:text-violet-300"}`}>
+                  <span className={`text-xs font-semibold leading-tight truncate flex-1 ${chip ? "" : "text-violet-800 dark:text-violet-300"}`}>
                     {displayDrugName(drug.name)}
                     {drug.dose && (
                       <>
                         <br />
-                        <span className="font-normal font-mono text-[9px] opacity-90">{drug.dose} {drug.unit}</span>
+                        <span className="font-normal font-mono text-xs opacity-90">{drug.dose} {drug.unit}</span>
                       </>
                     )}
                   </span>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={e => { e.stopPropagation(); onRemove(gi) }}
-                    className={`opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 [@media(any-pointer:coarse)]:opacity-100 transition-opacity shrink-0 mt-0.5 ${chip ? "opacity-70 hover:opacity-100" : "text-violet-400 hover:text-violet-700"}`}
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
                 </div>
               )
             })}
@@ -223,7 +223,7 @@ export function DrugLane({
               tabIndex={-1}
               data-testid="add-drug"
               onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
-              className="w-full mt-1 flex items-center justify-center gap-0.5 text-[10px] font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-400 dark:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 py-1 transition-colors"
+              className="w-full mt-1 flex min-h-9 items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-500 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
             >
               <Plus className="h-3 w-3" />
             </button>

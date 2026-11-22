@@ -3,10 +3,9 @@
 import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { SaveMark } from "./SaveMark"
 import { TOUCH_GRIP } from "./touch-drag"
-import { ContinueOverlay } from "./ContinueOverlay"
+import { useTimetableMenu } from "./TimetableMenuHost"
 import { segmentEventIds } from "@lospor/core/intraop-save-state"
-import { X } from "lucide-react"
-import { currentFluidRate, fluidDeliveredVolumeMl } from "@/lib/fluid-entry-ui"
+import { currentFluidRate } from "@/lib/fluid-entry-ui"
 import { barContinues, barLeftClass, barRightClass, barTimeInsets, showBarGrip } from "./timetable-row-geometry"
 import type { TimetableDragActions, TimetableDragState } from "./use-timetable-drag"
 import type { TtSel } from "./timetable-types"
@@ -82,14 +81,14 @@ export function FluidLane({
   drag,
   dragActions,
   onEndDrop,
-  resumeFluid,
-  continueFluid,
-  removeFluid,
   onChangeRate,
-  onDiscontinue,
 }: FluidLaneProps) {
   const copy = useIntraopUiCopy()
+  const menu = useTimetableMenu()
   const { extendingFluid, extFluidHover } = drag
+  // 10.8.0: a cell of a running or stopped bag opens its menu (Stop, Change rate, Resume, ...).
+  const openFluidMenu = (seg: TimetableFluid, ci: number, rect: DOMRect) =>
+    !!menu?.openContinuous({ kind: "fluid", key: seg.id, col: ci, rect, title: displayFluidName(seg.name) })
 
   return (
     <div className="flex min-h-[64px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
@@ -137,6 +136,10 @@ export function FluidLane({
             key={ci}
             style={{ width: colW, minWidth: colW }}
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center"
+            onClick={e => {
+              const target = seg ?? stoppedSeg
+              if (target) openFluidMenu(target, ci, (e.currentTarget as HTMLElement).getBoundingClientRect())
+            }}
             onDragOver={e => {
               if (!extendingFluid || e.dataTransfer.types.includes("extend-agent")) return
               e.preventDefault()
@@ -167,18 +170,17 @@ export function FluidLane({
                     faded={!!seg.stopped || isDragPreview || cutOff}
                     selected={!!isSel}
                     timed={{ ...timedLeft, ...timedRight }}
-                    onClick={!seg.stopped ? event => {
-                      const current = currentFluidRate(seg)
+                    onClick={event => {
                       setSel({ type: "fluid", id: seg.id })
-                      onChangeRate({ id: seg.id, rate: current == null ? "" : String(current), rect: event.currentTarget.getBoundingClientRect() })
-                    } : undefined}
+                      if (openFluidMenu(seg, ci, event.currentTarget.getBoundingClientRect())) return
+                      const current = currentFluidRate(seg)
+                      if (!seg.stopped) onChangeRate({ id: seg.id, rate: current == null ? "" : String(current), rect: event.currentTarget.getBoundingClientRect() })
+                    }}
                     testId="fluid-rate-strip"
                   />
                 )}
                 <div
-                  onClick={e => { e.stopPropagation(); if (isActualStart || isRowCont) setSel({ type: "fluid", id: seg.id }) }}
-                  onDoubleClick={e => { e.stopPropagation(); if (seg.stopped) resumeFluid(seg.id) }}
-                  title={seg.stopped ? copy.doubleClickResume : undefined}
+                  onClick={e => { e.stopPropagation(); setSel({ type: "fluid", id: seg.id }); openFluidMenu(seg, ci, e.currentTarget.getBoundingClientRect()) }}
                   className={`absolute ${isRate ? "" : "inset-y-1"} border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   style={{
                     ...(isRate ? { top: 24, bottom: 4 } : {}),
@@ -209,6 +211,7 @@ export function FluidLane({
                       onClick={event => {
                         event.stopPropagation()
                         setSel({ type: "fluid", id: seg.id })
+                        if (openFluidMenu(seg, ci, event.currentTarget.getBoundingClientRect())) return
                         onChangeRate({
                           id: seg.id,
                           rate: rate == null ? "" : String(rate),
@@ -242,59 +245,9 @@ export function FluidLane({
                 <span className="text-white text-[8px] font-bold select-none">|</span>
               </div>
             )}
-            {/* A stopped bag, selected: carry on with it (10.0.0; was a double-click only). */}
-            {isActualEnd && !isRowExit && seg && seg.stopped && isSel && !isDragPreview && (
-              <button
-                type="button"
-                data-testid="fluid-resume"
-                onClick={e => { e.stopPropagation(); resumeFluid(seg.id) }}
-                className="absolute z-30 text-[8px] font-semibold bg-emerald-600/80 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-emerald-600 whitespace-nowrap"
-                style={{ top: isRate ? 26 : 6, right: 14 + ((timedRight as { right?: number }).right ?? 0) }}
-              >
-                ↻ {copy.resume}
-              </button>
-            )}
-            {isActualEnd && !isRowExit && seg && !seg.stopped && !isDragPreview && (
-              <div
-                className={`absolute z-30 flex items-center justify-center transition-opacity ${isSel ? "opacity-100" : "opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:pointer-events-none"}`}
-                style={{ top: isRate ? 24 : 4, right: 14 + ((timedRight as { right?: number }).right ?? 0), bottom: 4 }}
-              >
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation()
-                    // A rate line's delivered volume is computable and is
-                    // offered; a volume bag has to be asked about.
-                    const isRate = seg.fluidEntryMode === "RATE"
-                    onDiscontinue({
-                      id: seg.id,
-                      volInput: isRate ? String(fluidDeliveredVolumeMl(seg, new Date())) : "0",
-                      rect: e.currentTarget.getBoundingClientRect(),
-                      fullBag: isRate ? false : null,
-                    })
-                  }}
-                  className="text-[8px] font-semibold bg-black/30 text-white px-1.5 py-0.5 rounded-full border border-white/30 hover:bg-red-500/80 whitespace-nowrap"
-                >
-                  ✕ {copy.discontinueShort}
-                </button>
-              </div>
-            )}
-            {(isActualStart || isRowCont) && seg && (
-              <button
-                type="button"
-                aria-label={copy.removeAria(displayFluidName(seg.name))}
-                onClick={e => { e.stopPropagation(); removeFluid(seg.id) }}
-                className="absolute top-0.5 right-4 z-10 opacity-0 hover:opacity-100 [@media(hover:none)]:opacity-100 [@media(any-pointer:coarse)]:opacity-100 text-slate-400 hover:text-red-500 transition-opacity"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            )}
             {segments.some(s => s.plannedStopCol === ci) && <PlannedStopMarker />}
             {segments.flatMap(s => (s.rateChanges ?? []).filter(rc => rc.planned && rc.col === ci))
               .map(rc => <PlannedChangeMarker key={rc.eventId ?? rc.col} value={`${rc.rate} ${rc.unit}`} />)}
-            {stoppedSeg && (
-              <ContinueOverlay label={copy.fluid.continueQuestion} onContinue={() => continueFluid(stoppedSeg, ci)} testId="fluid-continue" />
-            )}
           </div>
         )
       })}

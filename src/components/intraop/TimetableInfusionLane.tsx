@@ -6,7 +6,7 @@ import { PlannedChangeMarker, PlannedStopMarker } from "./PlannedStopMarker"
 import { useTciLanePredictions } from "./TciLaneOverlay"
 import { SaveMark } from "./SaveMark"
 import { segmentEventIds } from "@lospor/core/intraop-save-state"
-import { DiscontinuePrompt } from "./DiscontinuePrompt"
+import { useTimetableMenu } from "./TimetableMenuHost"
 import { ExtendGhost, MoveGhost, ghostGripVisible } from "./InfusionGhostBars"
 import { barContinues, barLeftClass, barRightClass, barTimeInsets } from "./timetable-row-geometry"
 import type { TimetableDragActions, TimetableDragState } from "./use-timetable-drag"
@@ -118,17 +118,12 @@ export function InfusionLane({
   colStart,
   colEnd,
   colW,
-  nowCol,
   sel,
   setSel,
-  clearSel,
   displayInfusionName,
-  discConfirmId,
-  setDiscConfirmId,
   hoverDiscontinue,
   drag,
   dragActions,
-  extendInfusion,
   onEndDrop,
   extendInfusionLeft,
   applyInfRateChange,
@@ -137,6 +132,13 @@ export function InfusionLane({
   projectRunning = false,
 }: InfusionLaneProps) {
   const copy = useIntraopUiCopy()
+  const menu = useTimetableMenu()
+  // 10.8.0: any cell of an infusion opens its menu (Stop, Change dose, Change syringe, ...);
+  // the infusion's own menu is the fallback where the shared one has nothing to offer.
+  const openMenu = (request: InfusionMenuRequest) => {
+    if (menu?.openContinuous({ kind: "infusion", key: request.segId, col: request.fromPillCol, rect: request.rect, title: displayInfusionName(request.name) })) return
+    onOpenMenu(request)
+  }
   const { movingInf, movingInfCol, movingRatePill, extendingInf, extInfHover, extendingInfLeft, extInfLeftHover } = drag
   const isBusyMovingBar = movingInf !== null && segments.some(s => s.id === movingInf.id)
   const isBusyMovingPill = movingRatePill !== null && segments.some(s => s.id === movingRatePill.infId)
@@ -253,7 +255,7 @@ export function InfusionLane({
                   style={{ height: 21, borderColor: color, backgroundColor: color + "14" }}
                   onClick={e => {
                     e.stopPropagation()
-                    onOpenMenu({ segId: runOn.id, name: runOn.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci })
+                    openMenu({ segId: runOn.id, name: runOn.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci })
                   }}
                 />
               ) : null
@@ -263,20 +265,18 @@ export function InfusionLane({
             {/* Rate strip — shares the bar's geometry so the two read as one object.
                 It stays after the infusion is stopped, faded: the record of what ran
                 and at which rates is exactly what a stopped bar is for. */}
-             {seg && <InfusionRateStrip seg={seg} ci={ci} color={color} isActualStart={isActualStart} isRowCont={isRowCont} isActualEnd={isActualEnd} isRowExit={isRowExit} isSelected={isSelected} leftBehind={leftBehind} cutOff={cutOff} timedLeft={timedLeft} timedRight={timedRight} dragActions={dragActions} onOpenMenu={onOpenMenu} prediction={tciPredictions.get(seg.id)} />}
+             {seg && <InfusionRateStrip seg={seg} ci={ci} color={color} isActualStart={isActualStart} isRowCont={isRowCont} isActualEnd={isActualEnd} isRowExit={isRowExit} isSelected={isSelected} leftBehind={leftBehind} cutOff={cutOff} timedLeft={timedLeft} timedRight={timedRight} dragActions={dragActions} onOpenMenu={openMenu} prediction={tciPredictions.get(seg.id)} />}
 
             {seg && (
               <>
                 {isActualEnd && !isRowExit && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-5 right-0" />}
                 <div
-                  draggable={!seg.stopped}
-                  onDragStart={!seg.stopped
-                    ? e => { e.stopPropagation(); dragActions.infusionMoveStart({ id: seg.id, origStart: seg.startCol, origEnd: seg.endCol, fromCol: ci }) }
-                    : undefined}
-                  onDragEnd={() => dragActions.infusionMoveEnd()}
-                  onClick={e => { e.stopPropagation(); setSel(s => s?.type === "infusion" && s.id === seg.id ? null : { type: "infusion", id: seg.id }) }}
-                  title={!seg.stopped ? copy.infusionBarHelp : undefined}
-                  className={`absolute left-0 right-0 border-y ${!seg.stopped ? "cursor-grab active:cursor-grabbing" : ""} ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : leftBehind ? "opacity-20" : ""}`}
+                  onClick={e => {
+                    e.stopPropagation()
+                    setSel(() => ({ type: "infusion", id: seg.id }))
+                    openMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: !!seg.stopped, fromPillCol: ci })
+                  }}
+                  className={`absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : leftBehind ? "opacity-20" : ""}`}
                   style={{
                     top: 22,
                     bottom: 4,
@@ -304,7 +304,7 @@ export function InfusionLane({
 
                 {/* Grips appear only on the selected bar, so an unselected chart
                     stays readable rather than sprouting handles everywhere. */}
-                {isActualStart && isSelected && !seg.stopped && (
+                {isActualStart && !seg.stopped && (
                   <div
                     draggable
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "left") }}
@@ -315,7 +315,7 @@ export function InfusionLane({
                     <span className="text-white text-[8px] font-bold select-none">|</span>
                   </div>
                 )}
-                {isActualEnd && isSelected && !isRowExit && (
+                {isActualEnd && !isRowExit && (
                   <div
                     draggable
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "right") }}
@@ -325,16 +325,6 @@ export function InfusionLane({
                   >
                     <span className="text-white text-[8px] font-bold select-none">|</span>
                   </div>
-                )}
-                {isActualEnd && !isRowExit && isSelected && !seg.stopped && (
-                  <DiscontinuePrompt
-                    open={discConfirmId === seg.id}
-                    onOpen={() => setDiscConfirmId(seg.id)}
-                    onConfirm={() => { extendInfusion(seg.id, nowCol ?? seg.endCol); clearSel(); setDiscConfirmId(null) }}
-                    onCancel={() => setDiscConfirmId(null)}
-                    style={{ top: 24, right: 14 + ((timedRight as { right?: number }).right ?? 0) }}
-                    cancelClassName="text-[8px] text-white/60 hover:text-white px-1 whitespace-nowrap"
-                  />
                 )}
               </>
             )}
