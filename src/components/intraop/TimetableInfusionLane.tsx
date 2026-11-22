@@ -17,8 +17,9 @@ import { ChangeStripCell, stripStretches, type StripStretch } from "./TimetableC
 import { InfusionRateStrip } from "./InfusionRateStrip"
 import { ttCell, ttLane } from "./chart-cursor"
 import { LaneTotal, totalColumn } from "./lane-extras"
-import { calcInfusionTotal, formatInfusionTotal } from "@lospor/core/intraop-totals"
+import { intraopInfusionTotalLabel } from "@lospor/core/intraop-run-totals"
 import type { TciPatient } from "@lospor/core/tci"
+import { useLocale } from "next-intl"
 
 /** An infusion's applied rates as strip stretches, for the ghost drawn while it is dragged. */
 function infusionStretches(seg: TimetableInfusion): StripStretch[] {
@@ -156,9 +157,9 @@ export function InfusionLane({
     const change = (runningNow.rateChanges ?? []).filter(rc => !rc.planned && rc.col <= nowCol).sort((a, b) => a.col - b.col).pop()
     return `${change?.rate ?? runningNow.rate} ${change?.unit ?? runningNow.unit}`
   })() : null
-  const totalOf = (seg: TimetableInfusion) => {
-    try { return formatInfusionTotal(calcInfusionTotal(seg as never, facts?.ibw ?? null, facts?.tbw ?? null, undefined, null, (facts?.tciPatient ?? null) as TciPatient | null)) } catch { return null }
-  }
+  const language = useLocale() === "bg" ? "bg" : "en"
+  // Core's total: the amount and how long, the same words as the PWA's row.
+  const totalOf = (seg: TimetableInfusion) => intraopInfusionTotalLabel(seg, { ibw: facts?.ibw ?? null, tbw: facts?.tbw ?? null, tciPatient: (facts?.tciPatient ?? null) as TciPatient | null, now: new Date(), language })
   // The bar being moved whole: its strip is drawn on the ghost, shifted with it.
   const movingSeg = isBusyMovingBar ? segments.find(s => s.id === movingInf!.id) ?? null : null
   const moveDelta = movingSeg && movingInfCol !== null ? movingInfCol - movingInf!.fromCol : 0

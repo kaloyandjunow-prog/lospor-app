@@ -14,7 +14,8 @@ import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches } from "./TimetableChangeStrip"
 import { ttCell, ttLane } from "./chart-cursor"
 import { LaneTotal, totalColumn } from "./lane-extras"
-import { calculateFluidVolumeMl } from "@lospor/core/intraop-fluids"
+import { intraopFluidTotalLabel } from "@lospor/core/intraop-run-totals"
+import { useLocale } from "next-intl"
 
 /**
  * One fluid lane: a single line running down the chart.
@@ -96,16 +97,9 @@ export function FluidLane({
   const nowCol = menu?.facts.nowCol ?? null
   const runningNow = nowCol == null ? null : segments.find(s => !s.stopped && !s.planned && s.startCol <= nowCol) ?? null
   const currentLabel = runningNow ? [displayFluidName(runningNow.name), currentFluidRate(runningNow) != null ? `${currentFluidRate(runningNow)} mL/h` : null].filter(Boolean).join(" · ") : null
-  const deliveredMl = (seg: TimetableFluid) => {
-    const fields = seg as TimetableFluid & { bagVolumeMl?: number | null; administeredVolumeMl?: number | null; startTs?: string; endTs?: string }
-    try {
-      return Math.round(calculateFluidVolumeMl({
-        fluidEntryMode: seg.fluidEntryMode, bagVolumeMl: fields.bagVolumeMl, administeredVolumeMl: fields.administeredVolumeMl,
-        legacyVolume: seg.volume, startTs: fields.startTs, endTs: fields.endTs ?? new Date().toISOString(), rate: seg.rate,
-        rateChanges: (seg.rateChanges ?? []).filter(change => !change.planned),
-      } as never))
-    } catch { return 0 }
-  }
+  const language = useLocale() === "bg" ? "bg" : "en"
+  // Core's total: how much, in how long, at what rate -- the same words as the PWA's row.
+  const totalOf = (seg: TimetableFluid) => intraopFluidTotalLabel(seg, { now: new Date(), language }, seg.endCol)
 
   return (
     <div {...ttLane(`fluid:${label}`)} className="flex min-h-[44px] border-t border-slate-100 dark:border-[#2a2a2a] relative">
@@ -175,8 +169,7 @@ export function FluidLane({
             }}
           >
             {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
-              const ml = deliveredMl(s)
-              return ml > 0 ? <LaneTotal key={s.id} text={`${ml} mL`} color={color} testId="fluid-total" /> : null
+              return <LaneTotal key={s.id} text={totalOf(s)} color={color} testId="fluid-total" />
             })}
             {seg && (
               <>
