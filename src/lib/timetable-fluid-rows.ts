@@ -27,7 +27,7 @@ export function fluidColor(name: string, fluidGroups: FluidLibraryGroup[]): stri
 
 export function fluidCategory(name: string, fluidGroups: FluidLibraryGroup[]): string {
   for (const cat of fluidGroups) {
-    if (cat.fluids.some(f => f.name === name)) return cat.cat
+    if (cat.fluids.some(f => f.name.trim().toLowerCase() === name.trim().toLowerCase())) return cat.cat
   }
   return "Other"
 }
@@ -38,7 +38,8 @@ export function computeFluidRows(
 ): FluidLaneRow[] {
   const byCat = new Map<string, TimetableFluid[]>()
   for (const f of fluids) {
-    const cat = f.category ?? fluidCategory(f.name, fluidGroups)
+    // 10.8.0: an empty category (a fluid entered without one) showed as an "UNKNOWN" lane.
+    const cat = f.category?.trim() || fluidCategory(f.name, fluidGroups)
     const normalised = f.endCol < f.startCol ? { ...f, endCol: f.startCol } : f
     const list = byCat.get(cat) ?? []
     list.push(normalised)

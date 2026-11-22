@@ -135,8 +135,9 @@ export function AgentPopover({
         {/* Agents always dose in %, so there is no unit or route to choose. */}
         {activeAgent && (
           <div className="border-t border-slate-100 dark:border-[#333] pt-2">
-            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1.5">
-              Fi{activeAgent}
+            {/* 10.8.0: was "FISEVOFLURANE" (Fi glued to the name, then upper-cased). */}
+            <p className="text-xs text-slate-500 font-semibold mb-1.5" data-testid="agent-fi-label">
+              F<sub>i</sub> {displayAgentName(activeAgent)}, %
             </p>
             <DoseSelector
               accent="purple"
