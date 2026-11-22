@@ -53,9 +53,20 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   }, [open])
   useEffect(() => {
     if (!open) return
-    const close = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false) }
+    // A dialog of the menu (the cancel dialog is portaled to the body) is not "outside": pressing in it must not
+    // close the menu, which would take the dialog with it before it is filled in.
+    const close = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+    }
     // A fixed menu would drift from its row on scroll: scrolling closes it.
-    const closeOnScroll = () => setOpen(false)
+    // Not while a dialog of the menu's own is open (cancel, nurses, date): it lives inside the menu, and a scroll
+    // within it, or of the page behind it, must not take the dialog away while it is being filled in.
+    const closeOnScroll = (event: Event) => {
+      if (event.target instanceof Node && ref.current?.contains(event.target)) return
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
+      setOpen(false)
+    }
     window.addEventListener("pointerdown", close, true)
     window.addEventListener("scroll", closeOnScroll, true)
     return () => { window.removeEventListener("pointerdown", close, true); window.removeEventListener("scroll", closeOnScroll, true) }

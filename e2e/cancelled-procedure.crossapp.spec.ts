@@ -29,6 +29,15 @@ async function create(request: APIRequestContext, data: Record<string, unknown>)
   return { id, code: record.caseCode }
 }
 
+/** The row's floating menu closes on scroll, so bring the row into view first, let it settle, then open it. */
+async function openRowMenu(page: import("@playwright/test").Page, row: import("@playwright/test").Locator) {
+  const button = row.getByTestId("case-row-menu")
+  await button.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(400)
+  await button.click()
+  await expect(page.getByRole("menu")).toBeVisible()
+}
+
 test("a procedure is cancelled before anaesthesia, shown, closed and undone", async ({ browser }) => {
   const context = await contextFor(browser, "member-a")
   await context.addInitScript(() => { localStorage.setItem("tourCompleted", "1") })
@@ -46,7 +55,9 @@ test("a procedure is cancelled before anaesthesia, shown, closed and undone", as
     // ── Web: cancel from the dashboard ──
     await gotoDashboard(page)
     const row = page.getByTestId("case-row").filter({ hasText: web.code }).first()
-    await row.getByTestId("cancel-procedure").click()
+    // 10.8.0: cancel lives in the row's menu (with the planned date and the nurses).
+    await openRowMenu(page, row)
+    await page.getByTestId("cancel-procedure").click() // the menu floats over the row, so it is not inside it
     const dialog = page.getByTestId("cancel-dialog")
     await dialog.getByLabel("No theatre time or staff").check()
     await dialog.getByTestId("cancel-confirm").click()
@@ -74,8 +85,11 @@ test("a procedure is cancelled before anaesthesia, shown, closed and undone", as
     // Undone: back to where it was.
     await gotoDashboard(page)
     const cancelledRow = page.getByTestId("case-row").filter({ hasText: web.code }).first()
-    await cancelledRow.getByTestId("undo-cancellation").click()
-    await cancelledRow.getByTestId("undo-cancellation").click()
+    // Two steps: the first asks, the second does it. The menu may close between them: open it again if so.
+    for (let step = 0; step < 2; step++) {
+      if (await page.getByTestId("undo-cancellation").count() === 0) await openRowMenu(page, cancelledRow)
+      await page.getByTestId("undo-cancellation").click()
+    }
     await expect.poll(async () => (await (await context.request.get(`/api/cases/${web.id}`)).json()).status, { timeout: 30_000 }).toBe("DRAFT")
 
     // ── Too late once anaesthesia has started ──
@@ -84,7 +98,8 @@ test("a procedure is cancelled before anaesthesia, shown, closed and undone", as
     expect((await late.json()).code).toBe("CANCELLATION_TOO_LATE")
     // The button stays, visibly inactive, and a click on it does nothing.
     const startedRow = page.getByTestId("case-row").filter({ hasText: started.code }).first()
-    const inactive = startedRow.getByTestId("cancel-procedure")
+    await openRowMenu(page, startedRow)
+    const inactive = page.getByTestId("cancel-procedure")
     await expect(inactive).toHaveAttribute("aria-disabled", "true")
     await expect(inactive).toHaveAttribute("title", /Anaesthesia has started/)
     await inactive.click({ force: true })
