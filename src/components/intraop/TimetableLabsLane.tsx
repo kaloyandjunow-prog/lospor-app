@@ -132,7 +132,7 @@ export function TimetableLabsLane({
 
       {expanded && (
         <div className="flex items-stretch" style={{ minHeight: 30 }}>
-          <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-1"} />
+          <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-1"} />
           {rowCols.map(ci => {
             const colDraws = draws.filter(draw => draw.colIdx === ci)
             return (

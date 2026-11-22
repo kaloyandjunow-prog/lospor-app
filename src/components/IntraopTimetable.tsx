@@ -1257,7 +1257,7 @@ export function IntraopTimetable({
               the Drug row, so starting an infusion never goes through a
               drug-then-bolus/infusion choice. */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-blue-50/20 dark:bg-blue-950/5">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
+            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.infusions")}</div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
@@ -1300,7 +1300,7 @@ export function IntraopTimetable({
 
           {/* Fluid drop zone */}
           <div className="flex min-h-[40px] border-t border-slate-200 dark:border-[#2e2e2e] bg-cyan-50/20 dark:bg-cyan-950/5">
-            <div style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
+            <div data-tt-label style={{ width: LABEL_W, minWidth: LABEL_W }} className={rowLabelCls + " py-1.5 flex items-center justify-end opacity-50"}>{t("intraop.timetable.fluids")}</div>
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 onDragOver={e => { if (e.dataTransfer.types.includes("ext-inf") || e.dataTransfer.types.includes("ext-fluid") || e.dataTransfer.types.includes("extend-agent")) return; e.preventDefault(); dragActions.fluidDropTargetOver(ci) }}

@@ -136,7 +136,7 @@ export function TimetableVitalsRows({
   if (rows.length === 0) {
     return isFirstRow ? (
       <div className="flex items-center border-b border-slate-50 dark:border-[#222] py-2">
-        <div style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-2"} />
+        <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " py-2"} />
         <span className="text-xs text-slate-300 dark:text-[#555] italic px-3">{emptyLabel}</span>
       </div>
     ) : null

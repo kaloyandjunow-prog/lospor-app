@@ -49,6 +49,7 @@ export function TimetableTimeHeader({
   return (
     <div className="flex border-b border-slate-100 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a]">
       <div
+        data-tt-label
         style={{ width: labelWidth, minWidth: labelWidth }}
         className="text-xs text-slate-300 dark:text-[#555] px-2 py-1.5 text-right"
       >
