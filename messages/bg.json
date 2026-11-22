@@ -1952,6 +1952,8 @@
       "attentionTitle": "Очаква вашия отговор",
       "attentionCollapse": "По-малко",
       "tourniquetOffAtEnd": "Свален при края",
+      "autoEventKeep": "Остави",
+      "autoEventRemove": "Махни",
       "queuedShort": "още не е записано",
       "sendingShort": "записва се…",
       "refusedShort": "отказано",

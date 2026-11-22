@@ -1952,6 +1952,8 @@
       "attentionTitle": "Waiting for your answer",
       "attentionCollapse": "Show fewer",
       "tourniquetOffAtEnd": "Off at the end",
+      "autoEventKeep": "Keep",
+      "autoEventRemove": "Remove",
       "queuedShort": "not yet saved",
       "sendingShort": "saving…",
       "refusedShort": "refused",
