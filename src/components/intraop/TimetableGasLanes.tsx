@@ -315,7 +315,7 @@ export function GasSettingsLane({
             {showSettingsLabel && settings && (
               <span
                 title={displayGasSettings(settings, locale)}
-                className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center justify-center text-xs font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300 overflow-hidden px-0.5"
+                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-start justify-center text-xs font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300"
               >
                 <span>FGF {settings.fgf} L/min</span>
                 <span className="text-xs">{displayGasMix(settings, locale)}</span>

@@ -208,18 +208,14 @@ export function DrugLane({
                     if (lastPointer.current === "touch" || lastPointer.current === "pen") onEditDose(gi, drug.dose, drug.unit, rect)
                     else onOpenPicker(ci, rect)
                   }}
-                  className={`relative flex items-start gap-1 rounded px-2 py-1 group cursor-grab active:cursor-grabbing transition-colors ${drug.planned ? `opacity-50 border border-dashed ${chip ? "" : "border-violet-400"}` : ""} ${tone}`}
+                  className={`relative flex items-start gap-1 rounded px-1.5 py-1 group cursor-grab active:cursor-grabbing transition-colors ${drug.planned ? `opacity-50 border border-dashed ${chip ? "" : "border-violet-400"}` : ""} ${tone}`}
                   style={chip?.style}
                 >
                   <SaveMark eventIds={[drug.eventId]} />
-                  <span className={`text-xs font-semibold leading-tight truncate flex-1 ${chip ? "" : "text-violet-800 dark:text-violet-300"}`}>
-                    {displayDrugName(drug.name)}
-                    {drug.dose && (
-                      <>
-                        <br />
-                        <span className="font-normal font-mono text-xs opacity-90">{drug.dose} {drug.unit}</span>
-                      </>
-                    )}
+                  <span className={`text-xs font-semibold leading-tight min-w-0 flex-1 ${chip ? "" : "text-violet-800 dark:text-violet-300"}`}>
+                    {/* The name gives way (ellipsis); the dose is what is read at a glance and is never cut. */}
+                    <span className="block truncate">{displayDrugName(drug.name)}</span>
+                    {drug.dose && <span className="block whitespace-nowrap font-normal font-mono text-xs tracking-tighter opacity-90">{drug.dose} {drug.unit}</span>}
                   </span>
                 </div>
               )
