@@ -62,7 +62,10 @@ function formatDate(value: string | null | undefined, locale: string) {
     .format(new Date(value))
 }
 
-function actionErrorKey(status: number) {
+function actionErrorKey(status: number, code?: string | null) {
+  // The two refusals of a role change that have a reason of their own, instead of the general "conflict".
+  if (code === "DOCTOR_HAS_OPEN_CASES") return "admin.accountHasOpenCases"
+  if (code === "NURSE_CANNOT_BECOME_DOCTOR") return "admin.accountNurseNotDoctor"
   if (status === 401) return "admin.accountPasswordIncorrect"
   if (status === 403) return "admin.accountAdministrationDisabled"
   if (status === 409 || status === 422) return "admin.accountConflict"
@@ -156,7 +159,8 @@ export function AdminAccountTable({
       }
 
       if (!response.ok) {
-        setErrorKey(actionErrorKey(response.status))
+        const code = await response.clone().json().then((body: { code?: unknown; error?: unknown }) => typeof body.code === "string" ? body.code : typeof body.error === "string" ? body.error : null).catch(() => null)
+        setErrorKey(actionErrorKey(response.status, code))
         return
       }
       await onRefresh()

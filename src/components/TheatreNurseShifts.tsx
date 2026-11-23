@@ -7,6 +7,7 @@ import { Users, X } from "lucide-react"
 import { calendarDayKey } from "@lospor/core/dashboard-date-scope"
 import { calendarDateKey, parseCalendarDateKey, type CalendarDate } from "@lospor/core/time-entry"
 import { DateWheel } from "@/components/time/DateWheel"
+import { refusalReason } from "@/lib/server-message"
 
 /**
  * Anaesthesia nurses on the theatres for a day (10.8.0). A nurse puts herself
@@ -37,6 +38,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
   const today = dateKey === calendarDayKey(new Date())
 
   const [failed, setFailed] = useState(false)
+  const [why, setWhy] = useState<string | null>(null)
   // Only the newest question's answer is shown: a slower, earlier one (another day) is dropped.
   const latest = useRef(0)
   const dayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -65,7 +67,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
     let response: Response
     try { response = await fetch("/api/operating-theatres/shifts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, date: dateKey }) }) } catch { setFailed(true); return }
     if (mine !== latest.current) return
-    if (response.ok) { setShifts((await response.json()).shifts ?? []); setFailed(false); router.refresh() } else setFailed(true)
+    if (response.ok) { setShifts((await response.json()).shifts ?? []); setFailed(false); setWhy(null); router.refresh() } else { setFailed(true); setWhy(await refusalReason(response)) }
   }
 
   return (
@@ -85,7 +87,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
         <div role="dialog" aria-modal="true" aria-label={copy.title} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onPointerDown={event => { if (event.target === event.currentTarget) setOpen(false) }}>
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 overflow-y-auto rounded-xl bg-white dark:bg-[#1f1f1f] p-4 shadow-xl">
             <p className="text-base font-bold text-slate-900 dark:text-white">{copy.title}</p>
-            {failed ? <p role="alert" className="text-sm font-semibold text-red-600">{copy.failed}</p> : null}
+            {failed ? <p role="alert" className="text-sm font-semibold text-red-600">{copy.failed}{why ? ` ${why}` : ""}</p> : null}
             {manager ? <DateWheel value={date} onChange={changeDate} labels={{ day: copy.day, month: copy.month, year: copy.year }} /> : null}
             {theatres.map(theatre => {
               const here = shifts.filter(shift => shift.theatre.id === theatre.id)

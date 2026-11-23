@@ -6,6 +6,7 @@ import { MoreHorizontal } from "lucide-react"
 import { calendarDateKey, parseCalendarDateKey, type CalendarDate } from "@lospor/core/time-entry"
 import { calendarDayKey } from "@lospor/core/dashboard-date-scope"
 import { DateWheel } from "@/components/time/DateWheel"
+import { refusalReason } from "@/lib/server-message"
 
 /**
  * A dashboard row's menu (10.8.0). The actions that can do harm -- delete a
@@ -16,8 +17,8 @@ import { DateWheel } from "@/components/time/DateWheel"
 type Nurse = { id: string; name: string; firstName?: string; lastName?: string; title?: string }
 
 const COPY = {
-  bg: { take: "Назначи ме на случая", takeFailed: "Не успяхте да се назначите: случаят вече има сестра или е затворен.", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
-  en: { take: "Put me on this case", takeFailed: "Could not put you on the case: it already has a nurse or is closed.", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
+  bg: { failed: "Не се запази.", take: "Назначи ме на случая", takeFailed: "Не успяхте да се назначите: случаят вече има сестра или е затворен.", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
+  en: { failed: "Could not be saved.", take: "Put me on this case", takeFailed: "Could not put you on the case: it already has a nurse or is closed.", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
 } as const
 type Copy = (typeof COPY)[keyof typeof COPY]
 
@@ -40,13 +41,15 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
   const takeCase = async () => {
     let ok = false
+    let why: string | null = null
     try {
       const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ take: true }) })
       ok = response.ok
+      if (!ok) why = await refusalReason(response)
     } catch { ok = false }
     // The row is refreshed after a refusal too, so it stops offering an action somebody else just used.
     router.refresh()
-    if (!ok) window.alert(copy.takeFailed)
+    if (!ok) window.alert(why ? `${copy.takeFailed} ${why}` : copy.takeFailed)
   }
   const ref = useRef<HTMLDivElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)
@@ -130,11 +133,15 @@ function PlannedDateDialog({ caseId, value, copy, onClose, onSaved }: {
 }) {
   const [date, setDate] = useState<CalendarDate>(() => parseCalendarDateKey(value) ?? parseCalendarDateKey(calendarDayKey(new Date()))!)
   const [busy, setBusy] = useState(false)
+  const [why, setWhy] = useState<string | null>(null)
   const save = async (plannedSurgeryDate: string | null) => {
     setBusy(true)
-    const response = await fetch(`/api/cases/${caseId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plannedSurgeryDate }) })
+    setWhy(null)
+    let response: Response | null = null
+    try { response = await fetch(`/api/cases/${caseId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plannedSurgeryDate }) }) } catch { response = null }
     setBusy(false)
-    if (response.ok) onSaved()
+    if (response?.ok) onSaved()
+    else setWhy(`${copy.failed}${response ? await refusalReason(response).then(r => r ? ` ${r}` : "") : ""}`)
   }
   return (
     <Dialog title={copy.planned} onClose={onClose}>
@@ -143,6 +150,7 @@ function PlannedDateDialog({ caseId, value, copy, onClose, onSaved }: {
         <button type="button" className="min-h-11 rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.cancel}</button>
         <button type="button" disabled={busy} data-testid="planned-date-save" className="min-h-11 rounded-lg bg-blue-600 text-white font-semibold disabled:opacity-50" onClick={() => void save(calendarDateKey(date))}>{copy.save}</button>
       </div>
+      {why ? <p role="alert" className="mt-2 text-sm font-semibold text-red-600">{why}</p> : null}
       {value ? <button type="button" className="mt-2 min-h-11 w-full rounded-lg font-semibold text-slate-500" onClick={() => void save(null)}>{copy.clear}</button> : null}
     </Dialog>
   )
@@ -161,10 +169,13 @@ function NursesDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; o
       setAssigned(new Set((current.nurses ?? []).map((row: { userId: string }) => row.userId)))
     })()
   }, [caseId])
+  const [why, setWhy] = useState<string | null>(null)
   const toggle = async (id: string) => {
     const on = assigned.has(id)
-    const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(on ? { remove: id } : { assign: id }) })
-    if (!response.ok) return
+    setWhy(null)
+    let response: Response
+    try { response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(on ? { remove: id } : { assign: id }) }) } catch { setWhy(copy.failed); return }
+    if (!response.ok) { setWhy(`${copy.failed} ${await refusalReason(response) ?? ""}`.trim()); return }
     const next = await response.json()
     setAssigned(new Set((next.nurses ?? []).map((row: { userId: string }) => row.userId)))
   }
@@ -181,6 +192,7 @@ function NursesDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; o
           ))}
         </div>
       )}
+      {why ? <p role="alert" className="mt-2 text-sm font-semibold text-red-600">{why}</p> : null}
       <button type="button" className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.save}</button>
     </Dialog>
   )
@@ -189,12 +201,16 @@ function NursesDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; o
 function HandoverToNurseDialog({ caseId, copy, onClose }: { caseId: string; copy: Copy; onClose: () => void }) {
   const [all, setAll] = useState<Nurse[] | null>(null)
   const [done, setDone] = useState(false)
+  const [why, setWhy] = useState<string | null>(null)
   useEffect(() => {
     void fetch("/api/users/nurses").then(response => response.ok ? response.json() : { nurses: [] }).then(body => setAll(body.nurses ?? []))
   }, [])
   const handOver = async (id: string) => {
-    const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handoverTo: id }) })
+    setWhy(null)
+    let response: Response
+    try { response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ handoverTo: id }) }) } catch { setWhy(copy.failed); return }
     if (response.ok) setDone(true)
+    else setWhy(`${copy.failed} ${await refusalReason(response) ?? ""}`.trim())
   }
   const name = (nurse: Nurse) => [nurse.title, nurse.firstName, nurse.lastName].filter(Boolean).join(" ") || nurse.name
   return (
@@ -206,6 +222,7 @@ function HandoverToNurseDialog({ caseId, copy, onClose }: { caseId: string; copy
           ))}
         </div>
       )}
+      {why ? <p role="alert" className="mt-2 text-sm font-semibold text-red-600">{why}</p> : null}
       <button type="button" className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.cancel}</button>
     </Dialog>
   )

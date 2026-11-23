@@ -1122,6 +1122,8 @@
     "accountPasswordIncorrect": "Your current administrator password is incorrect.",
     "accountAdministrationDisabled": "Hospital account controls are disabled for this deployment.",
     "accountConflict": "The account changed, is protected, or is no longer eligible for this action. Refresh and review it before trying again.",
+    "accountHasOpenCases": "This person still has open cases. Hand them over to another doctor before making this account a nurse.",
+    "accountNurseNotDoctor": "A nurse account cannot be made a doctor, head of department or administrator.",
     "auditLog": "Audit log",
     "load": "Load",
     "clickToLoad": "Click Load to fetch audit logs",
