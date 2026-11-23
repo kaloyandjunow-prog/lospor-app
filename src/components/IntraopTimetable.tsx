@@ -34,7 +34,7 @@ import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLan
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { FluidLane } from "@/components/intraop/TimetableFluidLane"
 import { InfusionLane } from "@/components/intraop/TimetableInfusionLane"
-import { infusionLaneColor } from "@/lib/infusion-lane-color"
+import { infusionLaneColor } from "@lospor/core/infusion-lane-color"
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
 import { useTimetableDrag } from "@/components/intraop/use-timetable-drag"
