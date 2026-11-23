@@ -7,6 +7,13 @@ usable by a finger.
 
 ### Added
 
+- **Anaesthesia team** in each row's menu on the dashboard: who was on the case and when, doctors and nurses, kept for good. Every
+  row has the menu now, so a finished case or one you cannot change still shows its team.
+- **Senior nurse** account role in the administration; nurses see every case of their hospital, edit the ones they are on, and
+  "Put me on this case" puts a nurse on a case that has no nurse.
+- Refusals say why: the case menu's dialogs, the nurses by theatre and the account changes show the reason, in Bulgarian too.
+- The allergy button says "Give despite allergy to ...". "Still running?" is asked only for a start entered at least half an hour late.
+
 - **One menu for every lane.** A click, or a tap on a cell that is already highlighted, opens the menu of what is in it:
   Stop, Change dose, Change syringe, Resume, Fix start or end, Delete, and for the part after now Plan a stop, Plan a
   change, Remove planned. Nothing asks "are you sure": the action is done and an Undo bar takes it back, many steps
