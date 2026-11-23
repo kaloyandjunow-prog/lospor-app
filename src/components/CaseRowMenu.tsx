@@ -16,8 +16,8 @@ import { DateWheel } from "@/components/time/DateWheel"
 type Nurse = { id: string; name: string; firstName?: string; lastName?: string; title?: string }
 
 const COPY = {
-  bg: { take: "Назначи ме на случая", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
-  en: { take: "Put me on this case", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
+  bg: { take: "Назначи ме на случая", takeFailed: "Не успяхте да се назначите: случаят вече има сестра или е затворен.", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
+  en: { take: "Put me on this case", takeFailed: "Could not put you on the case: it already has a nurse or is closed.", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
 } as const
 type Copy = (typeof COPY)[keyof typeof COPY]
 
@@ -39,8 +39,14 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
   const takeCase = async () => {
-    const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ take: true }) })
-    if (response.ok) router.refresh()
+    let ok = false
+    try {
+      const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ take: true }) })
+      ok = response.ok
+    } catch { ok = false }
+    // The row is refreshed after a refusal too, so it stops offering an action somebody else just used.
+    router.refresh()
+    if (!ok) window.alert(copy.takeFailed)
   }
   const ref = useRef<HTMLDivElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)

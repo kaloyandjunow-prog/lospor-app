@@ -195,7 +195,7 @@ export function DashboardSearch({
                     const canAssign = c.capabilities?.canAssignNurses === true
                     const canTake = (c.nurses?.length ?? 1) === 0
                     return canWrite || canAssign || canTake
-                      ? <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={canAssign} canHandOverToNurse={canWrite && !canAssign} canTakeCase={canTake} />
+                      ? <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={canAssign} canHandOverToNurse={(c.nurses ?? []).some(n => n.userId === userId)} canTakeCase={canTake} />
                       : null
                   })()}
                   {isComplete && (
