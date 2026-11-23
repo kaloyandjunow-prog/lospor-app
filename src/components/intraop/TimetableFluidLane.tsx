@@ -14,6 +14,7 @@ import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches } from "./TimetableChangeStrip"
 import { ttCell, ttLane } from "./chart-cursor"
 import { runOnStripes } from "./run-on-stripes"
+import { readableTextColor } from "@lospor/core/drug-colors"
 import { LaneTotal, totalColumn } from "./lane-extras"
 import { intraopFluidTotalLabel } from "@lospor/core/intraop-run-totals"
 import { useLocale } from "next-intl"
@@ -111,7 +112,7 @@ export function FluidLane({
         className="flex flex-col items-end justify-center pr-2 py-2 gap-0 select-none shrink-0"
       >
         <span className="text-xs font-semibold uppercase tracking-wide leading-tight" style={{ color }}>{label}</span>
-        <span className="text-xs text-slate-400 dark:text-[#777] leading-tight" data-testid="fluid-current">{currentLabel ?? copy.fluid.laneKind}</span>
+        <span title={currentLabel ?? undefined} className="line-clamp-1 text-xs text-slate-400 dark:text-[#777] leading-tight" data-testid="fluid-current">{currentLabel ?? copy.fluid.laneKind}</span>
       </div>
       {rowCols.map(ci => {
         const committedSeg = segments.find(s => ci >= s.startCol && ci <= s.endCol)
@@ -243,14 +244,14 @@ export function FluidLane({
                         })
                       }}
                       data-tt-full={barLabel} data-tt-owner={`fluid:${seg.id}`} className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold`}
-                      style={{ color, left: 0, width: visW, top: 42 }}
+                      style={{ color, ["--tt-on" as string]: readableTextColor(color), left: 0, width: visW, top: "calc(50% + 14px)" }}
                     >
                       {barLabel}
                     </button>
                   ) : (
                     <span
                       data-tt-full={barLabel} data-tt-owner={`fluid:${seg.id}`} className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold`}
-                      style={{ color, left: 0, width: visW, ...(isRate ? { top: 42 } : {}) }}
+                      style={{ color, ["--tt-on" as string]: readableTextColor(color), left: 0, width: visW, ...(isRate ? { top: "calc(50% + 14px)" } : {}) }}
                     >
                       {barLabel}
                     </span>

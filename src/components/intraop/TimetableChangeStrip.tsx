@@ -12,6 +12,8 @@
  * it is a planned marker until its time comes.
  */
 
+import { bundledColorHex, readableTextColor } from "@lospor/core/drug-colors"
+
 export type StripStretch = { col: number; label: string }
 
 /** The applied stretches of a bar, the start's own value first. */
@@ -69,7 +71,7 @@ export function ChangeStripCell({
       {tone && !inline && <div className={`absolute inset-0 ${tone.bg} ${selected ? "opacity-40" : "opacity-25"}`} />}
       {isChange && <div className={`absolute left-0 top-1 bottom-1 w-[2px] rounded-full opacity-70 ${tone?.bg ?? ""}`} style={color ? { backgroundColor: color } : undefined} />}
       {showLabel && (
-        <span {...(owner ? { "data-tt-full": fullPrefix ? `${fullPrefix} · ${current.label}` : current.label, "data-tt-owner": owner } : {})} className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline && !faded ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>
+        <span {...(owner ? { "data-tt-full": fullPrefix ? `${fullPrefix} · ${current.label}` : current.label, "data-tt-owner": owner } : {})} className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline && !faded ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), ["--tt-on" as string]: readableTextColor(color ?? bundledColorHex(tone?.bg)), paddingLeft: isChange ? 6 : 5 }}>
           {current.label}
         </span>
       )}
