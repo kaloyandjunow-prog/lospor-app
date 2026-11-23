@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { createPortal } from "react-dom"
 import type { DoseLimit } from "@lospor/core/catalog"
 import { DISPLAY_CLINICAL_DOSE_GUIDANCE } from "@/lib/clinical-guidance-policy"
@@ -132,9 +133,10 @@ export function RateChangeDialog({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onDismiss}>
       <div
-        className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
+        className="relative bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl p-5 w-72 space-y-4 border border-slate-200 dark:border-[#3a3a3a]"
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         <div>
           <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: state.color }}>
             {displayName}{state.concentration ? ` ${state.concentration}` : ""} — {state.tci ? copy.tci.newTarget : copy.rateChange.title}

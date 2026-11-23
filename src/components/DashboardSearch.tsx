@@ -174,7 +174,7 @@ export function DashboardSearch({
                   {asaBadge(c.preop?.asaScore ?? null)}
                   {dispositionBadge(c.postop?.disposition ?? null, locale)}
                   {c.caseCode && (
-                    <span className="font-mono text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
+                    <span className="w-[5.5rem] text-center font-mono text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#2a2a2a] px-1.5 py-0.5 rounded">
                       {c.caseCode}
                     </span>
                   )}
@@ -211,7 +211,7 @@ export function DashboardSearch({
                     caseStatus={c.status}
                     hasPendingTransfer={c.transfers.length > 0}
                   />
-                  <span className="text-xs text-slate-400">
+                  <span className="w-24 text-right text-xs text-slate-400">
                     {c.intraop?.monthYear
                       ? (() => { const [y, m] = c.intraop!.monthYear!.split("-"); return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(Number(y), Number(m) - 1, 1)) })()
                       : new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(c.createdAt)}

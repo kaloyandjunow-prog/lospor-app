@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { createPortal } from "react-dom"
 import type { FluidEntryMode } from "@lospor/core/intraop-fluids"
 import type { FluidConflict } from "./timetable-types"
@@ -78,6 +79,7 @@ export function FluidConflictPopover({
         className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         {conflict.phase === "choose" && (
           <>
             <p className={captionClass}>{conflict.pending.category} {copy.fluidConflict.conflict}</p>

@@ -9,7 +9,7 @@
   "src/components/clinical-rules/DoseProfileEditor.tsx": 600,
   "src/components/clinical-rules/ClinicalRuleEditor.tsx": 646,
   "src/components/forms/PediatricPreopSections.tsx": 339,
-  "src/components/forms/sections/AirwaySection.tsx": 518,
+  "src/components/forms/sections/AirwaySection.tsx": 517,
   "src/app/(app)/admin/page.tsx": 290,
   "src/components/forms/PostopForm.tsx": 451,
   "src/app/(app)/clinical-rules/page.test.tsx": 471,

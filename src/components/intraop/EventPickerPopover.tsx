@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
@@ -144,6 +145,7 @@ export function EventPickerPopover({
         className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden"
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         <div className="p-2 border-b border-slate-100 dark:border-[#2a2a2a]">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-[#666] px-1 mb-1.5">
             {labels.logClinicalEvent}

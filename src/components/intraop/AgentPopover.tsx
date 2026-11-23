@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { inhalationalFiLabel } from "@lospor/core/agent-labels"
 import { useState } from "react"
 import { createPortal } from "react-dom"
@@ -114,6 +115,7 @@ export function AgentPopover({
         className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2"
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         <p className={captionClass}>
           {editingName ? editCaption ?? copy.editAgent(displayAgentName(editingName)) : labels.startAgentHere}
         </p>

@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import type { IntraopMenuAction } from "@lospor/core/intraop-menu"
 
@@ -51,7 +52,7 @@ export function TimetableCellMenu({ anchor, title, subtitle, actions, labels, on
     }
   }, [])
 
-  useEffect(() => { ref.current?.querySelector<HTMLButtonElement>("button")?.focus() }, [])
+  useEffect(() => { ref.current?.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus() }, [])
 
   if (actions.length === 0) return null
   return (
@@ -63,9 +64,12 @@ export function TimetableCellMenu({ anchor, title, subtitle, actions, labels, on
       className="fixed z-[60] min-w-56 max-w-[min(20rem,calc(100vw-16px))] rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] shadow-xl p-1.5"
       style={{ left: position.left, top: position.top }}
     >
-      <div className="px-3 pt-2 pb-1.5">
-        <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{title}</div>
-        {subtitle ? <div className="text-xs text-slate-500 dark:text-[#9a9a9a] truncate">{subtitle}</div> : null}
+      <div className="flex items-start justify-between gap-2 px-3 pt-2 pb-1.5">
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{title}</div>
+          {subtitle ? <div className="text-xs text-slate-500 dark:text-[#9a9a9a] truncate">{subtitle}</div> : null}
+        </div>
+        <PopoverClose onClose={onClose} />
       </div>
       {actions.map(action => (
         <button

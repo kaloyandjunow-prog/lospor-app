@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import type { PumpTotalUnit } from "@lospor/core/intraop-types"
@@ -96,6 +97,7 @@ export function InfusionMenuPopover({
         }}
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         <p
           className="text-xs font-bold uppercase tracking-wider px-3 pt-2.5 pb-1 flex items-center gap-1.5"
           style={{ color }}

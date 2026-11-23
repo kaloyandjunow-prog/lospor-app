@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { ConvertedStepper } from "@/components/ConvertedStepper"
@@ -92,6 +93,7 @@ export function VitalsPopover({
         }}
         onClick={event => event.stopPropagation()}
       >
+        <PopoverClose onClose={commit} className="absolute right-1.5 top-1.5 z-10" />
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</span>

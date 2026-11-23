@@ -1,5 +1,6 @@
 "use client"
 
+import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
@@ -54,6 +55,7 @@ export function JetPopover({ anchor, initial, editing, onApply, onStop, onDismis
         style={{ top: anchor.bottom + 4, left, width: WIDTH, position: "fixed" }}
         className="bg-white dark:bg-[#2a2a2a] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-2xl p-3 space-y-2.5"
         onClick={event => event.stopPropagation()}>
+          <PopoverClose onClose={onDismiss} className="absolute right-1.5 top-1.5 z-10" />
         <div className="space-y-1">
           {heading(t("pressure"), `${settings.pressureBar} bar`)}
           <div className="flex items-center gap-1.5">
