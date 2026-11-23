@@ -93,9 +93,49 @@ export function ChartCursor() {
       if ((event.target as Element).closest("input, textarea, [data-tt-direct]")) return
       arm(target)
       touchArmedNow = true
+      const cell = target.closest<HTMLElement>(CELL)
+      if (cell) showTip(cell); else hideTip()
     }
+    // The full text of a cut-off bar label, above its row: shown when the pointer rests on the bar, or on the first
+    // tap of a finger (the tap that only highlights); gone at the next tap, scroll, key or when the menu opens.
+    let tip: HTMLDivElement | null = null
+    let tipTimer = 0
+    let tipCell: Element | null = null
+    const hideTip = () => { window.clearTimeout(tipTimer); tip?.remove(); tip = null }
+    const showTip = (cell: HTMLElement) => {
+      hideTip()
+      const kind = cell.getAttribute("data-tt-kind")
+      const key = cell.getAttribute("data-tt-key")
+      const lane = cell.closest("[data-tt-lane]")
+      if (!kind || !key || !lane) return
+      const label = [...lane.querySelectorAll<HTMLElement>("[data-tt-full]")]
+        .find(item => item.getAttribute("data-tt-owner") === `${kind}:${key}` && item.scrollWidth > item.clientWidth + 1)
+      const text = label?.getAttribute("data-tt-full")
+      if (!text) return
+      tip = document.createElement("div")
+      tip.className = "tt-tip"
+      tip.setAttribute("role", "tooltip")
+      tip.textContent = text
+      document.body.appendChild(tip)
+      const at = cell.getBoundingClientRect()
+      const row = lane.getBoundingClientRect()
+      const box = tip.getBoundingClientRect()
+      const left = Math.min(Math.max(8, at.left), Math.max(8, window.innerWidth - box.width - 8))
+      const above = row.top - box.height - 6
+      tip.style.left = `${left}px`
+      tip.style.top = `${above >= 8 ? above : row.bottom + 6}px`
+    }
+    const onPointerOver = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" || !inChart(event.target)) return
+      const cell = (event.target as Element).closest<HTMLElement>(CELL)
+      if (cell === tipCell) return
+      tipCell = cell
+      hideTip()
+      if (cell) tipTimer = window.setTimeout(() => showTip(cell), 250)
+    }
+    const onLeaveChart = (event: PointerEvent) => { if (event.pointerType === "mouse" && !inChart(event.relatedTarget)) { tipCell = null; hideTip() } }
     const onClick = (event: MouseEvent) => {
-      if (!touchArmedNow) return
+      if (!touchArmedNow) { hideTip(); return }
       touchArmedNow = false
       event.preventDefault()
       event.stopPropagation()
@@ -120,6 +160,7 @@ export function ChartCursor() {
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
+      hideTip()
       const active = document.activeElement as HTMLElement | null
       if (!active || !inChart(active)) return
       if (active.closest("input, textarea, select, [role=dialog], [role=menu]")) return
@@ -150,12 +191,19 @@ export function ChartCursor() {
     }
 
     document.addEventListener("pointerdown", onPointerDown, true)
+    document.addEventListener("pointerover", onPointerOver)
+    document.addEventListener("pointerout", onLeaveChart)
+    window.addEventListener("scroll", hideTip, true)
     document.addEventListener("click", onClick, true)
     document.addEventListener("keydown", onKeyDown)
     document.addEventListener("keydown", onUndoKeys, true)
     document.addEventListener("focusin", onFocusIn)
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true)
+      document.removeEventListener("pointerover", onPointerOver)
+      document.removeEventListener("pointerout", onLeaveChart)
+      window.removeEventListener("scroll", hideTip, true)
+      hideTip()
       document.removeEventListener("click", onClick, true)
       document.removeEventListener("keydown", onKeyDown)
       document.removeEventListener("keydown", onUndoKeys, true)

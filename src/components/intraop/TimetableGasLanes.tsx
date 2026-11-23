@@ -202,7 +202,7 @@ export function AgentLane({
                         setSel({ type: "agent", startCol: seg.startCol })
                         if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                       }}
-                      testId="agent-percent-strip"
+                      testId="agent-percent-strip" owner={`agent:${seg.name}`} fullPrefix={displayAgentName(seg.name)}
                     />
                   )}
                 </>

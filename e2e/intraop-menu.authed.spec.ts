@@ -177,3 +177,16 @@ test("stopping a fluid by rate asks nothing; a bag asks how much of it ran", asy
   await expect(page.getByTestId("timetable-undo-bar")).toBeVisible()
   await expect.poll(async () => (await savedLog(page, id)).filter(e => e.type === "fluid_end").length, { timeout: 15_000 }).toBe(2) // the seeded Ringer's and this one
 })
+
+// 10.8.0: a bar's label can be cut off by its cell; pointing at the bar shows the full text above its row.
+test("a cut-off bar label shows its full text when the pointer rests on the bar", async ({ page }) => {
+  const id = await seedCase(page, async (post, at) => {
+    await post({ type: "fluid_start", ts: at(-14), fluidId: "fl-h", name: "Hartmann", rate: "300", unit: "mL/h", volume: "", color: "#06b6d4", fluidEntryMode: "RATE", category: "Crystalloids" })
+  })
+  const chart = await openChart(page, id)
+  await page.waitForTimeout(1_500)
+  await chart.locator('[data-tt-lane^="fluid"]').first().locator("[data-tt-cell]").nth(3).hover()
+  await expect(page.locator(".tt-tip")).toContainText("Hartmann", { timeout: 5_000 })
+  await page.mouse.move(2, 2)
+  await expect(page.locator(".tt-tip")).toHaveCount(0)
+})

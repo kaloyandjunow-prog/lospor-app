@@ -30,8 +30,11 @@ export function stretchAt(stretches: readonly StripStretch[], col: number): Stri
 }
 
 export function ChangeStripCell({
-  col, stretches, color, tone, height, top = 0, roundStart, roundEnd, faded, selected, timed, onClick, testId, inline = false,
+  col, stretches, color, tone, height, top = 0, roundStart, roundEnd, faded, selected, timed, onClick, testId, inline = false, owner, fullPrefix,
 }: {
+  /** "kind:key" of the item and the name to put before the dose: the chart shows the full text of a cut-off label. */
+  owner?: string
+  fullPrefix?: string
   /** 10.8.0: drawn inside the bar (its dose at the start and at each change), with no fill of its own. */
   inline?: boolean
   col: number
@@ -66,7 +69,7 @@ export function ChangeStripCell({
       {tone && !inline && <div className={`absolute inset-0 ${tone.bg} ${selected ? "opacity-40" : "opacity-25"}`} />}
       {isChange && <div className={`absolute left-0 top-1 bottom-1 w-[2px] rounded-full opacity-70 ${tone?.bg ?? ""}`} style={color ? { backgroundColor: color } : undefined} />}
       {showLabel && (
-        <span className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline && !faded ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>
+        <span {...(owner ? { "data-tt-full": fullPrefix ? `${fullPrefix} · ${current.label}` : current.label, "data-tt-owner": owner } : {})} className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline && !faded ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>
           {current.label}
         </span>
       )}

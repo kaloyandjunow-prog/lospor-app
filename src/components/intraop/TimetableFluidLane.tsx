@@ -202,7 +202,7 @@ export function FluidLane({
                       const current = currentFluidRate(seg)
                       if (!seg.stopped) onChangeRate({ id: seg.id, rate: current == null ? "" : String(current), rect: event.currentTarget.getBoundingClientRect() })
                     }}
-                    testId="fluid-rate-strip"
+                    testId="fluid-rate-strip" owner={`fluid:${seg.id}`} fullPrefix={displayFluidName(seg.name)}
                   />
                 )}
                 <div
@@ -242,14 +242,14 @@ export function FluidLane({
                           rect: event.currentTarget.getBoundingClientRect(),
                         })
                       }}
-                      className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold`}
+                      data-tt-full={barLabel} data-tt-owner={`fluid:${seg.id}`} className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold`}
                       style={{ color, left: 0, width: visW, top: 42 }}
                     >
                       {barLabel}
                     </button>
                   ) : (
                     <span
-                      className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold`}
+                      data-tt-full={barLabel} data-tt-owner={`fluid:${seg.id}`} className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold`}
                       style={{ color, left: 0, width: visW, ...(isRate ? { top: 42 } : {}) }}
                     >
                       {barLabel}
