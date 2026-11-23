@@ -7,9 +7,9 @@ import { usePathname } from "next/navigation"
  * Two rules for the whole web app (10.8.0).
  *
  * - No browser context menu (right click, or a long press on a tablet), except
- *   on the sign-in screen and its two-factor step, and inside anything marked
- *   `data-allow-context-menu` (a two-factor code being set up): there a
- *   password manager or paste may be needed.
+ *   on the sign-in screen (a password manager or paste may be needed there),
+ *   and inside anything marked `data-allow-context-menu`. The two-factor code
+ *   field is marked `data-no-context-menu` and never has one, sign-in or not.
  * - The field being typed in goes to the middle of what is visible above the
  *   on-screen keyboard as soon as it is touched, not once typing starts.
  */
@@ -37,6 +37,7 @@ export function GlobalInteractionGuards() {
 
   useEffect(() => {
     const onContextMenu = (event: MouseEvent) => {
+      if ((event.target as Element | null)?.closest?.("[data-no-context-menu]")) { event.preventDefault(); return }
       if (CONTEXT_MENU_PATHS.some(path => pathname?.startsWith(path))) return
       if ((event.target as Element | null)?.closest?.("[data-allow-context-menu]")) return
       event.preventDefault()
