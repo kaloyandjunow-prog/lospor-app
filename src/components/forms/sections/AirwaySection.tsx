@@ -175,7 +175,7 @@ export function AirwaySection({
           setValue("airwayDevices", isOn ? devs.filter(d => d !== v) : [...devs, v])
         }
 
-        // Right-click / long-press removal for devices with sub-options — clears the
+        // Removal (the × beside a filled-in device) for devices with sub-options — clears the
         // device's own fields too, so re-adding it later starts blank, not pre-filled
         // from whatever was entered last time.
         function removeComplexDevice(v: string) {
@@ -217,7 +217,6 @@ export function AirwaySection({
                       if (isExpanded) setAirwayExpandedDevice(null)
                       else expandAirwayDevice(v)
                     }}
-                    onContextMenu={e => { e.preventDefault(); removeComplexDevice(v) }}
                     title={confirmed ? t(isExpanded ? "intraop.airway.deviceHintOpen" : "intraop.airway.deviceHintClosed") : t("intraop.airway.deviceHintNew")}
                     className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold transition-all ${
                       confirmed
