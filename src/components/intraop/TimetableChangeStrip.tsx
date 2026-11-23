@@ -66,7 +66,7 @@ export function ChangeStripCell({
       {tone && !inline && <div className={`absolute inset-0 ${tone.bg} ${selected ? "opacity-40" : "opacity-25"}`} />}
       {isChange && <div className={`absolute left-0 top-1 bottom-1 w-[2px] rounded-full opacity-70 ${tone?.bg ?? ""}`} style={color ? { backgroundColor: color } : undefined} />}
       {showLabel && (
-        <span className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>
+        <span className={`relative text-xs font-bold whitespace-nowrap truncate leading-none ${inline && !faded ? "tt-onbar" : ""} ${tone?.text ?? ""}`} style={{ ...(color ? { color } : {}), paddingLeft: isChange ? 6 : 5 }}>
           {current.label}
         </span>
       )}

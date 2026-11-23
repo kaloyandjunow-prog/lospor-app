@@ -164,7 +164,7 @@ export function AgentLane({
             }}
           >
             {!seg && !vacated && (
-              <span className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
+              <span data-tt-placeholder className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
                 {copy.gas.choose}
               </span>
             )}
@@ -181,7 +181,7 @@ export function AgentLane({
                       setSel({ type: "agent", startCol: seg.startCol })
                       if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                     }}
-                    className={`tt-bar absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                    className={`tt-bar tt-glass ${isEnd && !isRowExit && !seg.planned ? (seg.stopped ? "tt-end tt-stopnotch" : "tt-end tt-live") : ""} absolute inset-y-1 border-y border-transparent cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   />
                   {isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
                   {stretches.length > 0 && (
@@ -213,7 +213,7 @@ export function AgentLane({
                 draggable
                 onDragStart={e => { e.stopPropagation(); onGripDragStart(e, seg.startCol) }}
                 onDragEnd={onDragEnd}
-                className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 ${style2.grip} opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
+                className={`tt-grip absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 ${style2.grip} opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
               >
                 <span className="text-white text-xs font-bold select-none">|</span>
               </div>
@@ -302,20 +302,20 @@ export function GasSettingsLane({
             })()}
             {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
-              <span className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none">
+              <span data-tt-placeholder className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none">
                 {copy.gas.tapToStart}
               </span>
             )}
             {seg && isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
             {seg && (
               <div
-                className={`tt-bar absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`}
+                className={`tt-bar tt-glass ${isEnd && !isRowExit && !false ? (seg.stopped ? "tt-end tt-stopnotch" : "tt-end tt-live") : ""} absolute inset-y-1 border-y border-transparent bg-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`}
               />
             )}
             {showSettingsLabel && settings && (
               <span
                 title={displayGasSettings(settings, locale)}
-                className="absolute left-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-start justify-center text-xs font-bold leading-tight whitespace-nowrap text-indigo-700 dark:text-indigo-300"
+                className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-start justify-center text-xs font-bold leading-tight whitespace-nowrap ${seg?.stopped ? "text-indigo-800 dark:text-indigo-200" : "tt-onbar"}`}
               >
                 <span>FGF {settings.fgf} L/min</span>
                 <span className="text-xs">{displayGasMix(settings, locale)}</span>

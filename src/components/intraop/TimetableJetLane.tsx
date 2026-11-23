@@ -43,7 +43,7 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
             onClick={event => { const rect = (event.currentTarget as HTMLElement).getBoundingClientRect(); if (!menu?.openContinuous({ kind: "jet", key: "jet", col: ci, rect, title: "Jet" })) onOpen(ci, seg, rect) }}>
             {!seg && (
-              <span className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
+              <span data-tt-placeholder className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
                 {t("tapToStart")}
               </span>
             )}
@@ -55,10 +55,10 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
                 : null
             })()}
             {seg && (
-              <div className={`tt-bar absolute inset-y-1 border-y bg-teal-200/50 dark:bg-teal-500/20 border-teal-400 dark:border-teal-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
+              <div className={`tt-bar tt-glass ${isEnd && !isRowExit && !false ? (seg.stopped ? "tt-end tt-stopnotch" : "tt-end tt-live") : ""} absolute inset-y-1 border-y border-transparent bg-teal-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
             )}
             {showLabel && settings && (
-              <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center text-xs font-bold leading-tight whitespace-nowrap text-teal-700 dark:text-teal-300 overflow-hidden px-0.5">
+              <span className={`absolute left-1 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-start text-xs font-bold leading-tight whitespace-nowrap ${seg?.stopped ? "text-teal-800 dark:text-teal-200" : "tt-onbar"}`}>
                 <span>{settings.pressureBar} bar · {settings.rate}/min</span>
                 <span className="text-xs">FiO₂ {settings.fio2}%</span>
               </span>

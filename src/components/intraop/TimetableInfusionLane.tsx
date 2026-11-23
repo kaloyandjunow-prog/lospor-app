@@ -289,7 +289,7 @@ export function InfusionLane({
                     draggable
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "left") }}
                     onDragEnd={() => dragActions.infusionExtendEnd("left")}
-                    className={`absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm ${TOUCH_GRIP}`}
+                    className={`tt-grip absolute left-0 z-20 flex items-center justify-center cursor-col-resize rounded-l-sm ${TOUCH_GRIP}`}
                     style={{ top: 6, bottom: 4, width: 10, backgroundColor: color, ...timedLeft }}
                   >
                     <span className="text-white text-xs font-bold select-none">|</span>
@@ -300,7 +300,7 @@ export function InfusionLane({
                     draggable
                     onDragStart={e => { e.stopPropagation(); dragActions.infusionExtendStart(seg.id, "right") }}
                     onDragEnd={() => dragActions.infusionExtendEnd("right")}
-                    className={`absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm ${TOUCH_GRIP}`}
+                    className={`tt-grip absolute right-0 z-20 flex items-center justify-center cursor-col-resize rounded-r-sm ${TOUCH_GRIP}`}
                     style={{ top: 6, bottom: 4, width: 10, backgroundColor: color, ...timedRight }}
                   >
                     <span className="text-white text-xs font-bold select-none">|</span>

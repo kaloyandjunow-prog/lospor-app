@@ -496,12 +496,19 @@ html[data-gesture="held"] * {
 /* The text on a solid bar is white; a running bar has a bright live edge, a stopped one a dark notch; the bar under the
    pointer lifts and the other rows step back. */
 [data-intraop-chart-root] .tt-onbar { color: #fff !important; text-shadow: 0 1px 2px rgb(0 0 0 / 0.5); }
+/* The glass of a solid bar: a light edge on top and a little depth below. */
+.tt-glass { background-image: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(0 0 0 / 0.14)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 5px rgb(0 0 0 / 0.3); }
+/* A drag handle on a bar: a slim, translucent pill, not a block in the bar's own colour. */
+.tt-grip { background-color: rgb(255 255 255 / 0.22) !important; width: 8px !important; }
+.tt-grip > span { width: 2px; height: 60%; border-radius: 2px; background: rgb(255 255 255 / 0.9); font-size: 0; }
+/* A cell that shows a total does not also show its "tap to start". */
+[data-intraop-chart-root] [data-tt-cell]:has([data-testid$="-total"]) [data-tt-placeholder] { display: none; }
 .tt-end::before { content: ""; position: absolute; right: -1px; top: -2px; bottom: -2px; width: 3px; border-radius: 2px; pointer-events: none; z-index: 5; }
 .tt-live::before { background: #fff; opacity: 0.9; box-shadow: 0 0 8px #fff; }
 .tt-stopnotch::before { right: 0; top: 3px; bottom: 3px; width: 2px; background: rgb(0 0 0 / 0.5); }
 @media (hover: hover) {
   [data-intraop-chart-root] [data-tt-cell]:hover .tt-bar { transform: translateY(-2px); filter: brightness(1.15) drop-shadow(0 4px 5px rgb(0 0 0 / 0.4)); z-index: 12; }
-  [data-intraop-chart-root]:has([data-tt-cell]:hover) [data-tt-lane]:not(:has([data-tt-cell]:hover)) .tt-bar { filter: saturate(0.6) brightness(0.88); }
+  [data-intraop-chart-root]:has([data-tt-cell]:hover) [data-tt-lane]:not(:has([data-tt-cell]:hover)) .tt-bar { filter: saturate(0.82) brightness(0.94); }
 }
 @keyframes tt-bar-in {
   from { opacity: 0; transform: scaleX(0.82) scaleY(0.7); }

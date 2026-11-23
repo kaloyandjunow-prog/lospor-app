@@ -242,14 +242,14 @@ export function FluidLane({
                           rect: event.currentTarget.getBoundingClientRect(),
                         })
                       }}
-                      className="tt-onbar absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold"
+                      className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold`}
                       style={{ color, left: 0, width: visW, top: 42 }}
                     >
                       {barLabel}
                     </button>
                   ) : (
                     <span
-                      className="tt-onbar absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold"
+                      className={`${seg.stopped ? "" : "tt-onbar"} absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold`}
                       style={{ color, left: 0, width: visW, ...(isRate ? { top: 42 } : {}) }}
                     >
                       {barLabel}
@@ -263,7 +263,7 @@ export function FluidLane({
                 draggable
                 onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("ext-fluid", seg.id); dragActions.fluidExtendStart(seg.id) }}
                 onDragEnd={() => dragActions.fluidExtendEnd()}
-                className={`absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
+                className={`tt-grip absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-col-resize z-10 opacity-70 hover:opacity-100 rounded-r-sm ${TOUCH_GRIP}`}
                 style={{ backgroundColor: color, ...timedRight }}
               >
                 <span className="text-white text-xs font-bold select-none">|</span>
