@@ -17,8 +17,8 @@ import { refusalReason } from "@/lib/server-message"
 type Nurse = { id: string; name: string; firstName?: string; lastName?: string; title?: string }
 
 const COPY = {
-  bg: { failed: "Не се запази.", take: "Назначи ме на случая", takeFailed: "Не успяхте да се назначите: случаят вече има сестра или е затворен.", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
-  en: { failed: "Could not be saved.", take: "Put me on this case", takeFailed: "Could not put you on the case: it already has a nurse or is closed.", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
+  bg: { team: "Анестезиологичен екип", teamNone: "Още няма записи.", teamDoctor: "лекар", teamNurse: "сестра", teamJoined: "влиза", teamLeft: "излиза", teamBy: "от", teamReasons: { CREATED: "създава случая", TRANSFER: "предаване на случая", ASSIGNED: "назначена", THEATRE: "през операционната", HANDOVER: "предаване от сестра", SELF: "назначава се сама", REMOVED: "махната", BACKFILL: "от по-ранни записи" } as Record<string, string>, close: "Затвори", failed: "Не се запази.", take: "Назначи ме на случая", takeFailed: "Не успяхте да се назначите: случаят вече има сестра или е затворен.", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
+  en: { team: "Anaesthesia team", teamNone: "No entries yet.", teamDoctor: "doctor", teamNurse: "nurse", teamJoined: "joins", teamLeft: "leaves", teamBy: "by", teamReasons: { CREATED: "created the case", TRANSFER: "case handed over", ASSIGNED: "assigned", THEATRE: "through the theatre", HANDOVER: "handed over by a nurse", SELF: "put herself on", REMOVED: "removed", BACKFILL: "from earlier records" } as Record<string, string>, close: "Close", failed: "Could not be saved.", take: "Put me on this case", takeFailed: "Could not put you on the case: it already has a nurse or is closed.", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
 } as const
 type Copy = (typeof COPY)[keyof typeof COPY]
 
@@ -38,7 +38,7 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   const copy = COPY[locale === "bg" ? "bg" : "en"]
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
+  const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | "team" | null>(null)
   const takeCase = async () => {
     let ok = false
     let why: string | null = null
@@ -101,6 +101,7 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
           {canAssignNurses ? <button type="button" role="menuitem" className={item} data-testid="case-row-nurses" onClick={() => { setOpen(false); setDialog("nurses") }}>{copy.nurses}</button> : null}
           {canTakeCase ? <button type="button" role="menuitem" className={item} data-testid="case-row-take-case" onClick={() => { setOpen(false); void takeCase() }}>{copy.take}</button> : null}
           {canHandOverToNurse ? <button type="button" role="menuitem" className={item} data-testid="case-row-handover-nurse" onClick={() => { setOpen(false); setDialog("handover") }}>{copy.handover}</button> : null}
+          <button type="button" role="menuitem" className={item} data-testid="case-row-team" onClick={() => { setOpen(false); setDialog("team") }}>{copy.team}</button>
           {children ? <div className="mt-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-1 flex flex-col gap-1 [&>*]:min-h-11 [&>*]:w-full">{children}</div> : null}
         </div>
       ) : null}
@@ -108,8 +109,55 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
         <PlannedDateDialog caseId={caseId} value={plannedSurgeryDate} copy={copy} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); router.refresh() }} />
       ) : null}
       {dialog === "handover" ? <HandoverToNurseDialog caseId={caseId} copy={copy} onClose={() => { setDialog(null); router.refresh() }} /> : null}
+      {dialog === "team" ? <TeamDialog caseId={caseId} copy={copy} locale={locale} onClose={() => setDialog(null)} /> : null}
       {dialog === "nurses" ? <NursesDialog caseId={caseId} copy={copy} onClose={() => { setDialog(null); router.refresh() }} /> : null}
     </div>
+  )
+}
+
+type StaffRow = {
+  id: string
+  kind: "DOCTOR" | "NURSE"
+  action: "JOINED" | "LEFT"
+  reason: string
+  at: string
+  user: { id: string; name: string; firstName?: string | null; lastName?: string | null; title?: string | null }
+  by: { id: string; name: string; firstName?: string | null; lastName?: string | null; title?: string | null } | null
+}
+
+/** The anaesthesia team of the case over time (2026-11-23): who joined and left, and when. Read-only; the history is never changed. */
+function TeamDialog({ caseId, copy, locale, onClose }: { caseId: string; copy: Copy; locale: string; onClose: () => void }) {
+  const [rows, setRows] = useState<StaffRow[] | null>(null)
+  const [why, setWhy] = useState<string | null>(null)
+  useEffect(() => {
+    void (async () => {
+      let response: Response
+      try { response = await fetch(`/api/cases/${caseId}/staff`) } catch { setWhy(copy.failed); setRows([]); return }
+      if (!response.ok) { setWhy(`${copy.failed} ${await refusalReason(response) ?? ""}`.trim()); setRows([]); return }
+      setRows((await response.json()).staff ?? [])
+    })()
+  }, [caseId, copy.failed])
+  const name = (person: { name: string; firstName?: string | null; lastName?: string | null; title?: string | null }) =>
+    [person.title, person.firstName, person.lastName].filter(Boolean).join(" ") || person.name
+  const when = (value: string) => new Intl.DateTimeFormat(locale === "bg" ? "bg-BG" : "en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
+  return (
+    <Dialog title={copy.team} onClose={onClose}>
+      {why ? <p role="alert" className="mb-2 text-sm font-semibold text-red-600">{why}</p> : null}
+      {rows === null ? null : rows.length === 0 ? <p className="text-sm text-slate-500">{copy.teamNone}</p> : (
+        <ol className="flex max-h-96 flex-col gap-2 overflow-y-auto" data-testid="case-team-history">
+          {rows.map(row => (
+            <li key={row.id} className="rounded-lg border border-slate-200 dark:border-[#3a3a3a] px-3 py-2 text-sm">
+              <p className="font-semibold">{name(row.user)} <span className="font-normal text-slate-500">· {row.kind === "DOCTOR" ? copy.teamDoctor : copy.teamNurse}</span></p>
+              <p className="text-slate-600 dark:text-[#bbb]">
+                {row.action === "JOINED" ? copy.teamJoined : copy.teamLeft} · {when(row.at)} · {copy.teamReasons[row.reason] ?? row.reason}
+                {row.by && row.by.id !== row.user.id ? ` · ${copy.teamBy} ${name(row.by)}` : ""}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
+      <button type="button" className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 dark:border-[#4a4a4a] font-semibold" onClick={onClose}>{copy.close}</button>
+    </Dialog>
   )
 }
 

@@ -198,6 +198,12 @@ export function DashboardSearch({
                       ? <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={canAssign} canHandOverToNurse={(c.nurses ?? []).some(n => n.userId === userId)} canTakeCase={canTake} />
                       : null
                   })()}
+                  {/* Every row has the menu: a row with nothing to change still shows its anaesthesia team (2026-11-23). */}
+                  {(() => {
+                    const doctorMenu = canWrite && !isComplete && !isNurseAccountRole(role)
+                    const nurseMenu = !isComplete && !isCancelled && isNurseAccountRole(role) && (canWrite || c.capabilities?.canAssignNurses === true || (c.nurses?.length ?? 1) === 0)
+                    return doctorMenu || nurseMenu ? null : <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={false} />
+                  })()}
                   {isComplete && (
                     <span
                       role="link"
