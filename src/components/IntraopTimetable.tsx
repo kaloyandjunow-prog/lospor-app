@@ -1216,9 +1216,9 @@ export function IntraopTimetable({
             {rowCols.map(ci => (
               <div key={ci} style={{ width: colW, minWidth: colW }}
                 className="border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center">
-                <button type="button" tabIndex={-1} data-testid="add-infusion"
+                <button type="button" tabIndex={-1} data-testid="add-infusion" data-now={ci === nowCol ? "" : undefined}
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setInfPicker({ ci, rect }) }}
-                  className="flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
+                  className="tt-add flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-blue-300 dark:border-blue-700 text-blue-400 dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
@@ -1262,9 +1262,9 @@ export function IntraopTimetable({
                 onDragLeave={() => dragActions.fluidDropTargetOver(null)}
                 onDrop={e => onFluidDrop(e, ci)}
                 className={`border-l border-slate-100 dark:border-[#2a2a2a] flex items-center justify-center transition-colors ${drag.fluidDragOver===ci ? "bg-cyan-100 dark:bg-cyan-900/20" : ""}`}>
-                <button type="button" tabIndex={-1} data-testid="add-fluid"
+                <button type="button" tabIndex={-1} data-testid="add-fluid" data-now={ci === nowCol ? "" : undefined}
                   onClick={e => { const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); setFluidPicker({ ci, rect }); setFpSearch("") }}
-                  className="flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-cyan-300 dark:border-cyan-700 text-cyan-400 dark:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-1 py-1 transition-colors w-[72px]">
+                  className="tt-add flex items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-cyan-300 dark:border-cyan-700 text-cyan-400 dark:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 px-1 py-1 transition-colors w-[72px]">
                   <Plus className="h-3 w-3" />
                 </button>
               </div>

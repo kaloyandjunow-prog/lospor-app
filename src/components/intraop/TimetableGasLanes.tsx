@@ -14,6 +14,7 @@ import { gasSettingsAtColumn } from "@lospor/core/intraop-summary"
 import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stretchAt, stripStretches } from "./TimetableChangeStrip"
 import { ttCell, ttLane } from "./chart-cursor"
+import { CellHint } from "./CellHint"
 import { LaneTotal, laneDuration, totalColumn } from "./lane-extras"
 
 /**
@@ -164,9 +165,8 @@ export function AgentLane({
             }}
           >
             {!seg && !vacated && (
-              <span data-tt-placeholder className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
-                {copy.gas.choose}
-              </span>
+              <CellHint text={copy.gas.choose} show={!agents.some(a => !a.stopped && !a.planned) && ci === nowCol}
+                className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none" />
             )}
             {seg && style2 && (() => {
               const isAgentSel = sel?.type === "agent" && sel.startCol === seg.startCol
@@ -302,9 +302,8 @@ export function GasSettingsLane({
             })()}
             {(() => { const planned = plannedGasChangeAt?.(ci); return planned ? <PlannedChangeMarker value={`FGF ${planned.fgf} · FiO₂ ${planned.fio2}%`} /> : null })()}
             {!seg && (
-              <span data-tt-placeholder className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none">
-                {copy.gas.tapToStart}
-              </span>
+              <CellHint text={copy.gas.tapToStart} show={!(nowSeg && !nowSeg.stopped) && ci === nowCol}
+                className="w-full text-center text-xs text-slate-400 dark:text-[#666] select-none pointer-events-none" />
             )}
             {seg && isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
             {seg && (

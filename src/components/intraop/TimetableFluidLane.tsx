@@ -175,7 +175,7 @@ export function FluidLane({
           >
             {runOn && (
               <div data-testid="fluid-runs-on" aria-hidden className="absolute inset-y-1 left-0 right-0 rounded-sm pointer-events-none"
-                style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.14, 0.62 - 0.05 * (ci - (nowCol ?? ci))) }} />
+                style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.08, 0.34 - 0.04 * (ci - (nowCol ?? ci))) }} />
             )}
             {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
               return <LaneTotal key={s.id} text={totalOf(s)} color={color} testId="fluid-total" />

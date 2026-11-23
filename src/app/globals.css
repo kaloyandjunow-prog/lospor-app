@@ -501,6 +501,13 @@ html[data-gesture="held"] * {
 /* A drag handle on a bar: a slim, translucent pill, not a block in the bar's own colour. */
 .tt-grip { background-color: rgb(255 255 255 / 0.22) !important; width: 8px !important; }
 .tt-grip > span { width: 2px; height: 60%; border-radius: 2px; background: rgb(255 255 255 / 0.9); font-size: 0; }
+/* The "+" to add something is quiet: shown where the pointer is, where a finger last touched, and at "now". */
+[data-intraop-chart-root] .tt-add { opacity: 0; transition: opacity 0.14s ease; }
+[data-intraop-chart-root] :hover > .tt-add, [data-intraop-chart-root] [data-tt-armed] .tt-add,
+[data-intraop-chart-root] .tt-add:focus-visible, [data-intraop-chart-root] .tt-add[data-now] { opacity: 1; }
+/* An empty cell's "choose" / "tap to start" is a hint, not a label: see the lanes. */
+[data-intraop-chart-root] [data-tt-hint] { opacity: 0; transition: opacity 0.14s ease; }
+[data-intraop-chart-root] :hover > [data-tt-hint], [data-intraop-chart-root] [data-tt-armed] [data-tt-hint] { opacity: 1; }
 /* A cell that shows a total does not also show its "tap to start". */
 [data-intraop-chart-root] [data-tt-cell]:has([data-testid$="-total"]) [data-tt-placeholder] { display: none; }
 /* The full text of a cut-off bar label (chart-cursor.tsx). */

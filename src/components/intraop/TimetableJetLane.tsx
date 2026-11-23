@@ -6,6 +6,7 @@ import { barContinues, barLeftClass, barRightClass } from "./timetable-row-geome
 import { jetSettingsAtColumn } from "./jet-lane"
 import { useTimetableMenu } from "./TimetableMenuHost"
 import { ttCell, ttLane } from "./chart-cursor"
+import { CellHint } from "./CellHint"
 import { LaneTotal, laneDuration, totalColumn } from "./lane-extras"
 
 /**
@@ -25,6 +26,8 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
 }) {
   const menu = useTimetableMenu()
   const t = useTranslations("intraop.jet")
+  const jetNowCol = menu?.facts.nowCol ?? null
+  const jetNow = jetNowCol == null ? null : segmentAt(jetNowCol)
   return (
     <div data-testid="jet-lane" {...ttLane("jet")} className="flex items-stretch border-b border-slate-200 dark:border-[#2e2e2e] bg-teal-50/30 dark:bg-[#132020]/40 relative" style={{ minHeight: 32 }}>
       <div data-tt-label style={{ width: labelWidth, minWidth: labelWidth }} className={rowLabelClass + " flex items-center justify-end py-2"}>
@@ -43,9 +46,8 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center cursor-pointer"
             onClick={event => { const rect = (event.currentTarget as HTMLElement).getBoundingClientRect(); if (!menu?.openContinuous({ kind: "jet", key: "jet", col: ci, rect, title: "Jet" })) onOpen(ci, seg, rect) }}>
             {!seg && (
-              <span data-tt-placeholder className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none">
-                {t("tapToStart")}
-              </span>
+              <CellHint text={t("tapToStart")} show={!(jetNow && !jetNow.stopped) && ci === (menu?.facts.nowCol ?? null)}
+                className="w-full text-center text-xs text-slate-300 dark:text-[#444] select-none pointer-events-none" />
             )}
             {(() => {
               const before = ci > 0 ? segmentAt(ci - 1) : null

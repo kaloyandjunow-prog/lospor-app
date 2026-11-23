@@ -246,7 +246,7 @@ export function InfusionLane({
                   data-testid="infusion-runs-on"
                   aria-label={displayInfusionName(runOn.name)}
                   className="absolute top-[6px] bottom-1 left-0 right-0 z-10 rounded-sm hover:!opacity-100"
-                  style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.14, 0.62 - 0.05 * (ci - (nowCol ?? ci))) }}
+                  style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.08, 0.34 - 0.04 * (ci - (nowCol ?? ci))) }}
                   onClick={e => {
                     e.stopPropagation()
                     openMenu({ segId: runOn.id, name: runOn.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci })

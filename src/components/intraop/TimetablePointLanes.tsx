@@ -77,7 +77,7 @@ export function ClinicalEventsLane({
             onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
           >
             {colEvents.length === 0 && (
-              <Plus className="h-3.5 w-3.5 opacity-40 text-slate-400 dark:text-[#666] mt-1.5" />
+              <Plus className="tt-add h-3.5 w-3.5 text-slate-400 dark:text-[#666] mt-1.5" data-now={ci === (menu?.facts.nowCol ?? null) ? "" : undefined} />
             )}
             <div className="flex flex-col items-start gap-1 w-full">
               {colEvents.slice(0, MAX_VISIBLE_EVENTS).map(event => (
@@ -224,9 +224,10 @@ export function DrugLane({
               type="button"
               tabIndex={-1}
               data-testid="add-drug"
+              data-now={ci === (menu?.facts.nowCol ?? null) ? "" : undefined}
               data-tt-direct
               onClick={e => onOpenPicker(ci, (e.currentTarget as HTMLElement).getBoundingClientRect())}
-              className="w-full mt-1 flex min-h-9 items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-500 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+              className="tt-add w-full mt-1 flex min-h-9 items-center justify-center gap-0.5 text-xs font-semibold rounded border border-dashed border-violet-300 dark:border-violet-700 text-violet-500 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
             >
               <Plus className="h-3 w-3" />
             </button>
