@@ -110,7 +110,7 @@ export function ChartCursor() {
     let tip: HTMLDivElement | null = null
     let tipTimer = 0
     let tipCell: Element | null = null
-    const hideTip = () => { window.clearTimeout(tipTimer); tip?.remove(); tip = null }
+    const hideTip = () => { window.clearTimeout(tipTimer); tipTimer = 0; tip?.remove(); tip = null }
     const showTip = (cell: HTMLElement) => {
       hideTip()
       const kind = cell.getAttribute("data-tt-kind")
@@ -138,9 +138,18 @@ export function ChartCursor() {
       if (event.pointerType !== "mouse" || !inChart(event.target)) return
       const cell = (event.target as Element).closest<HTMLElement>(CELL)
       if (cell === tipCell) return
+      scheduleTip(cell)
+    }
+    const scheduleTip = (cell: HTMLElement | null) => {
       tipCell = cell
       hideTip()
-      if (cell) tipTimer = window.setTimeout(() => showTip(cell), 250)
+      if (cell) tipTimer = window.setTimeout(() => { tipTimer = 0; showTip(cell) }, 250)
+    }
+    // A scroll takes the tip away; the pointer, resting where it was, brings it back when it moves again.
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" || tip || tipTimer || !inChart(event.target)) return
+      const cell = (event.target as Element).closest<HTMLElement>(CELL)
+      if (cell) scheduleTip(cell)
     }
     const onLeaveChart = (event: PointerEvent) => { if (event.pointerType === "mouse" && !inChart(event.relatedTarget)) { tipCell = null; hideTip() } }
     const onClick = (event: MouseEvent) => {
@@ -202,6 +211,7 @@ export function ChartCursor() {
 
     document.addEventListener("pointerdown", onPointerDown, true)
     document.addEventListener("pointerover", onPointerOver)
+    document.addEventListener("pointermove", onPointerMove)
     document.addEventListener("pointerout", onLeaveChart)
     window.addEventListener("scroll", hideTip, true)
     window.addEventListener("scroll", disarmTap, true)
@@ -213,6 +223,7 @@ export function ChartCursor() {
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true)
       document.removeEventListener("pointerover", onPointerOver)
+      document.removeEventListener("pointermove", onPointerMove)
       document.removeEventListener("pointerout", onLeaveChart)
       window.removeEventListener("scroll", hideTip, true)
       window.removeEventListener("scroll", disarmTap, true)

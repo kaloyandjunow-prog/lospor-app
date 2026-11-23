@@ -181,12 +181,17 @@ test("stopping a fluid by rate asks nothing; a bag asks how much of it ran", asy
 // 10.8.0: a bar's label can be cut off by its cell; pointing at the bar shows the full text above its row.
 test("a cut-off bar label shows its full text when the pointer rests on the bar", async ({ page }) => {
   const id = await seedCase(page, async (post, at) => {
-    await post({ type: "fluid_start", ts: at(-14), fluidId: "fl-h", name: "Hartmann", rate: "300", unit: "mL/h", volume: "", color: "#06b6d4", fluidEntryMode: "RATE", category: "Crystalloids" })
+    await post({ type: "fluid_start", ts: at(-14), fluidId: "fl-h", name: "Hartmann's balanced crystalloid solution with a very long product name, written out in full so that the bar cannot hold it", rate: "300", unit: "mL/h", volume: "", color: "#06b6d4", fluidEntryMode: "RATE", category: "Crystalloids" })
   })
   const chart = await openChart(page, id)
   await page.waitForTimeout(1_500)
-  await chart.locator('[data-tt-lane^="fluid"]').filter({ hasText: "Hartmann" }).first().locator("[data-tt-cell]").nth(3).hover()
-  await expect(page.locator(".tt-tip")).toContainText("Hartmann", { timeout: 5_000 })
+  const cell = chart.locator('[data-tt-lane^="fluid"]').filter({ hasText: "very long product" }).first().locator("[data-tt-cell]").nth(3)
+  await cell.hover()
+  // Playwright scrolls the chart into view as it hovers, and a scroll takes a tip away: the pointer, moving again, brings it back.
+  await page.waitForTimeout(600)
+  const box = (await cell.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2 + 3, box.y + 10)
+  await expect(page.locator(".tt-tip")).toContainText("very long product name", { timeout: 5_000 })
   await page.mouse.move(2, 2)
   await expect(page.locator(".tt-tip")).toHaveCount(0)
 })
