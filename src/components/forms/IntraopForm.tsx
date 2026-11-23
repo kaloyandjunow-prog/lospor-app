@@ -67,7 +67,7 @@ import { ConfirmDialog } from "@/components/intraop/ConfirmDialog"
 import { IntraopLabsDialog } from "@/components/intraop/IntraopLabsDialog"
 import { useClinicalRules } from "@/hooks/useClinicalRules"
 import { useOptionLibrary } from "@/hooks/useOptionLibrary"
-import { SectionCard } from "@/components/forms/shared/SectionCard"
+import { SectionCard, useOpenSectionEvents } from "@/components/forms/shared/SectionCard"
 import { usePremedicationLibrary } from "@/components/intraop/use-premedication-library"
 import { usePremedicationPrefill } from "@/components/intraop/use-premedication-prefill"
 import { PositionSection } from "@/components/forms/sections/PositionSection"
@@ -246,7 +246,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
   // The Legacy Monitoring section is one grouped list now; the setter stays for templates that expect it.
   const [, setAdvancedMonOpen] = useState(false)
   const [airwayExpandedDevice, setAirwayExpandedDevice] = useState<string | null>(null)
-  const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview")
+  const [activeTab,            setActiveTab]            = useState(() => intraopFocusTab(focus) ?? "overview"); useOpenSectionEvents(setActiveTab)
   useScrollToReadiness(focus)
   const [airwayOverride,       setAirwayOverride]       = useState(false)
   const monDefaultsApplied      = useRef(false)
@@ -556,7 +556,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabChart = (<>
 
       {/* Intraoperative timetable */}
-      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}{suggestionGate.banner}{allergyGate.modal}{suggestionGate.modal}
+      <div data-tour="intraop-timetable" data-readiness="vitals medications fluids events">{endCheck.panel}{!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} collapsible />}{suggestionGate.banner}{allergyGate.modal}{suggestionGate.modal}
       <SectionCard title={t("intraop.vitalsSection")}>
         <IntraopLabsDialog
           open={labsDialog.open}
@@ -568,7 +568,6 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
           aiOptIn={aiOptIn}
         />
         <CaseSaveStateContext.Provider value={attention.saveState}>
-        {!endCorrectionOpen && <IntraopAttentionPanel entries={attention.entries} onAnswer={attention.canAnswer ? attention.answer : undefined} onOpen={attention.canAnswer ? attention.open : undefined} refused={attention.refused} onDismissRefused={attention.saveState.dismissRefused} />}
         {vascularRequest && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 p-4" onClick={() => setVascularRequest(null)}>
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white dark:bg-[#161616] p-2" onClick={event => event.stopPropagation()}>
@@ -660,7 +659,7 @@ export function IntraopForm({ defaultValues, defaultTimetable, preop, onSubmit, 
         const tabFinish = (<>
 
       {/* Complications */}
-      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} eventLogScreen={eventLogScreen} />
+      <ComplicationsSection t={t} control={control} watch={watch} eventLog={eventLog} labResults={(watchedLabResults ?? []) as never} onDeleteEvent={onEventOps ? removeEvent : undefined} eventLogScreen={eventLogScreen} attention={attention} />
 
         </>)
         if (layoutMode === "sidebar") return (

@@ -7,6 +7,7 @@ import { cookies } from "next/headers"
 import { Analytics } from "@vercel/analytics/next"
 import { PwaInit } from "@/components/PwaInit"
 import { GestureGuard } from "@/components/GestureGuard"
+import { GlobalInteractionGuards } from "@/components/GlobalInteractionGuards"
 import { parseUiScale, uiScaleFontSize, UI_SCALE_COOKIE } from "@/lib/ui-scale"
 
 // --font-sans and --font-geist-mono are declared in globals.css, alongside the
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </NextIntlClientProvider>
         <PwaInit />
         <GestureGuard />
+        <GlobalInteractionGuards />
       </body>
     </html>
   )
