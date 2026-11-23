@@ -9,24 +9,30 @@ import { getDeviceId } from "./useCaseLock"
  * is in it. A notice only -- several people work in one case and the last edit wins.
  */
 export function useCasePresence(caseId: string | null, enabled = true): CasePresence | null {
-  const [presence, setPresence] = useState<CasePresence | null>(null)
+  // The answer belongs to the case it was given for: another case, or the notice switched off, shows nothing.
+  const [answer, setAnswer] = useState<{ caseId: string; presence: CasePresence } | null>(null)
 
   useEffect(() => {
     if (!caseId || !enabled) return
     const deviceId = getDeviceId()
     const url = `/api/cases/${caseId}/presence`
-    const send = (method: "POST" | "DELETE") => fetch(url, {
+    const send = (method: "POST" | "DELETE", signal?: AbortSignal) => fetch(url, {
       method,
+      signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId }),
       keepalive: method === "DELETE",
     })
     let stopped = false
+    const controller = new AbortController()
     const report = async () => {
+      // Never report after leaving: a report that lands after the DELETE would keep this screen listed until the TTL.
+      if (stopped) return
       try {
-        const response = await send("POST")
+        const response = await send("POST", controller.signal)
         if (!response.ok || stopped) return
-        setPresence(await response.json() as CasePresence)
+        const presence = await response.json() as CasePresence
+        if (!stopped) setAnswer({ caseId, presence })
       } catch { /* offline: the last answer stays until the next report */ }
     }
     void report()
@@ -36,11 +42,12 @@ export function useCasePresence(caseId: string | null, enabled = true): CasePres
     window.addEventListener("pagehide", leave)
     return () => {
       stopped = true
+      controller.abort()
       clearInterval(timer)
       window.removeEventListener("pagehide", leave)
       leave()
     }
   }, [caseId, enabled])
 
-  return presence
+  return enabled && caseId && answer?.caseId === caseId ? answer.presence : null
 }

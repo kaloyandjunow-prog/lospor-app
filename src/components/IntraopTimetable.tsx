@@ -10,7 +10,6 @@ import { useFluidChartActions } from "@/hooks/useFluidChartActions"
 import { clinicalProvenance } from "@/lib/intraop-provenance"
 import { patchWebClinicalPreferences, syncWebClinicalPreferences } from "@/lib/clinical-preferences-web"
 import { useLocale, useTranslations } from "next-intl"
-import { createPortal } from "react-dom"
 import { Plus } from "lucide-react"
 import { useIntraopDoseOptions } from "@/components/intraop/use-intraop-dose-options"
 import { clinicalEventName, displayClinicalCode } from "@/lib/clinical-display"
@@ -34,6 +33,7 @@ import { AgentLane, GasSettingsLane } from "@/components/intraop/TimetableGasLan
 import { ClinicalEventsLane, DrugLane } from "@/components/intraop/TimetablePointLanes"
 import { FluidLane } from "@/components/intraop/TimetableFluidLane"
 import { InfusionLane } from "@/components/intraop/TimetableInfusionLane"
+import { FluidStopDialog, type FluidStopState } from "@/components/intraop/FluidStopDialog"
 import { infusionLaneColor } from "@lospor/core/infusion-lane-color"
 import { TimetableVitalsRows } from "@/components/intraop/TimetableVitalsRows"
 import { TimetableTimeHeader } from "@/components/intraop/TimetableTimeHeader"
@@ -114,7 +114,6 @@ import {
 } from "@lospor/core/clinical-rules"
 import type { PediatricAgeUnit } from "@lospor/core/pediatric"
 import { drugAdministrationAudit } from "@/lib/drug-administration-audit"
-import { currentFluidRate } from "@/lib/fluid-entry-ui"
 import { COL_W, INTERVAL, LABEL_W, ROW_COLS, rectAnchor } from "@/components/intraop/timetable-layout"
 
 // The selectable libraries (agents, drugs, fluids, clinical events, infusion
@@ -446,12 +445,7 @@ export function IntraopTimetable({
   const [showHotkeys, setShowHotkeys] = useState(false)
   // Inline discontinue: infusion/agent two-step confirm; fluid volume prompt
   const [discConfirmId, setDiscConfirmId] = useState<string | null>(null)
-  const [discFluidState, setDiscFluidState] = useState<{
-    id: string
-    volInput: string
-    rect: DOMRect
-    fullBag: boolean | null
-  } | null>(null)
+  const [discFluidState, setDiscFluidState] = useState<FluidStopState | null>(null)
   const [fluidRateDialog, setFluidRateDialog] = useState<{
     id: string
     rate: string
@@ -1440,7 +1434,7 @@ export function IntraopTimetable({
     switchAgent: ({ key, col, rect }) => { const seg = segAt(agents.filter(item => item.name === key), col); if (seg) openPickerForSeg(seg.startCol, seg, rect, col) },
     stopWithData: ({ kind, key, rect }, finish) => {
       if (kind === "infusion") { const seg = (data.infusions ?? []).find(item => item.id === key); const pump = tciPumpTotal(seg, () => {}); if (!seg || !pump) return false; setTciStop({ name: displayInfusionName(seg.name), amountUnit: pump.amountUnit, finish }); return true }
-      if (kind !== "fluid") return false; const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg || seg.fluidEntryMode === "RATE") return false; setDiscFluidState({ id: seg.id, volInput: "0", rect, fullBag: null }); return true
+      if (kind !== "fluid") return false; const seg = (data.fluids ?? []).find(item => item.id === key); if (!seg || seg.fluidEntryMode === "RATE") return false; setDiscFluidState({ id: seg.id, volInput: "0", rect, fullBag: null, finish }); return true
     },
     editPoint: (event, rect) => { const idx = data.drugs.findIndex(drug => drug.eventId === event.id); if (idx < 0) return false; setDoseEditDrug({ idx, dose: data.drugs[idx].dose ?? "", unit: data.drugs[idx].unit ?? "mg", rect }); return true },
     repeatDose: (event, rect) => { if (event.type !== "drug" || !event.name) return false; suggestionSheets.openDrug({ name: event.name, mode: "bolus", rect, amount: Number(event.dose) || null, unit: event.unit, suggestion: "" }); return true }, // 10.8.0: prefilled, at now, as on the PWA
@@ -1930,99 +1924,8 @@ export function IntraopTimetable({
     {fluidRateDialog && <FluidRateDialog state={fluidRateDialog} fluid={(data.fluids ?? []).find(item => item.id === fluidRateDialog.id)} displayName={displayFluidName} onChange={rate => setFluidRateDialog(current => current ? { ...current, rate } : current)} onClose={() => setFluidRateDialog(null)} onConfirm={(id, rate) => { applyFluidRateChange(id, rate, fluidRateDialog.col); setFluidRateDialog(null) }} />}
     {discFluidState && (() => {
       const fluid = (data.fluids ?? []).find(f => f.id === discFluidState.id)
-      if (!fluid) return null
-      const isRate = fluid.fluidEntryMode === "RATE"
-      const bagVol = Number(fluid.bagVolumeMl ?? fluid.volume) || 500
-      const curAmt = Number(discFluidState.volInput) || 0
-      const rect = discFluidState.rect
-      return createPortal(
-        <div className="fixed z-50 bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#3a3a3a] rounded-xl shadow-xl p-3 space-y-2"
-          style={{ top: rect.bottom + 6, left: Math.min(rect.right - 200, window.innerWidth - 210), width: 200 }}
-          onClick={e => e.stopPropagation()}>
-          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
-            {displayFluidName(fluid.name)}{isRate
-              ? ` · ${currentFluidRate(fluid) ?? fluid.rate ?? ""} mL/h`
-              : bagVol ? ` · ${uiCopy.timetable.bagSuffix(bagVol)}` : ""}
-          </p>
-          {isRate ? (
-            <div className="space-y-1.5">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {uiCopy.endCase.calculatedVolume}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <input
-                  autoFocus
-                  type="number"
-                  min={0}
-                  step={1}
-                  aria-label={uiCopy.timetable.actualFluidVolumeAria}
-                  value={discFluidState.volInput}
-                  onChange={event => setDiscFluidState(state => state ? { ...state, volInput: event.target.value } : state)}
-                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs outline-none focus:border-cyan-400 dark:border-[#3a3a3a] dark:bg-[#2a2a2a]"
-                />
-                <span className="text-xs font-semibold text-slate-400">mL</span>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-100 mb-2">{t("intraop.timetable.wasFullBagInfused")}</p>
-              <div className="flex gap-2 mb-2">
-                <button type="button"
-                  onClick={() => setDiscFluidState(s => s ? { ...s, fullBag: true, volInput: String(bagVol) } : s)}
-                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === true ? "bg-teal-500 border-teal-500 text-white" : "border-teal-300 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}>
-                  ✓ {uiCopy.timetable.fullBagYes}
-                </button>
-                <button type="button"
-                  onClick={() => setDiscFluidState(s => s ? { ...s, fullBag: false, volInput: "0" } : s)}
-                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg border-2 transition-colors ${discFluidState.fullBag === false ? "bg-amber-500 border-amber-500 text-white" : "border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}>
-                  {uiCopy.timetable.partialNo}
-                </button>
-              </div>
-            </>
-          )}
-          {!isRate && discFluidState.fullBag === false && (
-            <div className="space-y-1.5 mb-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 dark:text-slate-400">{t("intraop.timetable.amountLabel")}</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    min={0}
-                    max={bagVol}
-                    step={1}
-                    aria-label={uiCopy.timetable.partialBagVolumeAria}
-                    value={discFluidState.volInput}
-                    onChange={event => setDiscFluidState(state => state ? { ...state, volInput: event.target.value } : state)}
-                    className="w-16 rounded border border-slate-200 bg-white px-1 py-0.5 text-right text-xs font-semibold outline-none focus:border-cyan-400 dark:border-[#3a3a3a] dark:bg-[#2a2a2a]"
-                  />
-                  <span className="text-xs text-slate-400">mL</span>
-                </div>
-              </div>
-              <input type="range" min={0} max={bagVol} step={50}
-                value={curAmt}
-                onChange={e => setDiscFluidState(s => s ? { ...s, volInput: e.target.value } : s)}
-                className="w-full accent-teal-500 cursor-pointer" />
-            </div>
-          )}
-          <div className="flex gap-1.5 justify-end pt-1">
-            <button type="button" onClick={() => setDiscFluidState(null)}
-              className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
-              {uiCopy.cancel}
-            </button>
-            <button type="button"
-              disabled={!isRate && discFluidState.fullBag === null}
-              onClick={() => {
-                stopFluid(discFluidState.id, curAmt)
-                setSel(null)
-                setDiscFluidState(null)
-              }}
-              className="text-xs font-bold bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
-              {uiCopy.timetable.confirmDiscontinue}
-            </button>
-          </div>
-        </div>,
-        document.body
-      )
+      return fluid ? <FluidStopDialog fluid={fluid} name={displayFluidName(fluid.name)} state={discFluidState} onChange={patch => setDiscFluidState(s => s ? { ...s, ...patch } : s)} onCancel={() => setDiscFluidState(null)}
+        onConfirm={amount => { if (discFluidState.finish) discFluidState.finish({ administeredVolumeMl: Math.max(0, Math.round(amount)) }); else stopFluid(discFluidState.id, amount); setSel(null); setDiscFluidState(null) }} /> : null
     })()}
     </TimetableMenuHost>
     </TciPatientContext.Provider>

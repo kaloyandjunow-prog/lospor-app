@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { inhalationalFiLabel } from "@lospor/core/agent-labels"
 import { useState } from "react"
@@ -226,6 +227,6 @@ export function AgentPopover({
         )}
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

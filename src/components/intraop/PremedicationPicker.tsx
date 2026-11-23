@@ -1,4 +1,5 @@
 "use client"
+import { portalHost } from "@/lib/portal-host"
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { Label } from "@/components/ui/label"
@@ -277,7 +278,7 @@ export function PremedicationPicker({ label, value, onChange, categories, doses,
         </div>
       )}
     </div>,
-    document.body
+    portalHost()
   )
 
   return (

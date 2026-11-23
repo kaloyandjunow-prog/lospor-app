@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import type { PumpTotalUnit } from "@lospor/core/intraop-types"
@@ -46,6 +47,6 @@ export function TciStopDialog({ name, amountUnit, onStop, onCancel }: {
         </div>
       </div>
     </div>,
-    document.body,
+    portalHost(),
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { createPortal } from "react-dom"
 import type { FluidEntryMode } from "@lospor/core/intraop-fluids"
@@ -146,6 +147,6 @@ export function FluidConflictPopover({
         )}
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

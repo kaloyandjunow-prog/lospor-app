@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
 
@@ -27,6 +28,6 @@ export function AgentSwitchDialog({ names, cancelLabel, onSwitch, onBoth, onCanc
         <button type="button" className={`${button} border-transparent text-slate-500`} onClick={onCancel}>{cancelLabel}</button>
       </div>
     </div>,
-    document.body,
+    portalHost(),
   )
 }

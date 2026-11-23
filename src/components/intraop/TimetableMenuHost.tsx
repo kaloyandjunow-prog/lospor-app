@@ -1,6 +1,8 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
+import { portalHost } from "@/lib/portal-host"
 import { intraopContinuousMenu, intraopPointMenu, type IntraopMenuAction } from "@lospor/core/intraop-menu"
 import { ChartCursor } from "./chart-cursor"
 import { openLinkedSection } from "@/components/forms/shared/SectionCard"
@@ -114,6 +116,13 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
     setHistoryAt(Date.now())
     showBar(label, before, next)
   }, [applyOps, showBar])
+  // One timer for the one message line: a newer message is never wiped by an older one's timeout.
+  const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const say = useCallback((text: string, ms: number) => {
+    if (messageTimer.current) clearTimeout(messageTimer.current)
+    setRefusal(text)
+    messageTimer.current = setTimeout(() => setRefusal(null), ms)
+  }, [])
   const step = useCallback((direction: "undo" | "redo") => {
     const result = (direction === "undo" ? intraopHistoryUndo : intraopHistoryRedo)(historyRef.current, logRef.current)
     if (!result) return false
@@ -121,19 +130,17 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
     setHistory(result.history)
     historyRef.current = result.history
     setUndo(null)
-    setRefusal(`${direction === "undo" ? copy.done.undone : copy.redone}: ${result.entry.label}`)
-    setTimeout(() => setRefusal(null), 4000)
+    say(`${direction === "undo" ? copy.done.undone : copy.redone}: ${result.entry.label}`, 4000)
     return true
-  }, [applyOps, copy])
-  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current) }, [])
+  }, [applyOps, copy, say])
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); if (messageTimer.current) clearTimeout(messageTimer.current) }, [])
   const commitRef = useRef(commit)
   const deletedLabelRef = useRef(copy.done.deleted)
   useEffect(() => { commitRef.current = commit; deletedLabelRef.current = copy.done.deleted }, [commit, copy])
 
   const refuse = useCallback((code: IntraopEditRefusal) => {
-    setRefusal(copy.refusals[code] ?? copy.refusals.TIMELINE)
-    setTimeout(() => setRefusal(null), 6000)
-  }, [copy])
+    say(copy.refusals[code] ?? copy.refusals.TIMELINE, 6000)
+  }, [copy, say])
 
   const api = useMemo<MenuApi>(() => ({
     openContinuous: target => {
@@ -220,7 +227,10 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       case "plan_stop": {
         // `extra` is what a lane's own question adds to the stop (a TCI pump's total).
         const writeStop = (extra: Record<string, unknown> = {}) => {
-          const ts = stampAt(target.col)
+          // A past cell's stamp is the cell's start; a run that began later inside that cell is stopped a minute after it began.
+          const began = start ? Date.parse(start.ts) : null
+          const stamp = stampAt(target.col)
+          const ts = began != null && Date.parse(stamp) <= began ? new Date(Math.min(began + 60_000, now().getTime())).toISOString() : stamp
           const stop = (target.kind === "infusion" ? { id: uid(), ts, type: "infusion_stop", infId: target.key, recordedAt: now().toISOString() }
             : target.kind === "fluid" ? { id: uid(), ts, type: "fluid_end", fluidId: target.key, recordedAt: now().toISOString() }
               : { id: uid(), ts, type: STOP_TYPE[target.kind], ...(target.kind === "agent" ? { name: target.key, agentMode: "concurrent" as const } : {}), recordedAt: now().toISOString() }) as LogEvent
@@ -321,6 +331,8 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
     <MenuContext.Provider value={api}>
       {cursor ? <ChartCursor /> : null}
       {children}
+      {/* Drawn into the full-screen element while there is one: only it and its content are shown. */}
+      {typeof document !== "undefined" ? createPortal(<>
       {open ? (
         <TimetableCellMenu
           anchor={open.target.rect}
@@ -379,6 +391,7 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       {(undo || refusal) ? (
         <UndoBar copy={copy} text={refusal ?? undo?.label ?? ""} canUndo={!!undo && !refusal} onUndo={() => { step("undo") }} />
       ) : null}
+      </>, portalHost()) : null}
     </MenuContext.Provider>
   )
 }

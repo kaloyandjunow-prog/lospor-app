@@ -19,7 +19,8 @@ export function createEndDropHandlers({ agents, infusions, fluids, endDrop }: {
     const seg = kind === "agent" ? agents.find(item => item.startCol === Number(id)) : (kind === "infusion" ? infusions : fluids).find(item => item.id === id)
     if (!seg) return
     const col = Math.max(dropCol, seg.startCol)
-    if (seg.stopped && col === seg.endCol) return
+    // Let go where it already ends: nothing moved, nothing is written (a running bar is not stopped by a slip).
+    if (col === seg.endCol) return
     const anchor = document.querySelector<HTMLElement>("[data-tt-armed]")?.getBoundingClientRect()
     endDrop({ kind, key: kind === "agent" ? seg.name : id, col, title: seg.name, rect: anchor ?? new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0) }, !!seg.stopped)
   }

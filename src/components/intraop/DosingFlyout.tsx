@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { portalHost } from "@/lib/portal-host"
 import { createPortal } from "react-dom"
 import { useIntraopUiCopy } from "./ui-copy"
 import { DosingFlyoutHeader } from "./DosingFlyoutHeader"
@@ -342,6 +343,6 @@ export function DosingFlyout({
         )
       })()}
     </>,
-    inlineHost ?? document.body,
+    inlineHost ?? portalHost(),
   )
 }

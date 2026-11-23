@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
@@ -291,6 +292,6 @@ export function EventPickerPopover({
         )}
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

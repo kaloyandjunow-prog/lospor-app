@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { FIO2, FRESH_GAS_FLOW, gasQuickValues, parseTypedFreshGasFlow, snapFreshGasFlow, stepFreshGasFlow } from "@lospor/core/gas-ranges"
 import { createPortal } from "react-dom"
@@ -201,6 +202,6 @@ export function GasSettingsPopover({
         </button>
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

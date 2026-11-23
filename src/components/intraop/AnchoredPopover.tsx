@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import type { ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { positionPopover, type AnchorRect } from "./anchored-position"
@@ -70,6 +71,6 @@ export function AnchoredPopover({
         <PopoverClose onClose={onDismiss} className="absolute -right-2.5 -top-2.5 z-10 shadow-md" />
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

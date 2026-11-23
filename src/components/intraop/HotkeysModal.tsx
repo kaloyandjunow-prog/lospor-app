@@ -1,4 +1,5 @@
 "use client"
+import { portalHost } from "@/lib/portal-host"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 import { useIntraopUiCopy } from "./ui-copy"
@@ -27,6 +28,6 @@ export function HotkeysModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>,
-    document.body
+    portalHost()
   )
 }

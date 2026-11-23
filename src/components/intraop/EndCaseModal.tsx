@@ -1,4 +1,5 @@
 "use client"
+import { portalHost } from "@/lib/portal-host"
 import { useState } from "react"
 import { useLocale } from "next-intl"
 import { createPortal } from "react-dom"
@@ -335,6 +336,6 @@ export function EndCaseModal({ agents, infusions, fluids, gasSettings = [], weig
         </div>
       </div>
     </div>,
-    document.body
+    portalHost()
   )
 }

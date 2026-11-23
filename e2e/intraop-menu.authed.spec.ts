@@ -185,8 +185,21 @@ test("a cut-off bar label shows its full text when the pointer rests on the bar"
   })
   const chart = await openChart(page, id)
   await page.waitForTimeout(1_500)
-  await chart.locator('[data-tt-lane^="fluid"]').first().locator("[data-tt-cell]").nth(3).hover()
+  await chart.locator('[data-tt-lane^="fluid"]').filter({ hasText: "Hartmann" }).first().locator("[data-tt-cell]").nth(3).hover()
   await expect(page.locator(".tt-tip")).toContainText("Hartmann", { timeout: 5_000 })
   await page.mouse.move(2, 2)
   await expect(page.locator(".tt-tip")).toHaveCount(0)
+})
+
+// Review 2026-11-23: in the browser's full screen only the full-screen element is shown, so the menu has to be drawn inside it.
+test("in full screen the menu is still shown", async ({ page }) => {
+  const chart = await openChart(page, await seedCase(page))
+  await page.getByTestId("timetable-fullscreen").click()
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true)
+  await agentCell(chart).click()
+  const menu = page.getByTestId("timetable-cell-menu")
+  await expect(menu).toBeVisible()
+  expect(await menu.evaluate(element => !!document.fullscreenElement?.contains(element))).toBe(true)
+  await page.getByTestId("popover-close").click()
+  await expect(menu).toHaveCount(0)
 })

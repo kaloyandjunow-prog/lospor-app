@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 import { DoseSelector } from "@/components/intraop/DoseSelector"
@@ -34,6 +35,6 @@ export function FluidRateDialog({ state, fluid, displayName, onChange, onClose, 
         <DoseSelector accent="cyan" value={state.rate} onValueChange={onChange} valuePlaceholder={uiCopy.rate} min={1} max={200} step={1} unitSuffix="mL/h" confirmLabel={uiCopy.infusion.changeRate} confirmDisabled={!state.rate || Number(state.rate) <= 0} onConfirm={() => onConfirm(state.id, Number(state.rate))} />
       </div>
     </>,
-    document.body,
+    portalHost(),
   )
 }

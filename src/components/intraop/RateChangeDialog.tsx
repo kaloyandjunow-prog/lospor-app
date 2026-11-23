@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { createPortal } from "react-dom"
 import type { DoseLimit } from "@lospor/core/catalog"
@@ -325,6 +326,6 @@ export function RateChangeDialog({
         )}
       </div>
     </div>,
-    document.body,
+    portalHost(),
   )
 }

@@ -50,6 +50,30 @@ export function Wheel({ values, value, onChange, format, label, testId }: {
   }
   useEffect(() => () => { if (settle.current) clearTimeout(settle.current) }, [])
 
+  // The mouse wheel: one notch is one step, the same as the arrow keys. (A touch screen scrolls the column itself.)
+  const latest = useRef({ values, onChange })
+  const position = useRef(index)
+  useEffect(() => { latest.current = { values, onChange }; position.current = index })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let travelled = 0
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      travelled += event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY
+      if (Math.abs(travelled) < 40) return
+      const step = travelled > 0 ? 1 : -1
+      travelled = 0
+      const { values: list, onChange: change } = latest.current
+      if (list.length === 0) return
+      // Notches before the screen has redrawn go on from the last one.
+      position.current = (position.current + step + list.length) % list.length
+      change(list[position.current])
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [])
+
   const items = Array.from({ length: REPEATS * count }, (_, i) => values[i % count])
   return (
     <div className="relative" style={{ height: ITEM_PX * 5, width: 72 }}>

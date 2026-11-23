@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { createPortal } from "react-dom"
 import type { AnchorRect } from "./anchored-position"
@@ -80,6 +81,6 @@ export function DoseEditPopover({
         </button>
       </div>
     </div>,
-    document.body,
+    portalHost(),
   )
 }

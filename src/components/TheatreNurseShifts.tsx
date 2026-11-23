@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Users, X } from "lucide-react"
 import { calendarDayKey } from "@lospor/core/dashboard-date-scope"
@@ -17,8 +17,8 @@ type Person = { id: string; name: string; firstName?: string | null; lastName?: 
 type Shift = { id: string; theatre: Theatre; user: Person }
 
 const COPY = {
-  bg: { open: "Сестри по операционни", title: "Анестезиологични сестри по операционни", me: "Тук съм днес", add: "Добави сестра", none: "Няма", close: "Готово", date: "Дата", day: "Ден", month: "Месец", year: "Година", remove: "Махни" },
-  en: { open: "Nurses by theatre", title: "Anaesthesia nurses by theatre", me: "I am here today", add: "Add a nurse", none: "None", close: "Done", date: "Date", day: "Day", month: "Month", year: "Year", remove: "Remove" },
+  bg: { open: "Сестри по операционни", title: "Анестезиологични сестри по операционни", me: "Тук съм днес", add: "Добави сестра", none: "Няма", failed: "Няма връзка със сървъра — опитайте пак", close: "Готово", date: "Дата", day: "Ден", month: "Месец", year: "Година", remove: "Махни" },
+  en: { open: "Nurses by theatre", title: "Anaesthesia nurses by theatre", me: "I am here today", add: "Add a nurse", none: "None", failed: "Could not reach the server — try again", close: "Done", date: "Date", day: "Day", month: "Month", year: "Year", remove: "Remove" },
 } as const
 
 const nameOf = (person: Person) => [person.title, person.firstName, person.lastName].filter(Boolean).join(" ") || person.name
@@ -35,26 +35,46 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
   const dateKey = calendarDateKey(date)
   const today = dateKey === calendarDayKey(new Date())
 
+  const [failed, setFailed] = useState(false)
+  // Only the newest question's answer is shown: a slower, earlier one (another day) is dropped.
+  const latest = useRef(0)
+  const dayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (dayTimer.current) clearTimeout(dayTimer.current) }, [])
   // Loaded when the dialog opens and when its day changes (from the handlers, not an effect).
   const load = async (key: string) => {
-    const response = await fetch(`/api/operating-theatres/shifts?date=${key}`)
-    if (response.ok) setShifts((await response.json()).shifts ?? [])
+    const mine = ++latest.current
+    try {
+      const response = await fetch(`/api/operating-theatres/shifts?date=${key}`)
+      if (mine !== latest.current) return
+      if (response.ok) { setShifts((await response.json()).shifts ?? []); setFailed(false) } else setFailed(true)
+    } catch { if (mine === latest.current) setFailed(true) }
   }
-  const changeDate = (next: CalendarDate) => { setDate(next); void load(calendarDateKey(next)) }
+  // The wheel turns many times a second: the day is shown at once, the list is asked for once it settles.
+  const changeDate = (next: CalendarDate) => {
+    setDate(next)
+    if (dayTimer.current) clearTimeout(dayTimer.current)
+    dayTimer.current = setTimeout(() => { void load(calendarDateKey(next)) }, 200)
+  }
 
   if (!manager && !nurse) return null
   if (theatres.length === 0) return null
 
   const post = async (body: Record<string, unknown>) => {
-    const response = await fetch("/api/operating-theatres/shifts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, date: dateKey }) })
-    if (response.ok) { setShifts((await response.json()).shifts ?? []); router.refresh() }
+    const mine = ++latest.current
+    let response: Response
+    try { response = await fetch("/api/operating-theatres/shifts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, date: dateKey }) }) } catch { setFailed(true); return }
+    if (mine !== latest.current) return
+    if (response.ok) { setShifts((await response.json()).shifts ?? []); setFailed(false); router.refresh() } else setFailed(true)
   }
 
   return (
     <>
       <button type="button" data-testid="theatre-nurse-shifts" onClick={() => {
         setOpen(true)
-        void load(dateKey)
+        // A nurse's day is always today: a page left open past midnight must not keep yesterday.
+        const todayDate = parseCalendarDateKey(calendarDayKey(new Date()))!
+        if (!manager) setDate(todayDate)
+        void load(manager ? dateKey : calendarDateKey(todayDate))
         if (manager) void fetch("/api/users/nurses").then(response => response.ok ? response.json() : { nurses: [] }).then(body => setNurses(body.nurses ?? []))
       }}
         className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 dark:border-[#3a3a3a] px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a]">
@@ -64,6 +84,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
         <div role="dialog" aria-modal="true" aria-label={copy.title} className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onPointerDown={event => { if (event.target === event.currentTarget) setOpen(false) }}>
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col gap-3 overflow-y-auto rounded-xl bg-white dark:bg-[#1f1f1f] p-4 shadow-xl">
             <p className="text-base font-bold text-slate-900 dark:text-white">{copy.title}</p>
+            {failed ? <p role="alert" className="text-sm font-semibold text-red-600">{copy.failed}</p> : null}
             {manager ? <DateWheel value={date} onChange={changeDate} labels={{ day: copy.day, month: copy.month, year: copy.year }} /> : null}
             {theatres.map(theatre => {
               const here = shifts.filter(shift => shift.theatre.id === theatre.id)

@@ -22,7 +22,21 @@ function isTextField(element: Element | null): element is HTMLElement {
   return element instanceof HTMLElement && element.isContentEditable
 }
 
+/**
+ * Whether a focused field should be brought to the middle: with a finger, or when the on-screen keyboard has
+ * shrunk the visible area. Not with a mouse, and not inside a dialog or a fixed popover: scrolling the page behind it
+ * moves nothing there and only jumps the page.
+ */
+function wantsCentring(element: HTMLElement): boolean {
+  if (element.closest("[role=dialog], [role=alertdialog], [data-no-centre]")) return false
+  for (let node: HTMLElement | null = element; node && node !== document.body; node = node.parentElement) if (getComputedStyle(node).position === "fixed") return false
+  const viewport = window.visualViewport
+  const keyboard = !!viewport && viewport.height < window.innerHeight - 80
+  return keyboard || window.matchMedia("(pointer: coarse)").matches
+}
+
 function centre(element: HTMLElement): void {
+  if (!wantsCentring(element)) return
   const viewport = window.visualViewport
   const rect = element.getBoundingClientRect()
   const visibleTop = viewport?.offsetTop ?? 0

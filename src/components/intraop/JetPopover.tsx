@@ -1,5 +1,6 @@
 "use client"
 
+import { portalHost } from "@/lib/portal-host"
 import { PopoverClose } from "./PopoverClose"
 import { useState } from "react"
 import { createPortal } from "react-dom"
@@ -96,5 +97,5 @@ export function JetPopover({ anchor, initial, editing, onApply, onStop, onDismis
       </div>
     </div>
   )
-  return typeof document !== "undefined" ? createPortal(body, document.body) : body
+  return typeof document !== "undefined" ? createPortal(body, portalHost()) : body
 }

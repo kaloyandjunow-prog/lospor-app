@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { useTimetableMenu } from "./TimetableMenuHost"
+import { portalHost } from "@/lib/portal-host"
 
 /**
  * The chart's cursor (10.8.0, rules 6): one highlighted cell, the same for a
@@ -80,6 +81,11 @@ export function ChartCursor() {
 
   useEffect(() => {
     let touchArmedNow = false
+    // The tap that armed a cell swallows only its own click, and only for a moment: a touch that became a scroll, or a click
+    // elsewhere (the keyboard's Enter), is not swallowed later.
+    let armedFor: HTMLElement | null = null
+    let armedTimer = 0
+    const disarmTap = () => { touchArmedNow = false; window.clearTimeout(armedTimer) }
     const inChart = (target: EventTarget | null): target is Element =>
       target instanceof Element && !!target.closest(ROOT)
 
@@ -93,6 +99,9 @@ export function ChartCursor() {
       if ((event.target as Element).closest("input, textarea, [data-tt-direct]")) return
       arm(target)
       touchArmedNow = true
+      armedFor = target
+      window.clearTimeout(armedTimer)
+      armedTimer = window.setTimeout(() => { touchArmedNow = false }, 700)
       const cell = target.closest<HTMLElement>(CELL)
       if (cell) showTip(cell); else hideTip()
     }
@@ -116,7 +125,7 @@ export function ChartCursor() {
       tip.className = "tt-tip"
       tip.setAttribute("role", "tooltip")
       tip.textContent = text
-      document.body.appendChild(tip)
+      portalHost().appendChild(tip)
       const at = cell.getBoundingClientRect()
       const row = lane.getBoundingClientRect()
       const box = tip.getBoundingClientRect()
@@ -135,8 +144,9 @@ export function ChartCursor() {
     }
     const onLeaveChart = (event: PointerEvent) => { if (event.pointerType === "mouse" && !inChart(event.relatedTarget)) { tipCell = null; hideTip() } }
     const onClick = (event: MouseEvent) => {
-      if (!touchArmedNow) { hideTip(); return }
-      touchArmedNow = false
+      const swallow = touchArmedNow && !!armedFor && event.target instanceof Node && armedFor.contains(event.target)
+      disarmTap()
+      if (!swallow) { hideTip(); return }
       event.preventDefault()
       event.stopPropagation()
     }
@@ -194,6 +204,8 @@ export function ChartCursor() {
     document.addEventListener("pointerover", onPointerOver)
     document.addEventListener("pointerout", onLeaveChart)
     window.addEventListener("scroll", hideTip, true)
+    window.addEventListener("scroll", disarmTap, true)
+    document.addEventListener("pointercancel", disarmTap, true)
     document.addEventListener("click", onClick, true)
     document.addEventListener("keydown", onKeyDown)
     document.addEventListener("keydown", onUndoKeys, true)
@@ -203,6 +215,9 @@ export function ChartCursor() {
       document.removeEventListener("pointerover", onPointerOver)
       document.removeEventListener("pointerout", onLeaveChart)
       window.removeEventListener("scroll", hideTip, true)
+      window.removeEventListener("scroll", disarmTap, true)
+      document.removeEventListener("pointercancel", disarmTap, true)
+      window.clearTimeout(armedTimer)
       hideTip()
       document.removeEventListener("click", onClick, true)
       document.removeEventListener("keydown", onKeyDown)
