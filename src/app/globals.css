@@ -462,14 +462,42 @@ html[data-gesture="held"] * {
    Pointing highlights the row and the cell; a highlighted cell (first tap,
    keyboard, focus) keeps a ring until another one takes it. */
 [data-intraop-chart-root] [data-tt-lane] { transition: background-color 80ms; }
+/* The chart's cursor (10.8.0). Not the browser's blue ring: the cell under the pointer gets a soft warm
+   tint and a line under it, and the bar in it gets lighter. */
+[data-intraop-chart-root] [data-tt-cell] { transition: background-color 0.14s ease, box-shadow 0.14s ease; }
 @media (hover: hover) {
-  [data-intraop-chart-root] [data-tt-lane]:hover { background-color: rgb(59 130 246 / 0.05); }
-  [data-intraop-chart-root] [data-tt-cell]:hover { box-shadow: inset 0 0 0 2px rgb(59 130 246 / 0.45); }
+  [data-intraop-chart-root] [data-tt-lane]:hover { background-color: rgb(148 163 184 / 0.06); }
+  [data-intraop-chart-root] [data-tt-cell]:hover {
+    background-color: rgb(251 191 36 / 0.10);
+    box-shadow: inset 0 -3px 0 rgb(245 158 11 / 0.75);
+  }
 }
-[data-intraop-chart-root] [data-tt-lane]:has([data-tt-armed]) { background-color: rgb(59 130 246 / 0.07); }
-[data-intraop-chart-root] [data-tt-armed] { box-shadow: inset 0 0 0 2px rgb(59 130 246); outline: none; }
+[data-intraop-chart-root] [data-tt-lane]:has([data-tt-armed]) { background-color: rgb(148 163 184 / 0.08); }
+[data-intraop-chart-root] [data-tt-armed],
 [data-intraop-chart-root] [data-tt-cell]:focus-visible,
-[data-intraop-chart-root] [data-tt-point]:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgb(59 130 246); }
+[data-intraop-chart-root] [data-tt-point]:focus-visible {
+  outline: none;
+  background-color: rgb(251 191 36 / 0.16);
+  box-shadow: inset 0 -3px 0 rgb(245 158 11), inset 0 0 0 1px rgb(245 158 11 / 0.55);
+}
+[data-intraop-chart-root] [data-tt-cell], [data-intraop-chart-root] [data-tt-point] { -webkit-tap-highlight-color: transparent; }
+
+/* A bar: it settles in when it appears and lightens when its cell is pointed at, armed or pressed. */
+.tt-bar { position: absolute; animation: tt-bar-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: left center; }
+.tt-bar::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: rgb(255 255 255); opacity: 0; transition: opacity 0.16s ease;
+}
+[data-intraop-chart-root] [data-tt-cell]:hover .tt-bar::after,
+[data-intraop-chart-root] [data-tt-armed] .tt-bar::after { opacity: 0.38; }
+.dark [data-intraop-chart-root] [data-tt-cell]:hover .tt-bar::after,
+.dark [data-intraop-chart-root] [data-tt-armed] .tt-bar::after { opacity: 0.2; }
+[data-intraop-chart-root] [data-tt-cell]:active .tt-bar::after { opacity: 0.55; }
+@keyframes tt-bar-in {
+  from { opacity: 0; transform: scaleX(0.82) scaleY(0.7); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tt-bar { animation: none; } .tt-bar::after, [data-intraop-chart-root] [data-tt-cell] { transition: none; } }
 /* The lane name stays in view while the chart scrolls sideways. */
 [data-intraop-chart-root] [data-tt-label] { position: sticky; left: 0; z-index: 25; background-color: #ffffff; }
 .dark [data-intraop-chart-root] [data-tt-label] { background-color: #1c1c1c; }

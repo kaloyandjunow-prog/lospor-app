@@ -53,8 +53,8 @@ describe("a running infusion in the cells after now, on the web", () => {
     expect(screen.queryAllByTestId("infusion-runs-on")).toHaveLength(0)
     cleanup()
     lane([propofol, { id: "s", ts: at(40), type: "infusion_stop", infId: "prop" }], true)
-    // Cells 2..7 run on; 8 holds the planned stop; nothing after.
-    expect(screen.getAllByTestId("infusion-runs-on")).toHaveLength(6)
+    // Cells 2..7 run on; 8 holds the planned stop and is still clickable (its menu removes the plan); nothing after.
+    expect(screen.getAllByTestId("infusion-runs-on")).toHaveLength(7)
   })
 
   it("a click opens that infusion's menu dated to the clicked cell", () => {

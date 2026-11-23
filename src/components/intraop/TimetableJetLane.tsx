@@ -55,7 +55,7 @@ export function TimetableJetLane({ labelWidth, rowLabelClass, rowCols, colStart,
                 : null
             })()}
             {seg && (
-              <div className={`absolute inset-y-1 border-y bg-teal-200/50 dark:bg-teal-500/20 border-teal-400 dark:border-teal-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
+              <div className={`tt-bar absolute inset-y-1 border-y bg-teal-200/50 dark:bg-teal-500/20 border-teal-400 dark:border-teal-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`} />
             )}
             {showLabel && settings && (
               <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none flex flex-col items-center text-xs font-bold leading-tight whitespace-nowrap text-teal-700 dark:text-teal-300 overflow-hidden px-0.5">

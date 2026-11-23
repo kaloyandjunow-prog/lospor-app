@@ -237,7 +237,8 @@ export function InfusionLane({
                 click opens its menu dated to this cell -- a planned change of this infusion,
                 never a second one of the same drug (9.13.1). */}
             {!seg && projectRunning && (() => {
-              const runOn = segments.find(s => runsOnAt(s, ci))
+              // The cell of a planned stop is still running (it stops when its time comes): its menu offers to remove the plan.
+              const runOn = segments.find(s => runsOnAt(s, ci) || (!s.planned && !s.stopped && s.plannedStopCol === ci && ci > s.endCol))
               return runOn ? (
                 <button
                   type="button"
@@ -268,7 +269,7 @@ export function InfusionLane({
                     setSel(() => ({ type: "infusion", id: seg.id }))
                     openMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: !!seg.stopped, fromPillCol: ci })
                   }}
-                  className={`absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : ""}`}
+                  className={`tt-bar absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : ""}`}
                   style={{
                     top: 6,
                     bottom: 4,

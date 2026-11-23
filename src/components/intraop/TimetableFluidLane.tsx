@@ -16,6 +16,7 @@ import { ttCell, ttLane } from "./chart-cursor"
 import { LaneTotal, totalColumn } from "./lane-extras"
 import { intraopFluidTotalLabel } from "@lospor/core/intraop-run-totals"
 import { useLocale } from "next-intl"
+import { runsOnAt } from "@lospor/core/intraop-summary"
 
 /**
  * One fluid lane: a single line running down the chart.
@@ -142,6 +143,9 @@ export function FluidLane({
         const timedRight = isActualEnd && !isRowExit && timed.right != null ? { right: timed.right } : {}
         // A bag that was stopped earlier can be picked up again in this column.
         const stoppedSeg = !seg ? segments.find(s => s.stopped && s.endCol < ci) ?? null : null
+        // After now a running bag or rate runs on (Core runsOnAt, as the infusion lanes): a click there opens its menu,
+        // dated to this cell (Plan a stop, Plan a change).
+        const runOn = !seg && !stoppedSeg ? segments.find(s => runsOnAt(s, ci) || (!s.planned && !s.stopped && s.plannedStopCol === ci && ci > s.endCol)) ?? null : null
 
         return (
           <div
@@ -150,7 +154,7 @@ export function FluidLane({
             className="group relative border-l border-slate-100 dark:border-[#2a2a2a] flex items-center"
             {...ttCell(ci, seg ? { kind: "fluid", key: seg.id, col: ci } : null)}
             onClick={e => {
-              const target = seg ?? stoppedSeg
+              const target = seg ?? stoppedSeg ?? runOn
               if (target) openFluidMenu(target, ci, (e.currentTarget as HTMLElement).getBoundingClientRect())
             }}
             onDragOver={e => {
@@ -168,6 +172,10 @@ export function FluidLane({
               dragActions.fluidExtendEnd()
             }}
           >
+            {runOn && (
+              <div data-testid="fluid-runs-on" aria-hidden className="absolute inset-y-1 left-0 right-0 rounded-sm border border-dashed opacity-60 pointer-events-none"
+                style={{ borderColor: color, backgroundColor: color + "14" }} />
+            )}
             {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
               return <LaneTotal key={s.id} text={totalOf(s)} color={color} testId="fluid-total" />
             })}
@@ -198,7 +206,7 @@ export function FluidLane({
                 )}
                 <div
                   onClick={e => { e.stopPropagation(); setSel({ type: "fluid", id: seg.id }); openFluidMenu(seg, ci, e.currentTarget.getBoundingClientRect()) }}
-                  className={`absolute inset-y-1 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                  className={`tt-bar absolute inset-y-1 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   style={{
                     ...timedLeft,
                     ...timedRight,

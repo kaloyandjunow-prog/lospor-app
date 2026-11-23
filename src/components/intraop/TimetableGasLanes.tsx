@@ -181,7 +181,7 @@ export function AgentLane({
                       setSel({ type: "agent", startCol: seg.startCol })
                       if (!openAgentMenu(seg.name, ci, rect)) openPickerForSeg(seg.startCol, seg, rect, ci)
                     }}
-                    className={`absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                    className={`tt-bar absolute inset-y-1 border-y cursor-pointer transition-all ${style2.bar} ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd, colEnd)} ${isDragPreview ? "opacity-60" : ""} ${isAgentSel ? "brightness-125 ring-1 ring-inset ring-white/40" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   />
                   {isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
                   {stretches.length > 0 && (
@@ -309,7 +309,7 @@ export function GasSettingsLane({
             {seg && isEnd && <SaveMark eventIds={segmentEventIds(seg)} className="absolute top-0 right-0" />}
             {seg && (
               <div
-                className={`absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`}
+                className={`tt-bar absolute inset-y-1 border-y bg-indigo-200/50 dark:bg-indigo-500/20 border-indigo-400 dark:border-indigo-500 ${barLeftClass(isStart || isRowCont)} ${barRightClass(seg.endCol, isEnd && !isRowExit, colEnd)} ${seg.stopped ? "opacity-50 border-dashed" : ""}`}
               />
             )}
             {showSettingsLabel && settings && (
