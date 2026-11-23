@@ -1176,11 +1176,11 @@ export function IntraopTimetable({
           {/* 10.8.0: continuous items first, then bolus drugs, events and labs (rule 4). */}
           {/* One lane per infusion name; a drug restarted later keeps its lane
               rather than opening a second one. */}
-          {[...new Set((data.infusions ?? []).map(i => i.name))].map(drugName => {
-            const segs = (data.infusions ?? []).filter(i => i.name === drugName)
+          {/* One row per infusion (two syringes of propofol = two rows); Resume keeps its row: the runs share the infusion's id. */}
+          {[...new Set((data.infusions ?? []).map(i => i.name))].flatMap(drugName => [...new Set((data.infusions ?? []).filter(i => i.name === drugName).map(i => i.id))].map(id => ({ drugName, segs: (data.infusions ?? []).filter(i => i.id === id) }))).map(({ drugName, segs }) => {
             return (
               <InfusionLane
-                key={drugName} projectRunning={!endedAt}
+                key={segs[0].id} projectRunning={!endedAt}
                 drugName={drugName}
                 color={INFUSION_CONFIGS[drugName]?.color ?? segs[0]?.color ?? "#64748b"}
                 segments={segs}

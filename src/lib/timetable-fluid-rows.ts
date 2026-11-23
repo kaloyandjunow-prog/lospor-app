@@ -1,4 +1,3 @@
-import { packLaneRows } from "@lospor/core/timetable"
 import type { TimetableFluid } from "@/types/timetable"
 
 export const FLUID_CAT_COLOR: Record<string, string> = {
@@ -48,7 +47,8 @@ export function computeFluidRows(
 
   const rows: FluidLaneRow[] = []
   for (const [cat, catFluids] of byCat) {
-    const lanes = packLaneRows(catFluids)
+    // One row per fluid line: bags never share a row; a resumed one (same id) continues in its own.
+    const lanes = [...new Set(catFluids.map(fluid => fluid.id))].map(id => catFluids.filter(fluid => fluid.id === id))
     const catColor = FLUID_CAT_COLOR[cat] ?? "#94a3b8"
     lanes.forEach((lane, idx) => {
       rows.push({ label: idx === 0 ? cat : `${cat} ${idx + 1}`, cat, color: catColor, segs: lane })
