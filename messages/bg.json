@@ -1069,6 +1069,7 @@
     "colActions": "Действия",
     "roleMember": "Потребител",
     "roleNurse": "Анестезиологична сестра",
+    "roleSeniorNurse": "Старша сестра",
     "roleHOD": "Началник отд.",
     "roleAdmin": "Администратор",
     "roleMemberLegacy": "Потребител (стар)",

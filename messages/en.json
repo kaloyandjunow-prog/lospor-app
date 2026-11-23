@@ -1069,6 +1069,7 @@
     "colActions": "Actions",
     "roleMember": "Member",
     "roleNurse": "Anaesthesia nurse",
+    "roleSeniorNurse": "Senior nurse",
     "roleHOD": "Head of Dept",
     "roleAdmin": "Admin",
     "roleMemberLegacy": "Member (legacy)",

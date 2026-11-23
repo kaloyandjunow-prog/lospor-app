@@ -39,7 +39,9 @@ type CaseRow = {
   user: { name: string }
   theatre?: CaseTheatreView
   transfers: Array<{ id: string; toUserId: string }>
-  capabilities?: { canWrite: boolean } | null
+  capabilities?: { canWrite: boolean; canAssignNurses?: boolean } | null
+  /** The anaesthesia nurses on the case. */
+  nurses?: { userId: string }[]
 }
 type DashboardScope = "all" | "today" | "month" | "active" | "drafts" | "awaiting-postop" | "complete" | "handovers" | "icu"
 type DashboardCounts = {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { isNurseAccountRole } from "@lospor/core/clinical-roles"
 import { useRouter } from "next/navigation"
 import { Users, X } from "lucide-react"
 import { calendarDayKey } from "@lospor/core/dashboard-date-scope"
@@ -27,7 +28,7 @@ export function TheatreNurseShifts({ theatres, role, userId, locale }: { theatre
   const copy = COPY[locale === "bg" ? "bg" : "en"]
   const router = useRouter()
   const manager = role === "ADMIN" || role === "HEAD_OF_DEPT"
-  const nurse = role === "ANAESTHESIA_NURSE"
+  const nurse = isNurseAccountRole(role)
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState<CalendarDate>(() => parseCalendarDateKey(calendarDayKey(new Date()))!)
   const [shifts, setShifts] = useState<Shift[]>([])

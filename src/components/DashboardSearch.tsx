@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { isNurseAccountRole } from "@lospor/core/clinical-roles"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -39,7 +40,9 @@ type CaseRow = {
   cancellationReason?: string | null
   postop?: { disposition?: string | null } | null
   transfers: { id: string }[]
-  capabilities?: { canWrite: boolean } | null
+  capabilities?: { canWrite: boolean; canAssignNurses?: boolean } | null
+  /** The anaesthesia nurses on the case. */
+  nurses?: { userId: string }[]
   theatre?: CaseTheatreView
 }
 
@@ -179,16 +182,22 @@ export function DashboardSearch({
                     </span>
                   )}
                   {/* 10.8.0: delete and cancel live in the row's menu, with the planned date and the nurses. */}
-                  {canWrite && !isComplete && role !== "ANAESTHESIA_NURSE" && (
-                    <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={(c as { plannedSurgeryDate?: string | null }).plannedSurgeryDate?.slice(0, 10) ?? null} canPlan={!isCancelled} canAssignNurses={!isCancelled}>
+                  {canWrite && !isComplete && !isNurseAccountRole(role) && (
+                    <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={(c as { plannedSurgeryDate?: string | null }).plannedSurgeryDate?.slice(0, 10) ?? null} canPlan={!isCancelled} canAssignNurses={!isCancelled && (c.capabilities?.canAssignNurses ?? true)}>
                       {!isCancelled && <DeleteDraftButton caseId={c.id} />}
                       {!isCancelled && <CancelProcedureButton caseId={c.id} inactive={!cancellationAllowed(c)} />}
                       {isCancelled && <UndoCancellationButton caseId={c.id} />}
                     </CaseRowMenu>
                   )}
-                  {canWrite && !isComplete && !isCancelled && role === "ANAESTHESIA_NURSE" && (
-                    <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={false} canHandOverToNurse />
-                  )}
+                  {/* A nurse sees every case of her hospital: she hands on a case she works, puts herself on one that has no nurse,
+                      and a senior nurse also places nurses (2026-11-23). */}
+                  {!isComplete && !isCancelled && isNurseAccountRole(role) && (() => {
+                    const canAssign = c.capabilities?.canAssignNurses === true
+                    const canTake = (c.nurses?.length ?? 1) === 0
+                    return canWrite || canAssign || canTake
+                      ? <CaseRowMenu caseId={c.id} locale={locale} plannedSurgeryDate={null} canPlan={false} canAssignNurses={canAssign} canHandOverToNurse={canWrite && !canAssign} canTakeCase={canTake} />
+                      : null
+                  })()}
                   {isComplete && (
                     <span
                       role="link"

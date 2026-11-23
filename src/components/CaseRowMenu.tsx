@@ -16,12 +16,12 @@ import { DateWheel } from "@/components/time/DateWheel"
 type Nurse = { id: string; name: string; firstName?: string; lastName?: string; title?: string }
 
 const COPY = {
-  bg: { menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
-  en: { menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
+  bg: { take: "Назначи ме на случая", menu: "Действия със случая", planned: "Планирана дата на операцията", clear: "Изчисти датата", nurses: "Анестезиологични сестри", none: "Няма анестезиологични сестри в отделението.", save: "Запази", cancel: "Отказ", handover: "Предай на друга сестра", handedOver: "Предадено", day: "Ден", month: "Месец", year: "Година" },
+  en: { take: "Put me on this case", menu: "Case actions", planned: "Planned operation date", clear: "Clear the date", nurses: "Anaesthesia nurses", none: "No anaesthesia nurses in the department.", save: "Save", cancel: "Cancel", handover: "Hand over to another nurse", handedOver: "Handed over", day: "Day", month: "Month", year: "Year" },
 } as const
 type Copy = (typeof COPY)[keyof typeof COPY]
 
-export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAssignNurses, canHandOverToNurse = false, children }: {
+export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAssignNurses, canHandOverToNurse = false, canTakeCase = false, children }: {
   caseId: string
   locale: string
   plannedSurgeryDate: string | null
@@ -29,6 +29,8 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   canAssignNurses: boolean
   /** An anaesthesia nurse passing her place in the case to another nurse. */
   canHandOverToNurse?: boolean
+  /** A nurse putting herself on a case that has no nurse. */
+  canTakeCase?: boolean
   /** The row's own harmful actions (delete, cancel), shown inside the menu. */
   children?: ReactNode
 }) {
@@ -36,6 +38,10 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<"date" | "nurses" | "handover" | null>(null)
+  const takeCase = async () => {
+    const response = await fetch(`/api/cases/${caseId}/nurses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ take: true }) })
+    if (response.ok) router.refresh()
+  }
   const ref = useRef<HTMLDivElement | null>(null)
   const panel = useRef<HTMLDivElement | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
@@ -84,6 +90,7 @@ export function CaseRowMenu({ caseId, locale, plannedSurgeryDate, canPlan, canAs
         <div ref={panel} role="menu" style={place} className="fixed z-[60] w-72 rounded-xl border border-slate-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] p-1.5 shadow-xl">
           {canPlan ? <button type="button" role="menuitem" className={item} data-testid="case-row-planned-date" onClick={() => { setOpen(false); setDialog("date") }}>{copy.planned}{plannedSurgeryDate ? ` · ${plannedSurgeryDate.split("-").reverse().join(".")}` : ""}</button> : null}
           {canAssignNurses ? <button type="button" role="menuitem" className={item} data-testid="case-row-nurses" onClick={() => { setOpen(false); setDialog("nurses") }}>{copy.nurses}</button> : null}
+          {canTakeCase ? <button type="button" role="menuitem" className={item} data-testid="case-row-take-case" onClick={() => { setOpen(false); void takeCase() }}>{copy.take}</button> : null}
           {canHandOverToNurse ? <button type="button" role="menuitem" className={item} data-testid="case-row-handover-nurse" onClick={() => { setOpen(false); setDialog("handover") }}>{copy.handover}</button> : null}
           {children ? <div className="mt-1 border-t border-slate-100 dark:border-[#2a2a2a] pt-1 flex flex-col gap-1 [&>*]:min-h-11 [&>*]:w-full">{children}</div> : null}
         </div>
