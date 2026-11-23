@@ -21,7 +21,7 @@ import {
   type IntraopEditRefusal,
 } from "@lospor/core/intraop-edits"
 import { EMPTY_INTRAOP_HISTORY, intraopHistoryPush, intraopHistoryRedo, intraopHistoryUndo, intraopUndoEntry, type IntraopHistory } from "@lospor/core/intraop-undo"
-import { intraopItemRef, intraopStampForColumn } from "@lospor/core/intraop-commands"
+import { intraopItemRef, intraopMenuStopEvent, intraopStampForColumn } from "@lospor/core/intraop-commands"
 import { INTRAOP_COLUMN_MS, sortIntraopEvents } from "@lospor/core/intraop-engine"
 import { instantForTimeInCase, type ClockTime } from "@lospor/core/time-entry"
 import { localTimeOf } from "@lospor/core/intraop-time"
@@ -48,7 +48,6 @@ export function useTimetableMenu(): MenuApi | null {
   return useContext(MenuContext)
 }
 
-const STOP_TYPE: Record<"agent" | "gas" | "jet", LogEvent["type"]> = { agent: "agent_stop", gas: "gas_stop", jet: "jet_stop" }
 
 function uid(): string {
   const bytes = new Uint8Array(16)
@@ -227,14 +226,9 @@ export function TimetableMenuHost({ children, log, applyOps, gridStartMs, starte
       case "plan_stop": {
         // `extra` is what a lane's own question adds to the stop (a TCI pump's total).
         const writeStop = (extra: Record<string, unknown> = {}) => {
-          // A past cell's stamp is the cell's start; a run that began later inside that cell is stopped a minute after it began.
-          const began = start ? Date.parse(start.ts) : null
-          const stamp = stampAt(target.col)
-          const ts = began != null && Date.parse(stamp) <= began ? new Date(Math.min(began + 60_000, now().getTime())).toISOString() : stamp
-          const stop = (target.kind === "infusion" ? { id: uid(), ts, type: "infusion_stop", infId: target.key, recordedAt: now().toISOString() }
-            : target.kind === "fluid" ? { id: uid(), ts, type: "fluid_end", fluidId: target.key, recordedAt: now().toISOString() }
-              : { id: uid(), ts, type: STOP_TYPE[target.kind], ...(target.kind === "agent" ? { name: target.key, agentMode: "concurrent" as const } : {}), recordedAt: now().toISOString() }) as LogEvent
-          commit([...logRef.current, { ...stop, ...extra } as LogEvent], copy.done.stopped(target.title, timeOf(ts)))
+          // Core builds it, the same for the phone: at the cell's time, never before the start it ends.
+          const stop = { id: uid(), ...intraopMenuStopEvent(logRef.current, { kind: target.kind, key: target.key }, stampAt(target.col), now(), extra) } as LogEvent
+          commit([...logRef.current, stop], copy.done.stopped(target.title, timeOf(stop.ts)))
         }
         // Only a stop that is happening asks (a TCI's pump total, a bag's volume); a planned stop asks when it comes.
         if (action === "stop" && (target.kind === "infusion" || target.kind === "fluid") && dialogs.stopWithData(target, writeStop)) return
