@@ -42,7 +42,9 @@ export function PlannedStopMarker() {
       title={t("plannedStopLabel")}
       aria-label={t("plannedStopLabel")}
       data-testid="planned-stop-marker"
-      className="pointer-events-none absolute inset-y-1 left-0.5 z-10 w-1 rounded-sm border border-dashed border-amber-500 bg-amber-400/40"
-    />
+      className="pointer-events-none absolute inset-y-0 left-0 z-30 border-l-2 border-dashed border-sky-500"
+    >
+      <span aria-hidden className="absolute -top-px left-0 flex h-4 w-5 items-center justify-center rounded-br bg-sky-500"><span className="h-2 w-2 rounded-[1px] bg-slate-950" /></span>
+    </span>
   )
 }

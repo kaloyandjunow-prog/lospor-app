@@ -483,7 +483,7 @@ html[data-gesture="held"] * {
 [data-intraop-chart-root] [data-tt-cell], [data-intraop-chart-root] [data-tt-point] { -webkit-tap-highlight-color: transparent; }
 
 /* A bar: it settles in when it appears and lightens when its cell is pointed at, armed or pressed. */
-.tt-bar { position: absolute; animation: tt-bar-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: left center; }
+.tt-bar { position: absolute; animation: tt-bar-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; transform-origin: left center; transition: transform 0.16s ease, filter 0.16s ease; }
 .tt-bar::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: rgb(255 255 255); opacity: 0; transition: opacity 0.16s ease;
@@ -493,6 +493,16 @@ html[data-gesture="held"] * {
 .dark [data-intraop-chart-root] [data-tt-cell]:hover .tt-bar::after,
 .dark [data-intraop-chart-root] [data-tt-armed] .tt-bar::after { opacity: 0.2; }
 [data-intraop-chart-root] [data-tt-cell]:active .tt-bar::after { opacity: 0.55; }
+/* The text on a solid bar is white; a running bar has a bright live edge, a stopped one a dark notch; the bar under the
+   pointer lifts and the other rows step back. */
+[data-intraop-chart-root] .tt-onbar { color: #fff !important; text-shadow: 0 1px 2px rgb(0 0 0 / 0.5); }
+.tt-end::before { content: ""; position: absolute; right: -1px; top: -2px; bottom: -2px; width: 3px; border-radius: 2px; pointer-events: none; z-index: 5; }
+.tt-live::before { background: #fff; opacity: 0.9; box-shadow: 0 0 8px #fff; }
+.tt-stopnotch::before { right: 0; top: 3px; bottom: 3px; width: 2px; background: rgb(0 0 0 / 0.5); }
+@media (hover: hover) {
+  [data-intraop-chart-root] [data-tt-cell]:hover .tt-bar { transform: translateY(-2px); filter: brightness(1.15) drop-shadow(0 4px 5px rgb(0 0 0 / 0.4)); z-index: 12; }
+  [data-intraop-chart-root]:has([data-tt-cell]:hover) [data-tt-lane]:not(:has([data-tt-cell]:hover)) .tt-bar { filter: saturate(0.6) brightness(0.88); }
+}
 @keyframes tt-bar-in {
   from { opacity: 0; transform: scaleX(0.82) scaleY(0.7); }
   to { opacity: 1; transform: none; }

@@ -22,7 +22,8 @@ export function LaneTotal({ text, color, testId = "lane-total" }: { text: string
       className="pointer-events-none absolute inset-y-0 left-1 z-30 flex items-center whitespace-nowrap text-xs font-bold tabular-nums text-slate-600 dark:text-slate-300"
       style={color ? { color } : undefined}
     >
-      Σ {text}
+      {/* On a pill, so the running stripes after it do not run through the figures. */}
+      <span className="rounded bg-white/85 px-1 py-0.5 dark:bg-[#1c1c1c]/85">Σ {text}</span>
     </span>
   )
 }

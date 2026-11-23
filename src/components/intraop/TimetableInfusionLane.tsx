@@ -16,6 +16,7 @@ import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches, type StripStretch } from "./TimetableChangeStrip"
 import { InfusionRateStrip } from "./InfusionRateStrip"
 import { ttCell, ttLane } from "./chart-cursor"
+import { runOnStripes } from "./run-on-stripes"
 import { LaneTotal, totalColumn } from "./lane-extras"
 import { intraopInfusionTotalLabel } from "@lospor/core/intraop-run-totals"
 import type { TciPatient } from "@lospor/core/tci"
@@ -244,8 +245,8 @@ export function InfusionLane({
                   type="button"
                   data-testid="infusion-runs-on"
                   aria-label={displayInfusionName(runOn.name)}
-                  className="absolute top-[6px] bottom-1 left-0 right-0 z-10 rounded-sm border border-dashed opacity-60 hover:opacity-100"
-                  style={{ borderColor: color, backgroundColor: color + "14" }}
+                  className="absolute top-[6px] bottom-1 left-0 right-0 z-10 rounded-sm hover:!opacity-100"
+                  style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.14, 0.62 - 0.05 * (ci - (nowCol ?? ci))) }}
                   onClick={e => {
                     e.stopPropagation()
                     openMenu({ segId: runOn.id, name: runOn.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: false, fromPillCol: ci })
@@ -269,16 +270,14 @@ export function InfusionLane({
                     setSel(() => ({ type: "infusion", id: seg.id }))
                     openMenu({ segId: seg.id, name: seg.name, color, rect: e.currentTarget.getBoundingClientRect(), stopped: !!seg.stopped, fromPillCol: ci })
                   }}
-                  className={`tt-bar absolute left-0 right-0 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : ""}`}
+                  className={`tt-bar ${isActualEnd && !isRowExit && !seg.planned ? (seg.stopped ? "tt-end tt-stopnotch" : "tt-end tt-live") : ""} absolute left-0 right-0 cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-50 border-dashed" : hoverDiscontinue === seg.id || cutOff ? "opacity-50" : ""}`}
                   style={{
                     top: 6,
                     bottom: 4,
                     ...timedLeft,
                     ...timedRight,
-                    backgroundColor: isSelected ? color + "99" : color + "44",
-                    borderColor: isSelected ? color : color + "88",
-                    borderStyle: seg.stopped || hoverDiscontinue === seg.id ? "dashed" : "solid",
-                    boxShadow: isSelected ? `0 0 0 1.5px ${color}` : undefined,
+                    background: `linear-gradient(180deg, ${color}, color-mix(in srgb, ${color} 74%, #000))`,
+                    boxShadow: isSelected ? "0 0 0 2px #fff, inset 0 1px 0 rgba(255,255,255,.35)" : "inset 0 1px 0 rgba(255,255,255,.35), 0 1px 5px rgba(0,0,0,.3)",
                   }}
                 >
                 </div>

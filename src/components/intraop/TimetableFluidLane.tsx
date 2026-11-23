@@ -13,6 +13,7 @@ import type { TimetableFluid } from "@/types/timetable"
 import { useIntraopUiCopy } from "./ui-copy"
 import { ChangeStripCell, stripStretches } from "./TimetableChangeStrip"
 import { ttCell, ttLane } from "./chart-cursor"
+import { runOnStripes } from "./run-on-stripes"
 import { LaneTotal, totalColumn } from "./lane-extras"
 import { intraopFluidTotalLabel } from "@lospor/core/intraop-run-totals"
 import { useLocale } from "next-intl"
@@ -173,8 +174,8 @@ export function FluidLane({
             }}
           >
             {runOn && (
-              <div data-testid="fluid-runs-on" aria-hidden className="absolute inset-y-1 left-0 right-0 rounded-sm border border-dashed opacity-60 pointer-events-none"
-                style={{ borderColor: color, backgroundColor: color + "14" }} />
+              <div data-testid="fluid-runs-on" aria-hidden className="absolute inset-y-1 left-0 right-0 rounded-sm pointer-events-none"
+                style={{ ...runOnStripes(color, ci, colW), opacity: Math.max(0.14, 0.62 - 0.05 * (ci - (nowCol ?? ci))) }} />
             )}
             {!seg && segments.filter(s => !s.planned && totalColumn(s, nowCol) === ci).map(s => {
               return <LaneTotal key={s.id} text={totalOf(s)} color={color} testId="fluid-total" />
@@ -206,13 +207,12 @@ export function FluidLane({
                 )}
                 <div
                   onClick={e => { e.stopPropagation(); setSel({ type: "fluid", id: seg.id }); openFluidMenu(seg, ci, e.currentTarget.getBoundingClientRect()) }}
-                  className={`tt-bar absolute inset-y-1 border-y cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
+                  className={`tt-bar ${isActualEnd && !isRowExit && !seg.planned ? (seg.stopped ? "tt-end tt-stopnotch" : "tt-end tt-live") : ""} absolute inset-y-1 cursor-pointer ${barLeftClass(isActualStart || isRowCont)} ${barRightClass(seg.endCol, isActualEnd && !isRowExit, colEnd)} ${isDragPreview || cutOff ? "opacity-50" : ""} ${seg.planned ? "opacity-40 border-dashed" : seg.stopped ? "opacity-60 border-dashed" : ""}`}
                   style={{
                     ...timedLeft,
                     ...timedRight,
-                    backgroundColor: isSel ? color + "88" : color + "33",
-                    borderColor: isSel ? color : color + "88",
-                    boxShadow: isSel ? `0 0 0 1.5px ${color}` : undefined,
+                    background: `linear-gradient(180deg, ${color}, color-mix(in srgb, ${color} 74%, #000))`,
+                    boxShadow: isSel ? "0 0 0 2px #fff, inset 0 1px 0 rgba(255,255,255,.35)" : "inset 0 1px 0 rgba(255,255,255,.35), 0 1px 5px rgba(0,0,0,.3)",
                   }}
                 />
                 {(isActualStart || isRowCont) && (() => {
@@ -242,14 +242,14 @@ export function FluidLane({
                           rect: event.currentTarget.getBoundingClientRect(),
                         })
                       }}
-                      className="absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold"
+                      className="tt-onbar absolute top-1/2 -translate-y-1/2 z-20 select-none truncate px-1 text-xs font-bold"
                       style={{ color, left: 0, width: visW, top: 42 }}
                     >
                       {barLabel}
                     </button>
                   ) : (
                     <span
-                      className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold"
+                      className="tt-onbar absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none select-none truncate px-1 text-center text-xs font-bold"
                       style={{ color, left: 0, width: visW, ...(isRate ? { top: 42 } : {}) }}
                     >
                       {barLabel}
